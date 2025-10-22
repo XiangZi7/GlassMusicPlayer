@@ -4,16 +4,18 @@ import { wrapperEnv } from "./build/getEnv";
 import { createProxy } from "./build/proxy";
 import { createVitePlugins } from "./build/plugins";
 
-// https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root);
   const viteEnv = wrapperEnv(env);
 
+  // let outDir = `D:/code/static-web/hkfeiliang/${mode == 'test' ? 'test/refund' : 'refund'}`
+
+
   return {
     plugins: createVitePlugins(viteEnv),
     server: {
-      port: 8089,
+      port: 5089,
       host: true,
       // 代理配置
       proxy: createProxy(viteEnv.VITE_PROXY)
@@ -25,12 +27,11 @@ export default defineConfig(({ mode }) => {
     },
     base: viteEnv.VITE_PUBLIC_PATH,
     build: {
-      // outDir: 'xxxxx', // 设置输出目录
       rollupOptions: {
         // 静态资源分类打包
         output: {
-          chunkFileNames: 'static/js/[name]-[hash].js',
           entryFileNames: 'static/js/[name]-[hash].js',
+          chunkFileNames: 'static/js/[name]-[hash].js',
           assetFileNames: 'static/[ext]/[name]-[hash].[ext]',
           // 静态资源分拆打包
           manualChunks(id) {

@@ -37,6 +37,7 @@
   },
   "types": [
     "vite,client",
+    "vite-plugin-svg-icons/client"
   ],
   "include": [
     "src/**/*.ts",

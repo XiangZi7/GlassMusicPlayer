@@ -1,98 +1,277 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin '@iconify/tailwind4';
 
-@layer base {
-  :root {
-    --theme-bg-color: 0, 0%, 100%, 31%;
-    --dm-background:0, 0%, 100%, 91%;
-
-    --background:0, 0%, 100%, 31%;
-    --foreground: 222.2 84% 4.9%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --card: rgb(146 151 179 / 13%);
-    --card-foreground: 222.2 84% 4.9%;
-
-    --border: 0 0% 100% / 35%;;
-    --input: 214.3 31.8% 91.4%;
-
-    --inactive: 0 0% 20%;
-
-    --heroui-default: 240 4.88% 83.92%;
-    --bg-content1:0 0% 100%;
-
-    --hover-menu-bg: 0, 0%, 100%, 35%;
-
-    --primary: #7E22CE;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --accent: 0, 0%, 100%, 31%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+@layer theme {
+  /* 纯 CSS 流体字体 */
+  /* 默认  */
+  html {
+    font-size: 16px;
   }
 
-  .dark {
-    --theme-bg-color: 222, 25%, 8%, 40%;
-    --dm-background:222, 25%, 8%, 95%;
+  /* 高分辨率大屏幕（真正的2K/4K显示器，物理尺寸大） */
+  @media screen and (min-width: 1921px) {
+    html {
+      font-size: 15px; /* 大屏幕用更大字体 */
+    }
+  }
 
-    --background: 222, 25%, 8%, 40%;
-    --foreground: 210 40% 98%;
+  /* 高分辨率但小屏幕（如MacBook Pro Retina） - 优先级最高 */
+  @media screen and (max-width: 1920px) and (min-resolution: 2dppx) and (max-width: 16in) {
+    html {
+      font-size: 14px; /* 高分辨率小屏幕用较小字体 */
+    }
+  }
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+  /* 普通2K大屏显示器（物理尺寸大） */
+  @media screen and (max-width: 1920px) and (min-width: 1367px) and (max-resolution: 1.5dppx) {
+    html {
+      font-size: 14px; /* 普通2K大屏 */
+    }
+  }
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+  /* MacBook Air 13寸等中等分辨率小屏 */
+  @media screen and (max-width: 1920px) and (min-width: 1367px) and (min-resolution: 1.5dppx) and (max-width: 15in) {
+    html {
+      font-size: 11px;
+    }
+  }
 
-    --inactive: 227 12% 50% / 78%;
+  /* <= 1366px 标准1K分辨率 */
+  @media screen and (max-width: 1366px) {
+    html {
+      font-size: 10px;
+    }
+  }
 
-    --heroui-default: 240 5.26% 26.08%;
-    --bg-content1: 240 5.88% 10%;
+  /* <= 992px 平板横屏 */
+  @media screen and (max-width: 992px) {
+    html {
+      font-size: 8px;
+    }
+  }
 
-    --hover-menu-bg: 222, 36%, 7%, 30%;
+  /* <= 768px 平板竖屏 / 大手机 */
+  @media screen and (max-width: 768px) {
+    html {
+      font-size: 7px;
+    }
+  }
 
-    --card: rgb(146 151 179 / 13%);
-    --card-foreground: 210 40% 98%;
+  /* <= 576px 手机 */
+  @media screen and (max-width: 576px) {
+    html {
+      font-size: 6px;
+    }
+  }
 
-    --border: 227 12% 50% / 25%;
-    --input: 217.2 32.6% 17.5%;
-
-    --primary: #7E22CE;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --accent: 222, 25%, 8%, 40%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --ring: 212.7 26.8% 83.9%;
+  /* <= 480px 小屏手机 */
+  @media screen and (max-width: 480px) {
+    html {
+      font-size: 6px;
+    }
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+@layer components {
+  /* 毛玻璃效果基础样式 */
+  .glass-base,
+  .glass-container,
+  .glass-card,
+  .glass-nav,
+  .glass-button {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
-  body {
-    @apply bg-background text-foreground;
+
+  /* 基础毛玻璃效果类 */
+  .glass-base {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 主容器毛玻璃效果 */
+  .glass-container {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* 卡片毛玻璃效果 */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow:
+      0 12px 24px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* 导航栏毛玻璃效果 */
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* 按钮毛玻璃效果 */
+  .glass-button {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 20px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  /* 二次元风格渐变背景 */
+  .anime-gradient {
+    background: linear-gradient(
+      135deg,
+      #667eea 0%,
+      #764ba2 25%,
+      #f093fb 50%,
+      #f5576c 75%,
+      #4facfe 100%
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  /* 粒子动画 */
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .particle:nth-child(odd) {
+    animation-delay: -2s;
+  }
+
+  .particle:nth-child(even) {
+    animation-delay: -4s;
+  }
+}
+
+@layer utilities {
+  /* 动画关键帧 */
+  @keyframes gradient-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+      opacity: 0.6;
+    }
+    25% {
+      transform: translateY(-20px) rotate(90deg);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-40px) rotate(180deg);
+      opacity: 0.8;
+    }
+    75% {
+      transform: translateY(-20px) rotate(270deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(167, 139, 250, 0.6);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* 工具类 */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* 主题色扩展
+  :root {
+    --primary-color: #2563eb;
+    --secondary-color: #4f46e5;
+  } */
+}
+
+@layer base {
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
+  .bg-full {
+    background-size: 100% 100%;
+  }
+
+  .absolute-center {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+
+  /* 动画效果 */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 }

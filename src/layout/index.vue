@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import Header from './components/header/index.vue'
-import Aside from './components/aside/index.vue'
-import Main from './components/main/index.vue'
-import Footer from './components/footer/index.vue'
-import BG from './components/bg/index.vue'
-import { AudioPlayer } from '@/hooks/useAudioPlayer'
-
-provide('audioPlayer', AudioPlayer())
+import Header from './header.vue'
+import Aside from './aside.vue'
+import Footer from './footer.vue'
+import Particle from './particle.vue'
 </script>
+
 <template>
-  <BG />
-  <div class="absolute w-full flex flex-col h-full p-10 z-10">
-    <div
-      class="w-full flex flex-col h-full rounded-2xl overflow-hidden bg-themeBgColor backdrop-blur-lg"
-    >
-      <Header />
-      <div class="flex flex-1 overflow-hidden">
-        <Aside />
-        <Main />
+  <div class="anime-gradient relative flex h-full w-full overflow-hidden">
+    <Particle />
+    <!-- 主容器 -->
+    <div class="w-full flex flex-col py-6 px-36">
+      <div class="glass-container flex flex-1 flex-col overflow-hidden">
+        <!-- 头部区域 -->
+        <Header />
+        <!-- 主内容区域 -->
+        <main class="flex flex-1 overflow-x-hidden">
+          <!-- 左侧边栏 -->
+          <Aside />
+          <!-- 右侧主内容 -->
+          <router-view />
+        </main>
+        <Footer />
       </div>
-      <Footer />
     </div>
   </div>
 </template>

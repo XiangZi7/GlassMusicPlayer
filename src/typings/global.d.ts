@@ -9,6 +9,21 @@ declare interface ViteEnv {
     VITE_PROXY: [string, string][];
 }
 
+interface ImportMeta {
+    readonly env: ImportMetaEnv
+}
+
 interface ImportMetaEnv extends ViteEnv {
     __: unknown;
 }
+
+
+type ObjToKeyValArray<T> = {
+    [K in keyof T]: [K, T[K]]
+}[keyof T]
+
+declare interface Window {
+    adsbygoogle: { [key: string]: unknown }[] | undefined;
+}
+
+declare let adsbygoogle: { [key: string]: unknown }[] | undefined;
