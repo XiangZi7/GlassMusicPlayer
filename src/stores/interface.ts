@@ -1,3 +1,61 @@
+// 歌曲信息接口
+export interface Song {
+  id: string | number
+  name: string
+  artist: string
+  album?: string
+  duration: string
+  url?: string
+  cover?: string
+  emoji?: string
+  gradient?: string
+  liked?: boolean
+}
+
+// 播放模式枚举
+export enum PlayMode {
+  LIST = 'list',        // 列表循环
+  SINGLE = 'single',    // 单曲循环
+  RANDOM = 'random'     // 随机播放
+}
+
+// 音乐播放器状态接口
+export interface AudioState {
+  // 播放器实例
+  audio: HTMLAudioElement | null
+  
+  // 播放状态
+  isPlaying: boolean
+  isPaused: boolean
+  isLoading: boolean
+  
+  // 当前歌曲信息
+  currentSong: Song | null
+  currentIndex: number
+  
+  // 播放列表
+  playlist: Song[]
+  originalPlaylist: Song[] // 原始播放列表（用于随机模式）
+  
+  // 播放模式
+  playMode: PlayMode
+  
+  // 音量控制
+  volume: number
+  isMuted: boolean
+  
+  // 播放进度
+  currentTime: number
+  duration: number
+  
+  // 历史记录
+  playHistory: Song[]
+  
+  // 错误信息
+  error: string | null
+}
+
 export interface GlobalState {
-    count: number;
+  count: number
+  audio: AudioState
 }

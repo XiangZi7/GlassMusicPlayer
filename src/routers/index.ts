@@ -26,6 +26,16 @@ const router = createRouter({
           name: 'playlist',
           component: () => import('@/pages/playlist.vue'),
         },
+        {
+          path: '/mv-list',
+          name: 'mv-list',
+          component: () => import('@/pages/mv-list.vue'),
+        },
+        {
+          path: '/mv-player/:id',
+          name: 'mv-player',
+          component: () => import('@/pages/mv-player.vue'),
+        },
       ],
     },
   ],

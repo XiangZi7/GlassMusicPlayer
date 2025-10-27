@@ -32,7 +32,7 @@
           @click="playSong(song, index)"
         >
           <!-- 序号/播放状态 -->
-          <div class="w-12 flex-shrink-0 text-center">
+          <div class="w-12 shrink-0 text-center">
             <span 
               v-if="currentPlayingIndex !== index"
               class="text-purple-300 group-hover:hidden"

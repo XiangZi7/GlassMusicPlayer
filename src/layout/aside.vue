@@ -12,6 +12,22 @@ const userPlaylists = ref([
     <div class="glass-card h-full p-4">
       <h3 class="mb-4 font-semibold text-white">我的音乐</h3>
       <nav class="space-y-2">
+        <router-link
+          to="/"
+          class="flex items-center space-x-3 rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          :class="{ 'bg-white/10 text-white': $route.path === '/' }"
+        >
+          <span class="icon-[mdi--home] h-5 w-5"></span>
+          <span>首页</span>
+        </router-link>
+        <router-link
+          to="/mv-list"
+          class="flex items-center space-x-3 rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          :class="{ 'bg-white/10 text-white': $route.path === '/mv-list' }"
+        >
+          <span class="icon-[mdi--video] h-5 w-5"></span>
+          <span>MV</span>
+        </router-link>
         <a
           href="#"
           class="flex items-center space-x-3 rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"

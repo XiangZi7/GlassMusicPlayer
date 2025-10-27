@@ -1,5 +1,18 @@
 <script setup lang="ts">
 import SongList from '../components/SongList.vue'
+import { useAudio } from '@/composables/useAudio'
+import { testSongs } from '@/utils/testSongs'
+import { onMounted } from 'vue'
+
+// 使用音频播放器
+const { setPlaylist, playSong } = useAudio()
+
+// 组件挂载时加载测试歌曲
+onMounted(() => {
+  // 设置测试歌曲到播放列表
+  setPlaylist(testSongs)
+  console.log('已加载测试歌曲到播放列表:', testSongs)
+})
 
 // 轮播图数据
 const banners = ref([
@@ -87,7 +100,13 @@ const currentPlayingIndex = ref(-1)
 // 处理播放歌曲
 const handlePlaySong = (song: any, index: number) => {
   currentPlayingIndex.value = index
-  console.log(`播放歌曲: ${song.name}`)
+  // 播放对应的测试歌曲
+  if (testSongs[index]) {
+    playSong(testSongs[index], index)
+    console.log(`播放歌曲: ${testSongs[index].name}`)
+  } else {
+    console.log(`播放歌曲: ${song.name}`)
+  }
 }
 
 // 处理喜欢歌曲
@@ -293,9 +312,18 @@ onMounted(() => {
               <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
               热门单曲
             </h2>
-            <button class="text-purple-300 transition-colors hover:text-white">
-              <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-            </button>
+            <div class="flex items-center space-x-3">
+              <!-- 快速测试按钮 -->
+              <button 
+                @click="playSong(testSongs[0], 0)"
+                class="glass-button px-4 py-2 text-sm text-white transition-all hover:scale-105"
+              >
+                🎵 播放测试歌曲
+              </button>
+              <button class="text-purple-300 transition-colors hover:text-white">
+                <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
+              </button>
+            </div>
           </div>
 
           <SongList
