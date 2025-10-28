@@ -7,34 +7,38 @@ interface LyricLine {
   text: string
 }
 
-const props = defineProps<{
-  isOpen: boolean
-}>()
-
-const emit = defineEmits<{
-  close: []
-  showPlaylist: []
-}>()
+const isOpen = defineModel<boolean>()
 
 // 使用音频播放器
 const {
   currentSong,
   isPlaying,
   volume,
-  isMuted,
   currentTime,
   duration,
   progress,
   playMode,
   togglePlay,
-  nextSong,
-  previousSong,
+  next,
+  previous,
   setVolume,
   toggleMute,
   setProgress,
   togglePlayMode,
-  toggleLike,
 } = useAudio()
+
+// 播放模式图标计算属性
+const playModeIconClass = computed(() => {
+  switch (playMode.value) {
+    case 'single':
+      return 'icon-[mdi--repeat-once]'
+    case 'random':
+      return 'icon-[mdi--shuffle]'
+    case 'list':
+    default:
+      return 'icon-[mdi--repeat]'
+  }
+})
 
 // 响应式状态
 const drawerRef = ref<HTMLElement>()
@@ -78,7 +82,6 @@ const handleTogglePlay = () => {
 }
 
 const handleToggleLike = () => {
-  toggleLike()
   gsap.fromTo(
     '.like-button',
     {
@@ -255,7 +258,7 @@ const closeDrawer = () => {
   if (drawerRef.value) {
     const tl = gsap.timeline({
       onComplete: () => {
-        gsap.set(drawerRef.value, { display: 'none' })
+        gsap.set(drawerRef.value as any, { display: 'none' })
       },
     })
 
@@ -294,7 +297,7 @@ const animateParticles = () => {
 
 // 监听器
 watch(
-  () => props.isOpen,
+  () => isOpen.value,
   newVal => {
     if (newVal) {
       nextTick(() => {
@@ -308,7 +311,7 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  gsap.set(drawerRef.value, { display: 'none' })
+  gsap.set(drawerRef.value as any, { display: 'none' })
 })
 
 onUnmounted(() => {
@@ -327,7 +330,7 @@ onUnmounted(() => {
       <!-- 关闭按钮 -->
       <div class="absolute top-6 right-6 z-10">
         <button
-          @click="$emit('close')"
+          @click="isOpen = false"
           class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
         >
           <span class="icon-[mdi--close] h-6 w-6 text-white"></span>
@@ -421,22 +424,14 @@ onUnmounted(() => {
           <button
             @click="togglePlayMode"
             class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-            :class="{ 'bg-pink-500/30': playMode !== 'LIST' }"
+            :class="{ 'bg-pink-500/30': playMode !== 'list' }"
           >
-            <span
-              v-if="playMode === 'SINGLE'"
-              class="icon-[mdi--repeat-once] h-5 w-5 text-white"
-            ></span>
-            <span
-              v-else-if="playMode === 'SHUFFLE'"
-              class="icon-[mdi--shuffle] h-5 w-5 text-white"
-            ></span>
-            <span v-else class="icon-[mdi--repeat] h-5 w-5 text-white"></span>
+            <component :is="'span'" :class="playModeIconClass" class="h-5 w-5 text-white" />
           </button>
 
           <!-- 上一首 -->
           <button
-            @click="previousSong"
+            @click="previous"
             class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
           >
             <span class="icon-[mdi--skip-previous] h-6 w-6 text-white"></span>
@@ -445,7 +440,7 @@ onUnmounted(() => {
           <!-- 播放/暂停 -->
           <button
             @click="handleTogglePlay"
-            class="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
+            class="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
           >
             <span v-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
             <span v-else class="icon-[mdi--pause] h-8 w-8 text-white"></span>
@@ -453,7 +448,7 @@ onUnmounted(() => {
 
           <!-- 下一首 -->
           <button
-            @click="nextSong"
+            @click="next"
             class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
           >
             <span class="icon-[mdi--skip-next] h-6 w-6 text-white"></span>
@@ -461,7 +456,6 @@ onUnmounted(() => {
 
           <!-- 播放列表 -->
           <button
-            @click="$emit('showPlaylist')"
             class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
           >
             <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
@@ -485,10 +479,7 @@ onUnmounted(() => {
           <!-- 音量控制 -->
           <div class="flex items-center space-x-3">
             <button @click="toggleMute" class="transition-colors duration-200">
-              <span
-                v-if="volume === 0 || isMuted"
-                class="icon-[mdi--volume-off] h-5 w-5 text-white/80"
-              ></span>
+              <span v-if="volume === 0" class="icon-[mdi--volume-off] h-5 w-5 text-white/80"></span>
               <span
                 v-else-if="volume < 0.5"
                 class="icon-[mdi--volume-medium] h-5 w-5 text-white/80"
@@ -499,7 +490,7 @@ onUnmounted(() => {
               type="range"
               min="0"
               max="100"
-              :value="isMuted ? 0 : volume * 100"
+              :value="volume * 100"
               @input="handleVolumeChange"
               class="slider h-2 w-20 appearance-none rounded-full bg-white/20 outline-none"
             />
@@ -507,7 +498,6 @@ onUnmounted(() => {
 
           <!-- 播放列表 -->
           <button
-            @click="$emit('showPlaylist')"
             class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
           >
             <span class="icon-[mdi--playlist-music] h-6 w-6 text-white/80"></span>

@@ -188,15 +188,6 @@ const toggleLike = () => {
     </div>
 
     <!-- 播放器抽屉 -->
-    <PlayerDrawer
-      :is-open="isDrawerOpen"
-      :current-song="currentSong"
-      @close="closePlayerDrawer"
-      @play="togglePlay"
-      @pause="togglePlay"
-      @next="next"
-      @previous="previous"
-      @volume-change="setVolume"
-    />
+    <PlayerDrawer v-model="isDrawerOpen" />
   </footer>
 </template>

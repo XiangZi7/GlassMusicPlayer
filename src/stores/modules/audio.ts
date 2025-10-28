@@ -5,8 +5,8 @@ import piniaPersistConfig from '../persist'
 // 创建音频播放器实例
 const createAudioInstance = (): HTMLAudioElement => {
   const audio = new Audio()
-  audio.preload = 'metadata'
-  audio.crossOrigin = 'anonymous'
+  // audio.preload = 'metadata'
+  // audio.crossOrigin = 'anonymous'
   return audio
 }
 
