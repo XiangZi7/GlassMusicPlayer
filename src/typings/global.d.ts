@@ -27,3 +27,4 @@ declare interface Window {
 }
 
 declare let adsbygoogle: { [key: string]: unknown }[] | undefined;
+declare module 'three'

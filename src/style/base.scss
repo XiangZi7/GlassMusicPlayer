@@ -3,12 +3,12 @@ body,
 #app {
   height: 100%;
   width: 100%;
+  font-family: 'hanyi';
 }
 
 #app {
   display: flex;
 }
-
 
 /* 自定义滚动条 */
 ::-webkit-scrollbar {
@@ -27,4 +27,9 @@ body,
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #ec4899, #9333ea);
+}
+
+@font-face {
+  font-family: 'hanyi';
+  src: url('../assets/hanyi.ttf');
 }

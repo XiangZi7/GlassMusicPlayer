@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PlayerDrawer from '../components/PlayerDrawer.vue'
 import { useAudio } from '@/composables/useAudio'
 
 // 使用音频播放器组合式API
@@ -8,7 +7,6 @@ const {
   currentSong,
   isPlaying,
   volume,
-  playMode,
   formattedCurrentTime,
   formattedDuration,
   progress,
@@ -37,11 +35,6 @@ const isDrawerOpen = ref(false)
 // 打开播放器抽屉
 const openPlayerDrawer = () => {
   isDrawerOpen.value = true
-}
-
-// 关闭播放器抽屉
-const closePlayerDrawer = () => {
-  isDrawerOpen.value = false
 }
 
 // 计算播放按钮状态
@@ -153,7 +146,7 @@ const toggleLike = () => {
         </button>
         <div class="relative h-1 w-20 overflow-hidden rounded-full bg-white/20">
           <div
-            class="h-full rounded-full bg-gradient-to-r from-pink-400 to-purple-500 transition-all duration-200"
+            class="h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500 transition-all duration-200"
             :style="{ width: `${volume * 100}%` }"
           ></div>
           <input

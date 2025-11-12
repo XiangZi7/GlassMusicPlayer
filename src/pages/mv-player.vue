@@ -3,13 +3,13 @@
     <div class="h-full overflow-auto">
       <!-- 返回按钮 -->
       <div class="p-4">
-        <button 
+        <router-link 
+          to="/mv-list"
           class="glass-button bg-white/10 hover:bg-white/20 px-4 py-2 text-white flex items-center space-x-2 transition-all duration-300"
-          @click="goBack"
         >
           <span class="icon-[mdi--arrow-left] w-5 h-5"></span>
           <span>返回</span>
-        </button>
+        </router-link>
       </div>
 
       <!-- MV播放器区域 -->

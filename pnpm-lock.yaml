@@ -29,6 +29,9 @@ importers:
       nprogress:
         specifier: ^0.2.0
         version: 0.2.0
+      ogl:
+        specifier: ^1.0.11
+        version: 1.0.11
       pinia:
         specifier: ^3.0.3
         version: 3.0.3(typescript@5.9.3)(vue@3.5.22(typescript@5.9.3))
@@ -47,6 +50,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.15
         version: 4.1.15
+      three:
+        specifier: ^0.181.1
+        version: 0.181.1
       unplugin-auto-import:
         specifier: ^20.2.0
         version: 20.2.0(@vueuse/core@13.9.0(vue@3.5.22(typescript@5.9.3)))
@@ -2337,6 +2343,9 @@ packages:
     resolution: {integrity: sha512-tqa/UMy/CCoYmj+H5qc07qvSL9dqcs/WZENZ1JbtWBlATP+iVOe778gE6MSijnyCnORzDuX6hU+LA4SZ09YjFQ==}
     engines: {node: '>=0.10.0'}
 
+  ogl@1.0.11:
+    resolution: {integrity: sha512-kUpC154AFfxi16pmZUK4jk3J+8zxwTWGPo03EoYA8QPbzikHoaC82n6pNTbd+oEaJonaE8aPWBlX7ad9zrqLsA==}
+
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
@@ -2955,6 +2964,9 @@ packages:
   tapable@2.3.0:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
+
+  three@0.181.1:
+    resolution: {integrity: sha512-bz9xZUQMw3pJbjKy7roiwXWgAp+oVUa+4k5o0oBAQ+IFJuru1xzvtk63h6k72XZanXS/SgoEhV6927Vgazyq2w==}
 
   tinyexec@1.0.1:
     resolution: {integrity: sha512-5uC6DDlmeqiOwCPmK9jMSdOuZTh8bU39Ys6yidB+UTt5hfZUPGAypSgFRiEp+jbi9qH40BLDvy85jIU88wKSqw==}
@@ -5564,6 +5576,8 @@ snapshots:
     dependencies:
       isobject: 3.0.1
 
+  ogl@1.0.11: {}
+
   ohash@2.0.11: {}
 
   open@10.2.0:
@@ -6166,6 +6180,8 @@ snapshots:
   tailwindcss@4.1.15: {}
 
   tapable@2.3.0: {}
+
+  three@0.181.1: {}
 
   tinyexec@1.0.1: {}
 

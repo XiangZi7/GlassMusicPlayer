@@ -49,6 +49,14 @@ const userPlaylists = ref([
           <span class="icon-[mdi--playlist-music] h-5 w-5"></span>
           <span>创建的歌单</span>
         </a>
+        <router-link
+          to="/settings"
+          class="flex items-center space-x-3 rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          :class="{ 'bg-white/10 text-white': $route.path === '/settings' }"
+        >
+          <span class="icon-[mdi--cog] h-5 w-5"></span>
+          <span>设置</span>
+        </router-link>
       </nav>
 
       <div class="mt-6">
@@ -60,7 +68,7 @@ const userPlaylists = ref([
             class="flex cursor-pointer items-center space-x-3 rounded-lg p-2 transition-colors hover:bg-white/10"
           >
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 text-xs"
+              class="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-pink-400 to-purple-500 text-xs"
             >
               {{ playlist.name.charAt(0) }}
             </div>

@@ -52,11 +52,11 @@
       <!-- MV网格列表 -->
       <section class="px-8 pb-8">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <div
+          <router-link
             v-for="mv in filteredMVs"
             :key="mv.id"
+            :to="`/mv-player/${mv.id}`"
             class="mv-card glass-card group cursor-pointer transition-all duration-500 hover:scale-105 hover:shadow-2xl"
-            @click="playMV(mv)"
           >
             <!-- MV封面 -->
             <div class="relative overflow-hidden rounded-t-2xl">
@@ -142,7 +142,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </router-link>
         </div>
 
         <!-- 加载更多 -->

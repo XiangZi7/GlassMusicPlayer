@@ -36,6 +36,11 @@ const router = createRouter({
           name: 'mv-player',
           component: () => import('@/pages/mv-player.vue'),
         },
+        {
+          path: '/settings',
+          name: 'settings',
+          component: () => import('@/pages/settings.vue'),
+        },
       ],
     },
   ],

@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import SongList from '../components/SongList.vue'
 import { useAudio } from '@/composables/useAudio'
 import { testSongs } from '@/utils/testSongs'
-import { onMounted } from 'vue'
 
 // 使用音频播放器
-const { setPlaylist, playSong } = useAudio()
+const { setPlaylist } = useAudio()
 
 // 组件挂载时加载测试歌曲
 onMounted(() => {
@@ -100,13 +98,6 @@ const currentPlayingIndex = ref(-1)
 // 处理播放歌曲
 const handlePlaySong = (song: any, index: number) => {
   currentPlayingIndex.value = index
-  // 播放对应的测试歌曲
-  if (testSongs[index]) {
-    playSong(testSongs[index], index)
-    console.log(`播放歌曲: ${testSongs[index].name}`)
-  } else {
-    console.log(`播放歌曲: ${song.name}`)
-  }
 }
 
 // 处理喜欢歌曲
@@ -168,6 +159,7 @@ onMounted(() => {
       <!-- 轮播图区域 -->
       <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4">
         <div class="carousel-container relative h-full">
+          
           <div
             v-for="(banner, index) in banners"
             :key="index"
@@ -177,7 +169,7 @@ onMounted(() => {
             <div class="relative h-full w-full overflow-hidden rounded-2xl">
               <!-- 背景渐变 -->
               <div
-                class="absolute inset-0 bg-gradient-to-br opacity-90"
+                class="absolute inset-0 bg-linear-to-br opacity-90"
                 :class="banner.gradient"
               ></div>
 
@@ -207,13 +199,14 @@ onMounted(() => {
                   >
                     {{ banner.description }}
                   </p>
-                  <button
+                  <router-link
+                    to="/mv-list"
                     class="glass-button animate-fade-in-up bg-white/20 px-6 py-3 text-white hover:bg-white/30"
                     style="animation-delay: 0.4s"
                   >
                     <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
                     立即播放
-                  </button>
+                  </router-link>
                 </div>
                 <div class="hidden md:block">
                   <div class="relative">
@@ -268,15 +261,16 @@ onMounted(() => {
               <span class="icon-[mdi--playlist-music] mr-3 h-6 w-6 text-pink-400"></span>
               推荐歌单
             </h2>
-            <button class="text-purple-300 transition-colors hover:text-white">
+            <router-link to="/playlist/1" class="text-purple-300 transition-colors hover:text-white">
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-            </button>
+            </router-link>
           </div>
 
           <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-            <div
+            <router-link
               v-for="(playlist, index) in recommendPlaylists"
               :key="index"
+              :to="`/playlist/${index + 1}`"
               class="playlist-card group cursor-pointer"
             >
               <div
@@ -284,7 +278,7 @@ onMounted(() => {
               >
                 <div class="relative mb-3 overflow-hidden rounded-xl">
                   <div
-                    class="flex aspect-square items-center justify-center bg-gradient-to-br text-4xl transition-transform duration-300 group-hover:scale-110"
+                    class="flex aspect-square items-center justify-center bg-linear-to-br text-4xl transition-transform duration-300 group-hover:scale-110"
                     :class="playlist.gradient"
                   >
                     {{ playlist.emoji }}
@@ -301,7 +295,7 @@ onMounted(() => {
                 <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
                 <p class="truncate text-xs text-purple-300">{{ playlist.count }}首歌曲</p>
               </div>
-            </div>
+            </router-link>
           </div>
         </section>
 
@@ -314,8 +308,7 @@ onMounted(() => {
             </h2>
             <div class="flex items-center space-x-3">
               <!-- 快速测试按钮 -->
-              <button 
-                @click="playSong(testSongs[0], 0)"
+              <button
                 class="glass-button px-4 py-2 text-sm text-white transition-all hover:scale-105"
               >
                 🎵 播放测试歌曲
@@ -346,9 +339,9 @@ onMounted(() => {
               <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>
               最近播放
             </h2>
-            <button class="text-purple-300 transition-colors hover:text-white">
+            <router-link to="/mv-list" class="text-purple-300 transition-colors hover:text-white">
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-            </button>
+            </router-link>
           </div>
 
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -359,7 +352,7 @@ onMounted(() => {
             >
               <div class="flex items-center space-x-3">
                 <div
-                  class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-2xl"
+                  class="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-2xl"
                   :class="item.gradient"
                 >
                   {{ item.emoji }}
