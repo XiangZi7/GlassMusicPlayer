@@ -8,6 +8,7 @@ interface LyricLine {
 }
 
 const isOpen = defineModel<boolean>()
+const isRendered = ref(false)
 
 // 使用音频播放器
 const {
@@ -15,7 +16,6 @@ const {
   isPlaying,
   volume,
   currentTime,
-  duration,
   progress,
   playMode,
   togglePlay,
@@ -24,7 +24,12 @@ const {
   setVolume,
   toggleMute,
   setProgress,
+  formattedCurrentTime,
+  formattedDuration,
   togglePlayMode,
+  playlist,
+  play,
+  addSong,
 } = useAudio()
 
 // 播放模式图标计算属性
@@ -45,7 +50,20 @@ const drawerRef = ref<HTMLElement>()
 const albumCoverRef = ref<HTMLElement>()
 const lyricsRef = ref<HTMLElement>()
 const currentLyricIndex = ref(0)
-const lyricsOffset = ref(0) // 歌词同步偏移量（秒）
+const lyricsOffset = ref(0)
+const isRecentOpen = ref(false)
+const openRecent = () => {
+  isRecentOpen.value = true
+}
+const onRecentSelect = (song: any) => {
+  let idx = playlist.value.findIndex((s: any) => s.id === song.id)
+  if (idx === -1) {
+    addSong(song)
+    idx = playlist.value.findIndex((s: any) => s.id === song.id)
+  }
+  play(song, idx)
+  isRecentOpen.value = false
+}
 
 // 示例歌词数据
 const lyrics = ref<LyricLine[]>([
@@ -248,9 +266,6 @@ const openDrawer = () => {
         },
         '-=0.2'
       )
-
-    // 启动粒子动画
-    animateParticles()
   }
 }
 
@@ -258,7 +273,7 @@ const closeDrawer = () => {
   if (drawerRef.value) {
     const tl = gsap.timeline({
       onComplete: () => {
-        gsap.set(drawerRef.value as any, { display: 'none' })
+        isRendered.value = false
       },
     })
 
@@ -274,35 +289,14 @@ const closeDrawer = () => {
   }
 }
 
-const animateParticles = () => {
-  gsap.fromTo(
-    '.particle',
-    {
-      y: '100vh',
-      opacity: 0,
-    },
-    {
-      y: '-100px',
-      opacity: 0.3,
-      duration: 'random(3, 6)',
-      repeat: -1,
-      ease: 'none',
-      stagger: {
-        amount: 2,
-        from: 'random',
-      },
-    }
-  )
-}
-
 // 监听器
 watch(
   () => isOpen.value,
-  newVal => {
+  async newVal => {
     if (newVal) {
-      nextTick(() => {
-        openDrawer()
-      })
+      isRendered.value = true
+      await nextTick()
+      openDrawer()
     } else {
       closeDrawer()
     }
@@ -311,7 +305,9 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  gsap.set(drawerRef.value as any, { display: 'none' })
+  if (drawerRef.value) {
+    gsap.set(drawerRef.value as any, { display: 'none' })
+  }
 })
 
 onUnmounted(() => {
@@ -320,265 +316,219 @@ onUnmounted(() => {
 })
 </script>
 <template>
-  <teleport to="body">
-    <div
-      v-if="isOpen"
-      ref="drawerRef"
-      class="anime-gradient fixed inset-0 z-50 flex backdrop-blur-xl"
-      style="display: none"
-    >
-      <!-- 关闭按钮 -->
-      <div class="absolute top-6 right-6 z-10">
+  <div
+    v-if="isRendered"
+    ref="drawerRef"
+    class="absolute inset-0 z-50 flex bg-black/70 backdrop-blur-2xl"
+  >
+    <!-- 关闭按钮 -->
+    <div class="absolute top-6 right-6 z-10">
+      <button
+        @click="isOpen = false"
+        class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+      >
+        <span class="icon-[mdi--close] h-6 w-6 text-white"></span>
+      </button>
+    </div>
+
+    <!-- 左侧：歌曲信息和控件 -->
+    <div class="flex w-1/2 flex-col items-center justify-center px-12 py-16">
+      <!-- 专辑封面区域（黑胶风格） -->
+      <div class="mb-8 flex flex-col items-center">
+        <div class="relative mb-6 h-72 w-72">
+          <!-- 黑胶盘：外层为黑胶，内层为封面标签 -->
+          <div
+            ref="albumCoverRef"
+            class="album-cover vinyl-disc relative h-72 w-72 overflow-hidden rounded-full shadow-2xl"
+          >
+            <!-- 封面标签（纸质质感 + 内外圈） -->
+            <div
+              class="vinyl-label absolute top-1/2 left-1/2 flex h-24 w-24 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
+              :style="{
+                backgroundImage: currentSong?.cover
+                  ? `url(${currentSong.cover})`
+                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              }"
+            ></div>
+
+            <!-- 中心金属轴 -->
+            <div
+              class="spindle absolute top-1/2 left-1/2 h-3 w-3 -translate-1/2 rounded-full"
+            ></div>
+          </div>
+
+          <!-- 黑胶指针（写实：底座 + 手臂 + 唱头 + 配重） -->
+          <div
+            class="tonearm absolute -top-12 -right-14 z-10 origin-top-left transition-transform duration-500 ease-out"
+            :class="isPlaying ? 'rotate-16' : 'rotate-[-28deg]'"
+          >
+            <!-- 轴心底座 -->
+            <div class="arm-pivot relative h-10 w-10 rounded-full shadow-xl"></div>
+            <!-- 手臂主体 -->
+            <div class="arm-shaft mt-[-2px] h-36 w-2 rounded-full"></div>
+            <!-- 配重块 -->
+            <div class="counterweight -mt-4 ml-2 h-6 w-6 rounded-full shadow-md"></div>
+            <!-- 唱头与针 -->
+            <div class="headshell relative mt-1 h-8 w-14 rounded-md shadow-md">
+              <div
+                class="cartridge absolute top-1/2 left-1/2 h-4 w-8 -translate-x-1/2 -translate-y-1/2 rounded-sm"
+              ></div>
+              <div class="stylus absolute top-full left-1/2 h-4 w-[2px] -translate-x-1/2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 歌曲信息 -->
+        <div class="text-center">
+          <h2 class="mb-2 text-2xl font-bold text-white">
+            {{ currentSong?.name || '未知歌曲' }}
+          </h2>
+          <p class="text-lg text-white/80">{{ currentSong?.artist || '未知歌手' }}</p>
+          <p class="mt-1 text-sm text-white/60">{{ currentSong?.album || '未知专辑' }}</p>
+        </div>
+      </div>
+
+      <!-- 进度条 -->
+      <div v-if="currentSong" class="mb-3 flex w-3/5 items-center space-x-3">
+        <span class="text-xs text-white/60">{{ formattedCurrentTime }}</span>
+        <div
+          @click="handleProgressClick"
+          class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
+        >
+          <div
+            class="h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500 transition-all duration-200"
+            :style="{ width: `${progress}%` }"
+          ></div>
+        </div>
+        <span class="text-xs text-white/60">{{ formattedDuration }}</span>
+      </div>
+
+      <!-- 控制按钮 -->
+      <div class="mb-8 flex items-center space-x-6">
+        <!-- 播放模式 -->
         <button
-          @click="isOpen = false"
+          @click="togglePlayMode"
+          class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+          :class="{ 'bg-pink-500/30': playMode !== 'list' }"
+        >
+          <component :is="'span'" :class="playModeIconClass" class="h-5 w-5 text-white" />
+        </button>
+
+        <!-- 上一首 -->
+        <button
+          @click="previous"
+          class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+        >
+          <span class="icon-[mdi--skip-previous] h-6 w-6 text-white"></span>
+        </button>
+
+        <!-- 播放/暂停 -->
+        <button
+          @click="handleTogglePlay"
+          class="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
+        >
+          <span v-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
+          <span v-else class="icon-[mdi--pause] h-8 w-8 text-white"></span>
+        </button>
+
+        <!-- 下一首 -->
+        <button
+          @click="next"
+          class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+        >
+          <span class="icon-[mdi--skip-next] h-6 w-6 text-white"></span>
+        </button>
+
+        <!-- 播放列表 -->
+        <button
+          @click="openRecent"
           class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
         >
-          <span class="icon-[mdi--close] h-6 w-6 text-white"></span>
+          <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
         </button>
       </div>
 
-      <!-- 左侧：歌曲信息和控件 -->
-      <div class="flex w-1/2 flex-col items-center justify-center px-12 py-16">
-        <!-- 专辑封面区域（黑胶风格） -->
-        <div class="mb-8 flex flex-col items-center">
-          <div class="relative mb-6 h-72 w-72">
-            <!-- 黑胶盘：外层为黑胶，内层为封面标签 -->
-            <div
-              ref="albumCoverRef"
-              class="album-cover vinyl-disc relative h-72 w-72 overflow-hidden rounded-full shadow-2xl"
-            >
-              <!-- 封面标签（纸质质感 + 内外圈） -->
-              <div
-                class="vinyl-label absolute top-1/2 left-1/2 flex h-24 w-24 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
-                :style="{
-                  backgroundImage: currentSong?.cover
-                    ? `url(${currentSong.cover})`
-                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                }"
-              ></div>
+      <!-- 底部控制栏 -->
+      <div class="flex w-full max-w-md items-center justify-between">
+        <!-- 喜欢按钮 -->
+        <button
+          @click="handleToggleLike"
+          class="like-button glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300"
+          :class="{ 'bg-red-500/50': currentSong?.liked }"
+        >
+          <span
+            class="icon-[mdi--heart] h-6 w-6"
+            :class="{ 'text-red-400': currentSong?.liked, 'text-white/70': !currentSong?.liked }"
+          ></span>
+        </button>
 
-              <!-- 中心金属轴 -->
-              <div
-                class="spindle absolute top-1/2 left-1/2 h-3 w-3 -translate-1/2 rounded-full"
-              ></div>
-            </div>
-
-            <!-- 黑胶指针（写实：底座 + 手臂 + 唱头 + 配重） -->
-            <div
-              class="tonearm absolute -top-12 -right-14 z-10 origin-top-left transition-transform duration-500 ease-out"
-              :class="isPlaying ? 'rotate-16' : 'rotate-[-28deg]'"
-            >
-              <!-- 轴心底座 -->
-              <div class="arm-pivot relative h-10 w-10 rounded-full shadow-xl"></div>
-              <!-- 手臂主体 -->
-              <div class="arm-shaft mt-[-2px] h-36 w-2 rounded-full"></div>
-              <!-- 配重块 -->
-              <div class="counterweight -mt-4 ml-2 h-6 w-6 rounded-full shadow-md"></div>
-              <!-- 唱头与针 -->
-              <div class="headshell relative mt-1 h-8 w-14 rounded-md shadow-md">
-                <div
-                  class="cartridge absolute top-1/2 left-1/2 h-4 w-8 -translate-x-1/2 -translate-y-1/2 rounded-sm"
-                ></div>
-                <div class="stylus absolute top-full left-1/2 h-4 w-[2px] -translate-x-1/2"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 歌曲信息 -->
-          <div class="text-center">
-            <h2 class="mb-2 text-2xl font-bold text-white">
-              {{ currentSong?.name || '未知歌曲' }}
-            </h2>
-            <p class="text-lg text-white/80">{{ currentSong?.artist || '未知歌手' }}</p>
-            <p class="mt-1 text-sm text-white/60">{{ currentSong?.album || '未知专辑' }}</p>
-          </div>
-        </div>
-
-        <!-- 进度条 -->
-        <div class="mb-8 w-full max-w-md">
-          <div class="mb-2 flex justify-between text-sm text-white/80">
-            <span>{{ formatTime(currentTime) }}</span>
-            <span>{{ formatTime(duration) }}</span>
-          </div>
-          <div
-            class="relative h-2 cursor-pointer rounded-full bg-white/20"
-            @click="handleProgressClick"
-          >
-            <div
-              class="absolute top-0 left-0 h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500 transition-all duration-300"
-              :style="{ width: progress * 100 + '%' }"
-            ></div>
-            <div
-              class="absolute top-1/2 h-4 w-4 -translate-y-1/2 cursor-grab rounded-full bg-white shadow-lg transition-all duration-300 active:cursor-grabbing"
-              :style="{
-                left: progress * 100 + '%',
-                transform: 'translateX(-50%) translateY(-50%)',
-              }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- 控制按钮 -->
-        <div class="mb-8 flex items-center space-x-6">
-          <!-- 播放模式 -->
-          <button
-            @click="togglePlayMode"
-            class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-            :class="{ 'bg-pink-500/30': playMode !== 'list' }"
-          >
-            <component :is="'span'" :class="playModeIconClass" class="h-5 w-5 text-white" />
-          </button>
-
-          <!-- 上一首 -->
-          <button
-            @click="previous"
-            class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-          >
-            <span class="icon-[mdi--skip-previous] h-6 w-6 text-white"></span>
-          </button>
-
-          <!-- 播放/暂停 -->
-          <button
-            @click="handleTogglePlay"
-            class="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
-          >
-            <span v-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
-            <span v-else class="icon-[mdi--pause] h-8 w-8 text-white"></span>
-          </button>
-
-          <!-- 下一首 -->
-          <button
-            @click="next"
-            class="glass-button flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-          >
-            <span class="icon-[mdi--skip-next] h-6 w-6 text-white"></span>
-          </button>
-
-          <!-- 播放列表 -->
-          <button
-            class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-          >
-            <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
-          </button>
-        </div>
-
-        <!-- 底部控制栏 -->
-        <div class="flex w-full max-w-md items-center justify-between">
-          <!-- 喜欢按钮 -->
-          <button
-            @click="handleToggleLike"
-            class="like-button glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300"
-            :class="{ 'bg-red-500/50': currentSong?.liked }"
-          >
+        <!-- 音量控制 -->
+        <div class="flex items-center justify-center space-x-3">
+          <button @click="toggleMute" class="transition-colors duration-200">
+            <span v-if="volume === 0" class="icon-[mdi--volume-off] h-5 w-5 text-white/80"></span>
             <span
-              class="icon-[mdi--heart] h-6 w-6"
-              :class="{ 'text-red-400': currentSong?.liked, 'text-white/70': !currentSong?.liked }"
+              v-else-if="volume < 0.5"
+              class="icon-[mdi--volume-medium] h-5 w-5 text-white/80"
             ></span>
+            <span v-else class="icon-[mdi--volume-high] h-5 w-5 text-white/80"></span>
           </button>
-
-          <!-- 音量控制 -->
-          <div class="flex items-center space-x-3">
-            <button @click="toggleMute" class="transition-colors duration-200">
-              <span v-if="volume === 0" class="icon-[mdi--volume-off] h-5 w-5 text-white/80"></span>
-              <span
-                v-else-if="volume < 0.5"
-                class="icon-[mdi--volume-medium] h-5 w-5 text-white/80"
-              ></span>
-              <span v-else class="icon-[mdi--volume-high] h-5 w-5 text-white/80"></span>
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              :value="volume * 100"
-              @input="handleVolumeChange"
-              class="slider h-2 w-20 appearance-none rounded-full bg-white/20 outline-none"
-            />
-          </div>
-
-          <!-- 播放列表 -->
-          <button
-            class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-          >
-            <span class="icon-[mdi--playlist-music] h-6 w-6 text-white/80"></span>
-          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            :value="volume * 100"
+            @input="handleVolumeChange"
+            class="slider h-2 w-20 appearance-none rounded-full bg-white/20 outline-none"
+          />
         </div>
-      </div>
 
-      <!-- 右侧：歌词区域 -->
-      <div class="flex w-1/2 flex-col px-12 py-16">
-        <div class="glass-container flex h-full flex-col p-8">
-          <!-- 歌词标题 -->
-          <div class="mb-6 text-center">
-            <h3 class="text-xl font-semibold text-white/90">歌词</h3>
-            <div class="mx-auto mt-2 h-px w-16 bg-linear-to-r from-pink-400 to-purple-500"></div>
-          </div>
-
-          <!-- 歌词滚动区域 -->
-          <div class="lyrics-container relative flex-1 overflow-hidden">
-            <div ref="lyricsRef" class="lyrics-scroll h-full">
-              <div
-                v-for="(line, index) in lyrics"
-                :key="index"
-                class="lyric-line mb-6 cursor-pointer text-center transition-all duration-500"
-                :class="{
-                  'scale-110 transform text-xl font-semibold text-white':
-                    index === currentLyricIndex,
-                  'text-white/50 hover:text-white/70': index !== currentLyricIndex,
-                }"
-                @click="seekToLyric(index)"
-              >
-                {{ line.text }}
-              </div>
-              <!-- 空白占位，确保最后一句歌词能滚动到中心 -->
-              <div class="h-64"></div>
-            </div>
-
-            <!-- 中心指示线 -->
-            <div
-              class="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
-            ></div>
-          </div>
-
-          <!-- 歌词控制 -->
-          <div class="mt-6 flex items-center justify-center space-x-4">
-            <button
-              @click="adjustLyricsOffset(-0.5)"
-              class="glass-button flex h-10 w-10 items-center justify-center rounded-full text-sm transition-all duration-300 hover:scale-110"
-              title="歌词提前0.5秒"
-            >
-              <span class="icon-[mdi--minus] h-4 w-4 text-white/80"></span>
-            </button>
-
-            <span class="text-sm text-white/60">歌词同步</span>
-
-            <button
-              @click="adjustLyricsOffset(0.5)"
-              class="glass-button flex h-10 w-10 items-center justify-center rounded-full text-sm transition-all duration-300 hover:scale-110"
-              title="歌词延后0.5秒"
-            >
-              <span class="icon-[mdi--plus] h-4 w-4 text-white/80"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 粒子效果 -->
-      <div class="particle-container pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          v-for="i in 20"
-          :key="i"
-          class="particle absolute"
-          :style="{
-            left: Math.random() * 100 + '%',
-            animationDelay: Math.random() * 6 + 's',
-            width: Math.random() * 4 + 2 + 'px',
-            height: Math.random() * 4 + 2 + 'px',
-          }"
-        ></div>
+        <!-- 播放列表 -->
+        <button
+          @click="openRecent"
+          class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+        >
+          <span class="icon-[mdi--playlist-music] h-6 w-6 text-white/80"></span>
+        </button>
       </div>
     </div>
-  </teleport>
+
+    <!-- 右侧：歌词区域 -->
+    <div class="flex w-1/2 flex-col px-12 py-16">
+      <div class="glass-container flex h-full flex-col p-8">
+        <!-- 歌词标题 -->
+        <div class="mb-6 text-center">
+          <h3 class="text-xl font-semibold text-white/90">歌词</h3>
+          <div class="mx-auto mt-2 h-px w-16 bg-linear-to-r from-pink-400 to-purple-500"></div>
+        </div>
+
+        <!-- 歌词滚动区域 -->
+        <div class="lyrics-container relative flex-1 overflow-hidden">
+          <div ref="lyricsRef" class="lyrics-scroll h-full">
+            <div
+              v-for="(line, index) in lyrics"
+              :key="index"
+              class="lyric-line mb-6 cursor-pointer text-center transition-all duration-500"
+              :class="{
+                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
+                'text-white/50 hover:text-white/70': index !== currentLyricIndex,
+              }"
+              @click="seekToLyric(index)"
+            >
+              {{ line.text }}
+            </div>
+            <!-- 空白占位，确保最后一句歌词能滚动到中心 -->
+            <div class="h-64"></div>
+          </div>
+
+          <!-- 中心指示线 -->
+          <div
+            class="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
+          ></div>
+        </div>
+    </div>
+    </div>
+    <RecentDrawer v-model:open="isRecentOpen" @select="onRecentSelect" />
+  </div>
 </template>
 
 <style scoped>

@@ -29,13 +29,7 @@ const {
   setProgress,
 } = useAudio()
 
-// 抽屉状态
-const isDrawerOpen = ref(false)
-
-// 打开播放器抽屉
-const openPlayerDrawer = () => {
-  isDrawerOpen.value = true
-}
+const emit = defineEmits(['show'])
 
 // 计算播放按钮状态
 const playButtonIcon = computed(() => {
@@ -78,7 +72,7 @@ const toggleLike = () => {
       <!-- 左侧：当前歌曲信息 -->
       <div class="flex min-w-0 flex-1 items-center space-x-4">
         <div
-          @click="openPlayerDrawer"
+          @click="emit('show')"
           class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg bg-cover transition-all duration-300 hover:scale-105 hover:shadow-lg"
           :style="{
             backgroundImage: currentSong?.cover
@@ -120,16 +114,13 @@ const toggleLike = () => {
         </button>
         <button
           @click="togglePlay"
-          class="glass-button flex h-10 w-10 items-center justify-center bg-linear-to-r from-pink-500 to-purple-600"
+          :title="isPlaying ? '暂停' : '播放'"
+          class="glass-button flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
         >
-          <div
-            v-if="playButtonIcon === 'play'"
-            class="ml-0.5 h-0 w-0 border-y-3 border-l-4 border-y-transparent border-l-white"
-          ></div>
-          <div v-else class="flex space-x-0.5">
-            <div class="h-3 w-1 bg-white"></div>
-            <div class="h-3 w-1 bg-white"></div>
-          </div>
+          <span
+            :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
+            class="h-5 w-5 text-white"
+          ></span>
         </button>
         <button @click="next" class="text-white/70 transition-colors hover:text-white">
           <span class="icon-[mdi--skip-next] h-5 w-5"></span>
@@ -179,8 +170,5 @@ const toggleLike = () => {
       </div>
       <span class="text-xs text-white/60">{{ formattedDuration }}</span>
     </div>
-
-    <!-- 播放器抽屉 -->
-    <PlayerDrawer v-model="isDrawerOpen" />
   </footer>
 </template>

@@ -1,6 +1,4 @@
 // 音频播放器组合式API
-import { computed, onUnmounted, watch } from 'vue'
-import { useAudioStore } from '@/stores/modules/audio'
 import { Song, PlayMode } from '@/stores/interface'
 import { formatTime } from '@/utils/audioUtils'
 
@@ -8,9 +6,9 @@ export const useAudio = () => {
   const audioStore = useAudioStore()
 
   // 初始化音频播放器（只在首次调用时初始化）
-  if (!audioStore.audio.audio) {
-    audioStore.initAudio()
-  }
+  // if (!audioStore.audio.audio) {
+  audioStore.initAudio()
+  // }
 
   // 响应式状态
   const currentSong = computed(() => audioStore.getCurrentSong)
@@ -70,14 +68,17 @@ export const useAudio = () => {
   }
 
   const togglePlay = () => {
+    if (!audioStore.audio.audio) audioStore.initAudio()
     audioStore.togglePlay()
   }
 
   const next = () => {
+    if (!audioStore.audio.audio) audioStore.initAudio()
     audioStore.nextSong()
   }
 
   const previous = () => {
+    if (!audioStore.audio.audio) audioStore.initAudio()
     audioStore.previousSong()
   }
 
@@ -201,16 +202,16 @@ export const useAudio = () => {
         title: currentSong.value.name,
         artist: currentSong.value.artist,
         album: currentSong.value.album || '',
-        artwork: currentSong.value.cover ? [
-          { src: currentSong.value.cover, sizes: '512x512', type: 'image/png' }
-        ] : []
+        artwork: currentSong.value.cover
+          ? [{ src: currentSong.value.cover, sizes: '512x512', type: 'image/png' }]
+          : [],
       })
 
       navigator.mediaSession.setActionHandler('play', () => resume())
       navigator.mediaSession.setActionHandler('pause', () => pause())
       navigator.mediaSession.setActionHandler('previoustrack', () => previous())
       navigator.mediaSession.setActionHandler('nexttrack', () => next())
-      navigator.mediaSession.setActionHandler('seekto', (details) => {
+      navigator.mediaSession.setActionHandler('seekto', details => {
         if (details.seekTime) {
           setCurrentTime(details.seekTime)
         }
@@ -219,9 +220,13 @@ export const useAudio = () => {
   }
 
   // 监听当前歌曲变化，更新媒体会话
-  watch(currentSong, () => {
-    setupMediaSession()
-  }, { immediate: true })
+  watch(
+    currentSong,
+    () => {
+      setupMediaSession()
+    },
+    { immediate: true }
+  )
 
   // 组件卸载时清理
   onUnmounted(() => {
@@ -279,7 +284,7 @@ export const useAudio = () => {
     clearHistory,
     clearError,
     handleKeyboard,
-    setupMediaSession
+    setupMediaSession,
   }
 }
 
@@ -297,6 +302,6 @@ export const useGlobalKeyboard = () => {
 
   return {
     enableGlobalKeyboard,
-    disableGlobalKeyboard
+    disableGlobalKeyboard,
   }
 }

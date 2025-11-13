@@ -12,6 +12,9 @@ import { useSettingsStore } from '@/stores/modules/settings'
 const settings = useSettingsStore()
 const { aurora, colorBends, backgroundType } = storeToRefs(settings)
 
+// 抽屉状态
+const isDrawerOpen = ref(false)
+
 const colorStops = computed(() => {
   const stops = (aurora.value.colorStops || []).slice(0, 3)
   return stops.map((s: string) => (s.startsWith('#') ? s : `#${s}`))
@@ -21,6 +24,11 @@ const positions = computed(() => {
   const p = aurora.value.colorPositions || [0, 0.5, 1]
   return [p[0] ?? 0, p[1] ?? 0.5, p[2] ?? 1]
 })
+
+const openPlayerDrawer = () => {
+  isDrawerOpen.value = true
+  console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen.value:', isDrawerOpen.value)
+}
 </script>
 
 <template>
@@ -51,8 +59,10 @@ const positions = computed(() => {
           <Aside />
           <!-- 右侧主内容 -->
           <router-view />
+          <!-- 播放器抽屉 -->
+          <PlayerDrawer v-model="isDrawerOpen" />
         </main>
-        <Footer />
+        <Footer @show="openPlayerDrawer" />
       </div>
     </div>
   </div>

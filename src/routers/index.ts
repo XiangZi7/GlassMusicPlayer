@@ -37,6 +37,21 @@ const router = createRouter({
           component: () => import('@/pages/mv-player.vue'),
         },
         {
+          path: '/recent',
+          name: 'recent',
+          component: () => import('@/pages/recent.vue'),
+        },
+        {
+          path: '/likes',
+          name: 'likes',
+          component: () => import('@/pages/likes.vue'),
+        },
+        {
+          path: '/created-playlists',
+          name: 'created-playlists',
+          component: () => import('@/pages/created-playlists.vue'),
+        },
+        {
           path: '/settings',
           name: 'settings',
           component: () => import('@/pages/settings.vue'),
