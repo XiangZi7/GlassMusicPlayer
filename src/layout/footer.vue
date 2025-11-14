@@ -132,7 +132,10 @@ const toggleLike = () => {
 
       <!-- 右侧：音量和其他控制 -->
       <div class="flex flex-1 items-center justify-end space-x-4">
-        <button @click="toggleMute" class="text-white/70 transition-colors hover:text-white">
+        <button
+          @click="toggleMute"
+          class="flex items-center text-white/70 transition-colors hover:text-white"
+        >
           <span :class="volumeIcon" class="h-5 w-5"></span>
         </button>
         <div class="relative h-1 w-20 overflow-hidden rounded-full bg-white/20">
@@ -149,7 +152,7 @@ const toggleLike = () => {
             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
-        <button class="text-white/70 transition-colors hover:text-white">
+        <button class="flex items-center text-white/70 transition-colors hover:text-white">
           <span class="icon-[mdi--playlist-music] h-5 w-5"></span>
         </button>
       </div>

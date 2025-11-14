@@ -52,6 +52,21 @@ const router = createRouter({
           component: () => import('@/pages/created-playlists.vue'),
         },
         {
+          path: '/discover',
+          name: 'discover',
+          component: () => import('@/pages/discover.vue'),
+        },
+        {
+          path: '/my-music',
+          name: 'my-music',
+          component: () => import('@/pages/my-music.vue'),
+        },
+        {
+          path: '/search',
+          name: 'search',
+          component: () => import('@/pages/search.vue'),
+        },
+        {
           path: '/settings',
           name: 'settings',
           component: () => import('@/pages/settings.vue'),

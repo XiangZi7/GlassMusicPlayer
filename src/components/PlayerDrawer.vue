@@ -90,13 +90,6 @@ const lyrics = ref<LyricLine[]>([
 // 方法
 const handleTogglePlay = () => {
   togglePlay()
-  if (isPlaying.value) {
-    startAlbumRotation()
-    startLyricsScroll()
-  } else {
-    stopAlbumRotation()
-    stopLyricsScroll()
-  }
 }
 
 const handleToggleLike = () => {
@@ -136,17 +129,6 @@ const seekToLyric = (index: number) => {
   currentTime.value = targetTime
   currentLyricIndex.value = index
   scrollToCurrentLyric()
-}
-
-const adjustLyricsOffset = (offset: number) => {
-  lyricsOffset.value += offset
-  updateCurrentLyric()
-}
-
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 // 动画相关
@@ -303,6 +285,20 @@ watch(
   }
 )
 
+watch(
+  isPlaying,
+  playing => {
+    if (playing) {
+      startAlbumRotation()
+      startLyricsScroll()
+    } else {
+      stopAlbumRotation()
+      stopLyricsScroll()
+    }
+  },
+  { immediate: true }
+)
+
 // 生命周期
 onMounted(() => {
   if (drawerRef.value) {
@@ -319,7 +315,7 @@ onUnmounted(() => {
   <div
     v-if="isRendered"
     ref="drawerRef"
-    class="absolute inset-0 z-50 flex bg-black/70 backdrop-blur-2xl"
+    class="absolute inset-0 z-50 flex bg-black/85 backdrop-blur-md backdrop-filter"
   >
     <!-- 关闭按钮 -->
     <div class="absolute top-6 right-6 z-10">
@@ -464,7 +460,7 @@ onUnmounted(() => {
 
         <!-- 音量控制 -->
         <div class="flex items-center justify-center space-x-3">
-          <button @click="toggleMute" class="transition-colors duration-200">
+          <button @click="toggleMute" class="flex items-center transition-colors duration-200">
             <span v-if="volume === 0" class="icon-[mdi--volume-off] h-5 w-5 text-white/80"></span>
             <span
               v-else-if="volume < 0.5"
@@ -494,7 +490,7 @@ onUnmounted(() => {
 
     <!-- 右侧：歌词区域 -->
     <div class="flex w-1/2 flex-col px-12 py-16">
-      <div class="glass-container flex h-full flex-col p-8">
+      <div class="flex h-full flex-col p-8">
         <!-- 歌词标题 -->
         <div class="mb-6 text-center">
           <h3 class="text-xl font-semibold text-white/90">歌词</h3>
@@ -525,9 +521,8 @@ onUnmounted(() => {
             class="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
           ></div>
         </div>
+      </div>
     </div>
-    </div>
-    <RecentDrawer v-model:open="isRecentOpen" @select="onRecentSelect" />
   </div>
 </template>
 
