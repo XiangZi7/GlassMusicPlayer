@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
 import { testSongs } from '@/utils/testSongs'
+import { banner, topPlaylist, topSong, recordRecentSong } from '@/api'
 
 // 使用音频播放器
 const { setPlaylist } = useAudio()
@@ -32,6 +33,74 @@ const banners = ref([
 ])
 
 const currentBannerIndex = ref(0)
+
+const gradients = [
+  'from-pink-400 to-purple-500',
+  'from-blue-400 to-cyan-500',
+  'from-purple-500 to-pink-500',
+  'from-red-400 to-orange-500',
+  'from-gray-600 to-red-600',
+  'from-yellow-400 to-pink-500',
+]
+const emojis = ['🎵', '🎶', '♪', '♫', '🎼', '🎤']
+
+const formatDuration = (ms: number) => {
+  const total = Math.floor(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+const loadHomeData = async () => {
+  try {
+    const [b, p, s, r] = await Promise.all([
+      banner({ type: 0 }),
+      topPlaylist({ order: 'hot', limit: 6 }),
+      topSong({ type: 0 }),
+      recordRecentSong({ limit: 3 }),
+    ])
+
+    const bannerList = (b as any)?.data?.banners || (b as any)?.banners || []
+    if (Array.isArray(bannerList) && bannerList.length) {
+      banners.value = bannerList.map((item: any, i: number) => ({
+        title: item?.typeTitle || '精选推荐',
+        description: item?.title || '为你推荐的精彩内容',
+        gradient: gradients[i % gradients.length],
+      }))
+    }
+
+    const playlists = (p as any)?.data?.playlists || (p as any)?.playlists || []
+    if (Array.isArray(playlists) && playlists.length) {
+      recommendPlaylists.value = playlists.slice(0, 6).map((pl: any, i: number) => ({
+        name: pl?.name || '歌单',
+        count: pl?.trackCount || 0,
+        emoji: emojis[i % emojis.length],
+        gradient: gradients[i % gradients.length],
+        coverImgUrl: pl?.coverImgUrl || '',
+      }))
+    }
+
+    const songData =
+      (s as any)?.data?.data ||
+      (s as any)?.data?.songs ||
+      (s as any)?.songs ||
+      (s as any)?.data ||
+      []
+    if (Array.isArray(songData) && songData.length) {
+      hotSongs.value = songData.map((it: any, i: number) => ({
+        id: it?.id,
+        name: it?.name,
+        artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
+        album: it?.album?.name || '',
+        duration: formatDuration(it?.duration || 0),
+        emoji: emojis[i % emojis.length],
+        gradient: gradients[i % gradients.length],
+        liked: false,
+        coverImgUrl: it?.album?.picUrl || '',
+      }))
+    }
+  } catch {}
+}
 
 // 推荐歌单
 const recommendPlaylists = ref([
@@ -152,6 +221,9 @@ onMounted(() => {
     currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.value.length
   }, 5000)
 })
+onMounted(() => {
+  loadHomeData()
+})
 </script>
 <template>
   <div class="mt-4 flex-1 overflow-hidden">
@@ -159,7 +231,6 @@ onMounted(() => {
       <!-- 轮播图区域 -->
       <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4">
         <div class="carousel-container relative h-full">
-          
           <div
             v-for="(banner, index) in banners"
             :key="index"
@@ -261,7 +332,10 @@ onMounted(() => {
               <span class="icon-[mdi--playlist-music] mr-3 h-6 w-6 text-pink-400"></span>
               推荐歌单
             </h2>
-            <router-link to="/playlist/1" class="text-purple-300 transition-colors hover:text-white">
+            <router-link
+              to="/playlist/1"
+              class="text-purple-300 transition-colors hover:text-white"
+            >
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
             </router-link>
           </div>
@@ -277,12 +351,11 @@ onMounted(() => {
                 class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               >
                 <div class="relative mb-3 overflow-hidden rounded-xl">
-                  <div
-                    class="flex aspect-square items-center justify-center bg-linear-to-br text-4xl transition-transform duration-300 group-hover:scale-110"
-                    :class="playlist.gradient"
-                  >
-                    {{ playlist.emoji }}
-                  </div>
+                  <img
+                    :src="playlist.coverImgUrl + '?param=500y500'"
+                    alt="歌单封面"
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
                   <!-- 播放按钮覆盖层 -->
                   <div
                     class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -306,30 +379,16 @@ onMounted(() => {
               <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
               热门单曲
             </h2>
-            <div class="flex items-center space-x-3">
-              <!-- 快速测试按钮 -->
-              <button
-                class="glass-button px-4 py-2 text-sm text-white transition-all hover:scale-105"
-              >
-                🎵 播放测试歌曲
-              </button>
-              <button class="text-purple-300 transition-colors hover:text-white">
-                <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-              </button>
-            </div>
           </div>
 
-          <SongList
-            :songs="hotSongs"
-            :current-playing-index="currentPlayingIndex"
-            :show-header="false"
-            :show-controls="false"
-            @play="handlePlaySong"
-            @like="handleLikeSong"
-            @more="handleMoreOptions"
-            @sort="handleSort"
-            @filter="handleFilter"
-          />
+          <div class="h-[40vh] w-full overflow-hidden">
+            <SongList
+              :songs="hotSongs"
+              :current-playing-index="currentPlayingIndex"
+              :show-header="false"
+              :show-controls="false"
+            />
+          </div>
         </section>
 
         <!-- 最近播放区域 -->
