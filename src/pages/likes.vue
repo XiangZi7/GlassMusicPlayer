@@ -6,7 +6,11 @@ const tabs = [
   { key: 'mv', label: 'MV', emoji: '🎬' },
 ]
 
-const active = ref('all')
+const state = reactive({
+  // 当前激活的标签
+  active: 'all',
+})
+const { active } = toRefs(state)
 
 const liked = [
   {
@@ -44,7 +48,7 @@ const liked = [
 ]
 
 const filtered = computed(() =>
-  active.value === 'all' ? liked : liked.filter(i => i.type === active.value)
+  state.active === 'all' ? liked : liked.filter(i => i.type === state.active)
 )
 </script>
 

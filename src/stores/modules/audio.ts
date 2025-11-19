@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { songUrl } from '@/api'
 import { GlobalState, Song, PlayMode } from '../interface'
 import piniaPersistConfig from '../persist'
 import { trackListData } from '@/mock'
@@ -182,9 +183,29 @@ export const useAudioStore = defineStore('audio', {
       try {
         this.audio.error = null
 
+        // 若无URL则拉取
+        if (!this.audio.currentSong.url) {
+          this.audio.isLoading = true
+          try {
+            const res: any = await songUrl({ id: String(this.audio.currentSong.id) })
+            const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
+            this.audio.currentSong.url = url
+            // 同步到播放列表项
+            const idx = this.audio.currentIndex
+            if (idx >= 0 && idx < this.audio.playlist.length) {
+              this.audio.playlist[idx].url = url
+            }
+          } catch (e) {
+            this.audio.error = '获取音频地址失败'
+            this.audio.isLoading = false
+            throw e
+          }
+        }
+
         // 如果URL变化，重新加载
-        if (this.audio.audio.src !== this.audio.currentSong.url) {
+        if (this.audio.audio.src !== (this.audio.currentSong.url || '')) {
           this.audio.audio.src = this.audio.currentSong.url || ''
+          this.audio.audio.load()
         }
 
         await this.audio.audio.play()
@@ -211,7 +232,7 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
-    // 播放/暂停切换
+    // 播放/暂停切换（启动播放时会自动获取缺失的URL）
     togglePlay() {
       this.initAudio()
       if (!this.audio.audio) return
@@ -224,10 +245,8 @@ export const useAudioStore = defineStore('audio', {
           this.audio.currentIndex = 0
         }
         if (this.audio.currentSong) {
-          if (this.audio.audio.src !== (this.audio.currentSong.url || '')) {
-            this.audio.audio.src = this.audio.currentSong.url || ''
-          }
-          this.audio.audio.play()
+          // 统一通过 playSong 执行，确保缺失URL的懒加载
+          this.playSong(this.audio.currentSong, this.audio.currentIndex)
         }
       }
     },

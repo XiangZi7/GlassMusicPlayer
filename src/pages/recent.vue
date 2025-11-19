@@ -1,59 +1,71 @@
 <script setup lang="ts">
+import { useAudioStore } from '@/stores/modules/audio'
+import { recordRecentSong } from '@/api'
+
 const categories = [
   { key: 'all', label: '全部', emoji: '✨' },
   { key: 'song', label: '歌曲', emoji: '🎵' },
-  { key: 'playlist', label: '歌单', emoji: '📜' },
-  { key: 'mv', label: 'MV', emoji: '🎬' },
 ]
 
-const selected = ref('all')
-
-const items = [
-  {
-    type: 'song',
-    name: '千本樱',
-    artist: '初音未来',
-    time: '2小时前',
-    emoji: '🌸',
-    gradient: 'from-pink-400 to-purple-500',
-  },
-  {
-    type: 'song',
-    name: '残酷天使的行动纲领',
-    artist: '高橋洋子',
-    time: '昨天',
-    emoji: '👼',
-    gradient: 'from-orange-400 to-red-500',
-  },
-  {
-    type: 'song',
-    name: '打上花火',
-    artist: 'DAOKO',
-    time: '3天前',
-    emoji: '🎆',
-    gradient: 'from-blue-400 to-purple-500',
-  },
-  {
-    type: 'playlist',
-    name: '治愈系精选',
-    artist: '歌单',
-    time: '5天前',
-    emoji: '🌈',
-    gradient: 'from-blue-400 to-cyan-500',
-  },
-  {
-    type: 'mv',
-    name: 'Your Name',
-    artist: 'RADWIMPS',
-    time: '1周前',
-    emoji: '⭐',
-    gradient: 'from-purple-400 to-pink-500',
-  },
+const gradients = [
+  'from-pink-400 to-purple-500',
+  'from-blue-400 to-cyan-500',
+  'from-purple-500 to-pink-500',
+  'from-red-400 to-orange-500',
+  'from-yellow-400 to-pink-500',
 ]
+const emojis = ['🎵', '🎶', '♪', '♫', '🎼']
 
-const filtered = computed(() =>
-  selected.value === 'all' ? items : items.filter(i => i.type === selected.value)
+const state = reactive({ selected: 'all', recent: [] as Array<{ type: string; id?: number | string; name: string; artist: string; time: string; emoji: string; gradient: string }> })
+const { selected } = toRefs(state)
+
+const audioStore = useAudioStore()
+
+const fromHistory = () => {
+  const hist = audioStore.audio.playHistory || []
+  return hist.slice().reverse().slice(0, 20).map((s, i) => ({
+    type: 'song',
+    id: s.id,
+    name: s.name,
+    artist: s.artist,
+    time: '刚刚',
+    emoji: emojis[i % emojis.length],
+    gradient: gradients[i % gradients.length],
+  }))
+}
+
+const loadRecentFromApi = async () => {
+  try {
+    const res: any = await recordRecentSong({ limit: 20 })
+    const list: any[] = res?.data?.data || res?.data?.songs || res?.songs || []
+    const mapped = list.map((it: any, i: number) => ({
+      type: 'song',
+      id: it?.song?.id || it?.id,
+      name: it?.song?.name || it?.name || '',
+      artist: Array.isArray(it?.song?.ar) ? it.song.ar.map((a: any) => a.name).join(' / ') : Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
+      time: it?.playTime ? new Date(it.playTime).toLocaleString() : '',
+      emoji: emojis[i % emojis.length],
+      gradient: gradients[i % gradients.length],
+    }))
+    state.recent = mapped.length ? mapped : fromHistory()
+  } catch {
+    state.recent = fromHistory()
+  }
+}
+
+watch(
+  () => audioStore.audio.playHistory,
+  () => {
+    if (!state.recent.length) state.recent = fromHistory()
+  },
+  { deep: true }
 )
+
+onMounted(() => {
+  loadRecentFromApi()
+})
+
+const filtered = computed(() => state.selected === 'all' ? state.recent : state.recent.filter(i => i.type === state.selected))
 </script>
 
 <template>

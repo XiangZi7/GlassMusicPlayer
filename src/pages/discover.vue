@@ -14,12 +14,10 @@ const categories = [
         <h1 class="text-2xl font-bold text-white">发现音乐</h1>
       </div>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-        <div
-          v-for="(c, i) in categories"
-          :key="i"
-          class="group cursor-pointer"
-        >
-          <div class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+        <div v-for="(c, i) in categories" :key="i" class="group cursor-pointer">
+          <div
+            class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+          >
             <div class="relative mb-3 overflow-hidden rounded-xl">
               <div
                 class="flex aspect-square items-center justify-center bg-linear-to-br text-4xl transition-transform duration-300 group-hover:scale-110"

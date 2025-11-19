@@ -310,17 +310,22 @@ $ set HOST=127.0.0.1 && node app.js
 ```
 
 ### npx 方式运行
+
 支持 npx 方式运行,会自动安装依赖和运行
+
 ```
 npx NeteaseCloudMusicApi
 ```
+
 如果需要更新,可使用 `npx NeteaseCloudMusicApi@版本号` 方式运行
 
 或者运行
+
 ```
 npx NeteaseCloudMusicApi@latest
 
 ```
+
 此命令每次执行都会使用最新版
 
 ## Vercel 部署
@@ -338,21 +343,25 @@ v4.0.8 加入了 Vercel 配置文件,可以直接在 Vercel 下部署了,不需�
 5. 直接点`Continue`
 6. `PROJECT NAME`自己填,`FRAMEWORK PRESET` 选 `Other` 然后直接点 `Deploy` 接着等部署完成即可
 
-
 ## 腾讯云 serverless 部署
+
 因 `Vercel` 在国内访问太慢(不绑定自己的域名的情况下),在此提供腾讯云 serverless 部署方法(注意:腾讯云 serverless 并不是免费的,前三个月有免费额度,之后收费)
+
 ### 操作方法
+
 1. fork 此项目
 2. 在腾讯云serverless应用管理页面( https://console.cloud.tencent.com/sls ),点击`新建应用`
 3. 顶部`创建方式`选择 `Web 应用`
 4. 选择 `Express框架`,点击底部`下一步按钮`
 5. 输入`应用名`,上传方式选择`代码仓库`,进行GitHub授权(如已授权可跳过这一步),代码仓库选择刚刚fork的项目
 6. 启动文件填入:
+
 ```
 #!/bin/bash
 export PORT=9000
 /var/lang/node16/bin/node app.js
-``` 
+```
+
 7. 点击`完成`,等待部署完成,点击`资源列表`的 `API网关` 里的 `URL`,正常情况会打开文档地址,点击文档`例子`可查看接口调用效果
 
 ## 可以使用代理
@@ -401,7 +410,7 @@ main()
 ```ts
 // test.ts
 import { banner } from 'NeteaseCloudMusicApi'
-banner({ type: 0 }).then((res) => {
+banner({ type: 0 }).then(res => {
   console.log(res)
 })
 ```
@@ -572,12 +581,11 @@ v3.30.0 后支持手动传入 cookie,登录接口返回内容新增 `cookie` 字
 
 调用可参考项目文件例子`/public/qrlogin.html` (访问地址:http://localhost:3000/qrlogin.html)
 
-
 #### 3. 游客登录
+
 说明 : 直接调用此接口, 可获取游客cookie,如果遇到其他接口未登录状态报400状态码需要验证的错误,可使用此接口获取游客cookie避免报错
 
 **接口地址 :** `/register/anonimous`
-
 
 #### 注意
 
@@ -672,7 +680,6 @@ v3.30.0 后支持手动传入 cookie,登录接口返回内容新增 `cookie` 字
 **接口地址 :** `/nickname/check`
 
 **调用例子 :** `/nickname/check?nickname=binaryify`
-
 
 ### 更换绑定手机
 
@@ -793,7 +800,7 @@ signature：用户签名
 
 ### 更新头像
 
-说明 : 登录后调用此接口,使用`'Content-Type': 'multipart/form-data'`上传图片 formData(name 为'imgFile'),可更新头像(参考: https://github.com/Binaryify/NeteaseCloudMusicApi/blob/master/public/avatar_update.html  ),支持命令行调用,参考module_example目录下`avatar_upload.js`
+说明 : 登录后调用此接口,使用`'Content-Type': 'multipart/form-data'`上传图片 formData(name 为'imgFile'),可更新头像(参考: https://github.com/Binaryify/NeteaseCloudMusicApi/blob/master/public/avatar_update.html ),支持命令行调用,参考module_example目录下`avatar_upload.js`
 
 **可选参数 :**
 
@@ -1409,13 +1416,12 @@ tags: 歌单标签
 **调用例子 :** `/playlist/track/all?id=24381616&limit=10&offset=1`
 
 > 注：关于`offset`，你可以这样理解，假设你当前的歌单有200首歌
-> 
+>
 > 你传入limit=50&offset=0等价于limit=50，你会得到第1-50首歌曲
 
 > 你传入limit=50&offset=50，你会得到第51-100首歌曲
 
 > 如果你设置limit=50&offset=100，你就会得到第101-150首歌曲
-
 
 ### 歌单详情动态
 
@@ -1427,7 +1433,6 @@ tags: 歌单标签
 
 **调用例子 :** `/playlist/detail/dynamic?id=24381616`
 
-
 ### 歌单更新播放量
 
 说明 : 调用后可更新歌单播放量
@@ -1437,9 +1442,6 @@ tags: 歌单标签
 **接口地址 :** `/playlist/update/playcount`
 
 **调用例子 :** `/playlist/update/playcount?id=24381616`
-
-
-
 
 ### 获取音乐 url
 
@@ -1460,7 +1462,7 @@ tags: 歌单标签
 说明 : 使用注意事项同上
 
 **必选参数 :** `id` : 音乐 id
- `level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`, 
+`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,
 `lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清环绕声`, `sky` => `沉浸环绕声`,
 `jymaster` => `超清母带`
 
@@ -1662,37 +1664,43 @@ tags: 歌单标签
 
 说明 : 此接口的 `yrc` 字段即为逐字歌词 (可能有歌曲不包含逐字歌词)
 
-
 **必选参数 :** `id`: 音乐 id
 
 **接口地址 :** `/lyric/new`
 
 **调用例子 :** `/lyric/new?id=1824020871`
 
-
 相关讨论可见: [Issue](https://github.com/Binaryify/NeteaseCloudMusicApi/issues/1667)
 
 **歌词格式解析 :**
 
 当逐字歌词适用时，`yrc`的`lyric`字段包括形式如下的内容
-* （可能存在）JSON 歌曲元数据
+
+- （可能存在）JSON 歌曲元数据
+
 ```
 {"t":0,"c":[{"tx":"作曲: "},{"tx":"柳重言","li":"http://p1.music.126.net/Icj0IcaOjH2ZZpyAM-QGoQ==/6665239487822533.jpg","or":"orpheus://nm/artist/home?id=228547&type=artist"}]}
 {"t":5403,"c":[{"tx":"编曲: "},{"tx":"Alex San","li":"http://p1.music.126.net/pSbvYkrzZ1RFKqoh-fA9AQ==/109951166352922615.jpg","or":"orpheus://nm/artist/home?id=28984845&type=artist"}]}
 {"t":10806,"c":[{"tx":"制作人: "},{"tx":"王菲","li":"http://p1.music.126.net/1KQVD6XWbs5IAV0xOj1ZIA==/18764265441342019.jpg","or":"orpheus://nm/artist/home?id=9621&type=artist"},{"tx":"/"},{"tx":"梁荣骏","li":"http://p1.music.126.net/QrD8drwrRcegfKLPoiiG2Q==/109951166288436155.jpg","or":"orpheus://nm/artist/home?id=189294&type=artist"}]}
 ```
+
 该字段不一定出现；可能出现的数据意义有：
+
 - `t` : 数据显示开始时间戳 (毫秒)
 - `c` : 元数据list
 - `tx`: 文字段
 - `li`: 艺术家、歌手头像图url
 - `or`：云音乐app内路径；例中作用即打开艺术家主页
+
 * 逐字歌词
+
 ```
 [16210,3460](16210,670,0)还(16880,410,0)没...
- ~~~~1 ~~~2  ~~~~3 ~~4 5 ~6 (...) 
+ ~~~~1 ~~~2  ~~~~3 ~~4 5 ~6 (...)
 ```
+
 由标号解释:
+
 1. 歌词行显示开始时间戳 (毫秒)
 2. 歌词行显示总时长(毫秒)
 3. 逐字显示开始时间戳 (毫秒)
@@ -2086,28 +2094,27 @@ tags: 歌单标签
 
    `t`:0 删除
 
-   `type`: 数字,资源类型,对应歌曲,mv,专辑,歌单,电台,视频对应以下类型  
-   
+   `type`: 数字,资源类型,对应歌曲,mv,专辑,歌单,电台,视频对应以下类型
 
-    ```
-    0: 歌曲
+   ```
+   0: 歌曲
 
-    1: mv
+   1: mv
 
-    2: 歌单
+   2: 歌单
 
-    3: 专辑
+   3: 专辑
 
-    4: 电台节目
+   4: 电台节目
 
-    5: 视频
+   5: 视频
 
-    6: 动态
+   6: 动态
 
-    7: 电台
+   7: 电台
 
-    ```  
-   
+   ```
+
    `id`:对应资源 id
    `content` :内容 id,可通过 `/comment/mv` 等接口获取
 
@@ -2121,7 +2128,7 @@ tags: 歌单标签
 
 **可选参数 :**
 
-`type`:资源类型,对应以下类型,默认为 0 即 PC  
+`type`:资源类型,对应以下类型,默认为 0 即 PC
 
 ```
 0: pc
@@ -2131,7 +2138,7 @@ tags: 歌单标签
 2: iphone
 
 3: ipad
-```  
+```
 
 **接口地址 :** `/banner`
 
@@ -2144,7 +2151,6 @@ tags: 歌单标签
 **必选参数 :**
 
 `type`:资源类型,对应以下类型
-
 
 ```
 0: 歌曲
@@ -2164,11 +2170,9 @@ tags: 歌单标签
 7: 电台
 ```
 
-
 `t`: 操作,1 为点赞,其他为取消点赞
 
-`id`: 资源 id  
-
+`id`: 资源 id
 
 **接口地址 :** `/resource/like`
 
@@ -2176,7 +2180,6 @@ tags: 歌单标签
 
 注意：如给动态点赞，不需要传入 id，需要传入 `threadId`,可通过 `event`,`/user/event` 接口获取，如：
 `/resource/like?t=1&type=6&threadId=A_EV_2_6559519868_32953014`
-
 
 ### 获取点赞过的视频
 
@@ -2556,8 +2559,6 @@ pc: 云盘歌曲信息，如果不存在该字段，则为非云盘歌曲
 口 `/album` , 然后传入 id, 如 `/album?id=32311`
 
 **可选参数 :**
-
-
 
 `area`: ALL:全部,ZH:华语,EA:欧美,KR:韩国,JP:日本
 
@@ -3749,7 +3750,6 @@ type='1009' 获取其 id, 如`/search?keywords= 代码时间 &type=1009`
 说明 : 调用此接口 , 传入歌手 id, 可获取歌手粉丝
 **必选参数 :** `id` : 歌手 id
 
-
 **接口地址 :** `/artist/fans`
 
 **调用例子 :** `/artist/fans?id=2116&limit=10&offset=0`
@@ -3757,7 +3757,6 @@ type='1009' 获取其 id, 如`/search?keywords= 代码时间 &type=1009`
 ### 歌手粉丝数量
 
 说明 : 调用此接口 , 传入歌手 id, 可获取歌手粉丝数量
-
 
 **必选参数 :** `id` : 歌手 id
 
@@ -3855,7 +3854,6 @@ type='1009' 获取其 id, 如`/search?keywords= 代码时间 &type=1009`
 
 **调用例子 :** `/vip/info`, `/vip/info?uid=32953014`
 
-
 ### 获取 VIP 信息(app端)
 
 说明: 登录后调用此接口，可获取当前 VIP 信息。
@@ -3865,8 +3863,6 @@ type='1009' 获取其 id, 如`/search?keywords= 代码时间 &type=1009`
 **接口地址 :** `/vip/info/v2`
 
 **调用例子 :** `/vip/info/v2`, `/vip/info/v2?uid=32953014`
-
-
 
 ### 音乐人签到
 

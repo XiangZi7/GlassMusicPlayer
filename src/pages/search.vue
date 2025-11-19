@@ -33,22 +33,26 @@ const onMore = () => {}
 const onSort = () => {}
 const onFilter = () => {}
 
-const localQuery = ref('')
+const state = reactive({
+  // 本地搜索输入
+  localQuery: '',
+})
+const { localQuery } = toRefs(state)
 watch(
   q,
   val => {
-    localQuery.value = val
+    state.localQuery = val
   },
   { immediate: true }
 )
 
 const submitSearch = () => {
-  const term = localQuery.value.trim()
+  const term = state.localQuery.trim()
   router.replace({ path: '/search', query: { q: term } })
 }
 
 const applyQuick = (term: string) => {
-  localQuery.value = term
+  state.localQuery = term
   submitSearch()
 }
 </script>

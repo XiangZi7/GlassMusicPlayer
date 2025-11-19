@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import { useAudio } from '@/composables/useAudio'
+import { songUrl } from '@/api'
+import type { Song as StoreSong } from '@/stores/interface'
+import { formatDuration } from '@/utils/time'
+import { useRouter } from 'vue-router'
+
 interface Song {
   id?: string | number
+  mvId?: string | number
   name: string
   artist: string
   album?: string
-  duration: string
+  duration: number
   emoji?: string
   gradient?: string
   liked?: boolean
-  coverImgUrl?: string
+  cover?: string
 }
 
 interface Props {
@@ -37,24 +44,47 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const router = useRouter()
+const { setPlaylist, play, currentSong } = useAudio()
 
-// 播放歌曲
-const playSong = (song: Song, index: number) => {
-  emit('play', song, index)
+const mapToStoreSong = (s: Song): StoreSong => ({
+  id: s.id ?? String(Math.random()),
+  name: s.name,
+  artist: s.artist,
+  album: s.album,
+  duration: s.duration,
+  emoji: s.emoji,
+  gradient: s.gradient,
+  liked: s.liked,
+  cover: s.cover,
+})
+
+const playSong = async (song: Song, index: number) => {
+  try {
+    const res = await songUrl({ id: String(song.id) })
+    const url =
+      (res as any)?.data?.[0]?.url || (res as any)?.data?.data?.[0]?.url || (res as any)?.url || ''
+    const playlistMapped: StoreSong[] = props.songs.map(mapToStoreSong)
+    if (playlistMapped[index]) playlistMapped[index].url = url
+    setPlaylist(playlistMapped, index)
+    play(playlistMapped[index], index)
+    emit('play', song, index)
+  } catch {}
 }
 
-// 切换喜欢状态
-const toggleLike = (song: Song, index: number) => {
-  emit('like', song, index)
-}
-
-// 显示更多选项
-const showMoreOptions = (song: Song, index: number) => {
-  emit('more', song, index)
+const isCurrent = (s: Song) => {
+  const cur = currentSong.value
+  if (!cur) return false
+  return String(s.id ?? '') === String(cur.id ?? '')
 }
 
 const openMV = (song: Song, index: number) => {
-  emit('mv', song, index)
+  const id = song.mvId || song.id
+  if (id) {
+    router.push(`/mv-player/${id}`)
+  } else {
+    emit('mv', song, index)
+  }
 }
 
 const downloadSong = (song: Song, index: number) => {
@@ -84,7 +114,7 @@ const downloadSong = (song: Song, index: number) => {
 }
 </style>
 <template>
-  <div class="song-list h-full overflow-x-hidden">
+  <div class="flex h-full flex-col overflow-hidden">
     <!-- 操作栏 -->
     <div v-if="showControls" class="mb-6 flex items-center justify-end">
       <div class="flex items-center space-x-4">
@@ -97,17 +127,20 @@ const downloadSong = (song: Song, index: number) => {
       </div>
     </div>
 
-    <div class="glass-card h-full p-6">
+    <div class="glass-card flex flex-1 flex-col overflow-hidden p-4 px-2">
       <!-- 列表头部 -->
       <div
         v-if="showHeader"
-        class="mb-4 hidden items-center border-b border-white/10 px-4 py-2 text-sm text-purple-300 md:flex"
+        class="mb-4 hidden items-center border-b border-white/10 py-2 text-sm text-purple-300 md:flex"
       >
         <div class="w-12 text-center">#</div>
-        <div class="min-w-0 flex-1 px-4">歌曲</div>
-        <div class="w-32 text-center">专辑</div>
-        <div class="w-24 text-center">时长</div>
-        <div class="w-20 text-center">操作</div>
+        <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4 px-4">
+          <div class="col-span-4">歌曲</div>
+          <div class="col-span-3 hidden md:block">歌手</div>
+          <div class="col-span-2 hidden text-center md:block">专辑</div>
+          <div class="col-span-1 text-right">时长</div>
+          <div class="col-span-2 text-center">操作</div>
+        </div>
       </div>
 
       <!-- 歌曲列表 -->
@@ -116,20 +149,20 @@ const downloadSong = (song: Song, index: number) => {
           v-for="(song, index) in songs"
           :key="song.id || index"
           class="song-item group flex cursor-pointer items-center rounded-lg p-4 transition-all duration-300 hover:bg-white/10"
-          :class="currentPlayingIndex === index ? 'bg-white/10' : ''"
+          :class="isCurrent(song) ? 'bg-white/10' : ''"
           @click="playSong(song, index)"
         >
           <!-- 序号/播放状态 -->
           <div class="w-12 shrink-0 text-center">
-            <span v-if="currentPlayingIndex !== index" class="text-purple-300 group-hover:hidden">
+            <span v-if="!isCurrent(song)" class="text-purple-300 group-hover:hidden">
               {{ index + 1 }}
             </span>
             <span
-              v-if="currentPlayingIndex === index"
+              v-if="isCurrent(song)"
               class="icon-[mdi--volume-high] h-5 w-5 animate-pulse text-pink-400"
             ></span>
             <button
-              v-if="currentPlayingIndex !== index"
+              v-if="!isCurrent(song)"
               class="hidden text-white transition-colors group-hover:block hover:text-pink-400"
               @click.stop="playSong(song, index)"
             >
@@ -141,7 +174,7 @@ const downloadSong = (song: Song, index: number) => {
             <div class="col-span-4 flex items-center space-x-3">
               <div class="relative shrink-0">
                 <img
-                  :src="song.coverImgUrl + '?param=90y90'"
+                  :src="(song.cover || '') + '?param=90y90'"
                   alt="封面"
                   class="h-12 w-12 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
                 />
@@ -152,41 +185,44 @@ const downloadSong = (song: Song, index: number) => {
                 </div>
               </div>
               <div class="min-w-0 flex-1">
-                <h3 class="truncate font-medium text-white">{{ song.name }}</h3>
+                <h3 :title="song.name" class="truncate font-medium text-white">{{ song.name }}</h3>
               </div>
             </div>
 
             <div class="col-span-3 hidden overflow-hidden md:block">
-              <p class="truncate text-sm text-purple-300">{{ song.artist }}</p>
+              <p :title="song.artist" class="truncate text-sm text-purple-300">{{ song.artist }}</p>
             </div>
 
             <div class="col-span-2 hidden overflow-hidden text-center md:block">
-              <span class="truncate text-sm text-purple-300">{{ song.album || '-' }}</span>
+              <span :title="song.album || '-'" class="truncate text-sm text-purple-300">{{
+                song.album || '-'
+              }}</span>
             </div>
             <div class="col-span-1 flex items-center justify-end">
               <span class="hidden text-sm text-purple-300 md:inline-block">{{
-                song.duration
+                formatDuration(song.duration)
               }}</span>
             </div>
             <!-- 操控按钮 -->
             <div class="col-span-2 flex items-center justify-center space-x-2">
               <button
-                class="cursor-pointer text-purple-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-white"
+                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
                 @click.stop="playSong(song, index)"
               >
-                <span class="icon-[mdi--play-circle] h-7 w-7"></span>
+                <span class="icon-[mdi--play-circle] h-6 w-6"></span>
               </button>
               <button
-                class="cursor-pointer text-purple-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-white"
+                v-if="song.mvId"
+                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
                 @click.stop="openMV(song, index)"
               >
-                <span class="icon-[mdi--filmstrip] h-7 w-7"></span>
+                <span class="icon-[mdi--video-youtube] h-6 w-6"></span>
               </button>
               <button
-                class="cursor-pointer text-purple-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-white"
+                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
                 @click.stop="downloadSong(song, index)"
               >
-                <span class="icon-[mdi--download] h-7 w-7"></span>
+                <span class="icon-[mdi--download] h-6 w-6"></span>
               </button>
             </div>
           </div>

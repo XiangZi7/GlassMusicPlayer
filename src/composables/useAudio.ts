@@ -13,6 +13,7 @@ export const useAudio = () => {
   // 响应式状态
   const currentSong = computed(() => audioStore.getCurrentSong)
   const isPlaying = computed(() => audioStore.getIsPlaying)
+  const isLoading = computed(() => audioStore.audio.isLoading)
   const playlist = computed(() => audioStore.getPlaylist)
   const playMode = computed(() => audioStore.getPlayMode)
   const volume = computed(() => audioStore.getVolume)
@@ -238,6 +239,7 @@ export const useAudio = () => {
     // 状态
     currentSong,
     isPlaying,
+    isLoading,
     playlist,
     playMode,
     volume,

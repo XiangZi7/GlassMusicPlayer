@@ -40,20 +40,24 @@ interface OptionItem {
 }
 const props = defineProps<{ modelValue: string | number; options: OptionItem[] }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string | number): void }>()
-const open = ref(false)
+const state = reactive({
+  // 下拉是否展开
+  open: false,
+})
+const { open } = toRefs(state)
 const rootRef = ref<HTMLElement | null>(null)
 const selectedLabel = computed(
   () => props.options.find(o => o.value === props.modelValue)?.label ?? ''
 )
-const toggle = () => (open.value = !open.value)
+const toggle = () => (state.open = !state.open)
 const select = (v: string | number) => {
   emit('update:modelValue', v)
-  open.value = false
+  state.open = false
 }
 const onClickOutside = (e: MouseEvent) => {
   const el = rootRef.value
   if (!el) return
-  if (!el.contains(e.target as Node)) open.value = false
+  if (!el.contains(e.target as Node)) state.open = false
 }
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))

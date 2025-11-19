@@ -10,10 +10,19 @@ const created = [
     <div class="h-full overflow-auto p-6">
       <h1 class="mb-6 text-2xl font-bold text-white">创建的歌单</h1>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-        <div v-for="(playlist, index) in created" :key="index" class="playlist-card group cursor-pointer">
-          <div class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+        <div
+          v-for="(playlist, index) in created"
+          :key="index"
+          class="playlist-card group cursor-pointer"
+        >
+          <div
+            class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+          >
             <div class="relative mb-3 overflow-hidden rounded-xl">
-              <div class="flex aspect-square items-center justify-center bg-linear-to-br text-4xl transition-transform duration-300 group-hover:scale-110" :class="playlist.gradient">
+              <div
+                class="flex aspect-square items-center justify-center bg-linear-to-br text-4xl transition-transform duration-300 group-hover:scale-110"
+                :class="playlist.gradient"
+              >
                 {{ playlist.emoji }}
               </div>
             </div>
@@ -25,4 +34,3 @@ const created = [
     </div>
   </div>
 </template>
-

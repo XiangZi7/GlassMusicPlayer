@@ -7,7 +7,7 @@ import './style/index.scss'
 import router from './routers'
 
 // vue i18n
-import I18n from "@/languages"
+import I18n from '@/languages'
 
 // pinia
 import Pinia from '@/stores'

@@ -7,10 +7,10 @@
  */
 export const formatTime = (seconds: number): string => {
   if (isNaN(seconds) || seconds < 0) return '00:00'
-  
+
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = Math.floor(seconds % 60)
-  
+
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
@@ -22,12 +22,12 @@ export const formatTime = (seconds: number): string => {
 export const parseTime = (timeString: string): number => {
   const parts = timeString.split(':')
   if (parts.length !== 2) return 0
-  
+
   const minutes = parseInt(parts[0], 10)
   const seconds = parseInt(parts[1], 10)
-  
+
   if (isNaN(minutes) || isNaN(seconds)) return 0
-  
+
   return minutes * 60 + seconds
 }
 
@@ -47,22 +47,22 @@ export const getAudioMetadata = (file: File): Promise<AudioMetadata> => {
   return new Promise((resolve, reject) => {
     const audio = new Audio()
     const url = URL.createObjectURL(file)
-    
+
     audio.addEventListener('loadedmetadata', () => {
       const metadata: AudioMetadata = {
         duration: audio.duration || 0,
         title: file.name.replace(/\.[^/.]+$/, ''), // 移除文件扩展名
       }
-      
+
       URL.revokeObjectURL(url)
       resolve(metadata)
     })
-    
+
     audio.addEventListener('error', () => {
       URL.revokeObjectURL(url)
       reject(new Error('无法加载音频文件'))
     })
-    
+
     audio.src = url
   })
 }
@@ -80,11 +80,10 @@ export const isSupportedAudioFormat = (file: File): boolean => {
     'audio/ogg',
     'audio/aac',
     'audio/flac',
-    'audio/webm'
+    'audio/webm',
   ]
-  
-  return supportedTypes.includes(file.type) || 
-         /\.(mp3|wav|ogg|aac|flac|webm)$/i.test(file.name)
+
+  return supportedTypes.includes(file.type) || /\.(mp3|wav|ogg|aac|flac|webm)$/i.test(file.name)
 }
 
 /**
@@ -96,11 +95,11 @@ export const createAudioVisualizer = (audioElement: HTMLAudioElement) => {
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
   const analyser = audioContext.createAnalyser()
   const source = audioContext.createMediaElementSource(audioElement)
-  
+
   analyser.fftSize = 256
   source.connect(analyser)
   analyser.connect(audioContext.destination)
-  
+
   return { audioContext, analyser }
 }
 
@@ -123,23 +122,23 @@ export const getFrequencyData = (analyser: AnalyserNode): Uint8Array => {
  * @param duration 持续时间（毫秒）
  */
 export const fadeVolume = (
-  audioElement: HTMLAudioElement, 
-  targetVolume: number, 
+  audioElement: HTMLAudioElement,
+  targetVolume: number,
   duration: number = 1000
 ): Promise<void> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const startVolume = audioElement.volume
     const volumeDiff = targetVolume - startVolume
     const steps = 50
     const stepDuration = duration / steps
     const stepSize = volumeDiff / steps
-    
+
     let currentStep = 0
-    
+
     const fadeInterval = setInterval(() => {
       currentStep++
-      audioElement.volume = Math.max(0, Math.min(1, startVolume + (stepSize * currentStep)))
-      
+      audioElement.volume = Math.max(0, Math.min(1, startVolume + stepSize * currentStep))
+
       if (currentStep >= steps) {
         clearInterval(fadeInterval)
         audioElement.volume = targetVolume
@@ -163,12 +162,12 @@ export const crossfade = async (
   // 同时开始淡出当前音频和淡入下一个音频
   const fadeOutPromise = fadeVolume(currentAudio, 0, duration)
   const fadeInPromise = fadeVolume(nextAudio, 1, duration)
-  
+
   // 开始播放下一个音频
   nextAudio.play()
-  
+
   await Promise.all([fadeOutPromise, fadeInPromise])
-  
+
   // 停止当前音频
   currentAudio.pause()
   currentAudio.currentTime = 0

@@ -8,12 +8,16 @@ const menuItems = [
   { to: '/settings', label: '设置', icon: 'mdi--cog' },
 ]
 
-const userPlaylists = ref([
-  { id: 1, name: '我喜欢的音乐' },
-  { id: 2, name: '华语流行' },
-  { id: 3, name: '二次元音乐' },
-  { id: 4, name: '轻音乐' },
-])
+const state = reactive({
+  // 用户创建的歌单列表
+  userPlaylists: [
+    { id: 1, name: '我喜欢的音乐' },
+    { id: 2, name: '华语流行' },
+    { id: 3, name: '二次元音乐' },
+    { id: 4, name: '轻音乐' },
+  ],
+})
+const { userPlaylists } = toRefs(state)
 </script>
 <template>
   <aside class="hidden w-64 p-4 lg:block">

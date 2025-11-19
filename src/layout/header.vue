@@ -10,9 +10,13 @@ const navItems = [
 ]
 
 const router = useRouter()
-const searchQuery = ref('')
+const state = reactive({
+  // 搜索框输入内容
+  searchQuery: '',
+})
+const { searchQuery } = toRefs(state)
 const handleSearchEnter = () => {
-  const q = searchQuery.value.trim()
+  const q = state.searchQuery.trim()
   if (!q) return
   router.push({ path: '/search', query: { q } })
 }

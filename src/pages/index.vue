@@ -2,39 +2,53 @@
 import { useAudio } from '@/composables/useAudio'
 import { testSongs } from '@/utils/testSongs'
 import { banner, topPlaylist, topSong, recordRecentSong } from '@/api'
+import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
+import { formatDuration } from '@/utils/time'
 
 // 使用音频播放器
 const { setPlaylist } = useAudio()
 
-// 组件挂载时加载测试歌曲
-onMounted(() => {
-  // 设置测试歌曲到播放列表
-  setPlaylist(testSongs)
-  console.log('已加载测试歌曲到播放列表:', testSongs)
+interface HomeState {
+  // 轮播图数据
+  banners: BannerItem[]
+  // 当前轮播索引
+  currentBannerIndex: number
+  // 推荐歌单列表
+  recommendPlaylists: PlaylistItem[]
+  // 热门单曲列表
+  hotSongs: SongItem[]
+  // 当前播放索引
+  currentPlayingIndex: number
+  // 最近播放列表
+  recentPlayed: RecentItem[]
+}
+// 页面响应式状态容器（仅模板使用的变量通过 toRefs 解构）
+const state = reactive<HomeState>({
+  // 轮播图数据
+  banners: [],
+  // 当前轮播索引
+  currentBannerIndex: 0,
+  // 推荐歌单列表
+  recommendPlaylists: [],
+  // 热门单曲列表
+  hotSongs: [],
+  // 当前播放索引
+  currentPlayingIndex: -1,
+  // 最近播放列表
+  recentPlayed: [],
 })
 
-// 轮播图数据
-const banners = ref([
-  {
-    title: '二次元音乐节',
-    description: '最新最热的动漫歌曲，带你进入二次元世界',
-    gradient: 'from-pink-500 via-purple-500 to-indigo-600',
-  },
-  {
-    title: '治愈系音乐',
-    description: '温暖人心的旋律，陪伴你的每一个夜晚',
-    gradient: 'from-blue-400 via-cyan-500 to-teal-600',
-  },
-  {
-    title: '电子音乐专场',
-    description: '节拍强劲的电子乐，点燃你的激情',
-    gradient: 'from-purple-600 via-pink-500 to-red-500',
-  },
-])
+// 模板中使用的变量解构为 ref（仅供 template 使用）
+const {
+  banners,
+  currentBannerIndex,
+  recommendPlaylists,
+  hotSongs,
+  currentPlayingIndex,
+  recentPlayed,
+} = toRefs(state)
 
-const currentBannerIndex = ref(0)
-
-const gradients = [
+const gradients: string[] = [
   'from-pink-400 to-purple-500',
   'from-blue-400 to-cyan-500',
   'from-purple-500 to-pink-500',
@@ -42,42 +56,41 @@ const gradients = [
   'from-gray-600 to-red-600',
   'from-yellow-400 to-pink-500',
 ]
-const emojis = ['🎵', '🎶', '♪', '♫', '🎼', '🎤']
-
-const formatDuration = (ms: number) => {
-  const total = Math.floor(ms / 1000)
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
+const emojis: string[] = ['🎵', '🎶', '♪', '♫', '🎼', '🎤']
 
 const loadHomeData = async () => {
   try {
-    const [b, p, s, r] = await Promise.all([
+    const [b, p, s] = await Promise.all([
       banner({ type: 0 }),
       topPlaylist({ order: 'hot', limit: 6 }),
       topSong({ type: 0 }),
-      recordRecentSong({ limit: 3 }),
     ])
 
-    const bannerList = (b as any)?.data?.banners || (b as any)?.banners || []
+    const bannerList: any[] = (b as any)?.data?.banners || (b as any)?.banners || []
     if (Array.isArray(bannerList) && bannerList.length) {
-      banners.value = bannerList.map((item: any, i: number) => ({
-        title: item?.typeTitle || '精选推荐',
-        description: item?.title || '为你推荐的精彩内容',
-        gradient: gradients[i % gradients.length],
-      }))
+      state.banners = bannerList.map(
+        (item: any, i: number): BannerItem => ({
+          title: item?.typeTitle || '精选推荐',
+          description: item?.title || '为你推荐的精彩内容',
+          gradient: gradients[i % gradients.length],
+          coverImgUrl: item?.imageUrl || '',
+          url: item?.url || '',
+        })
+      )
     }
 
-    const playlists = (p as any)?.data?.playlists || (p as any)?.playlists || []
+    const playlists: any[] = (p as any)?.data?.playlists || (p as any)?.playlists || []
     if (Array.isArray(playlists) && playlists.length) {
-      recommendPlaylists.value = playlists.slice(0, 6).map((pl: any, i: number) => ({
-        name: pl?.name || '歌单',
-        count: pl?.trackCount || 0,
-        emoji: emojis[i % emojis.length],
-        gradient: gradients[i % gradients.length],
-        coverImgUrl: pl?.coverImgUrl || '',
-      }))
+      state.recommendPlaylists = playlists.map(
+        (pl: any, i: number): PlaylistItem => ({
+          id: pl?.id || 0,
+          name: pl?.name || '歌单',
+          count: pl?.trackCount || 0,
+          emoji: emojis[i % emojis.length],
+          gradient: gradients[i % gradients.length],
+          coverImgUrl: pl?.coverImgUrl || '',
+        })
+      )
     }
 
     const songData =
@@ -87,142 +100,31 @@ const loadHomeData = async () => {
       (s as any)?.data ||
       []
     if (Array.isArray(songData) && songData.length) {
-      hotSongs.value = songData.map((it: any, i: number) => ({
-        id: it?.id,
-        name: it?.name,
-        artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
-        album: it?.album?.name || '',
-        duration: formatDuration(it?.duration || 0),
-        emoji: emojis[i % emojis.length],
-        gradient: gradients[i % gradients.length],
-        liked: false,
-        coverImgUrl: it?.album?.picUrl || '',
-      }))
+      state.hotSongs = songData.map(
+        (it: any, i: number): SongItem => ({
+          id: (it?.id ?? '') as number | string,
+          name: it?.name,
+          artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
+          album: it?.album?.name || '',
+          duration: it?.duration || 0,
+          emoji: emojis[i % emojis.length],
+          gradient: gradients[i % gradients.length],
+          liked: false,
+          cover: it?.album?.picUrl || '',
+        })
+      )
     }
   } catch {}
 }
 
-// 推荐歌单
-const recommendPlaylists = ref([
-  { name: '二次元神曲', count: 50, emoji: '🎌', gradient: 'from-pink-400 to-purple-500' },
-  { name: '治愈系音乐', count: 30, emoji: '🌸', gradient: 'from-blue-400 to-cyan-500' },
-  { name: '电子音乐', count: 40, emoji: '⚡', gradient: 'from-purple-500 to-pink-500' },
-  { name: '古风音乐', count: 25, emoji: '🏮', gradient: 'from-red-400 to-orange-500' },
-  { name: '摇滚经典', count: 35, emoji: '🎸', gradient: 'from-gray-600 to-red-600' },
-  { name: '流行金曲', count: 60, emoji: '🎤', gradient: 'from-yellow-400 to-pink-500' },
-])
-
-// 热门单曲
-const hotSongs = ref([
-  {
-    id: 1,
-    name: '残酷天使的行动纲领',
-    artist: '高橋洋子',
-    duration: '4:06',
-    emoji: '👼',
-    gradient: 'from-orange-400 to-red-500',
-    liked: false,
-  },
-  {
-    id: 2,
-    name: '千本樱',
-    artist: '初音未来',
-    duration: '4:04',
-    emoji: '🌸',
-    gradient: 'from-pink-400 to-purple-500',
-    liked: true,
-  },
-  {
-    id: 3,
-    name: '打上花火',
-    artist: 'DAOKO',
-    duration: '4:49',
-    emoji: '🎆',
-    gradient: 'from-blue-400 to-purple-500',
-    liked: false,
-  },
-  {
-    id: 4,
-    name: 'Lemon',
-    artist: '米津玄師',
-    duration: '4:15',
-    emoji: '🍋',
-    gradient: 'from-yellow-400 to-orange-500',
-    liked: false,
-  },
-  {
-    id: 5,
-    name: '夜に駆ける',
-    artist: 'YOASOBI',
-    duration: '4:23',
-    emoji: '🌙',
-    gradient: 'from-indigo-400 to-purple-500',
-    liked: true,
-  },
-])
-
-// 当前播放索引
-const currentPlayingIndex = ref(-1)
-
-// 处理播放歌曲
-const handlePlaySong = (song: any, index: number) => {
-  currentPlayingIndex.value = index
-}
-
-// 处理喜欢歌曲
-const handleLikeSong = (song: any, index: number) => {
-  hotSongs.value[index].liked = !hotSongs.value[index].liked
-  console.log(`${hotSongs.value[index].liked ? '喜欢' : '取消喜欢'}: ${song.name}`)
-}
-
-// 处理更多选项
-const handleMoreOptions = (song: any, index: number) => {
-  console.log(`更多选项: ${song.name}`)
-}
-
-// 处理排序
-const handleSort = () => {
-  console.log('排序歌曲')
-}
-
-// 处理筛选
-const handleFilter = () => {
-  console.log('筛选歌曲')
-}
-
-// 最近播放
-const recentPlayed = ref([
-  {
-    name: '千本樱',
-    artist: '初音未来',
-    playTime: '2小时前',
-    emoji: '🌸',
-    gradient: 'from-pink-400 to-purple-500',
-  },
-  {
-    name: '残酷天使的行动纲领',
-    artist: '高橋洋子',
-    playTime: '昨天',
-    emoji: '👼',
-    gradient: 'from-orange-400 to-red-500',
-  },
-  {
-    name: '打上花火',
-    artist: 'DAOKO',
-    playTime: '3天前',
-    emoji: '🎆',
-    gradient: 'from-blue-400 to-purple-500',
-  },
-])
-
-// 轮播图自动切换
-onMounted(() => {
-  setInterval(() => {
-    currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.value.length
-  }, 5000)
-})
 onMounted(() => {
   loadHomeData()
+  // 设置测试歌曲到播放列表
+  setPlaylist(testSongs)
+  // 轮播图自动切换
+  setInterval(() => {
+    state.currentBannerIndex = (state.currentBannerIndex + 1) % state.banners.length
+  }, 5000)
 })
 </script>
 <template>
@@ -231,13 +133,22 @@ onMounted(() => {
       <!-- 轮播图区域 -->
       <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4">
         <div class="carousel-container relative h-full">
-          <div
+          <a
+            :href="banner.url"
             v-for="(banner, index) in banners"
             :key="index"
+            target="_blank"
             class="carousel-slide absolute inset-0 overflow-hidden rounded-2xl transition-all duration-1000 ease-in-out"
             :class="currentBannerIndex === index ? 'scale-100 opacity-100' : 'scale-105 opacity-0'"
           >
             <div class="relative h-full w-full overflow-hidden rounded-2xl">
+              <img
+                v-if="banner.coverImgUrl"
+                :src="banner.coverImgUrl"
+                alt="轮播封面"
+                loading="lazy"
+                class="absolute inset-0 h-full w-full object-cover"
+              />
               <!-- 背景渐变 -->
               <div
                 class="absolute inset-0 bg-linear-to-br opacity-90"
@@ -272,7 +183,7 @@ onMounted(() => {
                   </p>
                   <router-link
                     to="/mv-list"
-                    class="glass-button animate-fade-in-up bg-white/20 px-6 py-3 text-white hover:bg-white/30"
+                    class="glass-button animate-fade-in-up inline-flex items-center gap-1 bg-white/20 px-6 py-3 text-white hover:bg-white/30"
                     style="animation-delay: 0.4s"
                   >
                     <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
@@ -285,7 +196,7 @@ onMounted(() => {
                       class="animate-float h-48 w-48 rounded-full bg-white/10 p-4 backdrop-blur-sm"
                     >
                       <div
-                        class="animate-spin-slow flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-600 text-6xl"
+                        class="animate-spin-slow flex h-full w-full items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-600 text-6xl"
                       >
                         🎧
                       </div>
@@ -308,7 +219,7 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </div>
+          </a>
         </div>
 
         <!-- 轮播指示器 -->
@@ -344,7 +255,7 @@ onMounted(() => {
             <router-link
               v-for="(playlist, index) in recommendPlaylists"
               :key="index"
-              :to="`/playlist/${index + 1}`"
+              :to="`/playlist/${playlist.id}`"
               class="playlist-card group cursor-pointer"
             >
               <div
@@ -392,7 +303,7 @@ onMounted(() => {
         </section>
 
         <!-- 最近播放区域 -->
-        <section>
+        <section v-if="recentPlayed.length > 0">
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
               <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>

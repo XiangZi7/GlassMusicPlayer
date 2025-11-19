@@ -167,132 +167,135 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// 分类数据
-const categories = ref([
-  { name: '全部', emoji: '🎬' },
-  { name: '二次元', emoji: '🎌' },
-  { name: '流行', emoji: '🎤' },
-  { name: '电子', emoji: '⚡' },
-  { name: '摇滚', emoji: '🎸' },
-  { name: '古风', emoji: '🏮' },
-  { name: '治愈', emoji: '🌸' },
-])
-
-const selectedCategory = ref('全部')
-
-// MV数据
-const mvList = ref([
-  {
-    id: 1,
-    title: '残酷天使的行动纲领',
-    artist: '高橋洋子',
-    duration: '4:06',
-    playCount: '1.2M',
-    category: '二次元',
-    emoji: '👼',
-    gradient: 'from-orange-400 to-red-500',
-    liked: false,
-    isNew: false,
-  },
-  {
-    id: 2,
-    title: '千本樱',
-    artist: '初音未来',
-    duration: '4:04',
-    playCount: '2.8M',
-    category: '二次元',
-    emoji: '🌸',
-    gradient: 'from-pink-400 to-purple-500',
-    liked: true,
-    isNew: true,
-  },
-  {
-    id: 3,
-    title: '打上花火',
-    artist: 'DAOKO',
-    duration: '4:49',
-    playCount: '3.5M',
-    category: '流行',
-    emoji: '🎆',
-    gradient: 'from-blue-400 to-purple-500',
-    liked: false,
-    isNew: false,
-  },
-  {
-    id: 4,
-    title: 'Lemon',
-    artist: '米津玄師',
-    duration: '4:15',
-    playCount: '5.2M',
-    category: '流行',
-    emoji: '🍋',
-    gradient: 'from-yellow-400 to-orange-500',
-    liked: false,
-    isNew: false,
-  },
-  {
-    id: 5,
-    title: '夜に駆ける',
-    artist: 'YOASOBI',
-    duration: '4:23',
-    playCount: '4.1M',
-    category: '流行',
-    emoji: '🌙',
-    gradient: 'from-indigo-400 to-purple-500',
-    liked: true,
-    isNew: true,
-  },
-  {
-    id: 6,
-    title: 'Shelter',
-    artist: 'Porter Robinson',
-    duration: '3:37',
-    playCount: '1.8M',
-    category: '电子',
-    emoji: '🏠',
-    gradient: 'from-cyan-400 to-blue-500',
-    liked: false,
-    isNew: false,
-  },
-  {
-    id: 7,
-    title: '青花瓷',
-    artist: '周杰伦',
-    duration: '3:58',
-    playCount: '6.7M',
-    category: '古风',
-    emoji: '🏺',
-    gradient: 'from-blue-600 to-indigo-700',
-    liked: true,
-    isNew: false,
-  },
-  {
-    id: 8,
-    title: 'Your Name',
-    artist: 'RADWIMPS',
-    duration: '4:44',
-    playCount: '2.3M',
-    category: '治愈',
-    emoji: '⭐',
-    gradient: 'from-purple-400 to-pink-400',
-    liked: false,
-    isNew: true,
-  },
-])
-
-const hasMore = ref(true)
+// 分类与数据状态
+const state = reactive({
+  // 分类列表
+  categories: [
+    { name: '全部', emoji: '🎬' },
+    { name: '二次元', emoji: '🎌' },
+    { name: '流行', emoji: '🎤' },
+    { name: '电子', emoji: '⚡' },
+    { name: '摇滚', emoji: '🎸' },
+    { name: '古风', emoji: '🏮' },
+    { name: '治愈', emoji: '🌸' },
+  ],
+  // 当前选中的分类
+  selectedCategory: '全部',
+  // MV 数据列表
+  mvList: [
+    {
+      id: 1,
+      title: '残酷天使的行动纲领',
+      artist: '高橋洋子',
+      duration: '4:06',
+      playCount: '1.2M',
+      category: '二次元',
+      emoji: '👼',
+      gradient: 'from-orange-400 to-red-500',
+      liked: false,
+      isNew: false,
+    },
+    {
+      id: 2,
+      title: '千本樱',
+      artist: '初音未来',
+      duration: '4:04',
+      playCount: '2.8M',
+      category: '二次元',
+      emoji: '🌸',
+      gradient: 'from-pink-400 to-purple-500',
+      liked: true,
+      isNew: true,
+    },
+    {
+      id: 3,
+      title: '打上花火',
+      artist: 'DAOKO',
+      duration: '4:49',
+      playCount: '3.5M',
+      category: '流行',
+      emoji: '🎆',
+      gradient: 'from-blue-400 to-purple-500',
+      liked: false,
+      isNew: false,
+    },
+    {
+      id: 4,
+      title: 'Lemon',
+      artist: '米津玄師',
+      duration: '4:15',
+      playCount: '5.2M',
+      category: '流行',
+      emoji: '🍋',
+      gradient: 'from-yellow-400 to-orange-500',
+      liked: false,
+      isNew: false,
+    },
+    {
+      id: 5,
+      title: '夜に駆ける',
+      artist: 'YOASOBI',
+      duration: '4:23',
+      playCount: '4.1M',
+      category: '流行',
+      emoji: '🌙',
+      gradient: 'from-indigo-400 to-purple-500',
+      liked: true,
+      isNew: true,
+    },
+    {
+      id: 6,
+      title: 'Shelter',
+      artist: 'Porter Robinson',
+      duration: '3:37',
+      playCount: '1.8M',
+      category: '电子',
+      emoji: '🏠',
+      gradient: 'from-cyan-400 to-blue-500',
+      liked: false,
+      isNew: false,
+    },
+    {
+      id: 7,
+      title: '青花瓷',
+      artist: '周杰伦',
+      duration: '3:58',
+      playCount: '6.7M',
+      category: '古风',
+      emoji: '🏺',
+      gradient: 'from-blue-600 to-indigo-700',
+      liked: true,
+      isNew: false,
+    },
+    {
+      id: 8,
+      title: 'Your Name',
+      artist: 'RADWIMPS',
+      duration: '4:44',
+      playCount: '2.3M',
+      category: '治愈',
+      emoji: '⭐',
+      gradient: 'from-purple-400 to-pink-400',
+      liked: false,
+      isNew: true,
+    },
+  ],
+  // 是否有更多可加载
+  hasMore: true,
+})
+const { categories, selectedCategory, mvList, hasMore } = toRefs(state)
 
 // 筛选后的MV列表
 const filteredMVs = computed(() => {
-  if (selectedCategory.value === '全部') {
-    return mvList.value
+  if (state.selectedCategory === '全部') {
+    return state.mvList
   }
-  return mvList.value.filter(mv => mv.category === selectedCategory.value)
+  return state.mvList.filter(mv => mv.category === state.selectedCategory)
 })
 
 // 选择分类
 const selectCategory = (category: string) => {
-  selectedCategory.value = category
+  state.selectedCategory = category
 }
 
 // 播放MV
@@ -317,7 +320,7 @@ const loadMore = () => {
   // 模拟加载更多数据
   console.log('加载更多MV...')
   // 实际项目中这里会调用API获取更多数据
-  hasMore.value = false
+  state.hasMore = false
 }
 </script>
 

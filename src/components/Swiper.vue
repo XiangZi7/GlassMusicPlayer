@@ -14,9 +14,13 @@ interface Props {
 defineProps<Props>()
 
 // swiper 实例引用
-const swiper = ref<SwiperClass | null>(null)
+const state = reactive({
+  // Swiper 实例引用
+  swiper: null as SwiperClass | null,
+})
+const { swiper } = toRefs(state)
 const onSwiper = (sw: SwiperClass) => {
-  swiper.value = sw
+  state.swiper = sw
   console.log('🚀 swiper 实例:', sw)
 }
 

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
+import PlaylistBubble from '@/components/Ui/PlaylistBubble.vue'
 
 // 使用音频播放器组合式API
 const {
   // 状态
   currentSong,
   isPlaying,
+  isLoading,
   volume,
   formattedCurrentTime,
   formattedDuration,
@@ -60,10 +62,15 @@ const handleProgressClick = (event: MouseEvent) => {
   setProgress(Math.max(0, Math.min(100, progressPercent)))
 }
 
-// 喜欢歌曲状态（临时使用ref，后续可以集成到store中）
-const isLiked = ref(false)
+const state = reactive({
+  // 是否喜欢当前歌曲
+  isLiked: false,
+  // 是否显示播放列表气泡
+  showQueue: false,
+})
+const { isLiked, showQueue } = toRefs(state)
 const toggleLike = () => {
-  isLiked.value = !isLiked.value
+  state.isLiked = !state.isLiked
 }
 </script>
 <template>
@@ -117,10 +124,8 @@ const toggleLike = () => {
           :title="isPlaying ? '暂停' : '播放'"
           class="glass-button flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
         >
-          <span
-            :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-            class="h-5 w-5 text-white"
-          ></span>
+          <span v-if="isLoading" class="icon-[mdi--loading] h-5 w-5 animate-spin text-white"></span>
+          <span v-else :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'" class="h-5 w-5 text-white"></span>
         </button>
         <button @click="next" class="text-white/70 transition-colors hover:text-white">
           <span class="icon-[mdi--skip-next] h-5 w-5"></span>
@@ -131,7 +136,7 @@ const toggleLike = () => {
       </div>
 
       <!-- 右侧：音量和其他控制 -->
-      <div class="flex flex-1 items-center justify-end space-x-4">
+      <div class="relative flex flex-1 items-center justify-end space-x-4">
         <button
           @click="toggleMute"
           class="flex items-center text-white/70 transition-colors hover:text-white"
@@ -152,16 +157,17 @@ const toggleLike = () => {
             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
-        <button class="flex items-center text-white/70 transition-colors hover:text-white">
+        <button class="flex items-center text-white/70 transition-colors hover:text-white" @click="state.showQueue = !state.showQueue">
           <span class="icon-[mdi--playlist-music] h-5 w-5"></span>
         </button>
+        <PlaylistBubble v-if="showQueue" />
       </div>
     </div>
 
     <!-- 进度条 -->
 
     <div v-if="currentSong" class="mt-3 flex items-center space-x-3">
-      <span class="text-xs text-white/60">{{ formattedCurrentTime }}</span>
+      <span class="text-xs text-white/60">{{ isLoading ? '加载中…' : formattedCurrentTime }}</span>
       <div
         @click="handleProgressClick"
         class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"

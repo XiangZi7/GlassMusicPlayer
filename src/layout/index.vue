@@ -13,7 +13,11 @@ const settings = useSettingsStore()
 const { aurora, colorBends, backgroundType } = storeToRefs(settings)
 
 // 抽屉状态
-const isDrawerOpen = ref(false)
+const state = reactive({
+  // 播放器抽屉是否打开
+  isDrawerOpen: false,
+})
+const { isDrawerOpen } = toRefs(state)
 
 const colorStops = computed(() => {
   const stops = (aurora.value.colorStops || []).slice(0, 3)
@@ -26,8 +30,8 @@ const positions = computed(() => {
 })
 
 const openPlayerDrawer = () => {
-  isDrawerOpen.value = true
-  console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen.value:', isDrawerOpen.value)
+  state.isDrawerOpen = true
+  console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen:', state.isDrawerOpen)
 }
 </script>
 

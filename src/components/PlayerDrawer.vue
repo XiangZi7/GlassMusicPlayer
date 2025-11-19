@@ -8,7 +8,37 @@ interface LyricLine {
 }
 
 const isOpen = defineModel<boolean>()
-const isRendered = ref(false)
+const state = reactive({
+  // 抽屉是否已渲染
+  isRendered: false,
+  // 当前歌词索引（用于高亮与滚动）
+  currentLyricIndex: 0,
+  // 歌词时间偏移（同步/微调）
+  lyricsOffset: 0,
+  // 最近播放抽屉开关
+  isRecentOpen: false,
+  // 歌词数据列表
+  lyrics: [
+    { time: 0, text: '在这个美好的夜晚' },
+    { time: 5, text: '音乐响起的瞬间' },
+    { time: 10, text: '所有的烦恼都消散' },
+    { time: 15, text: '让我们一起摇摆' },
+    { time: 20, text: '感受这节拍的律动' },
+    { time: 25, text: '心跳与音乐同步' },
+    { time: 30, text: '这就是青春的模样' },
+    { time: 35, text: '永远不会褪色的梦想' },
+    { time: 40, text: '在音乐中找到自己' },
+    { time: 45, text: '在旋律中释放灵魂' },
+    { time: 50, text: '跟随着音符的指引' },
+    { time: 55, text: '穿越时空的界限' },
+    { time: 60, text: '每一个音符都是故事' },
+    { time: 65, text: '每一段旋律都是回忆' },
+    { time: 70, text: '让音乐带我们飞翔' },
+    { time: 75, text: '在无尽的天空中遨游' },
+    { time: 80, text: '这是属于我们的时刻' },
+    { time: 85, text: '永远不会结束的梦' },
+  ] as LyricLine[],
+})
 
 // 使用音频播放器
 const {
@@ -49,11 +79,8 @@ const playModeIconClass = computed(() => {
 const drawerRef = ref<HTMLElement>()
 const albumCoverRef = ref<HTMLElement>()
 const lyricsRef = ref<HTMLElement>()
-const currentLyricIndex = ref(0)
-const lyricsOffset = ref(0)
-const isRecentOpen = ref(false)
 const openRecent = () => {
-  isRecentOpen.value = true
+  state.isRecentOpen = true
 }
 const onRecentSelect = (song: any) => {
   let idx = playlist.value.findIndex((s: any) => s.id === song.id)
@@ -62,30 +89,11 @@ const onRecentSelect = (song: any) => {
     idx = playlist.value.findIndex((s: any) => s.id === song.id)
   }
   play(song, idx)
-  isRecentOpen.value = false
+  state.isRecentOpen = false
 }
 
 // 示例歌词数据
-const lyrics = ref<LyricLine[]>([
-  { time: 0, text: '在这个美好的夜晚' },
-  { time: 5, text: '音乐响起的瞬间' },
-  { time: 10, text: '所有的烦恼都消散' },
-  { time: 15, text: '让我们一起摇摆' },
-  { time: 20, text: '感受这节拍的律动' },
-  { time: 25, text: '心跳与音乐同步' },
-  { time: 30, text: '这就是青春的模样' },
-  { time: 35, text: '永远不会褪色的梦想' },
-  { time: 40, text: '在音乐中找到自己' },
-  { time: 45, text: '在旋律中释放灵魂' },
-  { time: 50, text: '跟随着音符的指引' },
-  { time: 55, text: '穿越时空的界限' },
-  { time: 60, text: '每一个音符都是故事' },
-  { time: 65, text: '每一段旋律都是回忆' },
-  { time: 70, text: '让音乐带我们飞翔' },
-  { time: 75, text: '在无尽的天空中遨游' },
-  { time: 80, text: '这是属于我们的时刻' },
-  { time: 85, text: '永远不会结束的梦' },
-])
+const { isRendered, currentLyricIndex, lyrics } = toRefs(state)
 
 // 方法
 const handleTogglePlay = () => {
@@ -125,9 +133,9 @@ const handleProgressClick = (event: MouseEvent) => {
 }
 
 const seekToLyric = (index: number) => {
-  const targetTime = lyrics.value[index].time
+  const targetTime = state.lyrics[index].time
   currentTime.value = targetTime
-  currentLyricIndex.value = index
+  state.currentLyricIndex = index
   scrollToCurrentLyric()
 }
 
@@ -168,23 +176,23 @@ const stopLyricsScroll = () => {
 }
 
 const updateCurrentLyric = () => {
-  const adjustedTime = currentTime.value + lyricsOffset.value
+  const adjustedTime = currentTime.value + state.lyricsOffset
 
-  const currentLyric = lyrics.value.findIndex((lyric, index) => {
-    const nextLyric = lyrics.value[index + 1]
+  const currentLyric = state.lyrics.findIndex((lyric, index) => {
+    const nextLyric = state.lyrics[index + 1]
     return adjustedTime >= lyric.time && (!nextLyric || adjustedTime < nextLyric.time)
   })
 
-  if (currentLyric !== -1 && currentLyric !== currentLyricIndex.value) {
-    currentLyricIndex.value = currentLyric
+  if (currentLyric !== -1 && currentLyric !== state.currentLyricIndex) {
+    state.currentLyricIndex = currentLyric
     scrollToCurrentLyric()
   }
 }
 
 const scrollToCurrentLyric = () => {
-  if (lyricsRef.value && currentLyricIndex.value >= 0) {
+  if (lyricsRef.value && state.currentLyricIndex >= 0) {
     const lyricsContainer = lyricsRef.value
-    const currentLyricElement = lyricsContainer.children[currentLyricIndex.value] as HTMLElement
+    const currentLyricElement = lyricsContainer.children[state.currentLyricIndex] as HTMLElement
 
     if (currentLyricElement) {
       const containerHeight = lyricsContainer.parentElement?.clientHeight || 0
@@ -255,7 +263,7 @@ const closeDrawer = () => {
   if (drawerRef.value) {
     const tl = gsap.timeline({
       onComplete: () => {
-        isRendered.value = false
+        state.isRendered = false
       },
     })
 
@@ -276,7 +284,7 @@ watch(
   () => isOpen.value,
   async newVal => {
     if (newVal) {
-      isRendered.value = true
+      state.isRendered = true
       await nextTick()
       openDrawer()
     } else {

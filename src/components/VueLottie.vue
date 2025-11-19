@@ -201,7 +201,7 @@ watch(
 
 watch(
   () => props.speed,
-  (newSpeed) => {
+  newSpeed => {
     if (animationInstance) {
       animationInstance.setSpeed(newSpeed)
     }
