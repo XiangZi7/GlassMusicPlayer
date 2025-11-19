@@ -16,95 +16,20 @@ const state = reactive({
   // 总时长（秒）
   totalTime: 245,
   // 当前 MV 信息
-  currentMV: {
-    id: 1,
-    title: '残酷天使的行动纲领',
-    artist: '高橋洋子',
-    duration: '4:06',
-    playCount: '1.2M',
-    likes: '85K',
-    publishDate: '2023-12-15',
-    category: '二次元',
-    emoji: '👼',
-    gradient: 'from-orange-400 to-red-500',
-    liked: false,
-    isNew: false,
-    description:
-      '《新世纪福音战士》的经典主题曲，由高橋洋子演唱。这首歌曲以其激昂的旋律和深刻的歌词，完美诠释了动画的主题思想，成为了无数动漫迷心中的经典之作。MV画面精美，将动画中的经典场景与现实演出完美结合。',
-  },
+  currentMV: {},
   // 相关推荐 MV 列表
-  relatedMVs: [
-    {
-      id: 2,
-      title: '千本樱',
-      artist: '初音未来',
-      duration: '4:04',
-      playCount: '2.8M',
-      emoji: '🌸',
-      gradient: 'from-pink-400 to-purple-500',
-    },
-    {
-      id: 3,
-      title: '打上花火',
-      artist: 'DAOKO',
-      duration: '4:49',
-      playCount: '3.5M',
-      emoji: '🎆',
-      gradient: 'from-blue-400 to-purple-500',
-    },
-    {
-      id: 4,
-      title: 'Lemon',
-      artist: '米津玄師',
-      duration: '4:15',
-      playCount: '5.2M',
-      emoji: '🍋',
-      gradient: 'from-yellow-400 to-orange-500',
-    },
-    {
-      id: 5,
-      title: '夜に駆ける',
-      artist: 'YOASOBI',
-      duration: '4:23',
-      playCount: '4.1M',
-      emoji: '🌙',
-      gradient: 'from-indigo-400 to-purple-500',
-    },
-  ],
+  relatedMVs: [],
   // 评论列表
-  comments: [] as Array<{ username: string; avatarUrl: string; time: string; content: string; likes: number }>,
+  comments: [] as Array<{
+    username: string
+    avatarUrl: string
+    time: string
+    content: string
+    likes: number
+  }>,
 })
-const { isPlaying, showControls, currentTime, totalTime, currentMV, relatedMVs, comments } = toRefs(state)
+const { currentMV, relatedMVs, comments } = toRefs(state)
 let controlsTimer: NodeJS.Timeout | null = null
-
-// 进度百分比
-const progressPercentage = computed(() => {
-  return (state.currentTime / state.totalTime) * 100
-})
-
-// 格式化时间
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-// 返回上一页
-const goBack = () => {
-  router.go(-1)
-}
-
-// 切换播放状态
-const togglePlay = () => {
-  state.isPlaying = !state.isPlaying
-  if (state.isPlaying) {
-    startPlayback()
-    hideControlsAfterDelay()
-  } else {
-    stopPlayback()
-    state.showControls = true
-  }
-}
 
 // 切换点赞状态
 const toggleLike = () => {
@@ -112,42 +37,9 @@ const toggleLike = () => {
   console.log(`${state.currentMV.liked ? '点赞' : '取消点赞'}: ${state.currentMV.title}`)
 }
 
-// 切换全屏
-const toggleFullscreen = () => {
-  console.log('切换全屏')
-  // 实际项目中这里会实现全屏功能
-}
-
-// 跳转到指定时间
-const seekTo = (event: MouseEvent) => {
-  const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-  const percentage = (event.clientX - rect.left) / rect.width
-  state.currentTime = Math.floor(state.totalTime * percentage)
-}
-
 // 播放相关MV
 const playRelatedMV = (mv: any) => {
   router.push(`/mv-player/${mv.id}`)
-}
-
-// 开始播放
-const startPlayback = () => {
-  // 模拟播放进度
-  const interval = setInterval(() => {
-    if (state.currentTime < state.totalTime) {
-      state.currentTime++
-    } else {
-      clearInterval(interval)
-      state.isPlaying = false
-      state.showControls = true
-    }
-  }, 1000)
-}
-
-// 停止播放
-const stopPlayback = () => {
-  // 实际项目中这里会停止播放
 }
 
 // 延迟隐藏控制栏
@@ -206,6 +98,8 @@ const loadMV = async (id: number) => {
       artist: mv?.artistName || mv?.artists?.[0]?.name || '',
       duration: Math.floor((mv?.duration || 0) / 1000) + 's',
       playCount: String(mv?.playCount || ''),
+      likes: String(mv?.likedCount || ''),
+      cover: mv?.cover || mv?.coverImg || '',
       emoji: '🎵',
       gradient: 'from-pink-400 to-purple-500',
     })) as any
@@ -356,40 +250,51 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                <!-- MV描述 -->
-                <div class="mb-6">
-                  <h3 class="mb-3 text-lg font-semibold text-white">MV简介</h3>
-                  <p class="leading-relaxed text-white/80">
-                    {{ currentMV.description }}
-                  </p>
-                </div>
+                  <!-- MV描述 -->
+                  <div class="mb-6">
+                    <h3 class="mb-3 text-lg font-semibold text-white">MV简介</h3>
+                    <p class="leading-relaxed text-white/80">
+                      {{ currentMV.description }}
+                    </p>
+                  </div>
 
-                <!-- 评论列表 -->
-                <div class="space-y-6">
-                  <h3 class="text-lg font-semibold text-white">评论</h3>
-                  <div v-if="comments.length === 0" class="rounded-lg bg-white/5 p-4 text-purple-300">暂无评论</div>
-                  <div v-else class="space-y-4">
-                    <div v-for="(c, i) in comments" :key="i" class="flex items-start space-x-4 rounded-lg bg-white/5 p-4">
-                      <img :src="c.avatarUrl" alt="" class="h-10 w-10 rounded-full" />
-                      <div class="min-w-0 flex-1">
-                        <div class="mb-1 flex items-center space-x-2">
-                          <h4 class="text-sm font-medium text-white">{{ c.username }}</h4>
-                          <span class="text-xs text-purple-400">{{ c.time }}</span>
-                        </div>
-                        <p class="text-sm text-white/80">{{ c.content }}</p>
-                        <div class="mt-2 flex items-center space-x-4 text-purple-300">
-                          <button class="flex items-center space-x-1 transition-colors hover:text-white">
-                            <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
-                            <span class="text-xs">{{ c.likes }}</span>
-                          </button>
-                          <button class="transition-colors hover:text-white">
-                            <span class="icon-[mdi--reply] h-4 w-4"></span>
-                          </button>
+                  <!-- 评论列表 -->
+                  <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-white">评论</h3>
+                    <div
+                      v-if="comments.length === 0"
+                      class="rounded-lg bg-white/5 p-4 text-purple-300"
+                    >
+                      暂无评论
+                    </div>
+                    <div v-else class="space-y-4">
+                      <div
+                        v-for="(c, i) in comments"
+                        :key="i"
+                        class="flex items-start space-x-4 rounded-lg bg-white/5 p-4"
+                      >
+                        <img :src="c.avatarUrl" alt="" class="h-10 w-10 rounded-full" />
+                        <div class="min-w-0 flex-1">
+                          <div class="mb-1 flex items-center space-x-2">
+                            <h4 class="text-sm font-medium text-white">{{ c.username }}</h4>
+                            <span class="text-xs text-purple-400">{{ c.time }}</span>
+                          </div>
+                          <p class="text-sm text-white/80">{{ c.content }}</p>
+                          <div class="mt-2 flex items-center space-x-4 text-purple-300">
+                            <button
+                              class="flex items-center space-x-1 transition-colors hover:text-white"
+                            >
+                              <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
+                              <span class="text-xs">{{ c.likes }}</span>
+                            </button>
+                            <button class="transition-colors hover:text-white">
+                              <span class="icon-[mdi--reply] h-4 w-4"></span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
                 </div>
               </div>
             </div>
@@ -407,12 +312,13 @@ onUnmounted(() => {
                 >
                   <!-- 缩略图 -->
                   <div class="relative shrink-0">
-                    <div
+                    <img  class="h-12 w-20 rounded-lg" :src="relatedMV.cover" alt="">
+                    <!-- <div
                       class="flex h-12 w-20 items-center justify-center rounded-lg bg-linear-to-br text-lg"
                       :class="relatedMV.gradient"
                     >
                       {{ relatedMV.emoji }}
-                    </div>
+                    </div> -->
                     <div
                       class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity duration-300 hover:opacity-100"
                     >
