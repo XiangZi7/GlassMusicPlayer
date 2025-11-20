@@ -43,3 +43,41 @@ export interface CommentItem {
   likes: number
   replies: ReplyItem[]
 }
+
+
+export interface MVInfo {
+  id: number
+  title: string
+  artist: string
+  duration: number
+  cover: string
+  playCount: string
+  likes: string
+  publishDate: string
+  category: string
+  emoji: string
+  gradient: string
+  liked: boolean
+  isNew: boolean
+  description: string
+  url: string
+}
+
+export interface RelatedMV {
+  id: number
+  title: string
+  artist: string
+  duration: number
+  playCount: string
+  cover: string
+  emoji: string
+  gradient: string
+}
+
+export interface MVComment {
+  username: string
+  avatarUrl: string
+  time: string
+  content: string
+  likes: number
+}

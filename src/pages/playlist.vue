@@ -13,6 +13,7 @@ interface PlaylistState {
   songs: PlaylistSong[]
   newComment: string
   comments: CommentItem[]
+  isPageLoading: boolean
 }
 
 const state = reactive<PlaylistState>({
@@ -28,8 +29,9 @@ const state = reactive<PlaylistState>({
   newComment: '',
   // 评论列表
   comments: [],
+  isPageLoading: true,
 })
-const { activeTab, playlistInfo, songs, newComment, comments } = toRefs(state)
+const { activeTab, playlistInfo, songs, newComment, comments, isPageLoading } = toRefs(state)
 const { setPlaylist, play } = useAudio()
 
 const gradients: string[] = ['from-purple-500 to-pink-500']
@@ -80,7 +82,9 @@ const loadPlaylist = async (id: number) => {
         cover: t?.al?.picUrl || t?.album?.picUrl || '',
       }))
     }
-  } catch {}
+  } catch {} finally {
+    state.isPageLoading = false
+  }
 }
 
 const loadComments = async (id: number) => {
@@ -110,6 +114,7 @@ const loadComments = async (id: number) => {
 onMounted(() => {
   const idNum = Number(playlistId)
   if (!Number.isNaN(idNum) && idNum > 0) {
+    state.isPageLoading = true
     loadPlaylist(idNum)
     loadComments(idNum)
   }
@@ -187,6 +192,8 @@ const sharePlaylist = async () => {
 
 <template>
   <div class="flex flex-1 flex-col overflow-hidden">
+    <PageSkeleton v-if="isPageLoading" :sections="['hero','list']" :list-count="12" />
+    <template v-else>
     <!-- 歌单头部信息 -->
     <section class="relative mb-8 flex shrink-0 overflow-hidden rounded-tl-3xl rounded-bl-3xl">
       <!-- 背景模糊效果 -->
@@ -447,6 +454,7 @@ const sharePlaylist = async () => {
         </div>
       </section>
     </div>
+    </template>
   </div>
 </template>
 

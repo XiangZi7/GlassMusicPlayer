@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { useUserStore } from '@/stores/modules/user'
 const menuItems = [
-  { to: '/', label: '首页', icon: 'mdi--home' },
-  { to: '/mv-list', label: 'MV', icon: 'mdi--video' },
-  { to: '/recent', label: '最近播放', icon: 'mdi--clock-outline' },
-  { to: '/likes', label: '我喜欢的', icon: 'mdi--heart-outline' },
-  { to: '/created-playlists', label: '创建的歌单', icon: 'mdi--playlist-music' },
-  { to: '/settings', label: '设置', icon: 'mdi--cog' },
+  { to: '/', label: '首页', icon: 'ic--round-home' },
+  { to: '/mv-list', label: 'MV', icon: 'ic--round-videocam' },
+  { to: '/recent', label: '最近播放', icon: 'ic--round-schedule' },
+  { to: '/search', label: '搜索', icon: 'ic--round-search' },
+  { to: '/likes', label: '我喜欢的', icon: 'ic--round-favorite-border' },
+  { to: '/created-playlists', label: '创建的歌单', icon: 'ic--round-queue-music' },
+  { to: '/settings', label: '设置', icon: 'ic--round-settings' },
 ]
 
 const state = reactive({
@@ -18,9 +20,10 @@ const state = reactive({
   ],
 })
 const { userPlaylists } = toRefs(state)
+const userStore = useUserStore()
 </script>
 <template>
-  <aside class="hidden w-64 p-4 lg:block">
+  <aside class="hidden w-64 shrink-0 px-4 py-0 lg:block">
     <div class="glass-card h-full p-4">
       <h3 class="mb-4 font-semibold text-white">我的音乐</h3>
       <nav class="space-y-2">
@@ -36,7 +39,11 @@ const { userPlaylists } = toRefs(state)
         </router-link>
       </nav>
 
-      <div class="mt-6">
+      <div class="hidden">
+        <span class="icon-[ic--round-search] h-5 w-5"></span>
+      </div>
+
+      <div class="mt-6" v-if="userStore.isLoggedIn">
         <h4 class="mb-3 text-sm font-medium text-white/60">创建的歌单</h4>
         <div class="space-y-2">
           <div

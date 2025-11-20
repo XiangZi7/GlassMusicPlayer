@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
-import PlaylistBubble from '@/components/Ui/PlaylistBubble.vue'
-
 // 使用音频播放器组合式API
 const {
   // 状态
@@ -31,12 +29,13 @@ const {
   setProgress,
 } = useAudio()
 
-const emit = defineEmits(['show'])
-
-// 计算播放按钮状态
-const playButtonIcon = computed(() => {
-  return isPlaying.value ? 'pause' : 'play'
+const state = reactive({
+  // 播放列表
+  showQueue: false,
 })
+const { showQueue } = toRefs(state)
+
+const emit = defineEmits(['show'])
 
 // 音量图标
 const volumeIcon = computed(() => {
@@ -61,17 +60,6 @@ const handleProgressClick = (event: MouseEvent) => {
   const progressPercent = (clickX / rect.width) * 100
   setProgress(Math.max(0, Math.min(100, progressPercent)))
 }
-
-const state = reactive({
-  // 是否喜欢当前歌曲
-  isLiked: false,
-  // 是否显示播放列表气泡
-  showQueue: false,
-})
-const { isLiked, showQueue } = toRefs(state)
-const toggleLike = () => {
-  state.isLiked = !state.isLiked
-}
 </script>
 <template>
   <footer class="glass-nav m-4 p-4">
@@ -95,16 +83,6 @@ const toggleLike = () => {
             {{ currentSong?.artist || '未知艺术家' }}
           </p>
         </div>
-        <button
-          @click="toggleLike"
-          class="text-white/70 transition-colors hover:text-white"
-          :class="{ 'text-pink-400': isLiked }"
-        >
-          <span
-            :class="isLiked ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
-            class="h-5 w-5"
-          ></span>
-        </button>
       </div>
 
       <!-- 中间：播放控制 -->
@@ -114,24 +92,28 @@ const toggleLike = () => {
           class="text-white/70 transition-colors hover:text-white"
           :title="playModeText"
         >
-          <span :class="playModeIcon" class="h-5 w-5"></span>
+          <span :class="playModeIcon" class="h-6 w-6"></span>
         </button>
         <button @click="previous" class="text-white/70 transition-colors hover:text-white">
-          <span class="icon-[mdi--skip-previous] h-5 w-5"></span>
+          <span class="icon-[mdi--skip-previous] h-6 w-6"></span>
         </button>
         <button
           @click="togglePlay"
           :title="isPlaying ? '暂停' : '播放'"
-          class="glass-button flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
+          class="glass-button flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
         >
-          <span v-if="isLoading" class="icon-[mdi--loading] h-5 w-5 animate-spin text-white"></span>
-          <span v-else :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'" class="h-5 w-5 text-white"></span>
+          <span v-if="isLoading" class="icon-[mdi--loading] h-6 w-6 animate-spin text-white"></span>
+          <span
+            v-else
+            :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
+            class="h-6 w-6 text-white"
+          ></span>
         </button>
         <button @click="next" class="text-white/70 transition-colors hover:text-white">
-          <span class="icon-[mdi--skip-next] h-5 w-5"></span>
+          <span class="icon-[mdi--skip-next] h-6 w-6"></span>
         </button>
         <button class="text-white/70 transition-colors hover:text-white">
-          <span class="icon-[mdi--repeat] h-5 w-5"></span>
+          <span class="icon-[mdi--repeat] h-6 w-6"></span>
         </button>
       </div>
 
@@ -141,7 +123,7 @@ const toggleLike = () => {
           @click="toggleMute"
           class="flex items-center text-white/70 transition-colors hover:text-white"
         >
-          <span :class="volumeIcon" class="h-5 w-5"></span>
+          <span :class="volumeIcon" class="h-6 w-6"></span>
         </button>
         <div class="relative h-1 w-20 overflow-hidden rounded-full bg-white/20">
           <div
@@ -157,10 +139,13 @@ const toggleLike = () => {
             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
-        <button class="flex items-center text-white/70 transition-colors hover:text-white" @click="state.showQueue = !state.showQueue">
-          <span class="icon-[mdi--playlist-music] h-5 w-5"></span>
-        </button>
-        <PlaylistBubble v-if="showQueue" />
+        <PlaylistBubble v-model:show="showQueue" placement="top-right">
+          <template #trigger>
+            <button class="flex items-center text-white/70 transition-colors hover:text-white">
+              <span class="icon-[mdi--playlist-music] h-6 w-6"></span>
+            </button>
+          </template>
+        </PlaylistBubble>
       </div>
     </div>
 

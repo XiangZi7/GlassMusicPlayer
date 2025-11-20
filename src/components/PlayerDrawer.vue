@@ -1,45 +1,25 @@
 <script setup lang="ts">
+// 播放抽屉：展示当前歌曲信息与歌词，支持滚动高亮与点击跳转
 import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
-
-interface LyricLine {
-  time: number
-  text: string
-}
+import { useLyrics } from '@/composables/useLyrics'
 
 const isOpen = defineModel<boolean>()
 const state = reactive({
-  // 抽屉是否已渲染
   isRendered: false,
-  // 当前歌词索引（用于高亮与滚动）
   currentLyricIndex: 0,
-  // 歌词时间偏移（同步/微调）
   lyricsOffset: 0,
-  // 最近播放抽屉开关
   isRecentOpen: false,
-  // 歌词数据列表
-  lyrics: [
-    { time: 0, text: '在这个美好的夜晚' },
-    { time: 5, text: '音乐响起的瞬间' },
-    { time: 10, text: '所有的烦恼都消散' },
-    { time: 15, text: '让我们一起摇摆' },
-    { time: 20, text: '感受这节拍的律动' },
-    { time: 25, text: '心跳与音乐同步' },
-    { time: 30, text: '这就是青春的模样' },
-    { time: 35, text: '永远不会褪色的梦想' },
-    { time: 40, text: '在音乐中找到自己' },
-    { time: 45, text: '在旋律中释放灵魂' },
-    { time: 50, text: '跟随着音符的指引' },
-    { time: 55, text: '穿越时空的界限' },
-    { time: 60, text: '每一个音符都是故事' },
-    { time: 65, text: '每一段旋律都是回忆' },
-    { time: 70, text: '让音乐带我们飞翔' },
-    { time: 75, text: '在无尽的天空中遨游' },
-    { time: 80, text: '这是属于我们的时刻' },
-    { time: 85, text: '永远不会结束的梦' },
-  ] as LyricLine[],
+  // 是否使用封面背景（放大+模糊）
+  useCoverBg: true,
+  // 背景层管理（A/B双层交替淡入淡出）
+  bgActive: 'A' as 'A' | 'B',
+  bgAUrl: '' as string,
+  bgBUrl: '' as string,
+  lyricsPositioned: false,
 })
-
+// 响应式引用
+const { isRendered, currentLyricIndex, isRecentOpen } = toRefs(state)
 // 使用音频播放器
 const {
   currentSong,
@@ -54,12 +34,10 @@ const {
   setVolume,
   toggleMute,
   setProgress,
+  setCurrentTime,
   formattedCurrentTime,
   formattedDuration,
   togglePlayMode,
-  playlist,
-  play,
-  addSong,
 } = useAudio()
 
 // 播放模式图标计算属性
@@ -76,44 +54,27 @@ const playModeIconClass = computed(() => {
 })
 
 // 响应式状态
-const drawerRef = ref<HTMLElement>()
-const albumCoverRef = ref<HTMLElement>()
-const lyricsRef = ref<HTMLElement>()
-const openRecent = () => {
-  state.isRecentOpen = true
-}
-const onRecentSelect = (song: any) => {
-  let idx = playlist.value.findIndex((s: any) => s.id === song.id)
-  if (idx === -1) {
-    addSong(song)
-    idx = playlist.value.findIndex((s: any) => s.id === song.id)
-  }
-  play(song, idx)
-  state.isRecentOpen = false
-}
+const drawerRef = useTemplateRef('drawerRef')
+const albumCoverRef = useTemplateRef('albumCoverRef')
+const lyricsRef = useTemplateRef('lyricsRef')
+const bgARef = useTemplateRef('bgARef')
+const bgBRef = useTemplateRef('bgBRef')
 
-// 示例歌词数据
-const { isRendered, currentLyricIndex, lyrics } = toRefs(state)
+// 歌词封装
+const {
+  lyricsTrans,
+  lyricsRoma,
+  showTrans,
+  showRoma,
+  activeSingleLyrics,
+  activeTimeline,
+  timeForIndex,
+  fetchLyrics,
+} = useLyrics()
 
 // 方法
 const handleTogglePlay = () => {
   togglePlay()
-}
-
-const handleToggleLike = () => {
-  gsap.fromTo(
-    '.like-button',
-    {
-      scale: 1,
-    },
-    {
-      scale: 1.3,
-      duration: 0.1,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power2.out',
-    }
-  )
 }
 
 const handleVolumeChange = (event: Event) => {
@@ -127,21 +88,21 @@ const handleProgressClick = (event: MouseEvent) => {
   const rect = progressBar.getBoundingClientRect()
   const clickX = event.clientX - rect.left
   const newProgress = (clickX / rect.width) * 100
-
-  setProgress(newProgress / 100)
+  setProgress(Math.max(0, Math.min(100, newProgress)))
   updateCurrentLyric()
 }
 
+// 点击歌词跳转到对应时间
 const seekToLyric = (index: number) => {
-  const targetTime = state.lyrics[index].time
-  currentTime.value = targetTime
+  const targetTime = timeForIndex(index) ?? 0
+  setCurrentTime(targetTime)
   state.currentLyricIndex = index
   scrollToCurrentLyric()
 }
 
 // 动画相关
 let albumRotationTween: gsap.core.Tween | null = null
-let lyricsScrollInterval: number | null = null
+// 不再使用模拟计时器，改为监听音频 currentTime 更新歌词高亮
 
 const startAlbumRotation = () => {
   if (albumCoverRef.value) {
@@ -161,35 +122,30 @@ const stopAlbumRotation = () => {
   }
 }
 
-const startLyricsScroll = () => {
-  lyricsScrollInterval = setInterval(() => {
-    currentTime.value += 1
-    updateCurrentLyric()
-  }, 1000)
-}
-
-const stopLyricsScroll = () => {
-  if (lyricsScrollInterval) {
-    clearInterval(lyricsScrollInterval)
-    lyricsScrollInterval = null
-  }
-}
-
-const updateCurrentLyric = () => {
+// 更新当前歌词索引
+const updateCurrentLyric = (instant = false) => {
   const adjustedTime = currentTime.value + state.lyricsOffset
-
-  const currentLyric = state.lyrics.findIndex((lyric, index) => {
-    const nextLyric = state.lyrics[index + 1]
-    return adjustedTime >= lyric.time && (!nextLyric || adjustedTime < nextLyric.time)
+  const times = activeTimeline.value
+  if (!times.length) return
+  let idx = times.findIndex((t, i) => {
+    const nextT = times[i + 1]
+    return adjustedTime >= t && (nextT === undefined || adjustedTime < nextT)
   })
-
-  if (currentLyric !== -1 && currentLyric !== state.currentLyricIndex) {
-    state.currentLyricIndex = currentLyric
-    scrollToCurrentLyric()
+  if (idx === -1) {
+    if (adjustedTime < times[0]) idx = 0
+    else if (adjustedTime >= times[times.length - 1]) idx = times.length - 1
+    else idx = times.findIndex(t => t > adjustedTime)
+  }
+  if (idx !== -1 && idx !== state.currentLyricIndex) {
+    state.currentLyricIndex = idx
+    scrollToCurrentLyric(instant)
+  } else if (!state.lyricsPositioned) {
+    scrollToCurrentLyric(instant)
   }
 }
 
-const scrollToCurrentLyric = () => {
+// 滚动到当前歌词位置
+const scrollToCurrentLyric = (instant = false) => {
   if (lyricsRef.value && state.currentLyricIndex >= 0) {
     const lyricsContainer = lyricsRef.value
     const currentLyricElement = lyricsContainer.children[state.currentLyricIndex] as HTMLElement
@@ -198,13 +154,44 @@ const scrollToCurrentLyric = () => {
       const containerHeight = lyricsContainer.parentElement?.clientHeight || 0
       const targetScrollTop =
         currentLyricElement.offsetTop - containerHeight / 2 + currentLyricElement.clientHeight / 2
-
-      gsap.to(lyricsContainer, {
-        y: -targetScrollTop,
-        duration: 0.8,
-        ease: 'power2.out',
-      })
+      if (instant || !state.lyricsPositioned) {
+        gsap.set(lyricsContainer, { y: -targetScrollTop })
+        state.lyricsPositioned = true
+      } else {
+        gsap.to(lyricsContainer, {
+          y: -targetScrollTop,
+          duration: 0.8,
+          ease: 'power2.out',
+        })
+      }
     }
+  }
+}
+
+// 背景封面淡入淡出
+const setBackground = (url?: string) => {
+  if (!state.useCoverBg || !url) return
+  if (state.bgAUrl === '' && state.bgBUrl === '') {
+    // 初始设置：直接显示A层
+    state.bgAUrl = url
+    if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
+    if (bgARef.value) gsap.to(bgARef.value, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    state.bgActive = 'A'
+    return
+  }
+
+  if (state.bgActive === 'A') {
+    state.bgBUrl = url
+    if (bgBRef.value) gsap.set(bgBRef.value, { opacity: 0 })
+    gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    state.bgActive = 'B'
+  } else {
+    state.bgAUrl = url
+    if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
+    gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    state.bgActive = 'A'
   }
 }
 
@@ -275,7 +262,6 @@ const closeDrawer = () => {
     })
 
     stopAlbumRotation()
-    stopLyricsScroll()
   }
 }
 
@@ -287,22 +273,39 @@ watch(
       state.isRendered = true
       await nextTick()
       openDrawer()
+      state.lyricsPositioned = false
+      updateCurrentLyric(true)
     } else {
       closeDrawer()
     }
   }
 )
 
+// 播放状态控制封面旋转
 watch(
   isPlaying,
   playing => {
-    if (playing) {
-      startAlbumRotation()
-      startLyricsScroll()
-    } else {
-      stopAlbumRotation()
-      stopLyricsScroll()
-    }
+    playing ? startAlbumRotation() : stopAlbumRotation()
+  },
+  { immediate: true }
+)
+
+// 监听当前时间更新歌词高亮
+watch(currentTime, () => {
+  updateCurrentLyric()
+})
+
+// 当前歌曲变化时拉取歌词
+watch(
+  currentSong,
+  async s => {
+    await fetchLyrics(s?.id)
+    state.currentLyricIndex = 0
+    state.lyricsPositioned = false
+    await nextTick()
+    updateCurrentLyric(true)
+    // 背景封面淡入淡出
+    setBackground(s?.cover)
   },
   { immediate: true }
 )
@@ -316,17 +319,40 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopAlbumRotation()
-  stopLyricsScroll()
 })
 </script>
 <template>
   <div
     v-if="isRendered"
     ref="drawerRef"
-    class="absolute inset-0 z-50 flex bg-black/85 backdrop-blur-md backdrop-filter"
+    :class="[
+      'absolute inset-0 z-50 flex backdrop-blur-md backdrop-filter',
+      state.useCoverBg ? 'bg-black/90' : 'bg-black/85',
+    ]"
   >
+    <!-- 背景：封面放大+模糊（双层淡入淡出） -->
+    <div v-if="state.useCoverBg" class="absolute inset-0 -z-10">
+      <div
+        ref="bgARef"
+        class="absolute inset-0 scale-130 transform bg-cover bg-top opacity-50 blur-2xl"
+        :style="state.bgAUrl ? { backgroundImage: `url(${state.bgAUrl})` } : {}"
+      ></div>
+      <div
+        ref="bgBRef"
+        class="absolute inset-0 scale-130 transform bg-cover bg-top opacity-50 blur-2xl"
+        :style="state.bgBUrl ? { backgroundImage: `url(${state.bgBUrl})` } : {}"
+      ></div>
+    </div>
     <!-- 关闭按钮 -->
-    <div class="absolute top-6 right-6 z-10">
+    <div class="absolute top-6 right-6 z-10 flex gap-4">
+      <button
+        class="glass-button ml-3 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+        :class="state.useCoverBg ? 'bg-white/20 ring-1 ring-pink-300/40' : ''"
+        @click="state.useCoverBg = !state.useCoverBg"
+        title="切换背景：封面/纯色"
+      >
+        <span class="icon-[mdi--image] h-6 w-6 text-white"></span>
+      </button>
       <button
         @click="isOpen = false"
         class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
@@ -339,7 +365,7 @@ onUnmounted(() => {
     <div class="flex w-1/2 flex-col items-center justify-center px-12 py-16">
       <!-- 专辑封面区域（黑胶风格） -->
       <div class="mb-8 flex flex-col items-center">
-        <div class="relative mb-6 h-72 w-72">
+        <div class="album-wrapper relative mb-6 h-72 w-72">
           <!-- 黑胶盘：外层为黑胶，内层为封面标签 -->
           <div
             ref="albumCoverRef"
@@ -444,28 +470,24 @@ onUnmounted(() => {
         </button>
 
         <!-- 播放列表 -->
-        <button
-          @click="openRecent"
-          class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+        <PlaylistBubble
+          v-model:show="isRecentOpen"
+          placement="top-right"
+          :offset-x="8"
+          :offset-y="10"
         >
-          <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
-        </button>
+          <template #trigger>
+            <button
+              class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
+            >
+              <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
+            </button>
+          </template>
+        </PlaylistBubble>
       </div>
 
       <!-- 底部控制栏 -->
       <div class="flex w-full max-w-md items-center justify-between">
-        <!-- 喜欢按钮 -->
-        <button
-          @click="handleToggleLike"
-          class="like-button glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300"
-          :class="{ 'bg-red-500/50': currentSong?.liked }"
-        >
-          <span
-            class="icon-[mdi--heart] h-6 w-6"
-            :class="{ 'text-red-400': currentSong?.liked, 'text-white/70': !currentSong?.liked }"
-          ></span>
-        </button>
-
         <!-- 音量控制 -->
         <div class="flex items-center justify-center space-x-3">
           <button @click="toggleMute" class="flex items-center transition-colors duration-200">
@@ -485,31 +507,50 @@ onUnmounted(() => {
             class="slider h-2 w-20 appearance-none rounded-full bg-white/20 outline-none"
           />
         </div>
-
-        <!-- 播放列表 -->
-        <button
-          @click="openRecent"
-          class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-        >
-          <span class="icon-[mdi--playlist-music] h-6 w-6 text-white/80"></span>
-        </button>
       </div>
     </div>
 
     <!-- 右侧：歌词区域 -->
     <div class="flex w-1/2 flex-col px-12 py-16">
       <div class="flex h-full flex-col p-8">
-        <!-- 歌词标题 -->
-        <div class="mb-6 text-center">
-          <h3 class="text-xl font-semibold text-white/90">歌词</h3>
-          <div class="mx-auto mt-2 h-px w-16 bg-linear-to-r from-pink-400 to-purple-500"></div>
+        <!-- 歌词标题与显示模式切换（不超过双轨） -->
+        <div class="mb-6 flex items-center justify-between">
+          <div class="text-center">
+            <h3 class="text-xl font-semibold text-white/90">歌词</h3>
+            <div class="mx-auto mt-2 h-px w-16 bg-linear-to-r from-pink-400 to-purple-500"></div>
+          </div>
+          <div
+            v-if="lyricsTrans.length || lyricsRoma.length"
+            class="glass-nav flex items-center gap-2 rounded-xl p-2"
+          >
+            <button
+              v-if="lyricsTrans.length"
+              class="glass-button px-3 py-1 text-sm"
+              :class="
+                showTrans ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'
+              "
+              @click="showTrans = !showTrans"
+            >
+              翻译
+            </button>
+            <button
+              v-if="lyricsRoma.length"
+              class="glass-button px-3 py-1 text-sm"
+              :class="
+                showRoma ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'
+              "
+              @click="showRoma = !showRoma"
+            >
+              罗马音
+            </button>
+          </div>
         </div>
 
-        <!-- 歌词滚动区域 -->
+        <!-- 歌词滚动区域（支持单轨或双轨对照） -->
         <div class="lyrics-container relative flex-1 overflow-hidden">
           <div ref="lyricsRef" class="lyrics-scroll h-full">
             <div
-              v-for="(line, index) in lyrics"
+              v-for="(line, index) in activeSingleLyrics"
               :key="index"
               class="lyric-line mb-6 cursor-pointer text-center transition-all duration-500"
               :class="{
@@ -693,6 +734,7 @@ onUnmounted(() => {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  white-space: pre-line;
 }
 
 .lyric-line:hover {
@@ -720,11 +762,11 @@ onUnmounted(() => {
 }
 
 /* 专辑封面旋转动画 */
-.album-cover {
+.album-wrapper {
   transition: transform 0.3s ease;
 }
 
-.album-cover:hover {
+.album-wrapper:hover {
   transform: scale(1.05);
 }
 

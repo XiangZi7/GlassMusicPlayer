@@ -143,3 +143,15 @@ export const recordRecentSong = (params?: { limit?: number }) =>
 export const mvDetail = (params: { mvid: number | string }) => httpGet('/mv/detail', params)
 export const mvUrl = (params: { id: number | string; r?: number }) => httpGet('/mv/url', params)
 export const simiMv = (params: { mvid: number | string }) => httpGet('/simi/mv', params)
+export const mvAll = (params: {
+  area?: string
+  type?: string
+  order?: string
+  limit?: number
+  offset?: number
+}) => httpGet('/mv/all', params)
+export const searchSong = (params: { keywords: string; limit?: number; offset?: number }) =>
+  httpGet('/search', params)
+
+// 歌词相关
+export const lyric = (params: { id: number | string }) => httpGet('/lyric', params)

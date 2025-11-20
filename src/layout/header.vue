@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { ref } from 'vue'
-
+// 头部导航：集成登录弹窗与用户信息展示
+import LoginDialog from '@/components/Auth/LoginDialog.vue'
+import { useUserStore } from '@/stores/modules/user'
 const navItems = [
   { to: '/', label: '首页', accent: true },
   { to: '/discover', label: '发现音乐' },
@@ -11,10 +11,11 @@ const navItems = [
 
 const router = useRouter()
 const state = reactive({
-  // 搜索框输入内容
   searchQuery: '',
+  showLogin: false,
 })
-const { searchQuery } = toRefs(state)
+const { searchQuery, showLogin } = toRefs(state)
+const userStore = useUserStore()
 const handleSearchEnter = () => {
   const q = state.searchQuery.trim()
   if (!q) return
@@ -66,12 +67,19 @@ const handleSearchEnter = () => {
         />
       </div>
 
-      <!-- 用户头像 -->
-      <div
-        class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-600 transition-transform hover:scale-110"
-      >
-        <span class="text-xs font-bold text-white">U</span>
+      <!-- 用户头像 / 登录按钮 -->
+      <div v-if="userStore.isLoggedIn" class="flex items-center gap-2">
+        <img :src="userStore.avatarUrl" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
+        <span class="text-sm text-white/90">{{ userStore.nickname }}</span>
       </div>
+      <button
+        v-else
+        class="glass-button flex items-center gap-1 px-3 py-2 text-sm text-white"
+        @click="showLogin = true"
+      >
+        <icon-ic:baseline-person-pin />
+        登录
+      </button>
 
       <!-- 移动端菜单按钮 -->
       <button class="glass-button p-2 md:hidden">
@@ -79,4 +87,5 @@ const handleSearchEnter = () => {
       </button>
     </div>
   </header>
+  <LoginDialog v-if="showLogin" @close="showLogin = false" />
 </template>

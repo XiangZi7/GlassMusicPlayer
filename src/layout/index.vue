@@ -33,6 +33,7 @@ const openPlayerDrawer = () => {
   state.isDrawerOpen = true
   console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen:', state.isDrawerOpen)
 }
+
 </script>
 
 <template>

@@ -9,6 +9,7 @@ const tabs = [
 const state = reactive({
   // 当前激活的标签
   active: 'all',
+  isPageLoading: false,
 })
 const { active } = toRefs(state)
 
@@ -61,6 +62,8 @@ const filtered = computed(() =>
     </div>
 
     <div class="h-full overflow-auto p-6">
+      <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="12" />
+      <template v-else>
       <div class="mb-8">
         <div class="relative overflow-hidden rounded-2xl bg-black/30 p-6 backdrop-blur">
           <div class="shimmer absolute inset-0"></div>
@@ -149,6 +152,7 @@ const filtered = computed(() =>
           </div>
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>

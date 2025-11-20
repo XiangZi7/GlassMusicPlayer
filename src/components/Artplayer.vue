@@ -5,7 +5,7 @@ import type { Option } from 'artplayer/types/option'
 import artplayerPluginHlsControl from 'artplayer-plugin-hls-control'
 
 interface Props {
-  url: string
+  src: string
   poster?: string
   title?: string
   options?: Partial<Option>
@@ -42,7 +42,7 @@ const initPlayer = () => {
 
   const defaultOptions: Option = {
     container: playerRef.value,
-    url: props.url,
+    url: props.src ?? '',
     poster: props.poster,
     autoplay: props.autoplay,
     muted: props.muted,
@@ -172,11 +172,9 @@ const switchQuality = (url: string) => {
 }
 
 watch(
-  () => props.url,
-  newUrl => {
-    if (newUrl && player) {
-      switchUrl(newUrl)
-    }
+  () => props.src,
+  newSrc => {
+    if (newSrc && player) switchUrl(newSrc)
   }
 )
 

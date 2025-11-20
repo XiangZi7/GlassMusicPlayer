@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
 import { testSongs } from '@/utils/testSongs'
-import { banner, topPlaylist, topSong, recordRecentSong } from '@/api'
+import { banner, topPlaylist, topSong } from '@/api'
 import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
-import { formatDuration } from '@/utils/time'
 
 // 使用音频播放器
 const { setPlaylist } = useAudio()
@@ -21,6 +20,8 @@ interface HomeState {
   currentPlayingIndex: number
   // 最近播放列表
   recentPlayed: RecentItem[]
+  // 首页加载状态
+  isHomeLoading: boolean
 }
 // 页面响应式状态容器（仅模板使用的变量通过 toRefs 解构）
 const state = reactive<HomeState>({
@@ -36,6 +37,8 @@ const state = reactive<HomeState>({
   currentPlayingIndex: -1,
   // 最近播放列表
   recentPlayed: [],
+  // 首页加载状态
+  isHomeLoading: true,
 })
 
 // 模板中使用的变量解构为 ref（仅供 template 使用）
@@ -46,6 +49,7 @@ const {
   hotSongs,
   currentPlayingIndex,
   recentPlayed,
+  isHomeLoading,
 } = toRefs(state)
 
 const gradients: string[] = [
@@ -59,6 +63,7 @@ const gradients: string[] = [
 const emojis: string[] = ['🎵', '🎶', '♪', '♫', '🎼', '🎤']
 
 const loadHomeData = async () => {
+  state.isHomeLoading = true
   try {
     const [b, p, s] = await Promise.all([
       banner({ type: 0 }),
@@ -114,7 +119,10 @@ const loadHomeData = async () => {
         })
       )
     }
-  } catch {}
+  } catch {
+  } finally {
+    state.isHomeLoading = false
+  }
 }
 
 onMounted(() => {
@@ -123,15 +131,19 @@ onMounted(() => {
   setPlaylist(testSongs)
   // 轮播图自动切换
   setInterval(() => {
-    state.currentBannerIndex = (state.currentBannerIndex + 1) % state.banners.length
+    if (state.banners.length > 0) {
+      state.currentBannerIndex = (state.currentBannerIndex + 1) % state.banners.length
+    }
   }, 5000)
 })
 </script>
 <template>
   <div class="mt-4 flex-1 overflow-hidden">
     <div class="h-full overflow-auto">
-      <!-- 轮播图区域 -->
-      <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4">
+      <template v-if="isHomeLoading">
+        <HomeSkeleton />
+      </template>
+      <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4" v-else>
         <div class="carousel-container relative h-full">
           <a
             :href="banner.url"
@@ -149,13 +161,10 @@ onMounted(() => {
                 loading="lazy"
                 class="absolute inset-0 h-full w-full object-cover"
               />
-              <!-- 背景渐变 -->
               <div
-                class="absolute inset-0 bg-linear-to-br opacity-90"
+                class="absolute inset-0 bg-linear-to-br opacity-60"
                 :class="banner.gradient"
               ></div>
-
-              <!-- 动画背景元素 -->
               <div class="absolute inset-0">
                 <div class="floating-notes">
                   <div
@@ -168,8 +177,6 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-
-              <!-- 内容 -->
               <div class="relative z-10 flex h-full items-center overflow-hidden rounded-2xl p-8">
                 <div class="flex-1">
                   <h2 class="animate-fade-in-up mb-4 text-4xl font-bold text-white drop-shadow-lg">
@@ -201,7 +208,6 @@ onMounted(() => {
                         🎧
                       </div>
                     </div>
-                    <!-- 环绕粒子效果 -->
                     <div class="absolute inset-0">
                       <div
                         v-for="i in 8"
@@ -221,8 +227,6 @@ onMounted(() => {
             </div>
           </a>
         </div>
-
-        <!-- 轮播指示器 -->
         <div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 space-x-2">
           <button
             v-for="(banner, index) in banners"
@@ -236,7 +240,6 @@ onMounted(() => {
 
       <!-- 主要内容区域 -->
       <div class="px-4 pb-8">
-        <!-- 推荐歌单区域 -->
         <section class="mb-12">
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
@@ -250,7 +253,6 @@ onMounted(() => {
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
             </router-link>
           </div>
-
           <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             <router-link
               v-for="(playlist, index) in recommendPlaylists"
@@ -267,7 +269,6 @@ onMounted(() => {
                     alt="歌单封面"
                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
-                  <!-- 播放按钮覆盖层 -->
                   <div
                     class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                   >
@@ -283,7 +284,6 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- 热门单曲区域 -->
         <section class="mb-12">
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
@@ -291,7 +291,6 @@ onMounted(() => {
               热门单曲
             </h2>
           </div>
-
           <div class="h-[40vh] w-full overflow-hidden">
             <SongList
               :songs="hotSongs"
@@ -302,7 +301,6 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- 最近播放区域 -->
         <section v-if="recentPlayed.length > 0">
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">

@@ -1,65 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import Artplayer from '@/components/Artplayer.vue'
 import { mvDetail, mvUrl, simiMv, commentNew } from '@/api'
+import { MVInfo, RelatedMV, MVComment } from '@/typings'
 
 const router = useRouter()
 const route = useRoute()
+const formatSec = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
 
 const state = reactive({
-  // 是否正在播放
-  isPlaying: false,
-  // 控制栏是否显示
-  showControls: true,
-  // 当前播放秒数
-  currentTime: 0,
-  // 总时长（秒）
-  totalTime: 245,
-  // 当前 MV 信息
-  currentMV: {},
-  // 相关推荐 MV 列表
-  relatedMVs: [],
-  // 评论列表
-  comments: [] as Array<{
-    username: string
-    avatarUrl: string
-    time: string
-    content: string
-    likes: number
-  }>,
+  currentMV: {} as MVInfo,
+  relatedMVs: [] as RelatedMV[],
+  comments: [] as MVComment[],
+  isPageLoading: true,
 })
-const { currentMV, relatedMVs, comments } = toRefs(state)
-let controlsTimer: NodeJS.Timeout | null = null
-
-// 切换点赞状态
-const toggleLike = () => {
-  state.currentMV.liked = !state.currentMV.liked
-  console.log(`${state.currentMV.liked ? '点赞' : '取消点赞'}: ${state.currentMV.title}`)
-}
+const { currentMV, relatedMVs, comments, isPageLoading } = toRefs(state)
 
 // 播放相关MV
 const playRelatedMV = (mv: any) => {
   router.push(`/mv-player/${mv.id}`)
-}
-
-// 延迟隐藏控制栏
-const hideControlsAfterDelay = () => {
-  if (controlsTimer) {
-    clearTimeout(controlsTimer)
-  }
-  controlsTimer = setTimeout(() => {
-    if (state.isPlaying) {
-      state.showControls = false
-    }
-  }, 3000)
-}
-
-// 鼠标移动时显示控制栏
-const handleMouseMove = () => {
-  if (state.isPlaying) {
-    state.showControls = true
-    hideControlsAfterDelay()
-  }
 }
 
 const loadMV = async (id: number) => {
@@ -74,10 +34,10 @@ const loadMV = async (id: number) => {
     const sList: any[] = (simiRes as any)?.mvs || (simiRes as any)?.data || []
 
     state.currentMV = {
-      id: d?.id ?? id,
+      id: Number(d?.id ?? id),
       title: d?.name || d?.title || 'MV',
       artist: d?.artistName || d?.artists?.[0]?.name || '',
-      duration: Math.floor((d?.duration || 0) / 1000) + 's',
+      duration: Math.floor((d?.duration || 0) / 1000),
       cover: d?.cover || d?.coverImg || '',
       playCount: String(d?.playCount || d?.playCountTxt || ''),
       likes: String(d?.likedCount || ''),
@@ -89,21 +49,23 @@ const loadMV = async (id: number) => {
       isNew: false,
       description: d?.desc || d?.briefDesc || '',
       url: u?.data?.url || u?.url || '',
-    } as any
-    state.totalTime = Math.floor((d?.duration || 0) / 1000) || 0
+    }
 
-    state.relatedMVs = (sList || []).slice(0, 8).map((mv: any) => ({
-      id: mv?.id,
-      title: mv?.name || mv?.title || '',
-      artist: mv?.artistName || mv?.artists?.[0]?.name || '',
-      duration: Math.floor((mv?.duration || 0) / 1000) + 's',
-      playCount: String(mv?.playCount || ''),
-      likes: String(mv?.likedCount || ''),
-      cover: mv?.cover || mv?.coverImg || '',
-      emoji: '🎵',
-      gradient: 'from-pink-400 to-purple-500',
-    })) as any
-  } catch {}
+    state.relatedMVs = (sList || []).slice(0, 8).map(
+      (mv: any): RelatedMV => ({
+        id: Number(mv?.id),
+        title: mv?.name || mv?.title || '',
+        artist: mv?.artistName || mv?.artists?.[0]?.name || '',
+        duration: Math.floor((mv?.duration || 0) / 1000),
+        playCount: String(mv?.playCount || ''),
+        cover: mv?.cover || mv?.coverImg || mv?.picUrl || '',
+        emoji: '🎵',
+        gradient: 'from-pink-400 to-purple-500',
+      })
+    )
+  } catch {} finally {
+    state.isPageLoading = false
+  }
 }
 
 const loadComments = async (id: number) => {
@@ -123,22 +85,17 @@ const loadComments = async (id: number) => {
 onMounted(() => {
   const mvId = Number(route.params.id)
   if (!Number.isNaN(mvId)) {
+    state.isPageLoading = true
     loadMV(mvId)
     loadComments(mvId)
   }
-  document.addEventListener('mousemove', handleMouseMove)
-})
-
-onUnmounted(() => {
-  if (controlsTimer) {
-    clearTimeout(controlsTimer)
-  }
-  document.removeEventListener('mousemove', handleMouseMove)
 })
 </script>
 <template>
   <div class="flex-1 overflow-hidden">
     <div class="h-full overflow-auto">
+      <PageSkeleton v-if="isPageLoading" :sections="['player']" />
+      <template v-else>
       <!-- 返回按钮 -->
       <div class="p-4">
         <router-link
@@ -152,13 +109,13 @@ onUnmounted(() => {
 
       <!-- MV播放器区域 -->
       <section class="px-8 pb-8">
-        <div class="glass-card flex gap-6 overflow-hidden">
-          <div class="flex-1">
+        <div class="glass-card grid grid-cols-12 gap-6 overflow-hidden p-6">
+          <div class="col-span-12 lg:col-span-9">
             <!-- 视频播放器 -->
             <div class="aspect-video w-full">
               <Artplayer
                 v-if="currentMV.url"
-                :url="currentMV.url"
+                :src="currentMV.url"
                 :title="currentMV.title"
                 :poster="currentMV.cover"
                 :autoplay="true"
@@ -173,7 +130,7 @@ onUnmounted(() => {
               </div>
             </div>
             <!-- MV信息区域 -->
-            <div class="p-6">
+            <div class="mt-6">
               <div class="flex flex-col lg:flex-row lg:items-start lg:space-x-8">
                 <!-- 左侧：MV信息 -->
                 <div class="mb-6 flex-1 lg:mb-0">
@@ -221,20 +178,6 @@ onUnmounted(() => {
 
                     <!-- 操作按钮 -->
                     <div class="flex flex-col space-y-3">
-                      <button
-                        class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-6 py-3 font-medium text-white transition-transform hover:scale-105"
-                        @click="toggleLike"
-                      >
-                        <span
-                          class="mr-2 h-5 w-5"
-                          :class="
-                            currentMV.liked
-                              ? 'icon-[mdi--heart] text-red-400'
-                              : 'icon-[mdi--heart-outline]'
-                          "
-                        ></span>
-                        {{ currentMV.liked ? '已点赞' : '点赞' }}
-                      </button>
                       <button
                         class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20"
                       >
@@ -299,7 +242,7 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <aside class="w-96 lg:sticky lg:top-6">
+          <aside class="col-span-12 lg:sticky lg:top-6 lg:col-span-3">
             <!-- 右侧：相关推荐 -->
             <div class="w-full lg:w-80">
               <h3 class="mb-4 text-lg font-semibold text-white">相关推荐</h3>
@@ -312,7 +255,7 @@ onUnmounted(() => {
                 >
                   <!-- 缩略图 -->
                   <div class="relative shrink-0">
-                    <img  class="h-12 w-20 rounded-lg" :src="relatedMV.cover" alt="">
+                    <img class="h-12 w-20 rounded-lg" :src="relatedMV.cover" alt="" />
                     <!-- <div
                       class="flex h-12 w-20 items-center justify-center rounded-lg bg-linear-to-br text-lg"
                       :class="relatedMV.gradient"
@@ -327,7 +270,7 @@ onUnmounted(() => {
                     <div
                       class="absolute right-1 bottom-1 rounded bg-black/60 px-1 text-xs text-white"
                     >
-                      {{ relatedMV.duration }}
+                      {{ formatSec(relatedMV.duration) }}
                     </div>
                   </div>
 
@@ -345,6 +288,7 @@ onUnmounted(() => {
           </aside>
         </div>
       </section>
+      </template>
     </div>
   </div>
 </template>

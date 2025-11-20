@@ -9,11 +9,14 @@ const sections = [
   },
   { name: '最近播放', to: '/recent', emoji: '🕒', gradient: 'from-blue-400 to-cyan-500' },
 ]
+const state = reactive({ isPageLoading: false })
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden">
+  <div class="flex-1 overflow-hidden text-white">
     <div class="h-full overflow-auto p-6">
+      <PageSkeleton v-if="state.isPageLoading" :sections="['grid']" :grid-count="6" />
+      <template v-else>
       <h1 class="text白 mb-6 text-2xl font-bold">我的音乐</h1>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         <router-link v-for="(s, i) in sections" :key="i" :to="s.to" class="group cursor-pointer">
@@ -33,6 +36,7 @@ const sections = [
           </div>
         </router-link>
       </div>
+      </template>
     </div>
   </div>
 </template>

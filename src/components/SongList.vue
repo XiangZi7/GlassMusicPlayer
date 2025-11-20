@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
-import { songUrl } from '@/api'
 import type { Song as StoreSong } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
-import { useRouter } from 'vue-router'
 
 interface Song {
   id?: string | number
@@ -61,11 +59,7 @@ const mapToStoreSong = (s: Song): StoreSong => ({
 
 const playSong = async (song: Song, index: number) => {
   try {
-    const res = await songUrl({ id: String(song.id) })
-    const url =
-      (res as any)?.data?.[0]?.url || (res as any)?.data?.data?.[0]?.url || (res as any)?.url || ''
     const playlistMapped: StoreSong[] = props.songs.map(mapToStoreSong)
-    if (playlistMapped[index]) playlistMapped[index].url = url
     setPlaylist(playlistMapped, index)
     play(playlistMapped[index], index)
     emit('play', song, index)
@@ -144,13 +138,13 @@ const downloadSong = (song: Song, index: number) => {
       </div>
 
       <!-- 歌曲列表 -->
-      <div class="h-full space-y-2 overflow-x-hidden overflow-y-auto">
+      <div v-if="songs.length > 0" class="h-full space-y-2 overflow-x-hidden overflow-y-auto">
         <div
           v-for="(song, index) in songs"
           :key="song.id || index"
           class="song-item group flex cursor-pointer items-center rounded-lg p-4 transition-all duration-300 hover:bg-white/10"
           :class="isCurrent(song) ? 'bg-white/10' : ''"
-          @click="playSong(song, index)"
+          @dblclick="playSong(song, index)"
         >
           <!-- 序号/播放状态 -->
           <div class="w-12 shrink-0 text-center">
@@ -230,10 +224,12 @@ const downloadSong = (song: Song, index: number) => {
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!songs || songs.length === 0" class="py-12 text-center">
+      <div
+        v-if="!songs || songs.length === 0"
+        class="flex h-full flex-col items-center justify-center py-12 text-center"
+      >
         <div class="mb-4 text-6xl">🎵</div>
-        <p class="text-lg text-purple-300">暂无歌曲</p>
-        <p class="mt-2 text-sm text-purple-400">{{ emptyMessage || '快来添加一些音乐吧！' }}</p>
+        <p class="text-lg text-purple-300">{{ emptyMessage || '快来添加一些音乐吧！' }}</p>
       </div>
     </div>
   </div>

@@ -1,6 +1,8 @@
 <template>
   <div class="flex-1 overflow-hidden">
     <div class="h-full overflow-auto">
+      <PageSkeleton v-if="isPageLoading" :sections="['hero','grid']" :grid-count="24" />
+      <template v-else>
       <!-- 页面头部 -->
       <section class="relative mb-8 overflow-hidden">
         <!-- 背景模糊效果 -->
@@ -60,11 +62,8 @@
           >
             <!-- MV封面 -->
             <div class="relative overflow-hidden rounded-t-2xl">
-              <div
-                class="relative flex aspect-video items-center justify-center bg-linear-to-br text-6xl"
-                :class="mv.gradient"
-              >
-                {{ mv.emoji }}
+              <div class="relative aspect-video">
+                <img :src="mv.cover + '?param=480y270'" alt="mv" class="h-full w-full rounded-t-2xl object-cover" />
 
                 <!-- 播放按钮覆盖层 -->
                 <div
@@ -81,7 +80,7 @@
                 <div
                   class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-sm text-white backdrop-blur-sm"
                 >
-                  {{ mv.duration }}
+                  {{ formatSec(mv.duration) }}
                 </div>
 
                 <!-- 播放次数 -->
@@ -157,13 +156,15 @@
           </button>
         </div>
       </section>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { mvAll } from '@/api'
 
 const router = useRouter()
 
@@ -171,131 +172,43 @@ const router = useRouter()
 const state = reactive({
   // 分类列表
   categories: [
-    { name: '全部', emoji: '🎬' },
-    { name: '二次元', emoji: '🎌' },
-    { name: '流行', emoji: '🎤' },
-    { name: '电子', emoji: '⚡' },
-    { name: '摇滚', emoji: '🎸' },
-    { name: '古风', emoji: '🏮' },
-    { name: '治愈', emoji: '🌸' },
+    { name: '全部', emoji: '🎬', type: undefined },
+    { name: '官方', emoji: '🏛️', type: '官方版' },
+    { name: '现场', emoji: '🎤', type: '现场版' },
+    { name: '网易出品', emoji: '🅽', type: '网易出品' },
   ],
   // 当前选中的分类
   selectedCategory: '全部',
   // MV 数据列表
-  mvList: [
-    {
-      id: 1,
-      title: '残酷天使的行动纲领',
-      artist: '高橋洋子',
-      duration: '4:06',
-      playCount: '1.2M',
-      category: '二次元',
-      emoji: '👼',
-      gradient: 'from-orange-400 to-red-500',
-      liked: false,
-      isNew: false,
-    },
-    {
-      id: 2,
-      title: '千本樱',
-      artist: '初音未来',
-      duration: '4:04',
-      playCount: '2.8M',
-      category: '二次元',
-      emoji: '🌸',
-      gradient: 'from-pink-400 to-purple-500',
-      liked: true,
-      isNew: true,
-    },
-    {
-      id: 3,
-      title: '打上花火',
-      artist: 'DAOKO',
-      duration: '4:49',
-      playCount: '3.5M',
-      category: '流行',
-      emoji: '🎆',
-      gradient: 'from-blue-400 to-purple-500',
-      liked: false,
-      isNew: false,
-    },
-    {
-      id: 4,
-      title: 'Lemon',
-      artist: '米津玄師',
-      duration: '4:15',
-      playCount: '5.2M',
-      category: '流行',
-      emoji: '🍋',
-      gradient: 'from-yellow-400 to-orange-500',
-      liked: false,
-      isNew: false,
-    },
-    {
-      id: 5,
-      title: '夜に駆ける',
-      artist: 'YOASOBI',
-      duration: '4:23',
-      playCount: '4.1M',
-      category: '流行',
-      emoji: '🌙',
-      gradient: 'from-indigo-400 to-purple-500',
-      liked: true,
-      isNew: true,
-    },
-    {
-      id: 6,
-      title: 'Shelter',
-      artist: 'Porter Robinson',
-      duration: '3:37',
-      playCount: '1.8M',
-      category: '电子',
-      emoji: '🏠',
-      gradient: 'from-cyan-400 to-blue-500',
-      liked: false,
-      isNew: false,
-    },
-    {
-      id: 7,
-      title: '青花瓷',
-      artist: '周杰伦',
-      duration: '3:58',
-      playCount: '6.7M',
-      category: '古风',
-      emoji: '🏺',
-      gradient: 'from-blue-600 to-indigo-700',
-      liked: true,
-      isNew: false,
-    },
-    {
-      id: 8,
-      title: 'Your Name',
-      artist: 'RADWIMPS',
-      duration: '4:44',
-      playCount: '2.3M',
-      category: '治愈',
-      emoji: '⭐',
-      gradient: 'from-purple-400 to-pink-400',
-      liked: false,
-      isNew: true,
-    },
-  ],
+  mvList: [] as Array<{
+    id: number
+    title: string
+    artist: string
+    duration: number
+    playCount: string
+    cover: string
+    category: string
+    liked: boolean
+    isNew: boolean
+  }>,
   // 是否有更多可加载
   hasMore: true,
+  page: 0,
+  isPageLoading: true,
 })
-const { categories, selectedCategory, mvList, hasMore } = toRefs(state)
+const { categories, selectedCategory, mvList, hasMore, isPageLoading } = toRefs(state)
 
 // 筛选后的MV列表
 const filteredMVs = computed(() => {
-  if (state.selectedCategory === '全部') {
-    return state.mvList
-  }
-  return state.mvList.filter(mv => mv.category === state.selectedCategory)
+  return state.mvList
 })
 
 // 选择分类
 const selectCategory = (category: string) => {
   state.selectedCategory = category
+  state.page = 0
+  state.mvList = []
+  fetchList(true)
 }
 
 // 播放MV
@@ -316,12 +229,43 @@ const shareMV = (mv: any) => {
 }
 
 // 加载更多
-const loadMore = () => {
-  // 模拟加载更多数据
-  console.log('加载更多MV...')
-  // 实际项目中这里会调用API获取更多数据
-  state.hasMore = false
+const formatSec = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
+
+const fetchList = async (reset = false) => {
+  try {
+    const type = state.categories.find(c => c.name === state.selectedCategory)?.type
+    const limit = 24
+    const offset = state.page * limit
+    const res: any = await mvAll({ type, order: '最新', limit, offset })
+    const list: any[] = res?.data || res?.mvs || res?.result || []
+    const mapped = list.map(it => ({
+      id: Number(it?.id),
+      title: it?.name || it?.title || '',
+      artist: it?.artistName || it?.artists?.[0]?.name || '',
+      duration: Math.floor((it?.duration || 0) / 1000),
+      playCount: String(it?.playCount || ''),
+      cover: it?.cover || it?.coverImg || it?.picUrl || '',
+      category: type || '全部',
+      liked: false,
+      isNew: !!it?.new || false,
+    }))
+    state.mvList = reset ? mapped : state.mvList.concat(mapped)
+    state.hasMore = mapped.length === limit
+    if (mapped.length) state.page += 1
+    if (reset) state.isPageLoading = false
+  } catch {
+    state.hasMore = false
+  }
 }
+
+const loadMore = () => {
+  fetchList()
+}
+
+onMounted(() => {
+  state.isPageLoading = true
+  fetchList(true)
+})
 </script>
 
 <style scoped>

@@ -16,7 +16,7 @@ const gradients = [
 ]
 const emojis = ['🎵', '🎶', '♪', '♫', '🎼']
 
-const state = reactive({ selected: 'all', recent: [] as Array<{ type: string; id?: number | string; name: string; artist: string; time: string; emoji: string; gradient: string }> })
+const state = reactive({ selected: 'all', recent: [] as Array<{ type: string; id?: number | string; name: string; artist: string; time: string; emoji: string; gradient: string }>, isPageLoading: true })
 const { selected } = toRefs(state)
 
 const audioStore = useAudioStore()
@@ -50,6 +50,8 @@ const loadRecentFromApi = async () => {
     state.recent = mapped.length ? mapped : fromHistory()
   } catch {
     state.recent = fromHistory()
+  } finally {
+    state.isPageLoading = false
   }
 }
 
@@ -62,6 +64,7 @@ watch(
 )
 
 onMounted(() => {
+  state.isPageLoading = true
   loadRecentFromApi()
 })
 
@@ -77,6 +80,8 @@ const filtered = computed(() => state.selected === 'all' ? state.recent : state.
     </div>
 
     <div class="h-full overflow-auto p-6">
+      <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="12" />
+      <template v-else>
       <div class="mb-8">
         <div class="relative overflow-hidden rounded-2xl bg-black/30 p-6 backdrop-blur">
           <div class="shimmer absolute inset-0"></div>
@@ -165,6 +170,7 @@ const filtered = computed(() => state.selected === 'all' ? state.recent : state.
           </div>
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>
