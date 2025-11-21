@@ -26,3 +26,4 @@ dist-ssr
 # 自动引入配置
 /src/auto-import
 
+.trae
