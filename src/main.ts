@@ -1,20 +1,40 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './routers/index'
-import Store from "@/stores";
-import i18n from "@/i18n/i18n";
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import 'element-plus/theme-chalk/dark/css-vars.css'
+
+// Global style
 import './style/index.scss'
+// router
+import router from './routers'
+
+// vue i18n
+import I18n from '@/languages'
+
+// pinia
+import Pinia from '@/stores'
+
+// svg icon
+import 'virtual:svg-icons-register'
+import { useGlobalStore } from '@/stores/modules/global'
+import { storeToRefs } from 'pinia'
+import { watch } from 'vue'
+
 const app = createApp(App)
 
-// 路由
+app.use(Pinia)
 app.use(router)
-// 状态管理
-app.use(Store)
-// 国际化
-app.use(i18n)
-// ElementPlus
-app.use(ElementPlus)
+app.use(I18n)
+
 app.mount('#app')
+
+const globalStore = useGlobalStore()
+const { theme } = storeToRefs(globalStore)
+const applyThemeClass = (t: 'light' | 'dark') => {
+  const root = document.documentElement
+  if (t === 'dark') {
+    root.classList.add('dark')
+  } else {
+    root.classList.remove('dark')
+  }
+}
+applyThemeClass(theme.value || 'light')
+watch(theme, t => applyThemeClass(t || 'light'))

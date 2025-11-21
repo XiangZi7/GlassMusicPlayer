@@ -2,11 +2,7 @@
   "compilerOptions": {
     "target": "ESNext", // 将代码编译为最新版本的 JS
     "useDefineForClassFields": true,
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     /* Bundler mode */
@@ -21,12 +17,8 @@
     "baseUrl": "./",
     // 模块名到基于 baseUrl的路径映射的列表。
     "paths": {
-      "@": [
-        "src"
-      ],
-      "@/*": [
-        "src/*"
-      ]
+      "@": ["src"],
+      "@/*": ["src/*"]
     },
     /* Linting */
     "strict": true, // 开启所有严格的类型检查
@@ -35,19 +27,7 @@
     "noUnusedParameters": true, //报告函数中未使用参数的错误
     "noFallthroughCasesInSwitch": true //确保switch语句中的任何非空情况都包含
   },
-  "types": [
-    "vite,client",
-  ],
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "vite.config.ts",
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.js"
-  ]
+  "types": ["vite,client", "vite-plugin-svg-icons/client"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "**/*.js"]
 }

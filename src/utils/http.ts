@@ -3,7 +3,6 @@ import axios, {
     AxiosResponse,
     InternalAxiosRequestConfig,
 } from 'axios'
-import { ElNotification } from "element-plus";
 import NProgress from '@/config/nprogress'
 
 const instance: AxiosInstance = axios.create({

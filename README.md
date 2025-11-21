@@ -1,9 +1,10 @@
-🎵 **提示：** KMMusicPlayer项目已迁移至新仓库 👇
+🎵 **提示：** 旧项目已迁移至分支 👇
+[GlassMusicPlayer/GlassMusicPlayer-V1 分支](https://github.com/XiangZi7/GlassMusicPlayer/tree/GlassMusicPlayer-V1)
 [GlassMusicPlayer/kmmusic 分支](https://github.com/XiangZi7/GlassMusicPlayer/tree/kmmusic)
 
 # Glass Music Player
 
-![image](https://github.com/user-attachments/assets/0783a10a-c87c-4f79-8719-5c5bde29b570)
+![alt text](images/image.png)
 
 ### 介绍 📖
 
@@ -25,14 +26,29 @@
 
 ### 项目功能 🔨
 
-- 支持上、下、循环、顺序、随机、单曲播放
-- 支持 MV 显示
-- 歌词滚动显示
-- 网易云二维码登录
-- 动态切换主题颜色
-- 暗黑模式
-- ChatGPT
-- 影视、动漫播放
+- 主题与视觉
+  - 浅/暗双主题重构：使用 `:root` CSS 变量与 `html.dark`，提升全站一致性
+  - 背景主题：新增 Ultimate 背景（可配置），Aurora/ColorBends/Ultimate 三选一
+  - 设置页新增背景主题面板与主题模式切换
+- 主页与列表
+  - 推荐歌单卡片统一尺寸，支持左右箭头翻页，首屏仅显示右箭头
+  - GlassSelect 下拉重构：玻璃质感、暗黑适配、可读性增强
+  - 分页组件抽象（Pagination）：搜索与评论弹窗共用
+  - 播放列表气泡（PlaylistBubble）：拖拽排序、下一首播放、批量删除、图标化操作
+- 搜索与骨架
+  - 搜索下拉联想：按接口 `result.order` 展示 songs/playlists，点击歌曲直接搜索，歌单直达详情
+  - 歌单/MV 列表加载骨架，组件内请求也能正常显示（覆盖层方式）
+- 详情与发现
+  - 歌曲详情页：歌词全文、相似歌曲/相似歌单、评论弹窗
+  - 歌手页：头像与信息英雄区、热门歌曲、专辑列表、播放热门/随机播放
+  - 专辑页：封面英雄区、发行信息、简介折叠、曲目列表、播放/随机播放
+  - 排行榜页：`topSong` 多类型切换（全部/华语/欧美/日本/韩国）
+- 交互与导航
+  - 侧边栏分组：探索/我的音乐/系统，入口更清晰
+  - 顶部导航外链：项目仓库与影视站直达
+- 评论与歌词
+  - 评论弹窗：分页、IP归属与时间、楼中楼显示
+  - 底部歌词：设置可选显示原文/译文/罗马音（最多两行）
 
 ### 安装使用步骤 📔
 
@@ -77,47 +93,41 @@ pnpm dev
 
 ### 项目截图 📷
 
-![image](https://github.com/user-attachments/assets/fd3f5d49-3473-4f96-8917-04aa6f9482b0)
+![alt text](images/image.png)
 
-![image](https://github.com/user-attachments/assets/3cd5684e-c612-41b4-9371-79ba75ab1d29)
+![alt text](images/image-1.png)
 
-![image](https://github.com/user-attachments/assets/f9b0fd38-52c7-44b5-9754-e43836184d85)
+![alt text](images/image-2.png)
 
-![image](https://github.com/user-attachments/assets/06ded20f-3cca-419e-9b70-305534ee7fd2)
+![alt text](images/image-3.png)
 
-![image](https://github.com/user-attachments/assets/a8b0603a-8d52-4cfd-83b7-d61526bcfe13)
+![alt text](images/image-4.png)
 
-![image](https://github.com/user-attachments/assets/8a3f736b-b785-438c-a982-d58186c2e4e3)
+![alt text](images/image-5.png)
 
-![image](https://github.com/user-attachments/assets/c029af1a-307a-4900-a5f5-bbe5c52889dc)
+![alt text](images/image-6.png)
 
-![image](https://github.com/user-attachments/assets/db6d53e3-5079-4f8d-97ca-0669a1cff232)
+![alt text](images/image-7.png)
 
-![image](https://github.com/user-attachments/assets/a8dd1ef7-1f95-40e2-bc93-a27ab08c388b)
+![alt text](images/image-8.png)
 
-![image](https://github.com/user-attachments/assets/2586cb5f-3876-427d-aa6e-24b3f694ff22)
+![alt text](images/image-9.png)
 
-![image](https://github.com/user-attachments/assets/9d97aeef-5fdc-4ba6-a01a-aa8f8264931b)
+![alt text](images/image-10.png)
 
-![image](https://github.com/user-attachments/assets/7e719067-2861-4746-9f05-a85f0c161b21)
+![alt text](images/image-11.png)
 
-![image](https://github.com/user-attachments/assets/b34837d1-a506-4494-9f82-4ffb97593fb5)
+![alt text](images/image-12.png)
 
-![image](https://github.com/user-attachments/assets/f5537cd5-3af0-4daf-80ac-8738e0140979)
+![alt text](images/image-13.png)
 
-![image](https://github.com/user-attachments/assets/17495ede-cbca-401a-b95c-535062886daf)
+![alt text](images/image-14.png)
 
-![image](https://github.com/user-attachments/assets/f08d5102-78c4-4cc7-82d9-253e7aa12131)
+![alt text](images/image-15.png)
 
-![image](https://github.com/user-attachments/assets/18469079-1119-4dbe-81d9-79a6c78d65f9)
+![alt text](images/image-16.png)
 
-![image](https://github.com/user-attachments/assets/237232dd-c8c5-4e73-bf32-7bd43667ff9e)
-
-![image](https://github.com/user-attachments/assets/d7fa9540-36cd-4ae0-b3d3-5546c26da54c)
-
-![image](https://github.com/user-attachments/assets/47562e55-c584-4eca-a9b2-f32fe4df0fcd)
-
-![image](https://github.com/user-attachments/assets/ccdb5bd9-a9f3-48f3-9301-3bb859381505)
+![alt text](images/image-17.png)
 
 ### 项目后台接口 🧩
 
