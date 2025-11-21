@@ -1,8 +1,8 @@
 <template>
-  <div class="relative w-full" ref="rootRef">
+  <div class="relative w-full rounded-2xl" ref="rootRef">
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded bg-white/10 px-3 py-2 text-left text-white backdrop-blur transition hover:bg-white/15"
+      class="glass-button flex w-full items-center justify-between overflow-hidden rounded-2xl px-3 py-2 text-left text-white"
       @click="toggle"
     >
       <span class="truncate">{{ selectedLabel }}</span>
@@ -15,14 +15,14 @@
     <transition name="fade" mode="out-in">
       <div
         v-if="open"
-        class="absolute z-50 mt-2 w-full overflow-hidden rounded bg-black/40 shadow-lg backdrop-blur"
+        class="glass-dropdown absolute z-50 mt-2 w-full overflow-hidden rounded-2xl shadow-lg backdrop-blur-md backdrop-filter"
       >
         <ul class="max-h-60 overflow-auto">
           <li
             v-for="opt in options"
             :key="String(opt.value)"
-            class="cursor-pointer px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-            :class="{ 'bg-white/10 text-white': opt.value === modelValue }"
+            class="option-item cursor-pointer rounded-md px-3 py-2 text-sm transition"
+            :class="{ selected: opt.value === modelValue }"
             @click="select(opt.value)"
           >
             {{ opt.label }}
@@ -36,10 +36,10 @@
 <script setup lang="ts">
 interface OptionItem {
   label: string
-  value: string | number
+  value: any
 }
-const props = defineProps<{ modelValue: string | number; options: OptionItem[] }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: string | number): void }>()
+const props = defineProps<{ modelValue: any; options: OptionItem[] }>()
+const emit = defineEmits<{ (e: 'update:modelValue', v: any): void }>()
 const state = reactive({
   // 下拉是否展开
   open: false,
@@ -71,5 +71,15 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+.option-item {
+  color: var(--glass-dropdown-text);
+}
+.option-item:hover {
+  background: var(--glass-hover-item-bg);
+}
+.option-item.selected {
+  background: var(--glass-hover-item-bg);
+  color: var(--glass-hover-text);
 }
 </style>

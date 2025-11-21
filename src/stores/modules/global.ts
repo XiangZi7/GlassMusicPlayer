@@ -1,17 +1,21 @@
 import { GlobalState } from '../interface'
 import piniaPersistConfig from '../persist'
-export const useGlobalStore = defineStore('global', {
-  state: (): GlobalState => ({ count: 0 }),
 
+export const useGlobalStore = defineStore('global', {
+  state: (): GlobalState => ({
+    count: 0, theme: 'light' as 'light' | 'dark',
+  }),
   actions: {
-    actions: {
-      // Set GlobalState
-      setGlobalState<K extends keyof GlobalState>(key: K, value: GlobalState[K]) {
-        // 使用函数式更新解决类型推断问题
-        this.$patch(state => {
-          state[key] = value
-        })
-      },
+    setGlobalState<K extends keyof GlobalState>(key: K, value: GlobalState[K]) {
+      this.$patch(state => {
+        state[key] = value
+      })
+    },
+    setTheme(theme: 'light' | 'dark') {
+      this.theme = theme
+    },
+    toggleTheme() {
+      this.theme = this.theme === 'dark' ? 'light' : 'dark'
     },
   },
   persist: piniaPersistConfig('global'),

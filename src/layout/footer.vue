@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
+import { useLyrics } from '@/composables/useLyrics'
+import { useSettingsStore } from '@/stores/modules/settings'
+import { storeToRefs } from 'pinia'
 // 使用音频播放器组合式API
 const {
   // 状态
@@ -7,6 +10,7 @@ const {
   isPlaying,
   isLoading,
   volume,
+  currentTime,
   formattedCurrentTime,
   formattedDuration,
   progress,
@@ -32,8 +36,42 @@ const {
 const state = reactive({
   // 播放列表
   showQueue: false,
+  // 当前歌词索引
+  currentLyricIndex: 0,
 })
-const { showQueue } = toRefs(state)
+const { showQueue, currentLyricIndex } = toRefs(state)
+
+const { mergedLines, activeTimeline, fetchLyrics } = useLyrics()
+const settingsStore = useSettingsStore()
+const { footerLyrics } = storeToRefs(settingsStore)
+
+const updateLyricIndex = () => {
+  const times = activeTimeline.value
+  if (!times.length) {
+    state.currentLyricIndex = 0
+    return
+  }
+  const t = currentTime.value
+  let idx = times.findIndex((time, i) => {
+    const next = times[i + 1]
+    return t >= time && (next === undefined || t < next)
+  })
+  if (idx === -1) {
+    if (t < times[0]) idx = 0
+    else if (t >= times[times.length - 1]) idx = times.length - 1
+    else idx = times.findIndex(time => time > t)
+  }
+  if (idx !== -1) state.currentLyricIndex = idx
+}
+
+watch(currentTime, updateLyricIndex)
+watch(
+  () => [footerLyrics.value.enabled, currentSong.value?.id],
+  ([enabled, id]) => {
+    if (enabled) fetchLyrics(id as any)
+  },
+  { immediate: true }
+)
 
 const emit = defineEmits(['show'])
 
@@ -65,7 +103,7 @@ const handleProgressClick = (event: MouseEvent) => {
   <footer class="glass-nav m-4 p-4">
     <div class="flex items-center justify-between">
       <!-- 左侧：当前歌曲信息 -->
-      <div class="flex min-w-0 flex-1 items-center space-x-4">
+      <div class="flex min-w-0 flex-1 space-x-4">
         <div
           @click="emit('show')"
           class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg bg-cover transition-all duration-300 hover:scale-105 hover:shadow-lg"
@@ -75,13 +113,29 @@ const handleProgressClick = (event: MouseEvent) => {
               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           }"
         ></div>
-        <div class="min-w-0">
+        <div class="flex min-w-0 flex-col justify-around">
           <p class="truncate text-sm font-medium text-white">
             {{ currentSong?.name || '暂无播放' }}
           </p>
           <p class="truncate text-xs text-purple-300">
             {{ currentSong?.artist || '未知艺术家' }}
           </p>
+        </div>
+        <div
+          v-if="footerLyrics.enabled && mergedLines.length"
+          class="flex min-w-0 flex-col justify-around"
+        >
+          <template v-for="mode in footerLyrics.modes" :key="mode">
+            <p v-if="mode === 'original'" class="truncate text-xs text-white/80">
+              {{ mergedLines[currentLyricIndex]?.ori || '' }}
+            </p>
+            <p v-else-if="mode === 'trans'" class="truncate text-xs text-white/70">
+              {{ mergedLines[currentLyricIndex]?.tran || '' }}
+            </p>
+            <p v-else-if="mode === 'roma'" class="truncate text-xs text-white/70">
+              {{ mergedLines[currentLyricIndex]?.roma || '' }}
+            </p>
+          </template>
         </div>
       </div>
 
@@ -139,7 +193,7 @@ const handleProgressClick = (event: MouseEvent) => {
             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
-        <PlaylistBubble v-model:show="showQueue" placement="top-right">
+        <PlaylistBubble v-model:show="showQueue" placement="top-right" :offset-y="25">
           <template #trigger>
             <button class="flex items-center text-white/70 transition-colors hover:text-white">
               <span class="icon-[mdi--playlist-music] h-6 w-6"></span>

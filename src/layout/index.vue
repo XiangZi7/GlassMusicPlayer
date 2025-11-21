@@ -5,12 +5,13 @@ import Footer from './footer.vue'
 
 import Aurora from '@/components/Background/Aurora.vue'
 import ColorBends from '@/components/Background/ColorBends.vue'
+import Ultimate from '@/components/Background/Ultimate.vue'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useSettingsStore } from '@/stores/modules/settings'
 
 const settings = useSettingsStore()
-const { aurora, colorBends, backgroundType } = storeToRefs(settings)
+const { aurora, colorBends, ultimate, backgroundType } = storeToRefs(settings)
 
 // 抽屉状态
 const state = reactive({
@@ -40,10 +41,12 @@ const openPlayerDrawer = () => {
   <div class="relative flex h-full w-full overflow-hidden bg-black">
     <div class="absolute inset-0 h-full w-full">
       <component
-        :is="backgroundType === 'colorbends' ? ColorBends : Aurora"
+        :is="backgroundType === 'colorbends' ? ColorBends : backgroundType === 'ultimate' ? Ultimate : Aurora"
         v-bind="
           backgroundType === 'colorbends'
             ? colorBends
+            : backgroundType === 'ultimate'
+            ? ultimate
             : {
                 ...aurora,
                 colorPositions: positions,

@@ -57,5 +57,5 @@ export interface AudioState {
 
 export interface GlobalState {
   count: number
-  audio: AudioState
+  theme?: 'light' | 'dark'
 }

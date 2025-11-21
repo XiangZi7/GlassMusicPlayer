@@ -117,6 +117,8 @@ export const commentDelete = (params: {
 // 歌曲详情
 export const songDetail = (params: { ids: string }) => httpGet('/song/detail', params)
 
+export const albumDetail = (params: { id: number | string }) => httpGet('/album', params)
+
 // 歌单相关
 export const playlistDetail = (params: { id: number; s?: number }) =>
   httpGet('/playlist/detail', params)

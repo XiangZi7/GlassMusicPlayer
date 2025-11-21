@@ -155,7 +155,7 @@ watch(visible, v => {
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center">
     <Transition name="mask" appear>
-      <div v-if="visible" class="absolute inset-0 bg-black/80" @click="visible = false"></div>
+      <div v-if="visible" class="absolute inset-0 bg-black/50" @click="visible = false"></div>
     </Transition>
     <Transition name="dialog" appear @after-leave="handleAfterLeave">
       <div v-if="visible" class="relative z-10 w-[640px] max-w-[92vw] overflow-hidden rounded-3xl">

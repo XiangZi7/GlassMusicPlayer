@@ -3,7 +3,8 @@
 import SearchSongs from '@/components/Search/SearchSongs.vue'
 import SearchPlaylists from '@/components/Search/SearchPlaylists.vue'
 import SearchMVs from '@/components/Search/SearchMVs.vue'
-
+import PageSkeleton from '@/components/PageSkeleton.vue'
+import Pagination from '@/components/Ui/Pagination.vue'
 // 路由实例：读取/更新查询参数
 const route = useRoute()
 const router = useRouter()
@@ -18,9 +19,10 @@ const state = reactive({
   page: 1,
   lastLoadedCount: 0,
   total: 0,
+  isLoading: false,
 })
 // 将状态转换为响应式引用，便于模板使用
-const { localQuery, activeType, page, total } = toRefs(state)
+const { localQuery, activeType, page, total, isLoading } = toRefs(state)
 // 已移除输入历史功能
 
 // Tab 配置：类型、标签、组件与图标
@@ -40,25 +42,11 @@ const activeComp = computed(() => tabs.find(t => t.key === activeType.value)?.co
 
 // 每页数量按类型自适应
 const pageSize = computed(() => (activeType.value === 1 ? 40 : activeType.value === 1000 ? 30 : 24))
-const canPrev = computed(() => page.value > 1)
-// 总页数（基于接口返回的总条数）
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
-const canNext = computed(() => page.value < totalPages.value)
-// 页码窗口（最多显示5个，随当前页居中）
-const pageNumbers = computed(() => {
-  const max = 5
-  const total = totalPages.value
-  const cur = page.value
-  let start = Math.max(1, cur - Math.floor(max / 2))
-  let end = Math.min(total, start + max - 1)
-  if (end - start + 1 < max) start = Math.max(1, end - max + 1)
-  const arr: number[] = []
-  for (let i = start; i <= end; i++) arr.push(i)
-  return arr
-})
+
 // 子组件回调：记录当前页加载数量
 const onLoaded = (count: number) => {
   state.lastLoadedCount = count
+  state.isLoading = false
 }
 // 子组件回调：记录总条数
 const onTotal = (n: number) => {
@@ -91,15 +79,12 @@ watch([activeType, q], () => {
   state.page = 1
   state.lastLoadedCount = 0
   state.total = 0
+  state.isLoading = activeType.value !== 1 && !!q.value
 })
-// 跳转上一页
-const goPrev = () => {
-  if (page.value > 1) page.value -= 1
-}
-// 跳转下一页
-const goNext = () => {
-  if (canNext.value) page.value += 1
-}
+
+watch(page, () => {
+  state.isLoading = activeType.value !== 1 && !!q.value
+})
 </script>
 
 <template>
@@ -194,7 +179,7 @@ const goNext = () => {
           </button>
         </div>
         <!-- 结果区（动态组件） -->
-        <div class="h-full overflow-hidden">
+        <div class="relative h-full overflow-hidden">
           <component
             :is="activeComp"
             :keywords="q"
@@ -203,43 +188,16 @@ const goNext = () => {
             @loaded="onLoaded"
             @total="onTotal"
           />
-        </div>
-        <!-- 分页控件：上一页 / 页码窗口（最多5个） / 下一页 -->
-        <div class="mt-4 flex items-center justify-end gap-3">
-          <div class="glass-nav flex items-center gap-2 rounded-xl px-3 py-2">
-            <button
-              class="glass-button px-3 py-2 text-sm"
-              :class="canPrev ? 'text-white' : 'cursor-not-allowed text-white/50 opacity-50'"
-              :disabled="!canPrev"
-              @click="goPrev"
-            >
-              上一页
-            </button>
-            <div class="flex items-center gap-2">
-              <button
-                v-for="p in pageNumbers"
-                :key="p"
-                class="glass-button px-3 py-1 text-sm"
-                :class="
-                  p === page ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'
-                "
-                @click="page = p"
-              >
-                {{ p }}
-              </button>
-            </div>
-            <span class="text-white/80"
-              >第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条</span
-            >
-            <button
-              class="glass-button px-3 py-2 text-sm"
-              :class="canNext ? 'text-white' : 'cursor-not-allowed text-white/50 opacity-50'"
-              :disabled="!canNext"
-              @click="goNext"
-            >
-              下一页
-            </button>
+          <div v-if="isLoading && activeType !== 1" class="absolute inset-0 z-10">
+            <PageSkeleton
+              :sections="activeType === 1000 ? ['grid'] : ['list']"
+              :grid-count="12"
+              :list-count="8"
+            />
           </div>
+        </div>
+        <div class="mt-4 flex items-center justify-end gap-3">
+          <Pagination v-model="page" :total="total" :page-size="pageSize" />
         </div>
       </div>
     </div>

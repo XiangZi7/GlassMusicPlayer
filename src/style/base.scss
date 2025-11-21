@@ -10,25 +10,18 @@ body,
   display: flex;
 }
 
-/* 自定义滚动条 */
+// 滚动条
 ::-webkit-scrollbar {
   width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  height: 6px;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #f472b6, #a855f7);
-  border-radius: 3px;
+  background: 226, 226, 226;
+  background-color: rgb(206, 206, 206);
+  border-radius: 10px;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #ec4899, #9333ea);
-}
-
 @font-face {
   font-family: 'hanyi';
   src: url('../assets/hanyi.ttf');

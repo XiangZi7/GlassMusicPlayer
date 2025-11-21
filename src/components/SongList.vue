@@ -2,6 +2,7 @@
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
+import { RouterLink } from 'vue-router'
 
 interface Song {
   id?: string | number
@@ -9,6 +10,7 @@ interface Song {
   name: string
   artist: string
   album?: string
+  albumId?: string | number
   duration: number
   emoji?: string
   gradient?: string
@@ -56,8 +58,10 @@ const mapToStoreSong = (s: Song): StoreSong => ({
   liked: s.liked,
   cover: s.cover,
 })
+  console.log('🚀 ~ file: SongList.vue:65 ~ props.songs:', props.songs)
 
 const playSong = async (song: Song, index: number) => {
+
   try {
     const playlistMapped: StoreSong[] = props.songs.map(mapToStoreSong)
     setPlaylist(playlistMapped, index)
@@ -110,7 +114,7 @@ const downloadSong = (song: Song, index: number) => {
 <template>
   <div class="flex h-full flex-col overflow-hidden">
     <!-- 操作栏 -->
-    <div v-if="showControls" class="mb-6 flex items-center justify-end">
+    <!-- <div v-if="showControls" class="mb-6 flex items-center justify-end">
       <div class="flex items-center space-x-4">
         <button class="text-purple-300 transition-colors hover:text-white" @click="$emit('sort')">
           <span class="icon-[mdi--sort] h-5 w-5"></span>
@@ -119,7 +123,7 @@ const downloadSong = (song: Song, index: number) => {
           <span class="icon-[mdi--filter] h-5 w-5"></span>
         </button>
       </div>
-    </div>
+    </div> -->
 
     <div class="glass-card flex flex-1 flex-col overflow-hidden p-4 px-2">
       <!-- 列表头部 -->
@@ -184,13 +188,27 @@ const downloadSong = (song: Song, index: number) => {
             </div>
 
             <div class="col-span-3 hidden overflow-hidden md:block">
-              <p :title="song.artist" class="truncate text-sm text-purple-300">{{ song.artist }}</p>
+              <RouterLink
+                :to="`/artist/${(song.artist || '').split(' / ')[0]}`"
+                :title="song.artist"
+                class="truncate text-left text-sm text-purple-300 transition-colors hover:text-white"
+              >
+                {{ song.artist }}
+              </RouterLink>
             </div>
 
             <div class="col-span-2 hidden overflow-hidden text-center md:block">
-              <span :title="song.album || '-'" class="truncate text-sm text-purple-300">{{
-                song.album || '-'
-              }}</span>
+              <RouterLink
+                v-if="song.albumId"
+                :to="`/album/${song.albumId}`"
+                :title="song.album || '-'"
+                class="truncate text-sm text-purple-300 transition-colors hover:text-white"
+              >
+                {{ song.album || '-' }}
+              </RouterLink>
+              <span v-else :title="song.album || '-'" class="truncate text-sm text-purple-300">
+                {{ song.album || '-' }}
+              </span>
             </div>
             <div class="col-span-1 flex items-center justify-end">
               <span class="hidden text-sm text-purple-300 md:inline-block">{{
@@ -211,6 +229,13 @@ const downloadSong = (song: Song, index: number) => {
                 @click.stop="openMV(song, index)"
               >
                 <span class="icon-[mdi--video-youtube] h-6 w-6"></span>
+              </button>
+              <button
+                v-if="song.id"
+                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
+                @click.stop="router.push(`/song/${song.id}`)"
+              >
+                <span class="icon-[mdi--file-document-outline] h-6 w-6"></span>
               </button>
               <button
                 class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"

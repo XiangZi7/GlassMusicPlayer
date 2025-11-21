@@ -81,18 +81,18 @@
   .glass-button {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--glass-border);
   }
 
   /* 基础毛玻璃效果类 */
   .glass-base {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg-base);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
   /* 主容器毛玻璃效果 */
   .glass-container {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg-container);
     border-radius: 24px;
     box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.15),
@@ -101,7 +101,7 @@
 
   /* 卡片毛玻璃效果 */
   .glass-card {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--glass-bg-card);
     border-radius: 16px;
     box-shadow:
       0 12px 24px rgba(0, 0, 0, 0.12),
@@ -110,7 +110,7 @@
 
   /* 导航栏毛玻璃效果 */
   .glass-nav {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg-nav);
     border-radius: 12px;
     box-shadow:
       0 8px 16px rgba(0, 0, 0, 0.1),
@@ -119,7 +119,7 @@
 
   /* 按钮毛玻璃效果 */
   .glass-button {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--glass-bg-button);
     border-radius: 12px;
     transition: all 0.3s ease;
     box-shadow:
@@ -130,11 +130,19 @@
   }
 
   .glass-button:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--glass-hover-button-bg);
     transform: translateY(-2px);
     box-shadow:
       0 8px 20px rgba(0, 0, 0, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dropdown {
+    background: var(--glass-dropdown-bg);
+    border: 1px solid var(--glass-dropdown-border);
+    backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
+    color: var(--glass-dropdown-text);
   }
 
   /* 二次元风格渐变背景 */
@@ -238,6 +246,44 @@
 }
 
 @layer base {
+  :root {
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-bg-base: rgba(255, 255, 255, 0.1);
+    --glass-bg-container: rgba(255, 255, 255, 0.08);
+    --glass-bg-card: rgba(255, 255, 255, 0.12);
+    --glass-bg-nav: rgba(255, 255, 255, 0.06);
+    --glass-bg-button: rgba(255, 255, 255, 0.15);
+    --glass-hover-button-bg: rgba(255, 255, 255, 0.2);
+    --glass-text: rgba(0, 0, 0, 0.85);
+    --glass-hover-item-bg: rgba(17, 24, 39, 0.06);
+    --glass-hover-text: #111827;
+    --glass-dropdown-bg: rgba(255, 255, 255, 0.92);
+    --glass-dropdown-border: rgba(17, 24, 39, 0.08);
+    --glass-dropdown-text: rgba(17, 24, 39, 0.95);
+    --glass-dropdown-blur: 10px;
+  }
+
+  :root.dark,
+  html.dark {
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg-base: rgba(0, 0, 0, 0.35);
+    --glass-bg-container: rgba(0, 0, 0, 0.28);
+    --glass-bg-card: rgba(0, 0, 0, 0.4);
+    --glass-bg-nav: rgba(0, 0, 0, 0.3);
+    --glass-bg-button: rgba(255, 255, 255, 0.08);
+    --glass-hover-button-bg: rgba(255, 255, 255, 0.12);
+    --glass-text: rgba(255, 255, 255, 0.85);
+    --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
+    --glass-hover-text: #ffffff;
+    --glass-dropdown-bg: rgba(0, 0, 0, 0.55);
+    --glass-dropdown-border: rgba(255, 255, 255, 0.12);
+    --glass-dropdown-text: rgba(255, 255, 255, 0.95);
+    --glass-dropdown-blur: 18px;
+    color-scheme: dark;
+  }
+  html.dark body {
+    background-color: #0b0b0f;
+  }
 }
 
 @layer utilities {

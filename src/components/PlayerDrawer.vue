@@ -3,6 +3,8 @@
 import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
+import { commentMusic } from '@/api'
+import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
 
 const isOpen = defineModel<boolean>()
 const state = reactive({
@@ -10,6 +12,8 @@ const state = reactive({
   currentLyricIndex: 0,
   lyricsOffset: 0,
   isRecentOpen: false,
+  isCommentsOpen: false,
+  commentCount: 0,
   // 是否使用封面背景（放大+模糊）
   useCoverBg: true,
   // 背景层管理（A/B双层交替淡入淡出）
@@ -19,7 +23,7 @@ const state = reactive({
   lyricsPositioned: false,
 })
 // 响应式引用
-const { isRendered, currentLyricIndex, isRecentOpen } = toRefs(state)
+const { isRendered, currentLyricIndex, isRecentOpen, isCommentsOpen, commentCount } = toRefs(state)
 // 使用音频播放器
 const {
   currentSong,
@@ -121,6 +125,28 @@ const stopAlbumRotation = () => {
     albumRotationTween = null
   }
 }
+
+// 加载歌曲评论数量
+const loadCommentCount = async (songId?: number | string) => {
+  if (!songId) {
+    state.commentCount = 0
+    return
+  }
+  try {
+    const res: any = await commentMusic({ id: Number(songId), limit: 1, offset: 0 })
+    state.commentCount = Number(res?.data?.total ?? res?.total ?? res?.totalCount ?? 0)
+  } catch {
+    state.commentCount = 0
+  }
+}
+
+watch(
+  () => currentSong.value?.id,
+  id => {
+    loadCommentCount(id as any)
+  },
+  { immediate: true }
+)
 
 // 更新当前歌词索引
 const updateCurrentLyric = (instant = false) => {
@@ -345,13 +371,41 @@ onUnmounted(() => {
     </div>
     <!-- 关闭按钮 -->
     <div class="absolute top-6 right-6 z-10 flex gap-4">
+      <div
+        v-if="lyricsTrans.length || lyricsRoma.length"
+        class="flex items-center gap-2 rounded-xl p-2"
+      >
+        <button
+          v-if="lyricsTrans.length"
+          class="glass-button px-3 py-1"
+          :class="showTrans ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'"
+          @click="showTrans = !showTrans"
+        >
+          翻译
+        </button>
+        <button
+          v-if="lyricsRoma.length"
+          class="glass-button px-3 py-1"
+          :class="showRoma ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'"
+          @click="showRoma = !showRoma"
+        >
+          罗马音
+        </button>
+      </div>
       <button
         class="glass-button ml-3 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-        :class="state.useCoverBg ? 'bg-white/20 ring-1 ring-pink-300/40' : ''"
+        :class="state.useCoverBg ? '' : 'bg-white/10 ring-1 ring-yellow-300/40'"
         @click="state.useCoverBg = !state.useCoverBg"
         title="切换背景：封面/纯色"
       >
-        <span class="icon-[mdi--image] h-6 w-6 text-white"></span>
+        <span
+          :class="[
+            state.useCoverBg
+              ? 'icon-[mdi--image-multiple-outline] text-white'
+              : 'icon-[mdi--palette-swatch] text-yellow-300',
+            'h-6 w-6',
+          ]"
+        ></span>
       </button>
       <button
         @click="isOpen = false"
@@ -365,15 +419,15 @@ onUnmounted(() => {
     <div class="flex w-1/2 flex-col items-center justify-center px-12 py-16">
       <!-- 专辑封面区域（黑胶风格） -->
       <div class="mb-8 flex flex-col items-center">
-        <div class="album-wrapper relative mb-6 h-72 w-72">
+        <div class="album-wrapper relative mb-6 h-96 w-96">
           <!-- 黑胶盘：外层为黑胶，内层为封面标签 -->
           <div
             ref="albumCoverRef"
-            class="album-cover vinyl-disc relative h-72 w-72 overflow-hidden rounded-full shadow-2xl"
+            class="album-cover vinyl-disc relative h-96 w-96 overflow-hidden rounded-full shadow-2xl"
           >
             <!-- 封面标签（纸质质感 + 内外圈） -->
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 flex h-24 w-24 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
+              class="vinyl-label absolute top-1/2 left-1/2 flex h-32 w-32 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -383,27 +437,27 @@ onUnmounted(() => {
 
             <!-- 中心金属轴 -->
             <div
-              class="spindle absolute top-1/2 left-1/2 h-3 w-3 -translate-1/2 rounded-full"
+              class="spindle absolute top-1/2 left-1/2 h-4 w-4 -translate-1/2 rounded-full"
             ></div>
           </div>
 
           <!-- 黑胶指针（写实：底座 + 手臂 + 唱头 + 配重） -->
           <div
-            class="tonearm absolute -top-12 -right-14 z-10 origin-top-left transition-transform duration-500 ease-out"
+            class="tonearm absolute -top-16 -right-20 z-10 origin-top-left transition-transform duration-500 ease-out"
             :class="isPlaying ? 'rotate-16' : 'rotate-[-28deg]'"
           >
             <!-- 轴心底座 -->
-            <div class="arm-pivot relative h-10 w-10 rounded-full shadow-xl"></div>
+            <div class="arm-pivot relative h-12 w-12 rounded-full shadow-xl"></div>
             <!-- 手臂主体 -->
-            <div class="arm-shaft mt-[-2px] h-36 w-2 rounded-full"></div>
+            <div class="arm-shaft mt-[-2px] h-44 w-3 rounded-full"></div>
             <!-- 配重块 -->
-            <div class="counterweight -mt-4 ml-2 h-6 w-6 rounded-full shadow-md"></div>
+            <div class="counterweight -mt-4 ml-2 h-7 w-7 rounded-full shadow-md"></div>
             <!-- 唱头与针 -->
-            <div class="headshell relative mt-1 h-8 w-14 rounded-md shadow-md">
+            <div class="headshell relative mt-1 h-10 w-16 rounded-md shadow-md">
               <div
-                class="cartridge absolute top-1/2 left-1/2 h-4 w-8 -translate-x-1/2 -translate-y-1/2 rounded-sm"
+                class="cartridge absolute top-1/2 left-1/2 h-5 w-10 -translate-x-1/2 -translate-y-1/2 rounded-sm"
               ></div>
-              <div class="stylus absolute top-full left-1/2 h-4 w-[2px] -translate-x-1/2"></div>
+              <div class="stylus absolute top-full left-1/2 h-5 w-[2px] -translate-x-1/2"></div>
             </div>
           </div>
         </div>
@@ -472,7 +526,7 @@ onUnmounted(() => {
         <!-- 播放列表 -->
         <PlaylistBubble
           v-model:show="isRecentOpen"
-          placement="top-right"
+          placement="top-left"
           :offset-x="8"
           :offset-y="10"
         >
@@ -488,6 +542,16 @@ onUnmounted(() => {
 
       <!-- 底部控制栏 -->
       <div class="flex w-full max-w-md items-center justify-between">
+        <!-- 评论按钮 -->
+        <div class="flex items-center gap-2">
+          <button
+            class="glass-button flex items-center gap-2 rounded-2xl px-3 py-2 text-sm"
+            @click="isCommentsOpen = true"
+          >
+            <span class="icon-[mdi--comment-outline] h-5 w-5 text-white/80"></span>
+            <span class="text-white/90">{{ commentCount }}</span>
+          </button>
+        </div>
         <!-- 音量控制 -->
         <div class="flex items-center justify-center space-x-3">
           <button @click="toggleMute" class="flex items-center transition-colors duration-200">
@@ -513,39 +577,6 @@ onUnmounted(() => {
     <!-- 右侧：歌词区域 -->
     <div class="flex w-1/2 flex-col px-12 py-16">
       <div class="flex h-full flex-col p-8">
-        <!-- 歌词标题与显示模式切换（不超过双轨） -->
-        <div class="mb-6 flex items-center justify-between">
-          <div class="text-center">
-            <h3 class="text-xl font-semibold text-white/90">歌词</h3>
-            <div class="mx-auto mt-2 h-px w-16 bg-linear-to-r from-pink-400 to-purple-500"></div>
-          </div>
-          <div
-            v-if="lyricsTrans.length || lyricsRoma.length"
-            class="glass-nav flex items-center gap-2 rounded-xl p-2"
-          >
-            <button
-              v-if="lyricsTrans.length"
-              class="glass-button px-3 py-1 text-sm"
-              :class="
-                showTrans ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'
-              "
-              @click="showTrans = !showTrans"
-            >
-              翻译
-            </button>
-            <button
-              v-if="lyricsRoma.length"
-              class="glass-button px-3 py-1 text-sm"
-              :class="
-                showRoma ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'
-              "
-              @click="showRoma = !showRoma"
-            >
-              罗马音
-            </button>
-          </div>
-        </div>
-
         <!-- 歌词滚动区域（支持单轨或双轨对照） -->
         <div class="lyrics-container relative flex-1 overflow-hidden">
           <div ref="lyricsRef" class="lyrics-scroll h-full">
@@ -573,6 +604,7 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+  <SongCommentsDialog v-model:show="isCommentsOpen" :song-id="currentSong?.id ?? null" />
 </template>
 
 <style scoped>

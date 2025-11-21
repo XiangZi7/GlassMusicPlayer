@@ -131,6 +131,18 @@ export const useAudio = () => {
     audioStore.clearPlaylist()
   }
 
+  const moveSong = (fromIndex: number, toIndex: number) => {
+    audioStore.moveSong(fromIndex, toIndex)
+  }
+
+  const queueNext = (songId: string | number) => {
+    audioStore.queueNext(songId)
+  }
+
+  const removeSongs = (ids: Array<string | number>) => {
+    audioStore.removeSongs(ids)
+  }
+
   const setPlaylist = (songs: Song[], startIndex?: number) => {
     audioStore.setPlaylist(songs, startIndex)
   }
@@ -279,6 +291,9 @@ export const useAudio = () => {
     addSongs,
     removeSong,
     clearPlaylist,
+    moveSong,
+    queueNext,
+    removeSongs,
     setPlaylist,
     playByIndex,
 

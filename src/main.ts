@@ -14,6 +14,9 @@ import Pinia from '@/stores'
 
 // svg icon
 import 'virtual:svg-icons-register'
+import { useGlobalStore } from '@/stores/modules/global'
+import { storeToRefs } from 'pinia'
+import { watch } from 'vue'
 
 const app = createApp(App)
 
@@ -22,3 +25,16 @@ app.use(router)
 app.use(I18n)
 
 app.mount('#app')
+
+const globalStore = useGlobalStore()
+const { theme } = storeToRefs(globalStore)
+const applyThemeClass = (t: 'light' | 'dark') => {
+  const root = document.documentElement
+  if (t === 'dark') {
+    root.classList.add('dark')
+  } else {
+    root.classList.remove('dark')
+  }
+}
+applyThemeClass(theme.value || 'light')
+watch(theme, t => applyThemeClass(t || 'light'))

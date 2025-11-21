@@ -16,7 +16,7 @@ interface PLResult {
   trackCount: number
 }
 const state = reactive<{ loading: boolean; results: PLResult[] }>({ loading: false, results: [] })
-const { loading, results } = toRefs(state)
+const {  results } = toRefs(state)
 
 const fetchPlaylists = async () => {
   const term = props.keywords?.trim()

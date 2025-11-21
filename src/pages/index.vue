@@ -1,11 +1,6 @@
 <script setup lang="ts">
-import { useAudio } from '@/composables/useAudio'
-import { testSongs } from '@/utils/testSongs'
 import { banner, topPlaylist, topSong } from '@/api'
 import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
-
-// 使用音频播放器
-const { setPlaylist } = useAudio()
 
 interface HomeState {
   // 轮播图数据
@@ -52,6 +47,29 @@ const {
   isHomeLoading,
 } = toRefs(state)
 
+// 推荐歌单横向滚动容器引用与左右按钮状态
+const playlistScrollRef = ref<HTMLElement | null>(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+
+const updatePlaylistScrollButtons = () => {
+  const el = playlistScrollRef.value
+  if (!el) return
+  const { scrollLeft, scrollWidth, clientWidth } = el
+  canScrollLeft.value = scrollLeft > 0
+  canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1
+}
+
+const scrollPlaylist = (dir: 'left' | 'right') => {
+  const el = playlistScrollRef.value
+  if (!el) return
+  const amount = el.clientWidth
+  const next = dir === 'left' ? el.scrollLeft - amount : el.scrollLeft + amount
+  el.scrollTo({ left: next, behavior: 'smooth' })
+  // 延迟更新按钮状态以匹配平滑滚动后的位置
+  setTimeout(updatePlaylistScrollButtons, 300)
+}
+
 const gradients: string[] = [
   'from-pink-400 to-purple-500',
   'from-blue-400 to-cyan-500',
@@ -67,7 +85,7 @@ const loadHomeData = async () => {
   try {
     const [b, p, s] = await Promise.all([
       banner({ type: 0 }),
-      topPlaylist({ order: 'hot', limit: 6 }),
+      topPlaylist({ order: 'hot', limit: 12 }),
       topSong({ type: 0 }),
     ])
 
@@ -127,15 +145,23 @@ const loadHomeData = async () => {
 
 onMounted(() => {
   loadHomeData()
-  // 设置测试歌曲到播放列表
-  setPlaylist(testSongs)
   // 轮播图自动切换
   setInterval(() => {
     if (state.banners.length > 0) {
       state.currentBannerIndex = (state.currentBannerIndex + 1) % state.banners.length
     }
   }, 5000)
+  // 初始更新推荐歌单滚动按钮状态
+  nextTick(updatePlaylistScrollButtons)
 })
+
+watch(
+  () => recommendPlaylists.value.length,
+  async () => {
+    await nextTick()
+    updatePlaylistScrollButtons()
+  }
+)
 </script>
 <template>
   <div class="mt-4 flex-1 overflow-hidden">
@@ -253,34 +279,54 @@ onMounted(() => {
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
             </router-link>
           </div>
-          <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-            <router-link
-              v-for="(playlist, index) in recommendPlaylists"
-              :key="index"
-              :to="`/playlist/${playlist.id}`"
-              class="playlist-card group cursor-pointer"
+          <div class="relative">
+            <button
+              v-show="canScrollLeft"
+              @click="scrollPlaylist('left')"
+              class="glass-button absolute top-1/2 left-2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
             >
-              <div
-                class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              <span class="icon-[mdi--chevron-left] h-5 w-5 text-white"></span>
+            </button>
+            <button
+              v-show="canScrollRight"
+              @click="scrollPlaylist('right')"
+              class="glass-button absolute top-1/2 right-2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+            >
+              <span class="icon-[mdi--chevron-right] h-5 w-5 text-white"></span>
+            </button>
+            <div
+              ref="playlistScrollRef"
+              @scroll="updatePlaylistScrollButtons"
+              class="scrollbar-hide flex items-center gap-4 overflow-x-auto"
+            >
+              <router-link
+                v-for="(playlist, index) in recommendPlaylists"
+                :key="index"
+                :to="`/playlist/${playlist.id}`"
+                class="playlist-card group w-64 flex-none cursor-pointer"
               >
-                <div class="relative mb-3 overflow-hidden rounded-xl">
-                  <img
-                    :src="playlist.coverImgUrl + '?param=500y500'"
-                    alt="歌单封面"
-                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <div
-                    class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                  >
-                    <button class="glass-button flex h-12 w-12 items-center justify-center">
-                      <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
-                    </button>
+                <div
+                  class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                >
+                  <div class="relative mb-3 w-full overflow-hidden rounded-xl">
+                    <img
+                      :src="playlist.coverImgUrl + '?param=500y500'"
+                      alt="歌单封面"
+                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                    <div
+                      class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    >
+                      <button class="glass-button flex h-12 w-12 items-center justify-center">
+                        <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+                      </button>
+                    </div>
                   </div>
+                  <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
+                  <p class="truncate text-xs text-purple-300">{{ playlist.count }}首歌曲</p>
                 </div>
-                <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
-                <p class="truncate text-xs text-purple-300">{{ playlist.count }}首歌曲</p>
-              </div>
-            </router-link>
+              </router-link>
+            </div>
           </div>
         </section>
 

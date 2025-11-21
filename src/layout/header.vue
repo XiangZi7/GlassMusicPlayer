@@ -6,7 +6,6 @@ const navItems = [
   { to: '/', label: '首页', accent: true },
   { to: '/discover', label: '发现音乐' },
   { to: '/my-music', label: '我的音乐' },
-  { to: '/created-playlists', label: '歌单' },
 ]
 
 const router = useRouter()
@@ -28,12 +27,13 @@ const handleSearchEnter = () => {
     <div class="flex items-center space-x-6">
       <!-- Logo -->
       <div class="flex items-center space-x-3">
-        <div
+        <img src="/logo.png" alt="logo" class="w-10" />
+        <!-- <div
           class="animate-pulse-glow flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-pink-400 to-purple-600"
         >
           <span class="text-lg font-bold text-white">🎵</span>
-        </div>
-        <h1 class="text-xl font-bold text-white">AniMusic</h1>
+        </div> -->
+        <h1 class="text-xl font-bold text-white">Glass Music Player</h1>
       </div>
 
       <!-- 导航菜单 -->
@@ -50,6 +50,29 @@ const handleSearchEnter = () => {
         >
           {{ item.label }}
         </RouterLink>
+      </nav>
+      <!-- 外链菜单 -->
+      <nav class="hidden items-center space-x-2 md:flex">
+        <a
+          href="https://github.com/XiangZi7/GlassMusicPlayer"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
+        >
+          <span class="icon-[mdi--github] mr-2 h-4 w-4"></span>
+          项目仓库
+          <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
+        </a>
+        <a
+          href="https://miraitv.netlify.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
+        >
+          <span class="icon-[mdi--movie-open-play] mr-2 h-4 w-4"></span>
+          影视网站
+          <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
+        </a>
       </nav>
     </div>
 

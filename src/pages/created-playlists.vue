@@ -1,11 +1,3 @@
-<script setup lang="ts">
-const created = [
-  { name: '二次元神曲', count: 50, emoji: '🎌', gradient: 'from-pink-400 to-purple-500' },
-  { name: '治愈系音乐', count: 30, emoji: '🌸', gradient: 'from-blue-400 to-cyan-500' },
-]
-const state = reactive({ isPageLoading: false })
-</script>
-
 <template>
   <div class="flex-1 overflow-hidden text-white">
     <div class="h-full overflow-auto p-6">

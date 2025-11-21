@@ -24,11 +24,31 @@ export interface ColorBendsSettingsState {
   autoRotate: number
 }
 
+export interface UltimateSettingsState {
+  bg1: string
+  bg2: string
+  color1: string
+  color2: string
+  color3: string
+  color4: string
+  color5: string
+  interactiveColor: string
+  circleSize: string
+  blending: string
+}
+
+export interface FooterLyricsSettingsState {
+  enabled: boolean
+  modes: Array<'original' | 'trans' | 'roma'>
+}
+
 export const useSettingsStore = defineStore('settings', {
   state: (): {
     aurora: AuroraSettingsState
     colorBends: ColorBendsSettingsState
-    backgroundType: 'aurora' | 'colorbends'
+    ultimate: UltimateSettingsState
+    footerLyrics: FooterLyricsSettingsState
+    backgroundType: 'aurora' | 'colorbends' | 'ultimate'
   } => ({
     aurora: {
       colorStops: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'],
@@ -51,7 +71,23 @@ export const useSettingsStore = defineStore('settings', {
       parallax: 0.5,
       noise: 0.1,
     },
-    backgroundType: 'aurora',
+    ultimate: {
+      bg1: '#6C00A2',
+      bg2: '#001152',
+      color1: '#1271FF',
+      color2: '#DD4AFF',
+      color3: '#64DCFF',
+      color4: '#C83232',
+      color5: '#B4B432',
+      interactiveColor: '#8C64FF',
+      circleSize: '80%',
+      blending: 'hard-light',
+    },
+    footerLyrics: {
+      enabled: false,
+      modes: ['original'],
+    },
+    backgroundType: 'ultimate',
   }),
   actions: {
     setAurora(partial: Partial<AuroraSettingsState>) {
@@ -63,7 +99,7 @@ export const useSettingsStore = defineStore('settings', {
     setColorPositions(positions: number[]) {
       this.aurora.colorPositions = positions.map(p => Math.max(0, Math.min(1, p)))
     },
-    setBackgroundType(type: 'aurora' | 'colorbends') {
+    setBackgroundType(type: 'aurora' | 'colorbends' | 'ultimate') {
       this.backgroundType = type
     },
     resetAurora() {
@@ -95,6 +131,31 @@ export const useSettingsStore = defineStore('settings', {
         noise: 0.08,
         transparent: true,
       }
+    },
+    setUltimate(partial: Partial<UltimateSettingsState>) {
+      this.ultimate = { ...this.ultimate, ...partial }
+    },
+    resetUltimate() {
+      this.ultimate = {
+        bg1: '#6C00A2',
+        bg2: '#001152',
+        color1: '#1271FF',
+        color2: '#DD4AFF',
+        color3: '#64DCFF',
+        color4: '#C83232',
+        color5: '#B4B432',
+        interactiveColor: '#8C64FF',
+        circleSize: '80%',
+        blending: 'hard-light',
+      }
+    },
+    setFooterLyricsEnabled(val: boolean) {
+      this.footerLyrics.enabled = !!val
+    },
+    setFooterLyricsModes(modes: Array<'original' | 'trans' | 'roma'>) {
+      const uniq = Array.from(new Set(modes)).filter(m => ['original', 'trans', 'roma'].includes(m)) as Array<'original' | 'trans' | 'roma'>
+      this.footerLyrics.modes = uniq.slice(0, 2)
+      if (this.footerLyrics.modes.length === 0) this.footerLyrics.modes = ['original']
     },
   },
   persist: piniaPersistConfig('settings'),

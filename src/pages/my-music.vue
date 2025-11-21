@@ -1,12 +1,6 @@
 <script setup lang="ts">
 const sections = [
   { name: '我喜欢的', to: '/likes', emoji: '❤️', gradient: 'from-pink-400 to-red-500' },
-  {
-    name: '创建的歌单',
-    to: '/created-playlists',
-    emoji: '📁',
-    gradient: 'from-purple-500 to-indigo-500',
-  },
   { name: '最近播放', to: '/recent', emoji: '🕒', gradient: 'from-blue-400 to-cyan-500' },
 ]
 const state = reactive({ isPageLoading: false })

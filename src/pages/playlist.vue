@@ -75,6 +75,7 @@ const loadPlaylist = async (id: number) => {
             ? t.artists.map((a: any) => a.name).join(' / ')
             : '',
         album: t?.al?.name || t?.album?.name || '',
+        albumId: t?.al?.id || t?.album?.id || 0,
         duration: t?.dt ?? t?.duration ?? 0,
         emoji: emojis[i % emojis.length],
         gradient: gradients[i % gradients.length],

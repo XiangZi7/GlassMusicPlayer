@@ -54,7 +54,29 @@ const onDocClick = (e: Event) => {
 onMounted(() => document.addEventListener('pointerdown', onDocClick))
 onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 const toggle = () => (open.value = !open.value)
-const { playlist, playByIndex } = useAudio()
+const { playlist, playByIndex, moveSong, queueNext, removeSong, removeSongs } = useAudio()
+const draggingIndex = ref<number | null>(null)
+const selected = reactive<Record<string | number, boolean>>({})
+const toggleSelect = (id: string | number) => (selected[id] = !selected[id])
+const selectedIds = computed(
+  () =>
+    Object.keys(selected)
+      .filter(k => selected[k as any])
+      .map(k => (isNaN(Number(k)) ? k : Number(k))) as any
+)
+const onDragStart = (i: number) => (draggingIndex.value = i)
+const onDragOver = (e: DragEvent) => e.preventDefault()
+const onDrop = (i: number) => {
+  if (draggingIndex.value === null) return
+  moveSong(draggingIndex.value, i)
+  draggingIndex.value = null
+}
+const doQueueNextSelected = () => {
+  selectedIds.value.forEach((id: any) => queueNext(id as any))
+}
+const doDeleteSelected = () => {
+  removeSongs(selectedIds.value as any)
+}
 </script>
 <template>
   <div ref="triggerRef" class="relative inline-block">
@@ -62,24 +84,45 @@ const { playlist, playByIndex } = useAudio()
       <slot name="trigger"></slot>
     </div>
     <Transition name="bubble">
-      <div v-if="open" ref="bubbleRef" :class="positionClass" :style="offsetStyle">
+      <div v-if="open" ref="bubbleRef" class="min-w-lg" :class="positionClass" :style="offsetStyle">
         <template v-if="$slots.default">
           <slot></slot>
         </template>
         <template v-else>
-          <div class="w-72 rounded-2xl bg-black/60 p-3 shadow-xl backdrop-blur">
-            <div class="relative">
-              <div class="absolute right-5 -top-2 h-3 w-3 rotate-45 rounded-sm bg-black/70"></div>
-            </div>
+          <div class="glass-card min-h-64 w-full rounded-2xl p-3 shadow-xl">
             <h4 class="mb-2 text-sm font-medium text-white/80">播放列表</h4>
+            <div class="mb-2 flex items-center gap-2">
+              <button
+                class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                title="下一首播放选中"
+                @click="doQueueNextSelected"
+              >
+                <span class="icon-[mdi--skip-next] h-4 w-4"></span>
+              </button>
+              <button
+                class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                title="删除选中"
+                @click="doDeleteSelected"
+              >
+                <span class="icon-[mdi--delete] h-4 w-4"></span>
+              </button>
+            </div>
             <div class="max-h-64 space-y-2 overflow-auto">
               <div
                 v-for="(s, i) in playlist"
                 :key="s.id || i"
                 class="flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors hover:bg-white/10"
-                @click="playByIndex(i)"
+                draggable="true"
+                @dragstart="onDragStart(i)"
+                @dragover="onDragOver"
+                @drop="onDrop(i)"
               >
                 <div class="flex min-w-0 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    :checked="selected[s.id as any]"
+                    @change="toggleSelect(s.id as any)"
+                  />
                   <div class="h-10 w-10 shrink-0 overflow-hidden rounded-md">
                     <img
                       v-if="s.cover"
@@ -101,7 +144,15 @@ const { playlist, playByIndex } = useAudio()
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-white/60">{{ formatDuration(s.duration) }}</span>
-                  <span class="icon-[mdi--play] h-4 w-4 text-white/70"></span>
+                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="播放" @click.stop="playByIndex(i)">
+                    <span class="icon-[mdi--play] h-4 w-4"></span>
+                  </button>
+                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="下一首" @click.stop="queueNext(s.id as any)">
+                    <span class="icon-[mdi--skip-next] h-4 w-4"></span>
+                  </button>
+                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="删除" @click.stop="removeSong(s.id as any)">
+                    <span class="icon-[mdi--delete] h-4 w-4"></span>
+                  </button>
                 </div>
               </div>
             </div>

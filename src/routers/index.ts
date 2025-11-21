@@ -47,11 +47,6 @@ const router = createRouter({
           component: () => import('@/pages/likes.vue'),
         },
         {
-          path: '/created-playlists',
-          name: 'created-playlists',
-          component: () => import('@/pages/created-playlists.vue'),
-        },
-        {
           path: '/discover',
           name: 'discover',
           component: () => import('@/pages/discover.vue'),
@@ -65,6 +60,26 @@ const router = createRouter({
           path: '/search',
           name: 'search',
           component: () => import('@/pages/search.vue'),
+        },
+        {
+          path: '/charts',
+          name: 'charts',
+          component: () => import('@/pages/charts.vue'),
+        },
+        {
+          path: '/artist/:name',
+          name: 'artist',
+          component: () => import('@/pages/artist.vue'),
+        },
+        {
+          path: '/song/:id',
+          name: 'song',
+          component: () => import('@/pages/song.vue'),
+        },
+        {
+          path: '/album/:id',
+          name: 'album',
+          component: () => import('@/pages/album.vue'),
         },
         {
           path: '/settings',
