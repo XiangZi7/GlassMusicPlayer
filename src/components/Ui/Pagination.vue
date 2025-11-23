@@ -5,8 +5,9 @@ const props = withDefaults(
     total: number
     pageSize: number
     maxButtons?: number
+    isCar?: boolean
   }>(),
-  { maxButtons: 5 }
+  { maxButtons: 5, isCar: true }
 )
 const emit = defineEmits<{ (e: 'update:modelValue', v: number): void }>()
 
@@ -14,7 +15,9 @@ const page = computed({
   get: () => props.modelValue || 1,
   set: v => emit('update:modelValue', Math.max(1, v)),
 })
-const totalPages = computed(() => Math.max(1, Math.ceil((props.total || 0) / (props.pageSize || 1))))
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil((props.total || 0) / (props.pageSize || 1)))
+)
 const canPrev = computed(() => page.value > 1)
 const canNext = computed(() => page.value < totalPages.value)
 
@@ -39,10 +42,13 @@ const goNext = () => {
 </script>
 
 <template>
-  <div class="glass-nav flex items-center gap-2 rounded-xl px-3 py-2">
+  <div
+    class="flex items-center gap-2 rounded-xl px-3 py-2 text-white"
+    :class="[isCar ? 'glass-nav' : '']"
+  >
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canPrev ? 'text-glass' : 'cursor-not-allowed opacity-50 text-muted-glass'"
+      :class="canPrev ? 'text-glass' : 'text-muted-glass cursor-not-allowed opacity-50'"
       :disabled="!canPrev"
       @click="goPrev"
     >
@@ -52,19 +58,17 @@ const goNext = () => {
       <button
         v-for="p in pageNumbers"
         :key="p"
-        class="glass-button px-3 py-1 text-sm"
-        :class="p === page ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-muted-glass'"
+        class="page-btn glass-button px-3 py-1 text-sm"
+        :class="p === page ? 'selected' : 'text-muted-glass'"
         @click="page = p"
       >
         {{ p }}
       </button>
     </div>
-    <span class="text-muted-glass">
-      第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条
-    </span>
+    <span class="text-muted-glass"> 第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条 </span>
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canNext ? 'text-glass' : 'cursor-not-allowed opacity-50 text-muted-glass'"
+      :class="canNext ? 'text-glass' : 'text-muted-glass cursor-not-allowed opacity-50'"
       :disabled="!canNext"
       @click="goNext"
     >
@@ -74,5 +78,7 @@ const goNext = () => {
 </template>
 
 <style scoped>
-/* no-op */
+.page-btn {
+  transition: all 0.2s ease;
+}
 </style>

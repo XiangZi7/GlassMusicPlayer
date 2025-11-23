@@ -169,7 +169,7 @@ watch(
       <template v-if="isHomeLoading">
         <HomeSkeleton />
       </template>
-      <section class="relative mb-8 h-96 overflow-hidden rounded-2xl px-4" v-else>
+      <section class="relative mb-8 h-72 overflow-hidden rounded-2xl px-4" v-else>
         <div class="carousel-container relative h-full">
           <a
             :href="banner.url"

@@ -15,7 +15,7 @@
     <transition name="fade" mode="out-in">
       <div
         v-if="open"
-        class="glass-dropdown absolute z-50 mt-2 w-full overflow-hidden rounded-2xl shadow-lg backdrop-blur-md backdrop-filter"
+        class="glass-dropdown absolute z-50 w-full overflow-hidden rounded-2xl shadow-lg backdrop-blur-md backdrop-filter"
       >
         <ul class="max-h-60 overflow-auto">
           <li

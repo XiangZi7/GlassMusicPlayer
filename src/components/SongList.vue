@@ -113,18 +113,6 @@ const downloadSong = (song: Song, index: number) => {
 </style>
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-    <!-- 操作栏 -->
-    <!-- <div v-if="showControls" class="mb-6 flex items-center justify-end">
-      <div class="flex items-center space-x-4">
-        <button class="text-purple-300 transition-colors hover:text-white" @click="$emit('sort')">
-          <span class="icon-[mdi--sort] h-5 w-5"></span>
-        </button>
-        <button class="text-purple-300 transition-colors hover:text-white" @click="$emit('filter')">
-          <span class="icon-[mdi--filter] h-5 w-5"></span>
-        </button>
-      </div>
-    </div> -->
-
     <div class="glass-card flex flex-1 flex-col overflow-hidden p-4 px-2">
       <!-- 列表头部 -->
       <div

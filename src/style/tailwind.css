@@ -79,8 +79,8 @@
   .glass-card,
   .glass-nav,
   .glass-button {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
   }
 

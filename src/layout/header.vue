@@ -28,11 +28,6 @@ const handleSearchEnter = () => {
       <!-- Logo -->
       <div class="flex items-center space-x-3">
         <img src="/logo.png" alt="logo" class="w-10" />
-        <!-- <div
-          class="animate-pulse-glow flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-pink-400 to-purple-600"
-        >
-          <span class="text-lg font-bold text-white">🎵</span>
-        </div> -->
         <h1 class="text-xl font-bold text-white">Glass Music Player</h1>
       </div>
 

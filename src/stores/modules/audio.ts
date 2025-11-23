@@ -5,6 +5,9 @@ import piniaPersistConfig from '../persist'
 import { trackListData } from '@/mock'
 let globalAudio: HTMLAudioElement | null = null
 let eventsBound = false
+// 链接过期自动重试节流：记录上次重试的歌曲ID与时间戳，避免短时间重复刷新
+let lastRetrySongId: string | number | null = null
+let lastRetryTime = 0
 const getAudioSingleton = (): HTMLAudioElement => {
   if (!globalAudio) globalAudio = new Audio()
   return globalAudio
@@ -44,7 +47,7 @@ export const useAudioStore = defineStore('audio', {
       // 播放模式（列表循环/单曲循环/随机播放）
       playMode: PlayMode.LIST as PlayMode,
       // 音量大小（0-1）
-      volume: 0.8,
+      volume: 1,
       // 是否静音
       isMuted: false,
       // 当前播放时间（秒）
@@ -169,6 +172,14 @@ export const useAudioStore = defineStore('audio', {
         this.audio.isLoading = false
         this.audio.isPlaying = false
         console.error('Audio error:', e)
+        // 触发一次刷新播放地址并重试，10秒内同一歌曲仅重试一次
+        const now = Date.now()
+        const id = this.audio.currentSong?.id ?? null
+        if (id && (!lastRetrySongId || lastRetrySongId !== id || now - lastRetryTime > 10000)) {
+          lastRetrySongId = id as any
+          lastRetryTime = now
+          this.refreshAndReplay()
+        }
       })
       eventsBound = true
     },
@@ -219,6 +230,37 @@ export const useAudioStore = defineStore('audio', {
       } catch (error) {
         this.audio.error = '播放失败，请检查网络连接'
         console.error('Play error:', error)
+        // 播放失败时也尝试刷新URL后重试
+        const id = this.audio.currentSong?.id ?? null
+        if (id) this.refreshAndReplay()
+      }
+    },
+
+    // 刷新当前歌曲的播放地址并重试播放
+    // 步骤：
+    // 1) 调用接口获取最新URL；2) 同步到 currentSong 与 playlist；
+    // 3) 重设 audio.src 并 load()；4) 调用 play()
+    async refreshAndReplay() {
+      if (!this.audio.currentSong || !this.audio.audio) return
+      this.audio.isLoading = true
+      try {
+        const res: any = await songUrl({ id: String(this.audio.currentSong.id) })
+        const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
+        this.audio.currentSong.url = url
+        const idx = this.audio.currentIndex
+        if (idx >= 0 && idx < this.audio.playlist.length) {
+          this.audio.playlist[idx].url = url
+        }
+        if (this.audio.audio.src !== (url || '')) {
+          this.audio.audio.src = url || ''
+          this.audio.audio.load()
+        }
+        await this.audio.audio.play()
+        this.audio.error = null
+      } catch (e) {
+        console.error('Refresh url failed:', e)
+      } finally {
+        this.audio.isLoading = false
       }
     },
 

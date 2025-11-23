@@ -68,12 +68,12 @@ const next = () => {
     <div class="absolute inset-0 bg-black/60" @click="close"></div>
     <div class="glass-container relative z-10 w-[720px] max-w-[92vw] overflow-hidden rounded-3xl p-6">
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-glass">歌曲评论</h3>
+        <h3 class="text-lg font-semibold text-white">歌曲评论</h3>
         <button class="glass-button h-9 w-9 rounded-full flex items-center justify-center" @click="close">
-          <span class="icon-[mdi--close] h-5 w-5 text-muted-glass"></span>
+          <span class="icon-[mdi--close] h-5 w-5 text-white/80"></span>
         </button>
       </div>
-      <p class="mb-4 text-sm text-muted-glass">总计 {{ state.total }} 条</p>
+      <p class="mb-4 text-sm text-white/70">总计 {{ state.total }} 条</p>
       <div class="max-h-[60vh] overflow-auto">
         <div v-if="state.loading" class="px-1">
           <PageSkeleton :sections="['list']" :list-count="8" />
@@ -100,28 +100,28 @@ const next = () => {
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <p class="truncate text-sm text-glass">{{ c.user?.nickname || '用户' }}</p>
-                <span class="text-xs text-muted-glass">{{ c.ipLocation?.location || c.ipLocation?.ip || '' }}</span>
-                <span class="text-xs text-muted-glass">{{ c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '') }}</span>
+                <p class="truncate text-sm text-white">{{ c.user?.nickname || '用户' }}</p>
+                <span class="text-xs text-white/60">{{ c.ipLocation?.location || c.ipLocation?.ip || '' }}</span>
+                <span class="text-xs text-white/60">{{ c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '') }}</span>
               </div>
-              <p class="mt-1 text-sm text-muted-glass">{{ c.content }}</p>
+              <p class="mt-1 text-sm text-white/80">{{ c.content }}</p>
               <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-2 space-y-2">
                 <div
                   v-for="(r, ri) in c.beReplied"
                   :key="ri"
                   class="rounded-lg bg-white/5 p-2"
                 >
-                  <p class="truncate text-xs text-glass">@{{ r?.user?.nickname || '用户' }}</p>
-                  <p class="mt-1 text-xs text-muted-glass">{{ r?.content }}</p>
+                  <p class="truncate text-xs text-white">@{{ r?.user?.nickname || '用户' }}</p>
+                  <p class="mt-1 text-xs text-white/70">{{ r?.content }}</p>
                 </div>
               </div>
             </div>
-            <div class="flex shrink-0 items-center gap-1 text-muted-glass">
+            <div class="flex shrink-0 items-center gap-1 text-white/60">
               <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
               <span class="text-xs">{{ c.likedCount || 0 }}</span>
             </div>
           </div>
-          <div v-if="state.comments.length === 0" class="text-center text-muted-glass">暂无评论</div>
+          <div v-if="state.comments.length === 0" class="text-center text-white/70">暂无评论</div>
         </div>
       </div>
       <div class="mt-4 flex items-center justify-end gap-2">

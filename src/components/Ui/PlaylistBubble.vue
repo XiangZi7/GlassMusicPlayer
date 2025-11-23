@@ -89,7 +89,7 @@ const doDeleteSelected = () => {
           <slot></slot>
         </template>
         <template v-else>
-          <div class="glass-card min-h-64 w-full rounded-2xl p-3 shadow-xl">
+          <div class="glass-card relative z-99999 min-h-64 w-full p-3 bg-(--glass-bg-base)">
             <h4 class="mb-2 text-sm font-medium text-white/80">播放列表</h4>
             <div class="mb-2 flex items-center gap-2">
               <button
@@ -116,6 +116,7 @@ const doDeleteSelected = () => {
                 @dragstart="onDragStart(i)"
                 @dragover="onDragOver"
                 @drop="onDrop(i)"
+                @dblclick.stop="playByIndex(i)"
               >
                 <div class="flex min-w-0 items-center gap-3">
                   <input
@@ -144,13 +145,25 @@ const doDeleteSelected = () => {
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-white/60">{{ formatDuration(s.duration) }}</span>
-                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="播放" @click.stop="playByIndex(i)">
+                  <button
+                    class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                    title="播放"
+                    @click.stop="playByIndex(i)"
+                  >
                     <span class="icon-[mdi--play] h-4 w-4"></span>
                   </button>
-                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="下一首" @click.stop="queueNext(s.id as any)">
+                  <button
+                    class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                    title="下一首"
+                    @click.stop="queueNext(s.id as any)"
+                  >
                     <span class="icon-[mdi--skip-next] h-4 w-4"></span>
                   </button>
-                  <button class="glass-button flex h-8 w-8 items-center justify-center rounded-full" title="删除" @click.stop="removeSong(s.id as any)">
+                  <button
+                    class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                    title="删除"
+                    @click.stop="removeSong(s.id as any)"
+                  >
                     <span class="icon-[mdi--delete] h-4 w-4"></span>
                   </button>
                 </div>

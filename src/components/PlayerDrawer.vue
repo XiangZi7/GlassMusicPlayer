@@ -25,14 +25,15 @@ const state = reactive({
 // 响应式引用
 const { isRendered, currentLyricIndex, isRecentOpen, isCommentsOpen, commentCount } = toRefs(state)
 // 使用音频播放器
-const {
-  currentSong,
-  isPlaying,
-  volume,
-  currentTime,
-  progress,
-  playMode,
-  togglePlay,
+  const {
+    currentSong,
+    isPlaying,
+    isLoading,
+    volume,
+    currentTime,
+    progress,
+    playMode,
+    togglePlay,
   next,
   previous,
   setVolume,
@@ -209,14 +210,14 @@ const setBackground = (url?: string) => {
   if (state.bgActive === 'A') {
     state.bgBUrl = url
     if (bgBRef.value) gsap.set(bgBRef.value, { opacity: 0 })
-    gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    if (bgBRef.value) gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    if (bgARef.value) gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
     state.bgActive = 'B'
   } else {
     state.bgAUrl = url
     if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
-    gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    if (bgARef.value) gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    if (bgBRef.value) gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
     state.bgActive = 'A'
   }
 }
@@ -301,8 +302,11 @@ watch(
       openDrawer()
       state.lyricsPositioned = false
       updateCurrentLyric(true)
+      setBackground(currentSong.value?.cover)
+      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
     } else {
       closeDrawer()
+      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
     }
   }
 )
@@ -312,6 +316,7 @@ watch(
   isPlaying,
   playing => {
     playing ? startAlbumRotation() : stopAlbumRotation()
+    console.log('🚀 ~ playing:', playing)
   },
   { immediate: true }
 )
@@ -353,7 +358,9 @@ onUnmounted(() => {
     ref="drawerRef"
     :class="[
       'absolute inset-0 z-50 flex backdrop-blur-md backdrop-filter',
-      state.useCoverBg ? 'bg-black/90' : 'bg-black/85',
+      state.useCoverBg
+        ? (isRecentOpen ? 'bg-black/70' : 'bg-black/90')
+        : (isRecentOpen ? 'bg-black/65' : 'bg-black/85'),
     ]"
   >
     <!-- 背景：封面放大+模糊（双层淡入淡出） -->
@@ -427,7 +434,7 @@ onUnmounted(() => {
           >
             <!-- 封面标签（纸质质感 + 内外圈） -->
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 flex h-32 w-32 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
+              class="vinyl-label absolute top-1/2 left-1/2 flex w-48 h-48 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -474,7 +481,7 @@ onUnmounted(() => {
 
       <!-- 进度条 -->
       <div v-if="currentSong" class="mb-3 flex w-3/5 items-center space-x-3">
-        <span class="text-xs text-white/60">{{ formattedCurrentTime }}</span>
+        <span class="text-xs text-white/60">{{ isLoading ? '加载中…' : formattedCurrentTime }}</span>
         <div
           @click="handleProgressClick"
           class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
@@ -509,9 +516,12 @@ onUnmounted(() => {
         <!-- 播放/暂停 -->
         <button
           @click="handleTogglePlay"
+          :disabled="isLoading"
           class="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
+          :class="isLoading ? 'opacity-60 cursor-wait' : ''"
         >
-          <span v-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
+          <span v-if="isLoading" class="icon-[mdi--loading] h-8 w-8 animate-spin text-white"></span>
+          <span v-else-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
           <span v-else class="icon-[mdi--pause] h-8 w-8 text-white"></span>
         </button>
 
@@ -579,11 +589,11 @@ onUnmounted(() => {
       <div class="flex h-full flex-col p-8">
         <!-- 歌词滚动区域（支持单轨或双轨对照） -->
         <div class="lyrics-container relative flex-1 overflow-hidden">
-          <div ref="lyricsRef" class="lyrics-scroll h-full">
+          <div ref="lyricsRef" class="lyrics-scroll z-50 h-full">
             <div
               v-for="(line, index) in activeSingleLyrics"
               :key="index"
-              class="lyric-line mb-6 cursor-pointer text-center transition-all duration-500"
+              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500"
               :class="{
                 'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
                 'text-white/50 hover:text-white/70': index !== currentLyricIndex,
@@ -598,7 +608,7 @@ onUnmounted(() => {
 
           <!-- 中心指示线 -->
           <div
-            class="pointer-events-none absolute top-1/2 right-0 left-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
+            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
           ></div>
         </div>
       </div>

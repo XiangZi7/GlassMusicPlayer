@@ -34,31 +34,38 @@ const openPlayerDrawer = () => {
   state.isDrawerOpen = true
   console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen:', state.isDrawerOpen)
 }
-
 </script>
 
 <template>
-  <div class="relative flex h-full w-full overflow-hidden bg-black">
+  <div class="relative flex h-full w-full overflow-hidden">
     <div class="absolute inset-0 h-full w-full">
       <component
-        :is="backgroundType === 'colorbends' ? ColorBends : backgroundType === 'ultimate' ? Ultimate : Aurora"
+        :is="
+          backgroundType === 'colorbends'
+            ? ColorBends
+            : backgroundType === 'ultimate'
+              ? Ultimate
+              : Aurora
+        "
         v-bind="
           backgroundType === 'colorbends'
             ? colorBends
             : backgroundType === 'ultimate'
-            ? ultimate
-            : {
-                ...aurora,
-                colorPositions: positions,
-                colorStops: colorStops,
-              }
+              ? ultimate
+              : {
+                  ...aurora,
+                  colorPositions: positions,
+                  colorStops: colorStops,
+                }
         "
         class="h-full w-full"
       />
     </div>
     <!-- 主容器 -->
-    <div class="flex w-full flex-col px-36 py-6 z-50">
-      <div class="glass-container flex flex-1 flex-col overflow-hidden">
+    <div class="z-50 flex w-full flex-col px-36 py-6">
+      <div
+        class="glass-container flex flex-1 flex-col overflow-hidden backdrop-blur-md backdrop-filter"
+      >
         <!-- 头部区域 -->
         <Header />
         <!-- 主内容区域 -->

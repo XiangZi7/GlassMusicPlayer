@@ -94,17 +94,9 @@ watch(page, () => {
       <!-- 英雄区：标题/说明/装饰动画 -->
       <div class="relative mb-4 flex shrink-0 flex-col overflow-hidden rounded-2xl p-1">
         <div class="glass-container rounded-2xl p-6 backdrop-blur-3xl">
-          <div class="flex items-center justify-between">
-            <p class="mt-2 text-sm text-white/70">
-              <span class="icon-[mdi--sparkles] h-6 w-6 text-pink-300"></span>
-
-              关键词：{{ q || '请输入搜索内容' }}
-            </p>
-          </div>
-
           <!-- 搜索输入框与按钮 -->
           <div
-            class="glass-card animate-pulse-glow relative mt-5 flex items-center gap-3 px-5 py-4 shadow-xl"
+            class="glass-card animate-pulse-glow relative flex items-center gap-3 px-5 py-4 shadow-xl"
           >
             <span class="icon-[mdi--magnify] h-6 w-6 text-white/80"></span>
             <input
@@ -124,37 +116,44 @@ watch(page, () => {
           </div>
 
           <!-- 快捷关键词按钮组 -->
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button
-              class="glass-button px-3 py-1 text-xs text-white/90"
-              @click="applyQuick('流行')"
-            >
-              <span class="icon-[mdi--fire] mr-1 h-3 w-3 text-pink-300"></span>流行
-            </button>
-            <button
-              class="glass-button px-3 py-1 text-xs text-white/90"
-              @click="applyQuick('摇滚')"
-            >
-              <span class="icon-[mdi--guitar-electric] mr-1 h-3 w-3 text-yellow-300"></span>摇滚
-            </button>
-            <button
-              class="glass-button px-3 py-1 text-xs text-white/90"
-              @click="applyQuick('电子')"
-            >
-              <span class="icon-[mdi--lightning-bolt] mr-1 h-3 w-3 text-blue-300"></span>电子
-            </button>
-            <button
-              class="glass-button px-3 py-1 text-xs text-white/90"
-              @click="applyQuick('Hip-Hop')"
-            >
-              <span class="icon-[mdi--music] mr-1 h-3 w-3 text-green-300"></span>Hip-Hop
-            </button>
-            <button
-              class="glass-button px-3 py-1 text-xs text-white/90"
-              @click="applyQuick('民谣')"
-            >
-              <span class="icon-[mdi--leaf] mr-1 h-3 w-3 text-emerald-300"></span>民谣
-            </button>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <button
+                class="glass-button px-3 py-1 text-xs text-white/90"
+                @click="applyQuick('流行')"
+              >
+                <span class="icon-[mdi--fire] mr-1 h-3 w-3 text-pink-300"></span>流行
+              </button>
+              <button
+                class="glass-button px-3 py-1 text-xs text-white/90"
+                @click="applyQuick('摇滚')"
+              >
+                <span class="icon-[mdi--guitar-electric] mr-1 h-3 w-3 text-yellow-300"></span>摇滚
+              </button>
+              <button
+                class="glass-button px-3 py-1 text-xs text-white/90"
+                @click="applyQuick('电子')"
+              >
+                <span class="icon-[mdi--lightning-bolt] mr-1 h-3 w-3 text-blue-300"></span>电子
+              </button>
+              <button
+                class="glass-button px-3 py-1 text-xs text-white/90"
+                @click="applyQuick('Hip-Hop')"
+              >
+                <span class="icon-[mdi--music] mr-1 h-3 w-3 text-green-300"></span>Hip-Hop
+              </button>
+              <button
+                class="glass-button px-3 py-1 text-xs text-white/90"
+                @click="applyQuick('民谣')"
+              >
+                <span class="icon-[mdi--leaf] mr-1 h-3 w-3 text-emerald-300"></span>民谣
+              </button>
+            </div>
+            <p class="text-sm text-white/70">
+              <span class="icon-[mdi--sparkles] h-6 w-6 text-pink-300"></span>
+
+              关键词：{{ q || '请输入搜索内容' }}
+            </p>
           </div>
         </div>
       </div>
@@ -162,21 +161,25 @@ watch(page, () => {
       <!-- 主内容：Tab + 结果 + 分页 -->
       <div class="flex flex-1 flex-col overflow-hidden">
         <!-- Tab 导航 -->
-        <div class="glass-nav mb-5 flex items-center gap-2 rounded-xl p-2">
-          <button
-            v-for="t in tabs"
-            :key="t.key"
-            class="glass-button flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition-all"
-            :class="
-              activeType === t.key
-                ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40'
-                : 'text-white/80'
-            "
-            @click="activeType = t.key"
-          >
-            <span :class="[t.icon, 'h-5 w-5']"></span>
-            {{ t.label }}
-          </button>
+        <div class="glass-nav mb-5 flex items-center justify-between gap-2 rounded-xl p-2">
+          <div class="flex items-center gap-2">
+            <button
+              v-for="t in tabs"
+              :key="t.key"
+              class="glass-button flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition-all"
+              :class="
+                activeType === t.key
+                  ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40'
+                  : 'text-white/80'
+              "
+              @click="activeType = t.key"
+            >
+              <span :class="[t.icon, 'h-5 w-5']"></span>
+              {{ t.label }}
+            </button>
+          </div>
+
+          <Pagination :is-car="false" v-model="page" :total="total" :page-size="pageSize" />
         </div>
         <!-- 结果区（动态组件） -->
         <div class="relative h-full overflow-hidden">
@@ -195,9 +198,6 @@ watch(page, () => {
               :list-count="8"
             />
           </div>
-        </div>
-        <div class="mt-4 flex items-center justify-end gap-3">
-          <Pagination v-model="page" :total="total" :page-size="pageSize" />
         </div>
       </div>
     </div>
