@@ -66,16 +66,39 @@ const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
 
 // 歌词封装
-const {
-  lyricsTrans,
-  lyricsRoma,
-  showTrans,
-  showRoma,
-  activeSingleLyrics,
-  activeTimeline,
-  timeForIndex,
-  fetchLyrics,
-} = useLyrics()
+// 说明：集中管理歌词的多轨显示与时间轴信息
+// - lyricsTrans：翻译文本数组（可选显示）
+// - lyricsRoma：罗马音文本数组（可选显示）
+// - showTrans：翻译开关（true 显示翻译）
+// - showRoma：罗马音开关（true 显示罗马音）
+// - activeSingleLyrics：当前实际渲染的歌词行（随开关动态切换）
+// - activeTimeline：每句歌词的时间轴，用于定位与高亮
+// - timeForIndex：根据行索引返回对应的播放时间
+// - fetchLyrics：按歌曲 ID 拉取歌词数据
+  const {
+    lyricsTrans,
+    lyricsRoma,
+    showTrans,
+    showRoma,
+    activeSingleLyrics,
+    activeTimeline,
+    timeForIndex,
+    fetchLyrics,
+  } = useLyrics()
+  // 切换“翻译”后：等待视图更新，重置定位标记并将当前行居中
+  const toggleTransBtn = async () => {
+    showTrans.value = !showTrans.value
+    await nextTick()
+    state.lyricsPositioned = false
+    updateCurrentLyric(true)
+  }
+  // 切换“罗马音”后：等待视图更新，重置定位标记并将当前行居中
+  const toggleRomaBtn = async () => {
+    showRoma.value = !showRoma.value
+    await nextTick()
+    state.lyricsPositioned = false
+    updateCurrentLyric(true)
+  }
 
 // 方法
 const handleTogglePlay = () => {
@@ -150,6 +173,7 @@ watch(
 )
 
 // 更新当前歌词索引
+// 说明：根据当前播放时间在时间轴中定位应高亮的歌词行，并触发居中滚动
 const updateCurrentLyric = (instant = false) => {
   const adjustedTime = currentTime.value + state.lyricsOffset
   const times = activeTimeline.value
@@ -172,6 +196,7 @@ const updateCurrentLyric = (instant = false) => {
 }
 
 // 滚动到当前歌词位置
+// 说明：以容器的可视中心为参考，计算当前行相对中心的偏移量并平滑对齐
 const scrollToCurrentLyric = (instant = false) => {
   if (lyricsRef.value && state.currentLyricIndex >= 0) {
     const lyricsContainer = lyricsRef.value
@@ -380,35 +405,37 @@ onUnmounted(() => {
     <div class="absolute top-6 right-6 z-10 flex gap-4">
       <div
         v-if="lyricsTrans.length || lyricsRoma.length"
-        class="flex items-center gap-2 rounded-xl p-2"
+        class="flex items-center gap-2 rounded-2xl p-1"
       >
         <button
           v-if="lyricsTrans.length"
-          class="glass-button px-3 py-1"
-          :class="showTrans ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'"
-          @click="showTrans = !showTrans"
+          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-(--glass-text) opacity-80 hover:opacity-100"
+          :class="showTrans ? 'bg-(--glass-hover-item-bg) ring-1 ring-white/15 opacity-100' : ''"
+          @click="toggleTransBtn"
         >
-          翻译
+          <span class="icon-[mdi--translate] h-4 w-4"></span>
+          <span>翻译</span>
         </button>
         <button
           v-if="lyricsRoma.length"
-          class="glass-button px-3 py-1"
-          :class="showRoma ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40' : 'text-white/80'"
-          @click="showRoma = !showRoma"
+          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-(--glass-text) opacity-80 hover:opacity-100"
+          :class="showRoma ? 'bg-(--glass-hover-item-bg) ring-1 ring-white/15 opacity-100' : ''"
+          @click="toggleRomaBtn"
         >
-          罗马音
+          <span class="icon-[mdi--alphabetical-variant] h-4 w-4"></span>
+          <span>罗马音</span>
         </button>
       </div>
       <button
         class="glass-button ml-3 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
-        :class="state.useCoverBg ? '' : 'bg-white/10 ring-1 ring-yellow-300/40'"
+        :class="state.useCoverBg ? '' : 'bg-(--glass-hover-item-bg) ring-1 ring-white/15'"
         @click="state.useCoverBg = !state.useCoverBg"
         title="切换背景：封面/纯色"
       >
         <span
           :class="[
             state.useCoverBg
-              ? 'icon-[mdi--image-multiple-outline] text-white'
+              ? 'icon-[mdi--image-multiple-outline] text-(--glass-text)'
               : 'icon-[mdi--palette-swatch] text-yellow-300',
             'h-6 w-6',
           ]"
@@ -589,27 +616,27 @@ onUnmounted(() => {
       <div class="flex h-full flex-col p-8">
         <!-- 歌词滚动区域（支持单轨或双轨对照） -->
         <div class="lyrics-container relative flex-1 overflow-hidden">
-          <div ref="lyricsRef" class="lyrics-scroll z-50 h-full">
-            <div
-              v-for="(line, index) in activeSingleLyrics"
-              :key="index"
-              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500"
-              :class="{
-                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
-                'text-white/50 hover:text-white/70': index !== currentLyricIndex,
-              }"
-              @click="seekToLyric(index)"
-            >
-              {{ line.text }}
-            </div>
-            <!-- 空白占位，确保最后一句歌词能滚动到中心 -->
-            <div class="h-64"></div>
-          </div>
+          <div ref="lyricsRef" class="lyrics-scroll relative z-20 h-full">
+            <div 
+              v-for="(line, index) in activeSingleLyrics" 
+              :key="index" 
+              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500" 
+              :class="{ 
+                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex, 
+                'text-white/50 hover:text-white/70': index !== currentLyricIndex, 
+              }" 
+              @click="seekToLyric(index)" 
+            > 
+              {{ line.text }} 
+            </div> 
+            <!-- 空白占位，确保最后一句歌词能滚动到中心 --> 
+            <div class="h-64"></div> 
+          </div> 
 
-          <!-- 中心指示线 -->
-          <div
-            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
-          ></div>
+          <!-- 中心指示线 --> 
+          <div 
+            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent" 
+          ></div> 
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// 头部导航：集成登录弹窗与用户信息展示
 import LoginDialog from '@/components/Auth/LoginDialog.vue'
 import { useUserStore } from '@/stores/modules/user'
+import { useGlobalStore } from '@/stores/modules/global'
+import { storeToRefs } from 'pinia'
 const navItems = [
   { to: '/', label: '首页', accent: true },
   { to: '/discover', label: '发现音乐' },
@@ -9,17 +10,51 @@ const navItems = [
 ]
 
 const router = useRouter()
+// 头部本地状态：搜索输入值、登录弹窗开关、历史下拉开关
 const state = reactive({
   searchQuery: '',
   showLogin: false,
+  historyOpen: false,
 })
-const { searchQuery, showLogin } = toRefs(state)
+// 解构为响应式引用，便于模板绑定
+const { searchQuery, showLogin, historyOpen } = toRefs(state)
+// 用户与全局 store，引入全局搜索历史
 const userStore = useUserStore()
+const globalStore = useGlobalStore()
+const { searchHistory } = storeToRefs(globalStore)
+// 回车搜索：写入搜索历史，关闭下拉，并跳转到搜索页
 const handleSearchEnter = () => {
   const q = state.searchQuery.trim()
   if (!q) return
+  globalStore.addSearchHistory(q)
+  state.historyOpen = false
   router.push({ path: '/search', query: { q } })
 }
+// 聚焦时如果有历史则打开下拉
+const openHistoryIfAny = () => {
+  state.historyOpen = searchHistory.value.length > 0
+}
+// 选择历史项后直接填充并执行搜索
+const selectHistory = (q: string) => {
+  state.searchQuery = q
+  handleSearchEnter()
+}
+const clearSearch = () => {
+  state.searchQuery = ''
+  state.historyOpen = false
+}
+// 搜索框容器用于点击外部关闭下拉
+const rootRef = ref<HTMLElement | null>(null)
+const onDocClick = (e: Event) => {
+  const el = rootRef.value
+  if (!el) return
+  if (!el.contains(e.target as Node)) state.historyOpen = false
+}
+// 监听与清理：文档点击关闭下拉
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocClick)
+})
+onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 </script>
 <template>
   <header class="glass-nav m-4 flex items-center justify-between p-4">
@@ -74,15 +109,46 @@ const handleSearchEnter = () => {
     <!-- 右侧功能区 -->
     <div class="flex items-center space-x-4">
       <!-- 搜索框 -->
-      <div class="glass-card hidden min-w-0 items-center px-4 py-2 lg:flex">
+      <div ref="rootRef" class="glass-card relative hidden min-w-0 items-center px-4 py-2 lg:flex">
         <span class="icon-[mdi--magnify] mr-2 h-4 w-4 text-white/60"></span>
         <input
           v-model="searchQuery"
           @keyup.enter="handleSearchEnter"
+          @focus="openHistoryIfAny"
           type="text"
           placeholder="搜索音乐、歌手、专辑..."
-          class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none"
+          class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none pr-10"
         />
+        <button
+          class="absolute right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full transition-opacity duration-150"
+          :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'opacity-0 pointer-events-none'"
+          title="清除"
+          @click="clearSearch"
+        >
+          <span class="icon-[mdi--close] h-4 w-4 text-white/70"></span>
+        </button>
+        <div
+          v-if="historyOpen && searchHistory.length"
+          class="glass-dropdown absolute top-full right-0 left-0 z-100000 mt-2 overflow-hidden rounded-2xl shadow-lg"
+        >
+          <ul class="max-h-60 overflow-auto">
+            <li
+              v-for="opt in searchHistory"
+              :key="opt"
+              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-(--glass-dropdown-text) hover:bg-(--glass-hover-item-bg)"
+              @mousedown.prevent="selectHistory(opt)"
+            >
+              <span class="truncate pr-8">{{ opt }}</span>
+              <button
+                class="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
+                title="删除"
+                @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
+              >
+                <span class="icon-[mdi--close] h-4 w-4 text-(--glass-dropdown-text)"></span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- 用户头像 / 登录按钮 -->
