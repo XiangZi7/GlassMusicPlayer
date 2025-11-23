@@ -126,7 +126,7 @@ const handleProgressClick = (event: MouseEvent) => {
           class="flex min-w-0 flex-col justify-around"
         >
           <template v-for="mode in footerLyrics.modes" :key="mode">
-            <p v-if="mode === 'original'" class="truncate text-xs text-white/80">
+            <p v-if="mode === 'original'" class="truncate text-sm text-white/80">
               {{ mergedLines[currentLyricIndex]?.ori || '' }}
             </p>
             <p v-else-if="mode === 'trans'" class="truncate text-xs text-white/70">

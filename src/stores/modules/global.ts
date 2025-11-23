@@ -3,7 +3,9 @@ import piniaPersistConfig from '../persist'
 
 export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => ({
-    count: 0, theme: 'light' as 'light' | 'dark', searchHistory: [],
+    count: 0,
+    theme: 'dark' as 'light' | 'dark',
+    searchHistory: [],
   }),
   actions: {
     setGlobalState<K extends keyof GlobalState>(key: K, value: GlobalState[K]) {
