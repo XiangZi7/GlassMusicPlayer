@@ -5,7 +5,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
-import { useNow, useOnline } from '@vueuse/core'
+import { useNow, useOnline, useBattery } from '@vueuse/core'
 
 const isOpen = defineModel<boolean>()
 const state = reactive({
@@ -71,9 +71,10 @@ const bgBRef = useTemplateRef('bgBRef')
 // 顶部状态：当前时间与联网状态
 const now = useNow()
 const online = useOnline()
-const timeText = computed(() =>
-  new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-)
+const timeText = computed(() => new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+const battery = useBattery()
+const batteryPct = computed(() => (typeof battery.level?.value === 'number' ? Math.round(battery.level.value * 100) : null))
+const batteryIcon = computed(() => (battery.charging?.value ? 'icon-[mdi--battery-charging]' : 'icon-[mdi--battery]'))
 
 // 歌词封装
 // 说明：集中管理歌词的多轨显示与时间轴信息
@@ -459,6 +460,10 @@ onUnmounted(() => {
             class="inline-block h-2 w-2 rounded-full"
           ></span>
           {{ online ? '在线' : '离线' }}
+        </span>
+        <span v-if="battery.isSupported" class="flex items-center gap-1 text-sm text-white">
+          <span :class="batteryIcon" class="h-4 w-4"></span>
+          {{ batteryPct !== null ? batteryPct + '%' : 'N/A' }}
         </span>
       </div>
     </div>
