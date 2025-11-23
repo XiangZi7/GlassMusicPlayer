@@ -57,7 +57,7 @@ const openPlayerDrawer = () => {
       />
     </div>
     <!-- 主容器 -->
-    <div class="flex w-full flex-col px-36 py-6">
+    <div class="flex w-full flex-col px-36 py-6 z-50">
       <div class="glass-container flex flex-1 flex-col overflow-hidden">
         <!-- 头部区域 -->
         <Header />

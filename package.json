@@ -1,8 +1,14 @@
 {
-  "name": "vite-project",
+  "name": "km-music-player",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "KMMusicPlayer",
+  "author": {
+    "name": "Yxcr",
+    "email": "793923048@qq.com",
+    "url": "https://github.com/XiangZi7"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
