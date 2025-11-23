@@ -79,8 +79,8 @@
   .glass-card,
   .glass-nav,
   .glass-button {
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    /* backdrop-filter: blur(24px); */
+    /* -webkit-backdrop-filter: blur(24px); */
     border: 1px solid var(--glass-border);
   }
 
@@ -158,6 +158,7 @@
     background-size: 400% 400%;
     animation: gradient-shift 8s ease infinite;
   }
+
 
   /* 粒子动画 */
   .particle {
@@ -261,6 +262,7 @@
     --glass-dropdown-border: rgba(17, 24, 39, 0.08);
     --glass-dropdown-text: rgba(17, 24, 39, 0.95);
     --glass-dropdown-blur: 10px;
+    --playlist-bubble-bg: rgba(255, 255, 255, 0.9);
   }
 
   :root.dark,
@@ -279,6 +281,7 @@
     --glass-dropdown-border: rgba(255, 255, 255, 0.12);
     --glass-dropdown-text: rgba(255, 255, 255, 0.95);
     --glass-dropdown-blur: 18px;
+    --playlist-bubble-bg: rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
   html.dark body {

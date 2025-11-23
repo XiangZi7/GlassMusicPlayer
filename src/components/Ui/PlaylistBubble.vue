@@ -54,7 +54,8 @@ const onDocClick = (e: Event) => {
 onMounted(() => document.addEventListener('pointerdown', onDocClick))
 onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 const toggle = () => (open.value = !open.value)
-const { playlist, playByIndex, moveSong, queueNext, removeSong, removeSongs } = useAudio()
+const { playlist, playByIndex, moveSong, queueNext, removeSong, removeSongs, clearPlaylist } =
+  useAudio()
 const draggingIndex = ref<number | null>(null)
 const selected = reactive<Record<string | number, boolean>>({})
 const toggleSelect = (id: string | number) => (selected[id] = !selected[id])
@@ -77,6 +78,9 @@ const doQueueNextSelected = () => {
 const doDeleteSelected = () => {
   removeSongs(selectedIds.value as any)
 }
+const doClearAll = () => {
+  clearPlaylist()
+}
 </script>
 <template>
   <div ref="triggerRef" class="relative inline-block">
@@ -89,8 +93,8 @@ const doDeleteSelected = () => {
           <slot></slot>
         </template>
         <template v-else>
-          <div class="glass-card relative z-99999 min-h-64 w-full p-3 bg-(--glass-bg-base)">
-            <h4 class="mb-2 text-sm font-medium text-white/80">播放列表</h4>
+          <div class="glass-card relative z-99999 min-h-64 w-full bg-(--playlist-bubble-bg) p-3">
+            <h4 class="mb-2 text-sm font-medium text-(--glass-text)">播放列表</h4>
             <div class="mb-2 flex items-center gap-2">
               <button
                 class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
@@ -106,12 +110,19 @@ const doDeleteSelected = () => {
               >
                 <span class="icon-[mdi--delete] h-4 w-4"></span>
               </button>
+              <button
+                class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+                title="清空播放列表"
+                @click="doClearAll"
+              >
+                <span class="icon-[mdi--delete-sweep] h-4 w-4"></span>
+              </button>
             </div>
             <div class="max-h-64 space-y-2 overflow-auto">
               <div
                 v-for="(s, i) in playlist"
                 :key="s.id || i"
-                class="flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors hover:bg-white/10"
+                class="playlist-item flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors hover:bg-(--glass-hover-item-bg)"
                 draggable="true"
                 @dragstart="onDragStart(i)"
                 @dragover="onDragOver"
@@ -139,32 +150,36 @@ const doDeleteSelected = () => {
                     </div>
                   </div>
                   <div class="min-w-0">
-                    <p class="truncate text-sm text-white">{{ s.name }}</p>
-                    <p class="truncate text-xs text-purple-300">{{ s.artist }}</p>
+                    <p class="truncate text-sm text-(--glass-text)">{{ s.name }}</p>
+                    <p class="truncate text-xs text-(--glass-dropdown-text) opacity-80">
+                      {{ s.artist }}
+                    </p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-white/60">{{ formatDuration(s.duration) }}</span>
+                  <span class="text-xs text-(--glass-dropdown-text) opacity-70">{{
+                    formatDuration(s.duration)
+                  }}</span>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
                     title="播放"
                     @click.stop="playByIndex(i)"
                   >
-                    <span class="icon-[mdi--play] h-4 w-4"></span>
+                    <span class="icon-[mdi--play] h-4 w-4 text-(--glass-text)"></span>
                   </button>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
                     title="下一首"
                     @click.stop="queueNext(s.id as any)"
                   >
-                    <span class="icon-[mdi--skip-next] h-4 w-4"></span>
+                    <span class="icon-[mdi--skip-next] h-4 w-4 text-(--glass-text)"></span>
                   </button>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
                     title="删除"
                     @click.stop="removeSong(s.id as any)"
                   >
-                    <span class="icon-[mdi--delete] h-4 w-4"></span>
+                    <span class="icon-[mdi--delete] h-4 w-4 text-(--glass-text)"></span>
                   </button>
                 </div>
               </div>

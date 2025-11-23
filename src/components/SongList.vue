@@ -134,7 +134,7 @@ const downloadSong = (song: Song, index: number) => {
         <div
           v-for="(song, index) in songs"
           :key="song.id || index"
-          class="song-item group flex cursor-pointer items-center rounded-lg p-4 transition-all duration-300 hover:bg-white/10"
+          class="song-item group flex cursor-pointer items-center rounded-lg p-2 transition-all duration-300 hover:bg-white/10"
           :class="isCurrent(song) ? 'bg-white/10' : ''"
           @dblclick="playSong(song, index)"
         >
