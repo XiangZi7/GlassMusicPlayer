@@ -244,6 +244,17 @@
     --primary-color: #2563eb;
     --secondary-color: #4f46e5;
   } */
+
+  /* 复用的主题变量类 */
+  .text-glass {
+    color: var(--glass-text);
+  }
+  .text-dropdown-glass {
+    color: var(--glass-dropdown-text);
+  }
+  .bg-hover-glass {
+    background: var(--glass-hover-item-bg);
+  }
 }
 
 @layer base {

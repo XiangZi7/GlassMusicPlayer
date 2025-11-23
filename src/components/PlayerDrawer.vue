@@ -5,6 +5,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
+import { useNow, useOnline } from '@vueuse/core'
 
 const isOpen = defineModel<boolean>()
 const state = reactive({
@@ -21,19 +22,21 @@ const state = reactive({
   bgAUrl: '' as string,
   bgBUrl: '' as string,
   lyricsPositioned: false,
+  autoScroll: true,
+  lyricsScale: 1,
 })
 // 响应式引用
 const { isRendered, currentLyricIndex, isRecentOpen, isCommentsOpen, commentCount } = toRefs(state)
 // 使用音频播放器
-  const {
-    currentSong,
-    isPlaying,
-    isLoading,
-    volume,
-    currentTime,
-    progress,
-    playMode,
-    togglePlay,
+const {
+  currentSong,
+  isPlaying,
+  isLoading,
+  volume,
+  currentTime,
+  progress,
+  playMode,
+  togglePlay,
   next,
   previous,
   setVolume,
@@ -65,6 +68,13 @@ const lyricsRef = useTemplateRef('lyricsRef')
 const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
 
+// 顶部状态：当前时间与联网状态
+const now = useNow()
+const online = useOnline()
+const timeText = computed(() =>
+  new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+)
+
 // 歌词封装
 // 说明：集中管理歌词的多轨显示与时间轴信息
 // - lyricsTrans：翻译文本数组（可选显示）
@@ -75,30 +85,34 @@ const bgBRef = useTemplateRef('bgBRef')
 // - activeTimeline：每句歌词的时间轴，用于定位与高亮
 // - timeForIndex：根据行索引返回对应的播放时间
 // - fetchLyrics：按歌曲 ID 拉取歌词数据
-  const {
-    lyricsTrans,
-    lyricsRoma,
-    showTrans,
-    showRoma,
-    activeSingleLyrics,
-    activeTimeline,
-    timeForIndex,
-    fetchLyrics,
-  } = useLyrics()
-  // 切换“翻译”后：等待视图更新，重置定位标记并将当前行居中
-  const toggleTransBtn = async () => {
-    showTrans.value = !showTrans.value
-    await nextTick()
-    state.lyricsPositioned = false
-    updateCurrentLyric(true)
-  }
-  // 切换“罗马音”后：等待视图更新，重置定位标记并将当前行居中
-  const toggleRomaBtn = async () => {
-    showRoma.value = !showRoma.value
-    await nextTick()
-    state.lyricsPositioned = false
-    updateCurrentLyric(true)
-  }
+const {
+  lyricsTrans,
+  lyricsRoma,
+  showTrans,
+  showRoma,
+  activeSingleLyrics,
+  activeTimeline,
+  timeForIndex,
+  fetchLyrics,
+} = useLyrics()
+// 切换“翻译”后：等待视图更新，重置定位标记并将当前行居中
+const toggleTransBtn = async () => {
+  showTrans.value = !showTrans.value
+  await nextTick()
+  state.lyricsPositioned = false
+  updateCurrentLyric(true)
+}
+// 切换“罗马音”后：等待视图更新，重置定位标记并将当前行居中
+const toggleRomaBtn = async () => {
+  showRoma.value = !showRoma.value
+  await nextTick()
+  state.lyricsPositioned = false
+  updateCurrentLyric(true)
+}
+const toggleAutoScroll = () => {
+  state.autoScroll = !state.autoScroll
+  if (state.autoScroll) updateCurrentLyric(true)
+}
 
 // 方法
 const handleTogglePlay = () => {
@@ -189,9 +203,9 @@ const updateCurrentLyric = (instant = false) => {
   }
   if (idx !== -1 && idx !== state.currentLyricIndex) {
     state.currentLyricIndex = idx
-    scrollToCurrentLyric(instant)
+    if (state.autoScroll) scrollToCurrentLyric(instant)
   } else if (!state.lyricsPositioned) {
-    scrollToCurrentLyric(instant)
+    if (state.autoScroll) scrollToCurrentLyric(instant)
   }
 }
 
@@ -235,14 +249,18 @@ const setBackground = (url?: string) => {
   if (state.bgActive === 'A') {
     state.bgBUrl = url
     if (bgBRef.value) gsap.set(bgBRef.value, { opacity: 0 })
-    if (bgBRef.value) gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    if (bgARef.value) gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    if (bgBRef.value)
+      gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    if (bgARef.value)
+      gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
     state.bgActive = 'B'
   } else {
     state.bgAUrl = url
     if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
-    if (bgARef.value) gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    if (bgBRef.value) gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
+    if (bgARef.value)
+      gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    if (bgBRef.value)
+      gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
     state.bgActive = 'A'
   }
 }
@@ -384,8 +402,12 @@ onUnmounted(() => {
     :class="[
       'absolute inset-0 z-50 flex backdrop-blur-md backdrop-filter',
       state.useCoverBg
-        ? (isRecentOpen ? 'bg-black/70' : 'bg-black/90')
-        : (isRecentOpen ? 'bg-black/65' : 'bg-black/85'),
+        ? isRecentOpen
+          ? 'bg-black/70'
+          : 'bg-black/90'
+        : isRecentOpen
+          ? 'bg-black/65'
+          : 'bg-black/85',
     ]"
   >
     <!-- 背景：封面放大+模糊（双层淡入淡出） -->
@@ -401,7 +423,45 @@ onUnmounted(() => {
         :style="state.bgBUrl ? { backgroundImage: `url(${state.bgBUrl})` } : {}"
       ></div>
     </div>
-    <!-- 关闭按钮 -->
+    <div class="absolute top-6 left-6 z-10 flex gap-2">
+      <div class="flex items-center gap-2 rounded-2xl p-1">
+        <button
+          class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+          title="字体减小"
+          @click="state.lyricsScale = Math.max(0.8, state.lyricsScale - 0.05)"
+        >
+          <span class="icon-[mdi--format-font-size-decrease] h-4 w-4 text-white"></span>
+        </button>
+        <button
+          class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+          title="字体增大"
+          @click="state.lyricsScale = Math.min(1.4, state.lyricsScale + 0.05)"
+        >
+          <span class="icon-[mdi--format-font-size-increase] h-4 w-4 text-white"></span>
+        </button>
+        <button
+          class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+          :class="state.autoScroll ? 'bg-hover-glass ring-1 ring-white/15' : ''"
+          title="自动居中"
+          @click="toggleAutoScroll"
+        >
+          <span
+            :class="state.autoScroll ? 'icon-[mdi--autorenew]' : 'icon-[mdi--pause]'"
+            class="h-4 w-4 text-white"
+          ></span>
+        </button>
+      </div>
+      <div class="glass-nav flex items-center gap-2 rounded-2xl px-3 py-1">
+        <span class="text-sm text-white">{{ timeText }}</span>
+        <span class="flex items-center gap-1 text-sm text-white">
+          <span
+            :class="online ? 'bg-green-400' : 'bg-red-400'"
+            class="inline-block h-2 w-2 rounded-full"
+          ></span>
+          {{ online ? '在线' : '离线' }}
+        </span>
+      </div>
+    </div>
     <div class="absolute top-6 right-6 z-10 flex gap-4">
       <div
         v-if="lyricsTrans.length || lyricsRoma.length"
@@ -409,8 +469,8 @@ onUnmounted(() => {
       >
         <button
           v-if="lyricsTrans.length"
-          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-(--glass-text) opacity-80 hover:opacity-100"
-          :class="showTrans ? 'bg-(--glass-hover-item-bg) ring-1 ring-white/15 opacity-100' : ''"
+          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-white opacity-80 hover:opacity-100"
+          :class="showTrans ? 'bg-hover-glass opacity-100 ring-1 ring-white/15' : ''"
           @click="toggleTransBtn"
         >
           <span class="icon-[mdi--translate] h-4 w-4"></span>
@@ -418,8 +478,8 @@ onUnmounted(() => {
         </button>
         <button
           v-if="lyricsRoma.length"
-          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-(--glass-text) opacity-80 hover:opacity-100"
-          :class="showRoma ? 'bg-(--glass-hover-item-bg) ring-1 ring-white/15 opacity-100' : ''"
+          class="glass-button flex items-center gap-2 rounded-xl px-3 py-1 text-white opacity-80 hover:opacity-100"
+          :class="showRoma ? 'bg-hover-glass opacity-100 ring-1 ring-white/15' : ''"
           @click="toggleRomaBtn"
         >
           <span class="icon-[mdi--alphabetical-variant] h-4 w-4"></span>
@@ -435,12 +495,14 @@ onUnmounted(() => {
         <span
           :class="[
             state.useCoverBg
-              ? 'icon-[mdi--image-multiple-outline] text-(--glass-text)'
+              ? 'icon-[mdi--image-multiple-outline] text-white'
               : 'icon-[mdi--palette-swatch] text-yellow-300',
             'h-6 w-6',
           ]"
         ></span>
       </button>
+      <!-- 关闭按钮 -->
+
       <button
         @click="isOpen = false"
         class="glass-button flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
@@ -461,7 +523,7 @@ onUnmounted(() => {
           >
             <!-- 封面标签（纸质质感 + 内外圈） -->
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 flex w-48 h-48 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
+              class="vinyl-label absolute top-1/2 left-1/2 flex h-48 w-48 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -508,7 +570,9 @@ onUnmounted(() => {
 
       <!-- 进度条 -->
       <div v-if="currentSong" class="mb-3 flex w-3/5 items-center space-x-3">
-        <span class="text-xs text-white/60">{{ isLoading ? '加载中…' : formattedCurrentTime }}</span>
+        <span class="text-xs text-white/60">{{
+          isLoading ? '加载中…' : formattedCurrentTime
+        }}</span>
         <div
           @click="handleProgressClick"
           class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
@@ -545,7 +609,7 @@ onUnmounted(() => {
           @click="handleTogglePlay"
           :disabled="isLoading"
           class="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-pink-500/25"
-          :class="isLoading ? 'opacity-60 cursor-wait' : ''"
+          :class="isLoading ? 'cursor-wait opacity-60' : ''"
         >
           <span v-if="isLoading" class="icon-[mdi--loading] h-8 w-8 animate-spin text-white"></span>
           <span v-else-if="!isPlaying" class="icon-[mdi--play] ml-1 h-8 w-8 text-white"></span>
@@ -616,27 +680,31 @@ onUnmounted(() => {
       <div class="flex h-full flex-col p-8">
         <!-- 歌词滚动区域（支持单轨或双轨对照） -->
         <div class="lyrics-container relative flex-1 overflow-hidden">
-          <div ref="lyricsRef" class="lyrics-scroll relative z-20 h-full">
-            <div 
-              v-for="(line, index) in activeSingleLyrics" 
-              :key="index" 
-              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500" 
-              :class="{ 
-                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex, 
-                'text-white/50 hover:text-white/70': index !== currentLyricIndex, 
-              }" 
-              @click="seekToLyric(index)" 
-            > 
-              {{ line.text }} 
-            </div> 
-            <!-- 空白占位，确保最后一句歌词能滚动到中心 --> 
-            <div class="h-64"></div> 
-          </div> 
+          <div
+            ref="lyricsRef"
+            class="lyrics-scroll relative z-20 h-full"
+            :style="{ fontSize: state.lyricsScale + 'rem' }"
+          >
+            <div
+              v-for="(line, index) in activeSingleLyrics"
+              :key="index"
+              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500"
+              :class="{
+                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
+                'text-white/50 hover:text-white/70': index !== currentLyricIndex,
+              }"
+              @click="seekToLyric(index)"
+            >
+              {{ line.text }}
+            </div>
+            <!-- 空白占位，确保最后一句歌词能滚动到中心 -->
+            <div class="h-64"></div>
+          </div>
 
-          <!-- 中心指示线 --> 
-          <div 
-            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent" 
-          ></div> 
+          <!-- 中心指示线 -->
+          <div
+            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
+          ></div>
         </div>
       </div>
     </div>
