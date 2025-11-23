@@ -277,7 +277,7 @@
     --glass-text: rgba(255, 255, 255, 0.85);
     --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
     --glass-hover-text: #ffffff;
-    --glass-dropdown-bg: rgba(0, 0, 0, 0.55);
+    --glass-dropdown-bg: rgba(0, 0, 0, 0.90);
     --glass-dropdown-border: rgba(255, 255, 255, 0.12);
     --glass-dropdown-text: rgba(255, 255, 255, 0.95);
     --glass-dropdown-blur: 18px;
