@@ -58,7 +58,6 @@ const mapToStoreSong = (s: Song): StoreSong => ({
   liked: s.liked,
   cover: s.cover,
 })
-  console.log('🚀 ~ file: SongList.vue:65 ~ props.songs:', props.songs)
 
 const playSong = async (song: Song, index: number) => {
 
