@@ -4,72 +4,7 @@
 @layer theme {
   /* 纯 CSS 流体字体 */
   /* 默认  */
-  html {
-    font-size: 16px;
-  }
-
-  /* 高分辨率大屏幕（真正的2K/4K显示器，物理尺寸大） */
-  @media screen and (min-width: 1921px) {
-    html {
-      font-size: 15px; /* 大屏幕用更大字体 */
-    }
-  }
-
-  /* 高分辨率但小屏幕（如MacBook Pro Retina） - 优先级最高 */
-  @media screen and (max-width: 1920px) and (min-resolution: 2dppx) and (max-width: 16in) {
-    html {
-      font-size: 14px; /* 高分辨率小屏幕用较小字体 */
-    }
-  }
-
-  /* 普通2K大屏显示器（物理尺寸大） */
-  @media screen and (max-width: 1920px) and (min-width: 1367px) and (max-resolution: 1.5dppx) {
-    html {
-      font-size: 14px; /* 普通2K大屏 */
-    }
-  }
-
-  /* MacBook Air 13寸等中等分辨率小屏 */
-  @media screen and (max-width: 1920px) and (min-width: 1367px) and (min-resolution: 1.5dppx) and (max-width: 15in) {
-    html {
-      font-size: 11px;
-    }
-  }
-
-  /* <= 1366px 标准1K分辨率 */
-  @media screen and (max-width: 1366px) {
-    html {
-      font-size: 10px;
-    }
-  }
-
-  /* <= 992px 平板横屏 */
-  @media screen and (max-width: 992px) {
-    html {
-      font-size: 8px;
-    }
-  }
-
-  /* <= 768px 平板竖屏 / 大手机 */
-  @media screen and (max-width: 768px) {
-    html {
-      font-size: 7px;
-    }
-  }
-
-  /* <= 576px 手机 */
-  @media screen and (max-width: 576px) {
-    html {
-      font-size: 6px;
-    }
-  }
-
-  /* <= 480px 小屏手机 */
-  @media screen and (max-width: 480px) {
-    html {
-      font-size: 6px;
-    }
-  }
+ 
 }
 
 @layer components {
@@ -168,7 +103,6 @@
     background-size: 400% 400%;
     animation: gradient-shift 8s ease infinite;
   }
-
 
   /* 粒子动画 */
   .particle {
@@ -299,12 +233,12 @@
     --glass-text: rgba(255, 255, 255, 0.85);
     --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
     --glass-hover-text: #ffffff;
-    --glass-dropdown-bg: rgba(0, 0, 0, 0.90);
+    --glass-dropdown-bg: rgba(0, 0, 0, 0.9);
     --glass-dropdown-border: rgba(255, 255, 255, 0.12);
     --glass-dropdown-text: rgba(255, 255, 255, 0.95);
     --glass-dropdown-blur: 18px;
     --playlist-bubble-bg: rgba(0, 0, 0, 0.9);
-    --glass-container-strong-bg: rgba(0, 0, 0, 0.90);
+    --glass-container-strong-bg: rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
   html.dark body {

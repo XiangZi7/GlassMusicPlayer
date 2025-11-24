@@ -84,12 +84,13 @@ export const useSettingsStore = defineStore('settings', {
       blending: 'hard-light',
     },
     footerLyrics: {
-      enabled: false,
-      modes: ['original'],
+      enabled: true,
+      modes: ['original', 'trans'],
     },
     backgroundType: 'ultimate',
   }),
   actions: {
+    
     setAurora(partial: Partial<AuroraSettingsState>) {
       this.aurora = { ...this.aurora, ...partial }
     },
@@ -153,7 +154,9 @@ export const useSettingsStore = defineStore('settings', {
       this.footerLyrics.enabled = !!val
     },
     setFooterLyricsModes(modes: Array<'original' | 'trans' | 'roma'>) {
-      const uniq = Array.from(new Set(modes)).filter(m => ['original', 'trans', 'roma'].includes(m)) as Array<'original' | 'trans' | 'roma'>
+      const uniq = Array.from(new Set(modes)).filter(m =>
+        ['original', 'trans', 'roma'].includes(m)
+      ) as Array<'original' | 'trans' | 'roma'>
       this.footerLyrics.modes = uniq.slice(0, 2)
       if (this.footerLyrics.modes.length === 0) this.footerLyrics.modes = ['original']
     },

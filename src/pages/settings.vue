@@ -22,6 +22,8 @@ const themeOptions = [
 ]
 const state = reactive({ isPageLoading: false })
 
+ 
+
 const toggleMode = (mode: 'original' | 'trans' | 'roma', checked: boolean) => {
   const modes = new Set(footerLyrics.value.modes)
   if (checked) {
@@ -61,6 +63,8 @@ const romaChecked = computed({
 
         <label class="mt-4 mb-2 block text-sm text-white/80">主题模式</label>
         <GlassSelect v-model="theme" :options="themeOptions" />
+
+        
 
         <!-- 参数面板 -->
         <component

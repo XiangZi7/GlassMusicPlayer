@@ -17,6 +17,7 @@ import 'virtual:svg-icons-register'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
+import { useWindowSize, useDebounceFn } from '@vueuse/core'
 
 const app = createApp(App)
 
@@ -38,3 +39,14 @@ const applyThemeClass = (t: 'light' | 'dark') => {
 }
 applyThemeClass(theme.value || 'light')
 watch(theme, t => applyThemeClass(t || 'light'))
+
+const { width } = useWindowSize()
+const setRootFontSize = (w: number) => {
+  const size = Math.min(16, Math.max(12, Math.round(14 + (w - 1280) / 640)))
+  document.documentElement.style.fontSize = `${size}px`
+}
+setRootFontSize(window.innerWidth)
+watch(
+  width,
+  useDebounceFn(w => setRootFontSize(w), 100)
+)
