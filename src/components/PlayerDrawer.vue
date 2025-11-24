@@ -71,10 +71,16 @@ const bgBRef = useTemplateRef('bgBRef')
 // 顶部状态：当前时间与联网状态
 const now = useNow()
 const online = useOnline()
-const timeText = computed(() => new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+const timeText = computed(() =>
+  new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+)
 const battery = useBattery()
-const batteryPct = computed(() => (typeof battery.level?.value === 'number' ? Math.round(battery.level.value * 100) : null))
-const batteryIcon = computed(() => (battery.charging?.value ? 'icon-[mdi--battery-charging]' : 'icon-[mdi--battery]'))
+const batteryPct = computed(() =>
+  typeof battery.level?.value === 'number' ? Math.round(battery.level.value * 100) : null
+)
+const batteryIcon = computed(() =>
+  battery.charging?.value ? 'icon-[mdi--battery-charging]' : 'icon-[mdi--battery]'
+)
 
 // 歌词封装
 // 说明：集中管理歌词的多轨显示与时间轴信息
@@ -369,6 +375,16 @@ watch(
 watch(currentTime, () => {
   updateCurrentLyric()
 })
+
+watch(
+  () => activeSingleLyrics.value,
+  () => {
+    console.log(
+      '🚀 ~ file: PlayerDrawer.vue:377 ~ activeSingleLyrics.value:',
+      activeSingleLyrics.value
+    )
+  }
+)
 
 // 当前歌曲变化时拉取歌词
 watch(

@@ -55,21 +55,20 @@ watch(
 )
 
 const close = () => (show.value = false)
-const prev = () => {
-  if (state.page > 1) state.page -= 1
-}
-const next = () => {
-  if (state.more) state.page += 1
-}
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center">
+  <div v-if="show" class="fixed inset-0 z-99999 flex items-center justify-center">
     <div class="absolute inset-0 bg-black/60" @click="close"></div>
-    <div class="glass-container relative z-10 w-[720px] max-w-[92vw] overflow-hidden rounded-3xl p-6">
+    <div
+      class="glass-container relative z-10 w-[720px] max-w-[92vw] overflow-hidden rounded-3xl p-6"
+    >
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-white">歌曲评论</h3>
-        <button class="glass-button h-9 w-9 rounded-full flex items-center justify-center" @click="close">
+        <button
+          class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+          @click="close"
+        >
           <span class="icon-[mdi--close] h-5 w-5 text-white/80"></span>
         </button>
       </div>
@@ -101,16 +100,16 @@ const next = () => {
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <p class="truncate text-sm text-white">{{ c.user?.nickname || '用户' }}</p>
-                <span class="text-xs text-white/60">{{ c.ipLocation?.location || c.ipLocation?.ip || '' }}</span>
-                <span class="text-xs text-white/60">{{ c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '') }}</span>
+                <span class="text-xs text-white/60">{{
+                  c.ipLocation?.location || c.ipLocation?.ip || ''
+                }}</span>
+                <span class="text-xs text-white/60">{{
+                  c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '')
+                }}</span>
               </div>
               <p class="mt-1 text-sm text-white/80">{{ c.content }}</p>
               <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-2 space-y-2">
-                <div
-                  v-for="(r, ri) in c.beReplied"
-                  :key="ri"
-                  class="rounded-lg bg-white/5 p-2"
-                >
+                <div v-for="(r, ri) in c.beReplied" :key="ri" class="rounded-lg bg-white/5 p-2">
                   <p class="truncate text-xs text-white">@{{ r?.user?.nickname || '用户' }}</p>
                   <p class="mt-1 text-xs text-white/70">{{ r?.content }}</p>
                 </div>
@@ -129,7 +128,7 @@ const next = () => {
       </div>
     </div>
   </div>
-  </template>
+</template>
 
 <style scoped>
 /* no-op */
