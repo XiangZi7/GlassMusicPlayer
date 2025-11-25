@@ -51,11 +51,18 @@ watch(() => currentTime.value, updateLyricIdx)
 </script>
 
 <template>
-  <div v-if="currentSong" class="fixed right-0 bottom-14 left-0 z-50 pr-3">
+  <div v-if="currentSong" class="fixed right-0 bottom-14 left-0 z-50 bg-black/80">
     <div class="glass-card flex items-center gap-3 rounded-2xl p-3">
       <div class="w-12 overflow-hidden rounded-lg" @click="$emit('open')">
-        <img v-if="currentSong.cover" :src="currentSong.cover + '?param=200y200'" alt="cover" class="h-full w-full object-cover" />
-        <div v-else class="flex h-full w-full items-center justify-center rounded-lg bg-white/10">🎵</div>
+        <img
+          v-if="currentSong.cover"
+          :src="currentSong.cover + '?param=200y200'"
+          alt="cover"
+          class="h-full w-full object-cover"
+        />
+        <div v-else class="flex h-full w-full items-center justify-center rounded-lg bg-white/10">
+          🎵
+        </div>
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-start gap-3">

@@ -73,7 +73,11 @@ const openPlayerDrawer = () => {
           <!-- 左侧边栏 -->
           <Aside />
           <!-- 右侧主内容 -->
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <keep-alive>
+              <component :is="Component" />
+            </keep-alive>
+          </router-view>
           <!-- 播放器抽屉 -->
           <PlayerDrawer v-model="isDrawerOpen" />
         </main>

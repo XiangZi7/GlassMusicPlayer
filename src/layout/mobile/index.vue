@@ -8,7 +8,9 @@ import PlayerDrawerMobile from '@/components/Mobile/PlayerDrawerMobile.vue'
 // 播放器抽屉：沿用全局组件以便在移动端也能开启
 const state = reactive({ isDrawerOpen: false })
 const { isDrawerOpen } = toRefs(state)
-const openPlayerDrawer = () => { state.isDrawerOpen = true }
+const openPlayerDrawer = () => {
+  state.isDrawerOpen = true
+}
 </script>
 
 <template>
@@ -18,8 +20,12 @@ const openPlayerDrawer = () => { state.isDrawerOpen = true }
     <MobileHeader />
 
     <!-- 内容区域：页面组件渲染 -->
-    <main class="flex-1 overflow-auto px-3 pb-20 pt-3">
-      <router-view />
+    <main class="flex-1 overflow-auto px-3 pt-3 pb-20">
+      <router-view v-slot="{ Component }">
+        <keep-alive>
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
       <PlayerDrawerMobile v-model="isDrawerOpen" />
     </main>
 
