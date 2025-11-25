@@ -3,6 +3,7 @@ import Artplayer from 'artplayer'
 import Hls from 'hls.js'
 import type { Option } from 'artplayer/types/option'
 import artplayerPluginHlsControl from 'artplayer-plugin-hls-control'
+import { useAudio } from '@/composables/useAudio'
 
 interface Props {
   src: string
@@ -36,6 +37,7 @@ const emit = defineEmits<{
 
 const playerRef = useTemplateRef('playerRef')
 let player: Artplayer | null = null
+const { pause: pauseAudio } = useAudio()
 
 const initPlayer = () => {
   if (!playerRef.value) return
@@ -108,6 +110,7 @@ const initPlayer = () => {
     })
 
     player.on('play', () => {
+      pauseAudio()
       emit('play')
     })
 

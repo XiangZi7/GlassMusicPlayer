@@ -88,7 +88,6 @@ const {
   showRoma,
   activeSingleLyrics,
   activeTimeline,
-  timeForIndex,
   fetchLyrics,
 } = useLyrics()
 // 切换“翻译”后：等待视图更新，重置定位标记并将当前行居中
@@ -115,6 +114,52 @@ const handleTogglePlay = () => {
   togglePlay()
 }
 
+const touchStartY = ref<number | null>(null)
+const lyricDragStartY = ref<number | null>(null)
+const lyricDragStartTime = ref<number | null>(null)
+const draggingLyrics = ref(false)
+const handleCenterTouchStart = (e: TouchEvent) => {
+  touchStartY.value = e.touches?.[0]?.clientY ?? null
+}
+const handleCenterTouchEnd = async (e: TouchEvent) => {
+  const endY = e.changedTouches?.[0]?.clientY ?? null
+  if (touchStartY.value == null || endY == null) return
+  const dy = endY - touchStartY.value
+  touchStartY.value = null
+  if (!showLyrics.value && Math.abs(dy) > 30) {
+    showLyrics.value = true
+    state.lyricsPositioned = false
+    await nextTick()
+    updateCurrentLyric(true)
+  }
+}
+
+const handleLyricsTouchStart = (e: TouchEvent) => {
+  lyricDragStartY.value = e.touches?.[0]?.clientY ?? null
+  lyricDragStartTime.value = currentTime.value
+  draggingLyrics.value = true
+}
+
+const handleLyricsTouchMove = (e: TouchEvent) => {
+  if (!draggingLyrics.value) return
+  const y = e.touches?.[0]?.clientY ?? null
+  if (lyricDragStartY.value == null || y == null || lyricDragStartTime.value == null) return
+  const dy = y - lyricDragStartY.value
+  const sensitivity = -0.06 // 每 100px 约调整 6 秒，上滑快退，下滑快进
+  const delta = dy * sensitivity
+  const base = lyricDragStartTime.value
+  const total = activeTimeline.value[activeTimeline.value.length - 1] ?? base
+  const nextTime = Math.max(0, Math.min(total, base + delta))
+  setCurrentTime(nextTime)
+  updateCurrentLyric()
+}
+
+const handleLyricsTouchEnd = () => {
+  draggingLyrics.value = false
+  lyricDragStartY.value = null
+  lyricDragStartTime.value = null
+}
+
 const handleProgressClick = (event: MouseEvent) => {
   const progressBar = event.currentTarget as HTMLElement
   const rect = progressBar.getBoundingClientRect()
@@ -122,14 +167,6 @@ const handleProgressClick = (event: MouseEvent) => {
   const newProgress = (clickX / rect.width) * 100
   setProgress(Math.max(0, Math.min(100, newProgress)))
   updateCurrentLyric()
-}
-
-// 点击歌词跳转到对应时间
-const seekToLyric = (index: number) => {
-  const targetTime = timeForIndex(index) ?? 0
-  setCurrentTime(targetTime)
-  state.currentLyricIndex = index
-  scrollToCurrentLyric()
 }
 
 // 动画相关
@@ -330,25 +367,6 @@ watch(
   }
 )
 
-// 当前是封面状态还是歌词状态
-watch(
-  showLyrics,
-  newVal => {
-    if (newVal) {
-      // 显示歌词
-    } else {
-      // 显示封面
-      if (isPlaying.value) {
-        nextTick(() => {
-          startAlbumRotation()
-          console.log('是显示封面')
-        })
-      }
-    }
-  },
-  { immediate: true }
-)
-
 // 播放状态控制封面旋转
 watch(
   isPlaying,
@@ -444,15 +462,20 @@ onUnmounted(() => {
     <div class="absolute inset-x-0 top-12 bottom-0 flex flex-col items-center gap-4 px-4 pb-5">
       <div
         class="flex w-full flex-1 items-center justify-center"
-        @click.stop="showLyrics = !showLyrics"
+        @touchstart="handleCenterTouchStart"
+        @touchend="handleCenterTouchEnd"
       >
-        <div v-show="!state.showLyrics" class="album-wrapper relative h-72 w-72">
+        <div
+          v-show="!state.showLyrics"
+          class="album-wrapper relative h-80 w-80"
+          @click.stop="showLyrics = true"
+        >
           <div
             ref="albumCoverRef"
-            class="vinyl-disc relative h-72 w-72 overflow-hidden rounded-full shadow-2xl"
+            class="vinyl-disc relative h-80 w-80 overflow-hidden rounded-full shadow-2xl"
           >
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 h-36 w-36 -translate-1/2 rounded-full bg-cover"
+              class="vinyl-label absolute top-1/2 left-1/2 h-52 w-52 -translate-1/2 rounded-full bg-cover"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -460,13 +483,13 @@ onUnmounted(() => {
               }"
             ></div>
             <div
-              class="spindle absolute top-1/2 left-1/2 h-3 w-3 -translate-1/2 rounded-full"
+              class="spindle absolute top-1/2 left-1/2 h-5 w-5 -translate-1/2 rounded-full"
             ></div>
           </div>
           <!-- 在黑胶封面右上方加入唱臂组件（轴心、手臂、配重、唱头、针），随播放状态切换角度 -->
           <div
-            class="tonearm absolute -top-12 -right-16 z-10 origin-top-left transition-transform duration-500 ease-out"
-            :class="isPlaying ? 'rotate-16' : 'rotate-[-20deg]'"
+            class="tonearm absolute -top-8 -right-4 z-10 origin-top-left transition-transform duration-500 ease-out"
+            :class="isPlaying ? 'rotate-5' : 'rotate-[-20deg]'"
           >
             <div class="arm-pivot relative h-10 w-10 rounded-full"></div>
             <div class="arm-shaft mt-[-2px] h-36 w-2 rounded-full"></div>
@@ -482,7 +505,10 @@ onUnmounted(() => {
         <div
           v-show="state.showLyrics"
           class="lyrics-container relative flex max-h-[60vh] w-full flex-col overflow-hidden p-4"
-          @click.stop="showLyrics = !showLyrics"
+          @touchstart="handleLyricsTouchStart"
+          @touchmove.prevent="handleLyricsTouchMove"
+          @touchend="handleLyricsTouchEnd"
+          @click.stop="showLyrics = false"
         >
           <div
             ref="lyricsRef"
@@ -492,12 +518,11 @@ onUnmounted(() => {
             <div
               v-for="(line, index) in activeSingleLyrics"
               :key="index"
-              class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500"
+              class="lyric-line z-50 mb-6 text-center transition-all duration-500"
               :class="{
                 'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
                 'text-white/50 hover:text-white/70': index !== currentLyricIndex,
               }"
-              @click="seekToLyric(index)"
             >
               <p>{{ line.ori }}</p>
               <p v-if="showTrans && line.tran">{{ line.tran }}</p>
@@ -512,65 +537,90 @@ onUnmounted(() => {
       </div>
 
       <div class="w-full">
-        <div v-if="currentSong" class="mb-3 flex items-center gap-2">
-          <span class="text-[11px] text-white/60">{{ formattedCurrentTime }}</span>
+        <div ref="titleBarRef" v-show="!state.showLyrics" class="mb-2 text-left">
+          <div class="max-w-[85%] min-w-0">
+            <div class="flex items-center justify-start gap-2">
+              <h3 class="truncate text-lg font-semibold text-white">
+                {{ currentSong?.name || '' }}
+              </h3>
+            </div>
+            <p
+              v-if="currentSong?.artist || currentSong?.album"
+              class="mt-1 truncate text-base text-white/80"
+            >
+              <span v-if="currentSong?.artist" class="inline-flex items-center gap-1">
+                <span class="icon-[mdi--account-music-outline] h-5 w-5"></span>
+                {{ currentSong?.artist }}
+              </span>
+              <span v-if="currentSong?.artist && currentSong?.album" class="mx-2 text-white/30"
+                >•</span
+              >
+              <span v-if="currentSong?.album" class="inline-flex items-center gap-1">
+                <span class="icon-[mdi--album] h-5 w-5"></span>
+                {{ currentSong?.album }}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div v-if="currentSong" class="mb-3 flex items-center gap-3">
+          <span class="text-base text-white/80">{{ formattedCurrentTime }}</span>
           <div
             @click="handleProgressClick"
-            class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
+            class="relative h-2 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/25"
           >
             <div
               class="h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500"
               :style="{ width: `${progress}%` }"
             ></div>
           </div>
-          <span class="text-[11px] text-white/60">{{ formattedDuration }}</span>
+          <span class="text-base text-white/80">{{ formattedDuration }}</span>
         </div>
-        <div class="mb-3 flex items-center justify-center gap-2">
+        <div class="mb-3 flex items-center justify-center gap-3">
           <button
-            class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             title="字体减小"
             @click="state.lyricsScale = Math.max(0.8, state.lyricsScale - 0.05)"
           >
-            <span class="icon-[mdi--format-font-size-decrease] h-4 w-4 text-white"></span>
+            <span class="icon-[mdi--format-font-size-decrease] h-5 w-5 text-white"></span>
           </button>
           <button
-            class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             title="字体增大"
             @click="state.lyricsScale = Math.min(1.4, state.lyricsScale + 0.05)"
           >
-            <span class="icon-[mdi--format-font-size-increase] h-4 w-4 text-white"></span>
+            <span class="icon-[mdi--format-font-size-increase] h-5 w-5 text-white"></span>
           </button>
           <button
-            class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             :class="state.autoScroll ? 'bg-hover-glass ring-1 ring-white/15' : ''"
             title="自动居中"
             @click="toggleAutoScroll"
           >
             <span
               :class="state.autoScroll ? 'icon-[mdi--autorenew]' : 'icon-[mdi--pause]'"
-              class="h-4 w-4 text-white"
+              class="h-5 w-5 text-white"
             ></span>
           </button>
           <button
             v-if="lyricsTrans.length"
-            class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             :class="showTrans ? 'bg-hover-glass ring-1 ring-white/15' : ''"
             title="翻译"
             @click="toggleTransBtn"
           >
-            <span class="icon-[mdi--translate] h-4 w-4 text-white"></span>
+            <span class="icon-[mdi--translate] h-5 w-5 text-white"></span>
           </button>
           <button
             v-if="lyricsRoma.length"
-            class="glass-button justify中心 flex h-9 w-9 items-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             :class="showRoma ? 'bg-hover-glass ring-1 ring-white/15' : ''"
             title="罗马音"
             @click="toggleRomaBtn"
           >
-            <span class="icon-[mdi--alphabetical-variant] h-4 w-4 text-white"></span>
+            <span class="icon-[mdi--format-letter-case] h-5 w-5 text-white"></span>
           </button>
           <button
-            class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
+            class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             :class="state.useCoverBg ? '' : 'bg-(--glass-hover-item-bg) ring-1 ring-white/15'"
             title="切换背景"
             @click="state.useCoverBg = !state.useCoverBg"
@@ -581,38 +631,38 @@ onUnmounted(() => {
                   ? 'icon-[mdi--image-multiple-outline]'
                   : 'icon-[mdi--palette-swatch]'
               "
-              class="h-4 w-4 text-white"
+              class="h-5 w-5 text-white"
             ></span>
           </button>
         </div>
-        <div class="flex items-center justify-center gap-6">
+        <div class="flex items-center justify-center gap-10">
           <button
-            class="glass-button flex h-12 w-12 items-center justify-center rounded-full"
+            class="glass-button flex h-16 w-16 items-center justify-center rounded-full"
             @click="previous"
           >
-            <span class="icon-[mdi--skip-previous] h-6 w-6 text-white"></span>
+            <span class="icon-[mdi--skip-previous] h-8 w-8 text-white"></span>
           </button>
           <button
-            class="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl"
+            class="flex h-18 w-18 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl"
             :class="isLoading ? 'opacity-50' : ''"
             :disabled="isLoading"
             @click="handleTogglePlay"
           >
             <span
               v-if="isLoading"
-              class="icon-[mdi--loading] h-7 w-7 animate-spin text-white"
+              class="icon-[mdi--loading] h-9 w-9 animate-spin text-white"
             ></span>
             <span
               v-else
               :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-              class="h-7 w-7 text-white"
+              class="h-9 w-9 text-white"
             ></span>
           </button>
           <button
-            class="glass-button flex h-12 w-12 items-center justify-center rounded-full"
+            class="glass-button flex h-16 w-16 items-center justify-center rounded-full"
             @click="next"
           >
-            <span class="icon-[mdi--skip-next] h-6 w-6 text-white"></span>
+            <span class="icon-[mdi--skip-next] h-8 w-8 text-white"></span>
           </button>
         </div>
         <div class="mt-3 flex items-center justify-between">
@@ -620,17 +670,17 @@ onUnmounted(() => {
             class="glass-button flex items-center gap-2 rounded-2xl px-3 py-2 text-sm"
             @click="state.isCommentsOpen = true"
           >
-            <span class="icon-[mdi--comment-outline] h-5 w-5 text-white/80"></span
+            <span class="icon-[mdi--comment-outline] h-4 w-4 text-white/80"></span
             ><span class="text-white/90">{{ state.commentCount }}</span>
           </button>
           <div class="flex items-center space-x-3">
             <button @click="toggleMute" class="flex items-center transition-colors duration-200">
-              <span v-if="volume === 0" class="icon-[mdi--volume-off] h-5 w-5 text-white/80"></span>
+              <span v-if="volume === 0" class="icon-[mdi--volume-off] h-4 w-4 text-white/80"></span>
               <span
                 v-else-if="volume < 0.5"
-                class="icon-[mdi--volume-medium] h-5 w-5 text-white/80"
+                class="icon-[mdi--volume-medium] h-4 w-4 text-white/80"
               ></span>
-              <span v-else class="icon-[mdi--volume-high] h-5 w-5 text-white/80"></span>
+              <span v-else class="icon-[mdi--volume-high] h-4 w-4 text-white/80"></span>
             </button>
             <input
               type="range"
@@ -638,7 +688,7 @@ onUnmounted(() => {
               max="100"
               :value="volume * 100"
               @input="(e: any) => setVolume(parseInt(e.target.value) / 100)"
-              class="slider h-2 w-24 appearance-none rounded-full bg-white/20 outline-none"
+              class="slider h-2 w-28 appearance-none rounded-full bg-white/20 outline-none"
             />
           </div>
           <button
@@ -653,7 +703,7 @@ onUnmounted(() => {
                     ? 'icon-[mdi--shuffle]'
                     : 'icon-[mdi--repeat]'
               "
-              class="h-5 w-5 text-white"
+              class="h-4 w-4 text-white"
             ></span
             ><span class="text-white/90">模式</span>
           </button>
@@ -680,6 +730,23 @@ onUnmounted(() => {
     transparent 3px
   );
   opacity: 0.25;
+}
+.vinyl-disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.12) 25%,
+      rgba(255, 255, 255, 0.06) 40%,
+      transparent 55%
+    ),
+    linear-gradient(160deg, transparent 60%, rgba(255, 255, 255, 0.06) 70%, transparent 85%);
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 .vinyl-label {
   border: 1px solid rgba(255, 255, 255, 0.15);

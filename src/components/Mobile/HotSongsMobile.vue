@@ -1,26 +1,22 @@
 <script setup lang="ts">
 import { formatTime } from '@/utils/audioUtils'
 import { useAudio } from '@/composables/useAudio'
-import { Song, PlayMode } from '@/stores/interface'
+import { Song } from '@/stores/interface'
 
 const props = withDefaults(defineProps<{ songs: Song[]; context?: 'queue' | 'generic' }>(), {
   context: 'generic',
 })
 
-const { play, playByIndex, queueNext, removeSong } = useAudio()
-
-const toSong = (s: Song) => ({
-  id: s.id,
-  name: s.name,
-  artist: s.artist,
-  album: s.album,
-  duration: Math.floor((s.duration || 0) / 1000),
-  cover: s.cover,
-})
+const { playByIndex, queueNext, removeSong, addSong, playlist } = useAudio()
 
 const handlePlay = (i: number, s: Song) => {
-  if (props.context === 'queue') playByIndex(i)
-  else play(toSong(s))
+  if (props.context === 'queue') {
+    playByIndex(i)
+  } else {
+    addSong(s as any)
+    const idx = playlist.value.findIndex((p: any) => p.id === s.id)
+    playByIndex(idx >= 0 ? idx : Math.max(0, playlist.value.length - 1))
+  }
 }
 
 const formatDuration = (ms: number) => formatTime(Math.floor((ms || 0) / 1000))

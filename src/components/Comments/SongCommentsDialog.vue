@@ -61,7 +61,7 @@ const close = () => (show.value = false)
   <div v-if="show" class="fixed inset-0 z-99999 flex items-center justify-center">
     <div class="absolute inset-0 bg-black/60" @click="close"></div>
     <div
-      class="glass-container relative z-10 w-[720px] max-w-[92vw] overflow-hidden rounded-3xl p-6"
+      class="glass-container relative z-10 w-[720px] max-w-[95vw] overflow-hidden rounded-3xl p-4"
     >
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-white">歌曲评论</h3>
@@ -123,8 +123,13 @@ const close = () => (show.value = false)
           <div v-if="state.comments.length === 0" class="text-center text-white/70">暂无评论</div>
         </div>
       </div>
-      <div class="mt-4 flex items-center justify-end gap-2">
-        <Pagination v-model="state.page" :total="state.total" :page-size="state.limit" />
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <Pagination
+          v-model="state.page"
+          :total="state.total"
+          :page-size="state.limit"
+          :max-buttons="3"
+        />
       </div>
     </div>
   </div>

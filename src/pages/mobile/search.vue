@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { cloudSearch, searchSuggest, searchDefault } from '@/api'
-import { useAudio } from '@/composables/useAudio'
-
 const state = reactive({
   q: '',
+  placeholder: '',
   tab: 'song' as 'song' | 'playlist' | 'mv',
   suggest: [] as string[],
   loading: false,
@@ -24,12 +23,10 @@ const state = reactive({
   mvs: [] as Array<{ id: number | string; name: string; cover: string; artist: string }>,
 })
 
-const { play } = useAudio()
-
 const fetchDefault = async () => {
   const res = await searchDefault()
   const def = (res as any)?.data?.realkeyword || (res as any)?.data?.showKeyword || ''
-  state.q = def || ''
+  state.placeholder = def || ''
 }
 
 const fetchSuggest = async () => {
@@ -87,23 +84,20 @@ onMounted(async () => {
 
 watch(() => state.q, fetchSuggest)
 
-  const playSong = (s: any) =>
-    play(
-      {
-        id: s.id,
-        name: s.name,
-        artist: s.artist,
-        album: s.album,
-        duration: Math.floor((s.duration || 0) / 1000),
-        cover: s.cover,
-      },
-      0
-    )
+const handleSuggestClick = (s: string) => {
+  state.q = s
+  searchAll()
+}
 
-  const handleSuggestClick = (s: string) => {
-    state.q = s
-    searchAll()
-  }
+const clearQuery = () => {
+  state.q = ''
+  state.suggest = []
+}
+
+const handleSearchClick = () => {
+  if (!state.q.trim()) state.q = state.placeholder || ''
+  searchAll()
+}
 </script>
 
 <template>
@@ -113,20 +107,28 @@ watch(() => state.q, fetchSuggest)
         <span class="icon-[mdi--magnify] h-5 w-5 text-white/70"></span>
         <input
           v-model="state.q"
-          @keyup.enter="searchAll"
+          @keyup.enter="handleSearchClick"
           type="text"
-          placeholder="搜索音乐、歌单、MV"
-          class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none"
+          :placeholder="state.placeholder || '搜索音乐、歌单、MV'"
+          class=" placeholder-white/50 min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
-        <button class="rounded-md p-2 hover:bg-white/10" title="搜索" @click="searchAll">
-          <span class="icon-[mdi--arrow-right] h-5 w-5 text-white"></span>
+        <button
+          v-if="state.q"
+          class="rounded-md p-2 hover:bg-white/10"
+          title="清空"
+          @click="clearQuery"
+        >
+          <span class="icon-[mdi--close-circle-outline] h-5 w-5 text-white/70"></span>
+        </button>
+        <button class="rounded-md p-2 hover:bg-white/10" title="搜索" @click="handleSearchClick">
+          <span class="icon-[mdi--arrow-right] text白色 h-5 w-5"></span>
         </button>
       </div>
-      <div v-if="state.suggest.length" class="mt-2 flex items-center gap-2 overflow-x-auto">
+      <div v-if="state.suggest.length" class="mt-2 grid grid-cols-2 gap-2">
         <button
           v-for="s in state.suggest"
           :key="s"
-          class="glass-button rounded-full px-3 py-1 text-xs text-white/80"
+          class="glass-button min-w-0 truncate rounded-full px-3 py-1 text-xs text-white/80"
           @click="handleSuggestClick(s)"
         >
           {{ s }}
@@ -163,32 +165,7 @@ watch(() => state.q, fetchSuggest)
 
     <div v-else>
       <section v-show="state.tab === 'song'" class="space-y-3">
-        <div
-          v-for="s in state.songs"
-          :key="s.id"
-          class="glass-card flex items-center gap-3 p-3"
-          @click="playSong(s)"
-        >
-          <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-            <img
-              v-if="s.cover"
-              :src="s.cover + '?param=200y200'"
-              alt="cover"
-              class="h-full w-full object-cover"
-            />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center rounded-lg bg-white/10"
-            >
-              🎵
-            </div>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-white">{{ s.name }}</p>
-            <p class="truncate text-xs text-purple-300">{{ s.artist }}</p>
-          </div>
-          <span class="icon-[mdi--play] h-5 w-5 text-white/80"></span>
-        </div>
+        <HotSongsMobile :songs="state.songs" context="generic" />
       </section>
 
       <section v-show="state.tab === 'playlist'" class="grid grid-cols-2 gap-3">

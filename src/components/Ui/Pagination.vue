@@ -43,7 +43,7 @@ const goNext = () => {
 
 <template>
   <div
-    class="flex items-center gap-2 rounded-xl px-3 py-2 text-white"
+    class="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-white"
     :class="[isCar ? 'glass-nav' : '']"
   >
     <button
@@ -58,14 +58,14 @@ const goNext = () => {
       <button
         v-for="p in pageNumbers"
         :key="p"
-        class="page-btn glass-button px-3 py-1 text-sm"
+        class="page-btn glass-button px-2 py-1 text-sm"
         :class="p === page ? 'selected' : 'text-muted-glass'"
         @click="page = p"
       >
         {{ p }}
       </button>
     </div>
-    <span class="text-muted-glass"> 第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条 </span>
+    <span class="text-muted-glass text-xs sm:text-sm whitespace-nowrap"> 第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条 </span>
     <button
       class="glass-button px-3 py-2 text-sm"
       :class="canNext ? 'text-glass' : 'text-muted-glass cursor-not-allowed opacity-50'"

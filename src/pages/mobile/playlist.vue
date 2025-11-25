@@ -60,7 +60,8 @@ const load = async (id: number) => {
       playlistTrackAll({ id, limit: 100 }),
       commentNew({ id, type: 2, sortType: 1, pageNo: 1, pageSize: 5 }),
     ])
-    const detail = (detailRes as any)?.playlist || (detailRes as any)?.data?.playlist || (detailRes as any)?.data
+    const detail =
+      (detailRes as any)?.playlist || (detailRes as any)?.data?.playlist || (detailRes as any)?.data
     if (detail) {
       state.info = {
         name: detail?.name || '',
@@ -74,12 +75,17 @@ const load = async (id: number) => {
         gradient: pickGradient(),
       }
     }
-    const tracks = (tracksRes as any)?.songs || (tracksRes as any)?.data?.songs || (tracksRes as any)?.data || []
+    const tracks =
+      (tracksRes as any)?.songs || (tracksRes as any)?.data?.songs || (tracksRes as any)?.data || []
     if (Array.isArray(tracks)) {
       state.songs = tracks.map((t: any, i: number) => ({
         id: t?.id || 0,
         name: t?.name || '',
-        artist: Array.isArray(t?.ar) ? t.ar.map((a: any) => a.name).join(' / ') : Array.isArray(t?.artists) ? t.artists.map((a: any) => a.name).join(' / ') : '',
+        artist: Array.isArray(t?.ar)
+          ? t.ar.map((a: any) => a.name).join(' / ')
+          : Array.isArray(t?.artists)
+            ? t.artists.map((a: any) => a.name).join(' / ')
+            : '',
         album: t?.al?.name || t?.album?.name || '',
         albumId: t?.al?.id || t?.album?.id || 0,
         duration: t?.dt ?? t?.duration ?? 0,
@@ -114,51 +120,69 @@ onMounted(() => {
 
 const playAll = () => {
   if (!state.songs.length) return
-  const list = state.songs.map(s => ({
-    id: s.id,
-    name: s.name,
-    artist: s.artist,
-    album: s.album,
-    duration: Math.floor((s.duration || 0) / 1000),
-    cover: s.cover,
-    emoji: s.emoji,
-    gradient: s.gradient,
-    liked: s.liked,
-  }))
-  setPlaylist(list, 0)
-  play(list[0], 0)
+  setPlaylist(state.songs, 0)
+  play(state.songs[0], 0)
 }
 
-const toggleCollect = () => { state.collected = !state.collected }
+const toggleCollect = () => {
+  state.collected = !state.collected
+}
 </script>
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
     <div v-if="state.loading" class="py-6">
-      <PageSkeleton :sections="['hero','list']" :list-count="8" />
+      <PageSkeleton :sections="['hero', 'list']" :list-count="8" />
     </div>
     <template v-else>
       <section class="mb-4">
         <div class="relative overflow-hidden rounded-2xl">
-          <img v-if="state.info.coverImgUrl" :src="state.info.coverImgUrl" alt="cover" class="h-36 w-full object-cover" />
-          <div class="absolute inset-0 bg-linear-to-br opacity-40" :class="state.info.gradient"></div>
+          <img
+            v-if="state.info.coverImgUrl"
+            :src="state.info.coverImgUrl"
+            alt="cover"
+            class="h-36 w-full object-cover"
+          />
+          <div
+            class="absolute inset-0 bg-linear-to-br opacity-40"
+            :class="state.info.gradient"
+          ></div>
           <div class="relative z-10 p-4">
             <div class="mb-2">
-              <span class="inline-block rounded-full bg-white/20 px-2 py-1 text-[11px] text-white backdrop-blur-sm">{{ state.info.category }}</span>
+              <span
+                class="inline-block rounded-full bg-white/20 px-2 py-1 text-[11px] text-white backdrop-blur-sm"
+                >{{ state.info.category }}</span
+              >
             </div>
             <h1 class="mb-1 truncate text-xl font-bold text-white">{{ state.info.name }}</h1>
             <p class="line-clamp-2 text-xs text-white/80">{{ state.info.description }}</p>
             <div class="mt-3 flex items-center gap-3 text-[12px] text-white/70">
-              <span class="flex items-center gap-1"><span class="icon-[mdi--account-circle] h-4 w-4"></span>{{ state.info.creator }}</span>
-              <span class="flex items-center gap-1"><span class="icon-[mdi--music-note] h-4 w-4"></span>{{ state.info.songCount }}首</span>
-              <span class="flex items-center gap-1"><span class="icon-[mdi--heart] h-4 w-4 text-red-400"></span>{{ state.info.likes }}</span>
+              <span class="flex items-center gap-1"
+                ><span class="icon-[mdi--account-circle] h-4 w-4"></span
+                >{{ state.info.creator }}</span
+              >
+              <span class="flex items-center gap-1"
+                ><span class="icon-[mdi--music-note] h-4 w-4"></span
+                >{{ state.info.songCount }}首</span
+              >
+              <span class="flex items-center gap-1"
+                ><span class="icon-[mdi--heart] h-4 w-4 text-red-400"></span
+                >{{ state.info.likes }}</span
+              >
             </div>
             <div class="mt-3 flex items-center gap-2">
-              <button class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm text-white" @click="playAll">
+              <button
+                class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm text-white"
+                @click="playAll"
+              >
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
               </button>
-              <button class="glass-button bg-white/10 px-3 py-2 text-sm text-white" @click="toggleCollect">
-                <span class="icon-[mdi--heart-outline] mr-1 h-4 w-4"></span>{{ state.collected ? '已收藏' : '收藏' }}
+              <button
+                class="glass-button bg-white/10 px-3 py-2 text-sm text-white"
+                @click="toggleCollect"
+              >
+                <span class="icon-[mdi--heart-outline] mr-1 h-4 w-4"></span
+                >{{ state.collected ? '已收藏' : '收藏' }}
               </button>
             </div>
           </div>

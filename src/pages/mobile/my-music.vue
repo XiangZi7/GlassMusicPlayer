@@ -2,6 +2,7 @@
 import { useAudio } from '@/composables/useAudio'
 
 const { playlist } = useAudio()
+console.log("🚀 ~ file: my-music.vue:5 ~ playlist:", playlist.value)
 
 const state = reactive({
   loading: false,

@@ -13,8 +13,8 @@ const { showLogin } = toRefs(state)
 <template>
   <header class="flex items-center justify-between px-3 py-2">
     <div class="flex items-center gap-2">
-      <img src="/logo.png" alt="logo" class="h-7 w-7 rounded" />
-      <h1 class="text-base font-semibold">Glass Music</h1>
+      <img src="/logo.png" alt="logo" class="w-9 rounded" />
+      <h1 class="text-base font-semibold">Glass Music Player</h1>
     </div>
     <div class="flex items-center gap-2">
       <button class="rounded-md p-2 hover:bg-white/10" title="搜索" @click="goSearch">
@@ -27,4 +27,3 @@ const { showLogin } = toRefs(state)
   </header>
   <LoginDialog v-if="showLogin" @close="showLogin = false" />
 </template>
-
