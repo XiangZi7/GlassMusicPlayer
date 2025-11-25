@@ -366,7 +366,6 @@ watch(
   isPlaying,
   playing => {
     playing ? startAlbumRotation() : stopAlbumRotation()
-    console.log('🚀 ~ playing:', playing)
   },
   { immediate: true }
 )
@@ -716,7 +715,9 @@ onUnmounted(() => {
               }"
               @click="seekToLyric(index)"
             >
-              {{ line.text }}
+              <p>{{ line.ori }}</p>
+              <p v-if="showTrans && line.tran">{{ line.tran }}</p>
+              <p v-if="showRoma && line.roma">{{ line.roma }}</p>
             </div>
             <!-- 空白占位，确保最后一句歌词能滚动到中心 -->
             <div class="h-64"></div>

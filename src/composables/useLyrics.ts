@@ -2,23 +2,30 @@ import { lyric } from '@/api'
 
 export interface LyricLine {
   time: number
+  ori: string
+  tran?: string
+  roma?: string
+}
+
+interface RawLyricLine {
+  time: number
   text: string
 }
 
 const state = reactive({
-  lyricsOriginal: [] as LyricLine[],
-  lyricsTrans: [] as LyricLine[],
-  lyricsRoma: [] as LyricLine[],
+  lyricsOriginal: [] as RawLyricLine[],
+  lyricsTrans: [] as RawLyricLine[],
+  lyricsRoma: [] as RawLyricLine[],
   showTrans: false,
   showRoma: false,
 })
 const lastId = ref<string | number | null>(null)
 const loading = ref(false)
 
-const parseLrc = (lrc: string): LyricLine[] => {
+const parseLrc = (lrc: string): RawLyricLine[] => {
   if (!lrc) return []
   const lines = lrc.split(/\r?\n/)
-  const result: LyricLine[] = []
+  const result: RawLyricLine[] = []
   const timeTag = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g
   for (const raw of lines) {
     if (!raw) continue
@@ -48,31 +55,36 @@ const mergedLines = computed<LyricMerged[]>(() => {
   const tran = state.lyricsTrans
   const roma = state.lyricsRoma
   const res: LyricMerged[] = []
-  let j = 0,
-    k = 0
+  let j = 0, k = 0
   const eps = 0.5
+
+  const splitBilingual = (text: string) => {
+    const idx = text.search(/[\u4e00-\u9fff]/)
+    if (idx > 0) {
+      const left = text.slice(0, idx).trim()
+      const right = text.slice(idx).trim()
+      return { oriPart: left, tranPart: right && right !== left ? right : undefined }
+    }
+    return { oriPart: text, tranPart: undefined }
+  }
+
   for (let i = 0; i < ori.length; i++) {
     const o = ori[i]
     while (j + 1 < tran.length && tran[j + 1].time <= o.time + eps) j++
     while (k + 1 < roma.length && roma[k + 1].time <= o.time + eps) k++
-    const t = tran[j] && Math.abs(tran[j].time - o.time) <= eps ? tran[j].text : undefined
-    const r = roma[k] && Math.abs(roma[k].time - o.time) <= eps ? roma[k].text : undefined
-    res.push({ time: o.time, ori: o.text, tran: t, roma: r })
+
+    const { oriPart, tranPart } = splitBilingual(o.text)
+    const tCandidate = tran[j] && Math.abs(tran[j].time - o.time) <= eps ? tran[j].text : undefined
+    const rCandidate = roma[k] && Math.abs(roma[k].time - o.time) <= eps ? roma[k].text : undefined
+
+    const finalTran = tCandidate ?? tranPart
+    res.push({ time: o.time, ori: oriPart, tran: finalTran, roma: rCandidate })
   }
   return res
 })
 
 const activeSingleLyrics = computed<LyricLine[]>(() => {
-  return mergedLines.value.map(m => ({
-    time: m.time,
-    text: [
-      m.ori,
-      state.showTrans && m.tran ? m.tran : undefined,
-      state.showRoma && m.roma ? m.roma : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n'),
-  }))
+  return mergedLines.value.map(m => ({ time: m.time, ori: m.ori, tran: m.tran, roma: m.roma }))
 })
 
 const activeTimeline = computed<number[]>(() => mergedLines.value.map(m => m.time))

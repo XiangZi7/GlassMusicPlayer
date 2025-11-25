@@ -86,7 +86,6 @@ const {
   lyricsRoma,
   showTrans,
   showRoma,
-  mergedLines,
   activeSingleLyrics,
   activeTimeline,
   timeForIndex,
@@ -257,11 +256,12 @@ const setBackground = (url?: string) => {
 }
 
 // 抽屉动画
-const openDrawer = () => {
+const openDrawer = async () => {
   if (drawerRef.value) {
     gsap.set(drawerRef.value, { display: 'flex' })
 
     const tl = gsap.timeline()
+    await nextTick()
     tl.fromTo(
       drawerRef.value,
       {
@@ -274,36 +274,21 @@ const openDrawer = () => {
         duration: 0.6,
         ease: 'power3.out',
       }
+    ).fromTo(
+      '.lyric-line',
+      {
+        y: 30,
+        opacity: 0,
+      },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+        stagger: 0.1,
+        ease: 'power2.out',
+      },
+      '-=0.2'
     )
-      .fromTo(
-        '.album-cover',
-        {
-          scale: 0.5,
-          opacity: 0,
-        },
-        {
-          scale: 1,
-          opacity: 1,
-          duration: 0.5,
-          ease: 'back.out(1.7)',
-        },
-        '-=0.3'
-      )
-      .fromTo(
-        '.lyric-line',
-        {
-          y: 30,
-          opacity: 0,
-        },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.4,
-          stagger: 0.1,
-          ease: 'power2.out',
-        },
-        '-=0.2'
-      )
   }
 }
 
@@ -434,12 +419,6 @@ onUnmounted(() => {
       ></div>
     </div>
     <div class="absolute top-0 right-0 left-0 flex items-center justify-between p-3">
-      <button
-        class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-        @click="previous"
-      >
-        <span class="icon-[mdi--skip-previous] h-5 w-5 text-white"></span>
-      </button>
       <div class="glass-nav flex items-center gap-3 rounded-2xl px-3 py-1">
         <span class="text-sm text-white">{{ timeText }}</span>
         <span class="flex items-center gap-1 text-sm text-white">
@@ -505,9 +484,13 @@ onUnmounted(() => {
           class="lyrics-container relative flex max-h-[60vh] w-full flex-col overflow-hidden p-4"
           @click.stop="showLyrics = !showLyrics"
         >
-          <div ref="lyricsRef" class="lyrics-scroll relative z-20 h-auto" :style="{ fontSize: state.lyricsScale + 'rem' }">
+          <div
+            ref="lyricsRef"
+            class="lyrics-scroll relative z-20 h-auto"
+            :style="{ fontSize: state.lyricsScale + 'rem' }"
+          >
             <div
-              v-for="(line, index) in mergedLines"
+              v-for="(line, index) in activeSingleLyrics"
               :key="index"
               class="lyric-line z-50 mb-6 cursor-pointer text-center transition-all duration-500"
               :class="{
@@ -516,9 +499,9 @@ onUnmounted(() => {
               }"
               @click="seekToLyric(index)"
             >
-              <p class="text-white">{{ line.ori }}</p>
-              <p v-if="showTrans && line.tran" class="text-white/80">{{ line.tran }}</p>
-              <p v-if="showRoma && line.roma" class="text-white/70">{{ line.roma }}</p>
+              <p>{{ line.ori }}</p>
+              <p v-if="showTrans && line.tran">{{ line.tran }}</p>
+              <p v-if="showRoma && line.roma">{{ line.roma }}</p>
             </div>
             <div class="h-64"></div>
           </div>
