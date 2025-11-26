@@ -1,0 +1,57 @@
+@layer base {
+  :root {
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-bg-base: rgba(255, 255, 255, 0.1);
+    --glass-bg-container: rgba(255, 255, 255, 0.08);
+    --glass-bg-card: rgba(255, 255, 255, 0.12);
+    --glass-bg-nav: rgba(255, 255, 255, 0.06);
+    --glass-bg-button: rgba(255, 255, 255, 0.15);
+    --glass-hover-button-bg: rgba(255, 255, 255, 0.2);
+    --glass-text: rgba(0, 0, 0, 0.85);
+    --glass-hover-item-bg: rgba(17, 24, 39, 0.06);
+    --glass-hover-text: #111827;
+    --glass-dropdown-bg: rgba(255, 255, 255, 0.92);
+    --glass-dropdown-border: rgba(17, 24, 39, 0.08);
+    --glass-dropdown-text: rgba(17, 24, 39, 0.95);
+    --glass-dropdown-blur: 10px;
+    --playlist-bubble-bg: rgba(255, 255, 255, 0.9);
+    --glass-container-strong-bg: rgba(255, 255, 255, 0.92);
+    --mask-bg: rgba(255, 255, 255, 0.06);
+    --accent-from: #ec4899;
+    --accent-to: #8b5cf6;
+    --accent: #8b5cf6;
+    --progress-track-bg: rgba(17, 24, 39, 0.16);
+    --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+  }
+
+  :root.dark,
+  html.dark {
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg-base: rgba(0, 0, 0, 0.35);
+    --glass-bg-container: rgba(0, 0, 0, 0.28);
+    --glass-bg-card: rgba(0, 0, 0, 0.4);
+    --glass-bg-nav: rgba(0, 0, 0, 0.3);
+    --glass-bg-button: rgba(255, 255, 255, 0.08);
+    --glass-hover-button-bg: rgba(255, 255, 255, 0.12);
+    --glass-text: rgba(255, 255, 255, 0.85);
+    --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
+    --glass-hover-text: #ffffff;
+    --glass-dropdown-bg: rgba(0, 0, 0, 0.9);
+    --glass-dropdown-border: rgba(255, 255, 255, 0.12);
+    --glass-dropdown-text: rgba(255, 255, 255, 0.95);
+    --glass-dropdown-blur: 18px;
+    --playlist-bubble-bg: rgba(0, 0, 0, 0.9);
+    --glass-container-strong-bg: rgba(0, 0, 0, 0.9);
+    --mask-bg: rgba(0, 0, 0, 0.3);
+    --accent-from: #db2777;
+    --accent-to: #7c3aed;
+    --accent: #a78bfa;
+    --progress-track-bg: rgba(255, 255, 255, 0.22);
+    --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+    color-scheme: dark;
+  }
+
+  html.dark body {
+    background-color: #0b0b0f;
+  }
+}

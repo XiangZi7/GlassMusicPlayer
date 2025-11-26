@@ -2,6 +2,7 @@
 import { formatTime } from '@/utils/audioUtils'
 import { useAudio } from '@/composables/useAudio'
 import { Song } from '@/stores/interface'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const props = withDefaults(defineProps<{ songs: Song[]; context?: 'queue' | 'generic' }>(), {
   context: 'generic',
@@ -30,47 +31,42 @@ const formatDuration = (ms: number) => formatTime(Math.floor((ms || 0) / 1000))
       class="glass-card flex items-center gap-3 p-3"
     >
       <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-        <img
-          v-if="song.cover"
+        <LazyImage
           :src="song.cover + '?param=200y200'"
           alt="cover"
-          class="h-full w-full object-cover"
+          imgClass="h-full w-full object-cover"
         />
-        <div
-          v-else
-          class="flex h-full w-full items-center justify-center rounded-lg bg-linear-to-br"
-          :class="song.gradient"
-        >
-          <span class="text-lg">{{ song.emoji }}</span>
-        </div>
+        {{ song.cover }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium text-white">{{ song.name }}</p>
-        <p class="truncate text-xs text-purple-300">{{ song.artist }}</p>
+        <p class="text-primary truncate text-sm font-medium">{{ song.name }}</p>
+        <p class="text-primary/70 truncate text-xs">{{ song.artist }}</p>
       </div>
-      <span class="text-[11px] text-white/70">{{ formatDuration(song.duration) }}</span>
+      <span class="text-primary/70 text-[11px]">{{ formatDuration(song.duration) }}</span>
       <div class="flex items-center gap-3">
         <button
           class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
           title="播放"
           @click.stop="handlePlay(i, song)"
         >
-          <span class="icon-[mdi--play] h-4 w-4 text-(--glass-text)"></span>
+          <span class="icon-[mdi--play] text-primary h-4 w-4"></span>
         </button>
         <button
           class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
           title="下一首"
           @click.stop="queueNext(song.id as any)"
         >
-          <span class="icon-[mdi--skip-next] h-4 w-4 text-(--glass-text)"></span>
+          <span class="icon-[mdi--skip-next] text-primary h-4 w-4"></span>
         </button>
-        <button
-          class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-          title="删除"
-          @click.stop="removeSong(song.id as any)"
-        >
-          <span class="icon-[mdi--delete] h-4 w-4 text-(--glass-text)"></span>
-        </button>
+        <template v-if="context === 'queue'">
+          <button
+            class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
+            title="删除"
+            @click.stop="removeSong(song.id as any)"
+          >
+            <span class="icon-[mdi--delete] text-primary h-4 w-4"></span>
+          </button>
+        </template>
       </div>
     </div>
   </div>

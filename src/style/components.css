@@ -1,0 +1,92 @@
+@layer components {
+  .glass-base,
+  .glass-container,
+  .glass-container-strong,
+  .glass-card,
+  .glass-nav,
+  .glass-button {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-base {
+    background: var(--glass-bg-base);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-container {
+    background: var(--glass-bg-container);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-container-strong {
+    background: var(--glass-container-strong-bg);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-card {
+    background: var(--glass-bg-card);
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .glass-nav {
+    background: var(--glass-bg-nav);
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-tabbar {
+    background: var(--glass-bg-nav);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .glass-button {
+    background: var(--glass-bg-button);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+  }
+
+  .glass-button:hover {
+    background: var(--glass-hover-button-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dropdown {
+    background: var(--glass-dropdown-bg);
+    border: 1px solid var(--glass-dropdown-border);
+    backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
+    color: var(--glass-dropdown-text);
+  }
+
+  .anime-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .particle:nth-child(odd) {
+    animation-delay: -2s;
+  }
+
+  .particle:nth-child(even) {
+    animation-delay: -4s;
+  }
+}

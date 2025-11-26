@@ -95,7 +95,7 @@ const toggleLike = () => { state.liked = !state.liked }
             <button class="glass-button rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-3 py-2 text-sm text-white" @click="playCurrent">
               <span class="icon-[mdi--play] h-4 w-4"></span>
             </button>
-            <button class="glass-button rounded-full bg-white/10 px-3 py-2 text-sm text-white" @click="toggleLike">
+            <button class="glass-button rounded-full px-3 py-2 text-sm text-primary" @click="toggleLike">
               <span :class="state.liked ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'" class="h-4 w-4"></span>
             </button>
           </div>
@@ -103,10 +103,10 @@ const toggleLike = () => { state.liked = !state.liked }
       </section>
 
       <section>
-        <h3 class="mb-2 text-sm font-semibold text-white">歌词</h3>
+        <h3 class="mb-2 text-sm font-semibold text-primary">歌词</h3>
         <div class="glass-card max-h-64 overflow-auto p-3">
-          <p v-for="(l, i) in state.lrc" :key="i" class="mb-1 text-sm text-white/85">{{ l.text }}</p>
-          <p v-if="!state.lrc.length" class="text-sm text-white/60">暂无歌词</p>
+          <p v-for="(l, i) in state.lrc" :key="i" class="mb-1 text-sm text-primary/80">{{ l.text }}</p>
+          <p v-if="!state.lrc.length" class="text-sm text-primary/60">暂无歌词</p>
         </div>
       </section>
     </template>

@@ -19,7 +19,7 @@ const onChange = (e: Event) => emit('update:modelValue', (e.target as HTMLInputE
     >
       <span v-if="modelValue" class="icon-[mdi--check] h-4 w-4"></span>
     </span>
-    <span class="text-sm" :class="modelValue ? 'text-glass' : 'text-muted-glass'">{{ label }}</span>
+    <span class="text-sm" :class="modelValue ? 'text-primary' : 'text-muted-glass'">{{ label }}</span>
   </label>
 </template>
 

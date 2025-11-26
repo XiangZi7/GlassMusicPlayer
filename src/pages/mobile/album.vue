@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { albumDetail } from '@/api'
 import { useAudio } from '@/composables/useAudio'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const route = useRoute()
 const albumId = computed(() => Number(route.params.id))
@@ -90,14 +91,14 @@ const playAll = () => {
     <template v-else>
       <section class="mb-4">
         <div class="relative overflow-hidden rounded-2xl">
-          <img v-if="state.cover" :src="state.cover" alt="cover" class="h-36 w-full object-cover" />
+          <LazyImage v-if="state.cover" :src="state.cover" alt="cover" imgClass="h-36 w-full object-cover" />
           <div class="absolute inset-0 bg-linear-to-br opacity-40 from-purple-500 to-pink-500"></div>
           <div class="relative z-10 p-4">
-            <h1 class="mb-1 truncate text-xl font-bold text-white">{{ state.name }}</h1>
-            <p class="truncate text-xs text-purple-300">{{ state.artist }}</p>
-            <p class="truncate text-[11px] text-purple-400">{{ state.publish }}</p>
+            <h1 class="mb-1 truncate text-xl font-bold text-primary">{{ state.name }}</h1>
+            <p class="truncate text-xs text-primary/70">{{ state.artist }}</p>
+            <p class="truncate text-[11px] text-primary/70">{{ state.publish }}</p>
             <div class="mt-3 flex items-center gap-2">
-              <button class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm text-white" @click="playAll">
+              <button class="glass-button px-4 py-2 text-sm text-primary" @click="playAll">
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
               </button>
             </div>

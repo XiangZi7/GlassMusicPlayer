@@ -48,7 +48,7 @@ const goNext = () => {
   >
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canPrev ? 'text-glass' : 'text-muted-glass cursor-not-allowed opacity-50'"
+      :class="canPrev ? 'text-primary' : 'text-muted-glass cursor-not-allowed opacity-50'"
       :disabled="!canPrev"
       @click="goPrev"
     >
@@ -68,7 +68,7 @@ const goNext = () => {
     <span class="text-muted-glass text-xs sm:text-sm whitespace-nowrap"> 第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条 </span>
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canNext ? 'text-glass' : 'text-muted-glass cursor-not-allowed opacity-50'"
+      :class="canNext ? 'text-primary' : 'text-muted-glass cursor-not-allowed opacity-50'"
       :disabled="!canNext"
       @click="goNext"
     >

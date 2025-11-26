@@ -41,11 +41,6 @@ instance.interceptors.response.use(
     (error) => {
         // 响应错误时也结束进度条
         NProgress.done()
-        // ElNotification({
-        //     title: getTimeState(),
-        //     message: error.response.data.message || '网络太拥挤，请稍候再试！',
-        //     type: 'error',
-        // })
         return Promise.reject(error)
     }
 )

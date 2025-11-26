@@ -114,6 +114,15 @@ const handleTogglePlay = () => {
   togglePlay()
 }
 
+// 点击显示歌词后：等待视图更新，重置定位标记并将当前行居中
+const handleShowLyricsClick = async () => {
+  showLyrics.value = true
+
+  state.lyricsPositioned = false
+  await nextTick()
+  updateCurrentLyric(true)
+}
+
 const touchStartY = ref<number | null>(null)
 const lyricDragStartY = ref<number | null>(null)
 const lyricDragStartTime = ref<number | null>(null)
@@ -408,11 +417,7 @@ onUnmounted(() => {
 })
 </script>
 <template>
-  <div
-    v-if="state.isRendered"
-    ref="drawerRef"
-    class="fixed inset-0 z-9999 bg-black/80 backdrop-blur-md"
-  >
+  <div v-if="state.isRendered" ref="drawerRef" class="mask-glass fixed inset-0 z-9999">
     <div v-if="state.useCoverBg" class="absolute inset-0 -z-10">
       <div
         ref="bgARef"
@@ -432,21 +437,19 @@ onUnmounted(() => {
             : {}
         "
       ></div>
-      <div
-        class="absolute right-0 bottom-0 left-0 h-1/3 bg-linear-to-t from-black/55 via-black/25 to-transparent"
-      ></div>
+      <div class="bottom-mask-gradient absolute right-0 bottom-0 left-0 h-1/3"></div>
     </div>
     <div class="absolute top-0 right-0 left-0 flex items-center justify-between p-3">
       <div class="glass-nav flex items-center gap-3 rounded-2xl px-3 py-1">
-        <span class="text-sm text-white">{{ timeText }}</span>
-        <span class="flex items-center gap-1 text-sm text-white">
+        <span class="text-primary text-sm">{{ timeText }}</span>
+        <span class="text-primary flex items-center gap-1 text-sm">
           <span
             :class="online ? 'bg-green-400' : 'bg-red-400'"
             class="inline-block h-2 w-2 rounded-full"
           ></span>
           {{ online ? '在线' : '离线' }}
         </span>
-        <span v-if="battery.isSupported" class="flex items-center gap-1 text-sm text-white">
+        <span v-if="battery.isSupported" class="text-primary flex items-center gap-1 text-sm">
           <span :class="batteryIcon" class="h-4 w-4"></span>
           {{ batteryPct !== null ? batteryPct + '%' : 'N/A' }}
         </span>
@@ -455,7 +458,7 @@ onUnmounted(() => {
         class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
         @click="isOpen = false"
       >
-        <span class="icon-[mdi--close] h-5 w-5 text-white"></span>
+        <span class="icon-[mdi--close] text-primary h-5 w-5"></span>
       </button>
     </div>
 
@@ -468,7 +471,7 @@ onUnmounted(() => {
         <div
           v-show="!state.showLyrics"
           class="album-wrapper relative h-80 w-80"
-          @click.stop="showLyrics = true"
+          @click.stop="handleShowLyricsClick"
         >
           <div
             ref="albumCoverRef"
@@ -479,7 +482,7 @@ onUnmounted(() => {
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
-                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  : 'linear-gradient(135deg, rgba(167,139,250,0.6) 0%, rgba(108,92,231,0.6) 100%)',
               }"
             ></div>
             <div
@@ -520,8 +523,9 @@ onUnmounted(() => {
               :key="index"
               class="lyric-line z-50 mb-6 text-center transition-all duration-500"
               :class="{
-                'scale-110 transform text-xl font-semibold text-white': index === currentLyricIndex,
-                'text-white/50 hover:text-white/70': index !== currentLyricIndex,
+                'text-primary scale-110 transform text-xl font-semibold':
+                  index === currentLyricIndex,
+                'text-primary/50': index !== currentLyricIndex,
               }"
             >
               <p>{{ line.ori }}</p>
@@ -530,9 +534,6 @@ onUnmounted(() => {
             </div>
             <div class="h-64"></div>
           </div>
-          <div
-            class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
-          ></div>
         </div>
       </div>
 
@@ -540,19 +541,19 @@ onUnmounted(() => {
         <div ref="titleBarRef" v-show="!state.showLyrics" class="mb-2 text-left">
           <div class="max-w-[85%] min-w-0">
             <div class="flex items-center justify-start gap-2">
-              <h3 class="truncate text-lg font-semibold text-white">
+              <h3 class="text-primary truncate text-lg font-semibold">
                 {{ currentSong?.name || '' }}
               </h3>
             </div>
             <p
               v-if="currentSong?.artist || currentSong?.album"
-              class="mt-1 truncate text-base text-white/80"
+              class="text-primary/80 mt-1 truncate text-base"
             >
               <span v-if="currentSong?.artist" class="inline-flex items-center gap-1">
                 <span class="icon-[mdi--account-music-outline] h-5 w-5"></span>
                 {{ currentSong?.artist }}
               </span>
-              <span v-if="currentSong?.artist && currentSong?.album" class="mx-2 text-white/30"
+              <span v-if="currentSong?.artist && currentSong?.album" class="text-primary/60 mx-2"
                 >•</span
               >
               <span v-if="currentSong?.album" class="inline-flex items-center gap-1">
@@ -563,17 +564,14 @@ onUnmounted(() => {
           </div>
         </div>
         <div v-if="currentSong" class="mb-3 flex items-center gap-3">
-          <span class="text-base text-white/80">{{ formattedCurrentTime }}</span>
+          <span class="text-primary/80 text-base">{{ formattedCurrentTime }}</span>
           <div
             @click="handleProgressClick"
-            class="relative h-2 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/25"
+            class="progress-track relative h-2 flex-1 cursor-pointer overflow-hidden rounded-full"
           >
-            <div
-              class="h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500"
-              :style="{ width: `${progress}%` }"
-            ></div>
+            <div class="progress-fill h-full rounded-full" :style="{ width: `${progress}%` }"></div>
           </div>
-          <span class="text-base text-white/80">{{ formattedDuration }}</span>
+          <span class="text-primary/80 text-base">{{ formattedDuration }}</span>
         </div>
         <div class="mb-3 flex items-center justify-center gap-3">
           <button
@@ -581,47 +579,47 @@ onUnmounted(() => {
             title="字体减小"
             @click="state.lyricsScale = Math.max(0.8, state.lyricsScale - 0.05)"
           >
-            <span class="icon-[mdi--format-font-size-decrease] h-5 w-5 text-white"></span>
+            <span class="icon-[mdi--format-font-size-decrease] text-primary h-5 w-5"></span>
           </button>
           <button
             class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
             title="字体增大"
             @click="state.lyricsScale = Math.min(1.4, state.lyricsScale + 0.05)"
           >
-            <span class="icon-[mdi--format-font-size-increase] h-5 w-5 text-white"></span>
+            <span class="icon-[mdi--format-font-size-increase] text-primary h-5 w-5"></span>
           </button>
           <button
             class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-            :class="state.autoScroll ? 'bg-hover-glass ring-1 ring-white/15' : ''"
+            :class="state.autoScroll ? 'bg-hover-glass' : ''"
             title="自动居中"
             @click="toggleAutoScroll"
           >
             <span
               :class="state.autoScroll ? 'icon-[mdi--autorenew]' : 'icon-[mdi--pause]'"
-              class="h-5 w-5 text-white"
+              class="text-primary h-5 w-5"
             ></span>
           </button>
           <button
             v-if="lyricsTrans.length"
             class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-            :class="showTrans ? 'bg-hover-glass ring-1 ring-white/15' : ''"
+            :class="showTrans ? 'bg-hover-glass' : ''"
             title="翻译"
             @click="toggleTransBtn"
           >
-            <span class="icon-[mdi--translate] h-5 w-5 text-white"></span>
+            <span class="icon-[mdi--translate] text-primary h-5 w-5"></span>
           </button>
           <button
             v-if="lyricsRoma.length"
             class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-            :class="showRoma ? 'bg-hover-glass ring-1 ring-white/15' : ''"
+            :class="showRoma ? 'bg-hover-glass' : ''"
             title="罗马音"
             @click="toggleRomaBtn"
           >
-            <span class="icon-[mdi--format-letter-case] h-5 w-5 text-white"></span>
+            <span class="icon-[mdi--format-letter-case] text-primary h-5 w-5"></span>
           </button>
           <button
             class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-            :class="state.useCoverBg ? '' : 'bg-(--glass-hover-item-bg) ring-1 ring-white/15'"
+            :class="state.useCoverBg ? '' : 'bg-hover-glass'"
             title="切换背景"
             @click="state.useCoverBg = !state.useCoverBg"
           >
@@ -631,7 +629,7 @@ onUnmounted(() => {
                   ? 'icon-[mdi--image-multiple-outline]'
                   : 'icon-[mdi--palette-swatch]'
               "
-              class="h-5 w-5 text-white"
+              class="text-primary h-5 w-5"
             ></span>
           </button>
         </div>
@@ -640,7 +638,7 @@ onUnmounted(() => {
             class="glass-button flex h-16 w-16 items-center justify-center rounded-full"
             @click="previous"
           >
-            <span class="icon-[mdi--skip-previous] h-8 w-8 text-white"></span>
+            <span class="icon-[mdi--skip-previous] text-primary h-8 w-8"></span>
           </button>
           <button
             class="flex h-18 w-18 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-2xl"
@@ -650,19 +648,19 @@ onUnmounted(() => {
           >
             <span
               v-if="isLoading"
-              class="icon-[mdi--loading] h-9 w-9 animate-spin text-white"
+              class="icon-[mdi--loading] text-primary h-9 w-9 animate-spin"
             ></span>
             <span
               v-else
               :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-              class="h-9 w-9 text-white"
+              class="text-primary h-9 w-9"
             ></span>
           </button>
           <button
             class="glass-button flex h-16 w-16 items-center justify-center rounded-full"
             @click="next"
           >
-            <span class="icon-[mdi--skip-next] h-8 w-8 text-white"></span>
+            <span class="icon-[mdi--skip-next] text-primary h-8 w-8"></span>
           </button>
         </div>
         <div class="mt-3 flex items-center justify-between">
@@ -670,17 +668,20 @@ onUnmounted(() => {
             class="glass-button flex items-center gap-2 rounded-2xl px-3 py-2 text-sm"
             @click="state.isCommentsOpen = true"
           >
-            <span class="icon-[mdi--comment-outline] h-4 w-4 text-white/80"></span
-            ><span class="text-white/90">{{ state.commentCount }}</span>
+            <span class="icon-[mdi--comment-outline] text-primary/80 h-4 w-4"></span
+            ><span class="text-primary">{{ state.commentCount }}</span>
           </button>
           <div class="flex items-center space-x-3">
             <button @click="toggleMute" class="flex items-center transition-colors duration-200">
-              <span v-if="volume === 0" class="icon-[mdi--volume-off] h-4 w-4 text-white/80"></span>
+              <span
+                v-if="volume === 0"
+                class="icon-[mdi--volume-off] text-primary/80 h-4 w-4"
+              ></span>
               <span
                 v-else-if="volume < 0.5"
-                class="icon-[mdi--volume-medium] h-4 w-4 text-white/80"
+                class="icon-[mdi--volume-medium] text-primary/80 h-4 w-4"
               ></span>
-              <span v-else class="icon-[mdi--volume-high] h-4 w-4 text-white/80"></span>
+              <span v-else class="icon-[mdi--volume-high] text-primary/80 h-4 w-4"></span>
             </button>
             <input
               type="range"
@@ -688,7 +689,7 @@ onUnmounted(() => {
               max="100"
               :value="volume * 100"
               @input="(e: any) => setVolume(parseInt(e.target.value) / 100)"
-              class="slider h-2 w-28 appearance-none rounded-full bg-white/20 outline-none"
+              class="slider bg-hover-glass h-2 w-28 appearance-none rounded-full outline-none"
             />
           </div>
           <button
@@ -703,9 +704,9 @@ onUnmounted(() => {
                     ? 'icon-[mdi--shuffle]'
                     : 'icon-[mdi--repeat]'
               "
-              class="h-4 w-4 text-white"
+              class="text-primary h-4 w-4"
             ></span
-            ><span class="text-white/90">模式</span>
+            ><span class="text-primary">模式</span>
           </button>
         </div>
       </div>
@@ -805,8 +806,5 @@ onUnmounted(() => {
   border-radius: 0.5rem;
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   white-space: pre-line;
-}
-.lyric-line:hover {
-  background: rgba(255, 255, 255, 0.05);
 }
 </style>

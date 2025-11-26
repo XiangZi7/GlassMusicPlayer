@@ -37,9 +37,9 @@ onMounted(() => load(state.tab))
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
-    <div class="sticky top-0 z-10 bg-[#0f0f1a] pb-3 pt-2">
+    <div class="sticky top-0 z-10 glass-nav pb-3 pt-2">
       <div class="flex items-center gap-2">
-        <button v-for="t in types" :key="t.key" class="rounded-md px-3 py-1 text-sm" :class="state.tab===t.key ? 'text-white' : 'text-white/60'" @click="state.tab=t.key; load(state.tab)">{{ t.label }}</button>
+        <button v-for="t in types" :key="t.key" class="rounded-md px-3 py-1 text-sm" :class="state.tab===t.key ? 'text-primary' : 'text-primary/60'" @click="state.tab=t.key; load(state.tab)">{{ t.label }}</button>
       </div>
     </div>
     <div v-if="state.loading" class="py-6"><PageSkeleton :sections="['list']" :list-count="10" /></div>

@@ -11,23 +11,40 @@ const items = [
 
 const emit = defineEmits(['show-player'])
 
+const tabbarRef = useTemplateRef('tabbarRef')
+let ro: ResizeObserver | null = null
+const updateTabbarHeight = () => {
+  const h = tabbarRef.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--mobile-tabbar-h', `${h}px`)
+}
+onMounted(() => {
+  updateTabbarHeight()
+  if (tabbarRef.value) {
+    ro = new ResizeObserver(updateTabbarHeight)
+    ro.observe(tabbarRef.value)
+  }
+  window.addEventListener('resize', updateTabbarHeight)
+})
+onUnmounted(() => {
+  ro?.disconnect()
+  ro = null
+  window.removeEventListener('resize', updateTabbarHeight)
+})
 </script>
 
 <template>
   <MiniPlayerMobile @open="emit('show-player')" />
 
-  <nav
-    class="fixed right-0 bottom-0 left-0 z-50 border-t border-white/10 bg-[#131826]/95 backdrop-blur-sm"
-  >
+  <nav ref="tabbarRef" class="mobile-tabbar fixed right-0 bottom-0 left-0 z-50">
     <div class="mx-auto flex items-center justify-around">
       <RouterLink
         v-for="it in items"
         :key="it.to"
         :to="it.to"
-        class="flex flex-col items-center justify-center py-2 text-xs"
-        :class="$route.path.startsWith(it.to) ? 'text-white' : 'text-white/60'"
+        class="flex flex-col items-center justify-center py-3 text-xs"
+        :class="$route.path.startsWith(it.to) ? 'text-primary' : 'text-primary/60'"
       >
-        <component :is="'span'" :class="it.icon" class="mb-1 h-5 w-5" />
+        <component :is="'span'" :class="it.icon" class="mb-1 h-6 w-6" />
         <span>{{ it.label }}</span>
       </RouterLink>
     </div>

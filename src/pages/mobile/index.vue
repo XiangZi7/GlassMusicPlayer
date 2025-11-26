@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { banner, topPlaylist, topSong } from '@/api'
 import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 interface HomeState {
   banners: BannerItem[]
@@ -135,19 +136,18 @@ watch(
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden">
+  <div class="flex-1">
     <div class="h-full overflow-auto">
       <template v-if="isHomeLoading">
         <HomeSkeleton />
       </template>
       <section v-else class="relative mb-4 h-48 overflow-hidden rounded-2xl px-3">
         <div class="relative h-full w-full overflow-hidden rounded-2xl">
-          <img
+          <LazyImage
             v-if="banners[currentBannerIndex]?.coverImgUrl"
             :src="banners[currentBannerIndex]?.coverImgUrl"
             alt="轮播封面"
-            loading="lazy"
-            class="absolute inset-0 h-full w-full object-cover"
+            imgClass="absolute inset-0 h-full w-full object-cover"
           />
           <div
             class="absolute inset-0 bg-linear-to-br opacity-60"
@@ -163,7 +163,7 @@ watch(
               </p>
               <router-link
                 to="/mv-list"
-                class="glass-button inline-flex items-center gap-1 bg-white/20 px-4 py-2 text-sm text-white hover:bg-white/30"
+                class="glass-button inline-flex items-center gap-1 px-4 py-2 text-sm text-white"
               >
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>
                 立即播放
@@ -176,7 +176,7 @@ watch(
       <div class="px-3 pb-6">
         <section class="mb-8">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="flex items-center text-lg font-bold text-white">
+            <h2 class="text-primary flex items-center text-lg font-bold">
               <span class="icon-[mdi--playlist-music] mr-2 h-5 w-5 text-pink-400"></span>
               推荐歌单
             </h2>
@@ -188,50 +188,45 @@ watch(
             </router-link>
           </div>
           <div class="relative">
+            <!-- 推荐歌单滚动按钮 -->
             <button
               v-show="canScrollLeft"
               @click="scrollPlaylist('left')"
-              class="glass-button absolute top-1/2 left-1 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+              class="glass-button absolute top-1/2 left-1 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
             >
-              <span class="icon-[mdi--chevron-left] h-5 w-5 text-white"></span>
+              <span class="icon-[mdi--chevron-left] text-primary h-5 w-5"></span>
             </button>
             <button
               v-show="canScrollRight"
               @click="scrollPlaylist('right')"
-              class="glass-button absolute top-1/2 right-1 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+              class="glass-button absolute top-1/2 right-1 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
             >
-              <span class="icon-[mdi--chevron-right] h-5 w-5 text-white"></span>
+              <span class="icon-[mdi--chevron-right] text-primary h-5 w-5"></span>
             </button>
+            <!-- 推荐歌单滚动容器 -->
             <div
               ref="playlistScrollRef"
               @scroll="updatePlaylistScrollButtons"
-              class="scrollbar-hide flex items-center gap-3 overflow-x-auto"
+              class="scrollbar-hide -mb-8 flex items-center gap-3 overflow-x-auto px-5 pb-10"
             >
               <router-link
                 v-for="(playlist, index) in recommendPlaylists"
                 :key="index"
                 :to="`/playlist/${playlist.id}`"
-                class="group w-40 flex-none cursor-pointer"
+                class="w-40 flex-none"
               >
-                <div
-                  class="glass-card h-full p-3 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-                >
+                <div class="glass-card h-full p-3">
                   <div class="relative mb-2 w-full overflow-hidden rounded-lg">
-                    <img
+                    <LazyImage
                       :src="playlist.coverImgUrl + '?param=300y300'"
                       alt="歌单封面"
-                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      imgClass="h-full w-full object-cover "
                     />
-                    <div
-                      class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    >
-                      <button class="glass-button flex h-10 w-10 items-center justify-center">
-                        <span class="icon-[mdi--play] h-4 w-4 text-white"></span>
-                      </button>
-                    </div>
                   </div>
-                  <h3 class="mb-1 truncate text-xs font-medium text-white">{{ playlist.name }}</h3>
-                  <p class="truncate text-[11px] text-purple-300">{{ playlist.count }}首歌曲</p>
+                  <h3 class="text-primary mb-1 truncate text-xs font-medium">
+                    {{ playlist.name }}
+                  </h3>
+                  <p class="text-primary/70 truncate text-xs">{{ playlist.count }}首歌曲</p>
                 </div>
               </router-link>
             </div>
@@ -240,46 +235,13 @@ watch(
 
         <section class="mb-8">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="flex items-center text-lg font-bold text-white">
+            <h2 class="text-primary flex items-center text-lg font-bold">
               <span class="icon-[mdi--fire] mr-2 h-5 w-5 text-orange-400"></span>
               热门单曲
             </h2>
           </div>
-          <div class="w-full overflow-hidden">
+          <div class="w-full">
             <HotSongsMobile :songs="hotSongs" />
-          </div>
-        </section>
-
-        <section v-if="recentPlayed.length > 0">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="flex items-center text-lg font-bold text-white">
-              <span class="icon-[mdi--clock-outline] mr-2 h-5 w-5 text-blue-400"></span>
-              最近播放
-            </h2>
-            <router-link to="/mv-list" class="text-purple-300 transition-colors hover:text-white">
-              <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-            </router-link>
-          </div>
-          <div class="grid grid-cols-1 gap-3">
-            <div
-              v-for="(item, index) in recentPlayed"
-              :key="index"
-              class="glass-card cursor-pointer p-3 transition-all duration-300 hover:scale-105"
-            >
-              <div class="flex items-center space-x-3">
-                <div
-                  class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-linear-to-br text-xl"
-                  :class="item.gradient"
-                >
-                  {{ item.emoji }}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <h3 class="truncate text-sm font-medium text-white">{{ item.name }}</h3>
-                  <p class="truncate text-xs text-purple-300">{{ item.artist }}</p>
-                  <p class="text-[11px] text-purple-400">{{ item.playTime }}</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
       </div>

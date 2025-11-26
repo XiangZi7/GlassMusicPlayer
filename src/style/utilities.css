@@ -1,0 +1,134 @@
+@layer utilities {
+  .bottom-mask-gradient {
+    background: linear-gradient(to top, var(--mask-bg), var(--mask-bg), transparent);
+  }
+
+  .accent-gradient {
+    background: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+  }
+
+  .progress-track {
+    background: var(--progress-track-bg);
+  }
+
+  .progress-fill {
+    background: var(--progress-fill-bg);
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+      opacity: 0.6;
+    }
+    25% {
+      transform: translateY(-20px) rotate(90deg);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-40px) rotate(180deg);
+      opacity: 0.8;
+    }
+    75% {
+      transform: translateY(-20px) rotate(270deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(167, 139, 250, 0.6);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .text-dropdown-glass {
+    color: var(--glass-dropdown-text);
+  }
+
+  .bg-hover-glass {
+    background: var(--glass-hover-item-bg);
+  }
+
+  .bg-button-glass {
+    background: var(--glass-bg-button);
+  }
+
+  .bg-hover-button-glass {
+    background: var(--glass-hover-button-bg);
+  }
+
+  .mask-glass {
+    background: var(--mask-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .placeholder-glass-50::placeholder {
+    color: var(--glass-text);
+    opacity: 0.5;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bg-full {
+    background-size: 100% 100%;
+  }
+
+  .absolute-center {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}

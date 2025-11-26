@@ -19,6 +19,7 @@ const bgOptions = [
 const themeOptions = [
   { label: '浅色模式', value: 'light' },
   { label: '暗黑模式', value: 'dark' },
+  { label: '跟随系统', value: 'system' },
 ]
 const state = reactive({ isPageLoading: false })
 

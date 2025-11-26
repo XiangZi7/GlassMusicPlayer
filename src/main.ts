@@ -17,7 +17,7 @@ import 'virtual:svg-icons-register'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
-import { useWindowSize, useDebounceFn } from '@vueuse/core'
+import { useWindowSize, useDebounceFn, usePreferredDark } from '@vueuse/core'
 
 const app = createApp(App)
 
@@ -29,6 +29,7 @@ app.mount('#app')
 
 const globalStore = useGlobalStore()
 const { theme } = storeToRefs(globalStore)
+const preferredDark = usePreferredDark()
 const applyThemeClass = (t: 'light' | 'dark') => {
   const root = document.documentElement
   if (t === 'dark') {
@@ -37,8 +38,9 @@ const applyThemeClass = (t: 'light' | 'dark') => {
     root.classList.remove('dark')
   }
 }
-applyThemeClass(theme.value || 'light')
-watch(theme, t => applyThemeClass(t || 'light'))
+const resolveTheme = (t?: 'light' | 'dark' | 'system') => (t === 'system' ? (preferredDark.value ? 'dark' : 'light') : t || 'dark')
+applyThemeClass(resolveTheme(theme.value))
+watch([theme, preferredDark], () => applyThemeClass(resolveTheme(theme.value)))
 
 const { width } = useWindowSize()
 const setRootFontSize = (w: number) => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { playlistDetail, playlistTrackAll, commentNew } from '@/api'
 import { useAudio } from '@/composables/useAudio'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 type PlaylistInfo = {
   name: string
@@ -137,11 +138,11 @@ const toggleCollect = () => {
     <template v-else>
       <section class="mb-4">
         <div class="relative overflow-hidden rounded-2xl">
-          <img
+          <LazyImage
             v-if="state.info.coverImgUrl"
             :src="state.info.coverImgUrl"
             alt="cover"
-            class="h-36 w-full object-cover"
+            imgClass="h-36 w-full object-cover"
           />
           <div
             class="absolute inset-0 bg-linear-to-br opacity-40"
@@ -150,13 +151,13 @@ const toggleCollect = () => {
           <div class="relative z-10 p-4">
             <div class="mb-2">
               <span
-                class="inline-block rounded-full bg-white/20 px-2 py-1 text-[11px] text-white backdrop-blur-sm"
+                class="glass-button inline-block px-2 py-1 text-[11px] text-primary"
                 >{{ state.info.category }}</span
               >
             </div>
-            <h1 class="mb-1 truncate text-xl font-bold text-white">{{ state.info.name }}</h1>
-            <p class="line-clamp-2 text-xs text-white/80">{{ state.info.description }}</p>
-            <div class="mt-3 flex items-center gap-3 text-[12px] text-white/70">
+            <h1 class="mb-1 truncate text-xl font-bold text-primary">{{ state.info.name }}</h1>
+            <p class="line-clamp-2 text-xs text-primary/80">{{ state.info.description }}</p>
+            <div class="mt-3 flex items-center gap-3 text-[12px] text-primary/70">
               <span class="flex items-center gap-1"
                 ><span class="icon-[mdi--account-circle] h-4 w-4"></span
                 >{{ state.info.creator }}</span
@@ -166,19 +167,19 @@ const toggleCollect = () => {
                 >{{ state.info.songCount }}首</span
               >
               <span class="flex items-center gap-1"
-                ><span class="icon-[mdi--heart] h-4 w-4 text-red-400"></span
+                ><span class="icon-[mdi--heart] h-4 w-4 text-primary/70"></span
                 >{{ state.info.likes }}</span
               >
             </div>
             <div class="mt-3 flex items-center gap-2">
               <button
-                class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm text-white"
+                class="glass-button px-4 py-2 text-sm text-[var(--glass-text)]"
                 @click="playAll"
               >
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
               </button>
               <button
-                class="glass-button bg-white/10 px-3 py-2 text-sm text-white"
+                class="glass-button px-3 py-2 text-sm text-[var(--glass-text)]"
                 @click="toggleCollect"
               >
                 <span class="icon-[mdi--heart-outline] mr-1 h-4 w-4"></span
@@ -194,19 +195,19 @@ const toggleCollect = () => {
       </section>
 
       <section v-if="state.comments.length" class="mt-6">
-        <h3 class="mb-3 text-sm font-semibold text-white">精选评论</h3>
+        <h3 class="mb-3 text-sm font-semibold text-primary">精选评论</h3>
         <div class="space-y-3">
           <div v-for="(c, i) in state.comments" :key="i" class="glass-card p-3">
             <div class="flex items-start gap-3">
               <img :src="c.avatarUrl" alt="" class="h-8 w-8 rounded-full" />
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center gap-2">
-                  <span class="text-sm font-medium text-white">{{ c.username }}</span>
-                  <span class="text-[11px] text-white/60">{{ c.time }}</span>
+                  <span class="text-sm font-medium text-[var(--glass-text)]">{{ c.username }}</span>
+                  <span class="text-[11px] text-primary/60">{{ c.time }}</span>
                 </div>
-                <p class="text-sm text-white/80">{{ c.content }}</p>
+                <p class="text-sm text-primary/80">{{ c.content }}</p>
               </div>
-              <div class="flex items-center gap-1 text-[11px] text-white/70">
+              <div class="flex items-center gap-1 text-[11px] text-primary/70">
                 <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>{{ c.likes }}
               </div>
             </div>

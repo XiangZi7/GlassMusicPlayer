@@ -165,16 +165,16 @@ watch(visible, v => {
             class="glass-button absolute top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full"
             @click="visible = false"
           >
-            <span class="icon-[mdi--close] text-glass h-5 w-5"></span>
+            <span class="icon-[mdi--close] text-primary h-5 w-5"></span>
           </button>
 
           <div class="mb-6 text-center">
             <div
               class="bg-hover-glass mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl"
             >
-              <span class="icon-[mdi--account-circle] text-glass h-7 w-7"></span>
+              <span class="icon-[mdi--account-circle] text-primary h-7 w-7"></span>
             </div>
-            <h3 class="text-glass text-xl font-semibold">欢迎回来</h3>
+            <h3 class="text-primary text-xl font-semibold">欢迎回来</h3>
             <p class="text-dropdown-glass mt-1 text-sm opacity-80">请选择登录方式以继续</p>
           </div>
 
@@ -184,7 +184,7 @@ watch(visible, v => {
                 class="glass-button px-4 py-2 text-sm"
                 :class="
                   tab === 'password'
-                    ? 'bg-hover-glass text-glass ring-1 ring-pink-300/40'
+                    ? 'bg-hover-glass text-primary ring-1 ring-pink-300/40'
                     : 'text-dropdown-glass opacity-80'
                 "
                 @click="tab = 'password'"
@@ -195,7 +195,7 @@ watch(visible, v => {
                 class="glass-button px-4 py-2 text-sm"
                 :class="
                   tab === 'qr'
-                    ? 'bg-hover-glass text-glass ring-1 ring-pink-300/40'
+                    ? 'bg-hover-glass text-primary ring-1 ring-pink-300/40'
                     : 'text-dropdown-glass opacity-80'
                 "
                 @click="tab = 'qr'"
@@ -213,7 +213,7 @@ watch(visible, v => {
                     class="glass-button flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm"
                     :class="
                       !useEmail
-                        ? 'bg-hover-glass text-glass ring-1 ring-pink-300/40'
+                        ? 'bg-hover-glass text-primary ring-1 ring-pink-300/40'
                         : 'text-dropdown-glass opacity-80'
                     "
                     @click="useEmail = false"
@@ -225,7 +225,7 @@ watch(visible, v => {
                     class="glass-button flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm"
                     :class="
                       useEmail
-                        ? 'bg-hover-glass text-glass ring-1 ring-pink-300/40'
+                        ? 'bg-hover-glass text-primary ring-1 ring-pink-300/40'
                         : 'text-dropdown-glass opacity-80'
                     "
                     @click="useEmail = true"
@@ -251,7 +251,7 @@ watch(visible, v => {
                       v-model="phone"
                       type="tel"
                       placeholder="请输入手机号"
-                      class="text-glass flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
+                      class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                     />
                   </div>
                 </template>
@@ -264,7 +264,7 @@ watch(visible, v => {
                       v-model="email"
                       type="email"
                       placeholder="请输入邮箱"
-                      class="text-glass flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
+                      class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                     />
                   </div>
                 </template>
@@ -280,7 +280,7 @@ watch(visible, v => {
                     v-model="password"
                     type="password"
                     placeholder="请输入密码"
-                    class="text-glass flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
+                    class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                   />
                 </div>
               </div>
@@ -316,14 +316,14 @@ watch(visible, v => {
                       </span>
                     </div>
                   </div>
-                  <p class="text-glass text-center text-sm">
+                  <p class="text-primary text-center text-sm">
                     {{ state.qrUser?.message || qrStatusText || '加载中...' }}
                   </p>
                   <div class="text-center" v-if="state.qrUser?.nickname">
-                    <p class="text-glass font-semibold">{{ state.qrUser?.nickname }}</p>
+                    <p class="text-primary font-semibold">{{ state.qrUser?.nickname }}</p>
                   </div>
                   <button
-                    class="glass-button text-glass hover:bg-hover-glass rounded-xl px-4 py-2 text-sm"
+                    class="glass-button text-primary hover:bg-hover-glass rounded-xl px-4 py-2 text-sm"
                     :disabled="loading"
                     @click="genQr"
                   >

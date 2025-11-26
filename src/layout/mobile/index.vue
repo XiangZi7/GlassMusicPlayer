@@ -15,12 +15,15 @@ const openPlayerDrawer = () => {
 
 <template>
   <!-- 纯色背景容器：移动端更简洁、更聚焦内容 -->
-  <div class="flex h-dvh w-full flex-col bg-[#0f0f1a] text-white">
+  <div class="text-primary flex h-dvh w-full flex-col">
     <!-- 顶部导航（含搜索/登录入口） -->
     <MobileHeader />
 
     <!-- 内容区域：页面组件渲染 -->
-    <main class="flex-1 overflow-auto px-3 pt-3 pb-20">
+    <main
+      class="flex-1 pt-3"
+      style="padding-bottom: calc(var(--mobile-tabbar-h, 56px) + var(--mobile-miniplayer-h, 0px) + env(safe-area-inset-bottom))"
+    >
       <router-view v-slot="{ Component }">
         <keep-alive>
           <component :is="Component" />

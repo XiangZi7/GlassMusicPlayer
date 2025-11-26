@@ -4,7 +4,7 @@ import piniaPersistConfig from '../persist'
 export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => ({
     count: 0,
-    theme: 'dark' as 'light' | 'dark',
+    theme: 'system' as 'light' | 'dark' | 'system',
     searchHistory: [],
   }),
   actions: {
@@ -13,7 +13,7 @@ export const useGlobalStore = defineStore('global', {
         state[key] = value
       })
     },
-    setTheme(theme: 'light' | 'dark') {
+    setTheme(theme: 'light' | 'dark' | 'system') {
       this.theme = theme
     },
     toggleTheme() {

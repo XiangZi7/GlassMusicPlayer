@@ -48,11 +48,30 @@ watch(
   id => fetchLyrics(id as any, true)
 )
 watch(() => currentTime.value, updateLyricIdx)
+
+const rootRef = useTemplateRef('rootRef')
+let ro: ResizeObserver | null = null
+const updateMiniplayerHeight = () => {
+  const h = rootRef.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--mobile-miniplayer-h', `${h}px`)
+}
+onMounted(() => {
+  updateMiniplayerHeight()
+  if (rootRef.value) {
+    ro = new ResizeObserver(updateMiniplayerHeight)
+    ro.observe(rootRef.value)
+  }
+})
+onUnmounted(() => {
+  ro?.disconnect()
+  ro = null
+  document.documentElement.style.setProperty('--mobile-miniplayer-h', '0px')
+})
 </script>
 
 <template>
-  <div v-if="currentSong" class="fixed right-0 bottom-14 left-0 z-50 bg-black/80">
-    <div class="glass-card flex items-center gap-3 rounded-2xl p-3">
+  <div v-if="currentSong" ref="rootRef" class="mask-glass fixed right-0 bottom-15 left-0 z-50">
+    <div class="glass-card flex items-center gap-3 rounded-t-2xl rounded-tl-2xl rounded-b-none p-3">
       <div class="w-12 overflow-hidden rounded-lg" @click="$emit('open')">
         <img
           v-if="currentSong.cover"
@@ -60,37 +79,34 @@ watch(() => currentTime.value, updateLyricIdx)
           alt="cover"
           class="h-full w-full object-cover"
         />
-        <div v-else class="flex h-full w-full items-center justify-center rounded-lg bg-white/10">
+        <div v-else class="glass-button flex h-full w-full items-center justify-center rounded-lg">
           🎵
         </div>
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-start gap-3">
           <div class="min-w-0">
-            <p class="truncate text-sm font-medium text-white">{{ currentSong.name }}</p>
-            <p class="truncate text-xs text-white/70">{{ currentSong.artist || '' }}</p>
+            <p class="text-primary truncate text-sm font-medium">{{ currentSong.name }}</p>
+            <p class="text-primary/70 truncate text-xs">{{ currentSong.artist || '' }}</p>
           </div>
           <div class="min-w-0 flex-1 text-right">
-            <p class="truncate text-sm font-medium text-white">
+            <p class="text-primary truncate text-sm font-medium">
               {{ mergedLines[lyric.idx]?.ori || '' }}
             </p>
-            <p class="truncate text-xs text-white/70">
+            <p class="text-primary/70 truncate text-xs">
               {{ mergedLines[lyric.idx]?.tran || '' }}
             </p>
           </div>
         </div>
         <div class="mt-2 flex items-center gap-2">
-          <span class="text-[11px] text-white/60">{{ formattedCurrentTime }}</span>
+          <span class="text-primary/60 text-[11px]">{{ formattedCurrentTime }}</span>
           <div
             @click="onProgressClick"
-            class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
+            class="progress-track relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full"
           >
-            <div
-              class="h-full rounded-full bg-linear-to-r from-pink-400 to-purple-500"
-              :style="{ width: `${progress}%` }"
-            ></div>
+            <div class="progress-fill h-full rounded-full" :style="{ width: `${progress}%` }"></div>
           </div>
-          <span class="text-[11px] text-white/60">{{ formattedDuration }}</span>
+          <span class="text-primary/60 text-[11px]">{{ formattedDuration }}</span>
         </div>
       </div>
       <button
@@ -98,11 +114,11 @@ watch(() => currentTime.value, updateLyricIdx)
         :title="isPlaying ? '暂停' : '播放'"
         @click="togglePlay"
       >
-        <span v-if="isLoading" class="icon-[mdi--loading] h-5 w-5 animate-spin text-white"></span>
+        <span v-if="isLoading" class="icon-[mdi--loading] text-primary h-5 w-5 animate-spin"></span>
         <span
           v-else
           :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-          class="h-5 w-5 text-white"
+          class="text-primary h-5 w-5"
         ></span>
       </button>
       <button
@@ -110,7 +126,7 @@ watch(() => currentTime.value, updateLyricIdx)
         title="下一首"
         @click="next"
       >
-        <span class="icon-[mdi--skip-next] h-5 w-5 text-white"></span>
+        <span class="icon-[mdi--skip-next] text-primary h-5 w-5"></span>
       </button>
     </div>
   </div>

@@ -1,51 +1,38 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
 
-const { playlist } = useAudio()
-console.log("🚀 ~ file: my-music.vue:5 ~ playlist:", playlist.value)
+const { playlist, clearPlaylist } = useAudio()
 
-const state = reactive({
-  loading: false,
-  userPlaylists: [] as Array<{
-    id: number | string
-    name: string
-    coverImgUrl: string
-    trackCount: number
-  }>,
-})
+const handleClearQueue = () => {
+  clearPlaylist()
+}
 </script>
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
     <section class="mb-6">
-      <h2 class="mb-2 text-sm font-semibold text-white">正在播放列表</h2>
-      <HotSongsMobile :songs="playlist" context="queue" />
-    </section>
-
-    <section>
-      <h2 class="mb-2 text-sm font-semibold text-white">我的歌单</h2>
-      <div v-if="state.loading" class="py-6">
-        <PageSkeleton :sections="['list']" :list-count="6" />
-      </div>
-      <div v-else class="grid grid-cols-2 gap-3">
-        <router-link
-          v-for="p in state.userPlaylists"
-          :key="p.id"
-          :to="`/playlist/${p.id}`"
-          class="group"
-        >
-          <div class="glass-card p-3">
-            <div class="relative mb-2 overflow-hidden rounded-lg">
-              <img
-                :src="p.coverImgUrl + '?param=300y300'"
-                alt="cover"
-                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-            </div>
-            <h3 class="truncate text-xs font-medium text-white">{{ p.name }}</h3>
-            <p class="truncate text-[11px] text-purple-300">{{ p.trackCount }}首</p>
+      <div class="p-3">
+        <div class="mb-2 flex items-center justify-between">
+          <h2 class="text-primary text-sm font-semibold">正在播放列表</h2>
+          <div class="flex items-center gap-2">
+            <span class="text-primary/60 text-xs">共 {{ playlist.length }} 首</span>
+            <button
+              class="glass-button text-primary rounded-md px-3 py-1 text-xs"
+              title="一键清空"
+              @click="handleClearQueue"
+            >
+              清空
+            </button>
           </div>
-        </router-link>
+        </div>
+
+        <div v-if="playlist.length === 0" class="py-8 text-center">
+          <div class="text-primary/70 mb-2 text-sm">当前没有播放中的歌曲</div>
+          <div class="text-primary/60 text-xs">去歌单或搜索页面添加喜欢的音乐吧</div>
+        </div>
+        <div v-else>
+          <HotSongsMobile :songs="playlist" context="queue" />
+        </div>
       </div>
     </section>
   </div>

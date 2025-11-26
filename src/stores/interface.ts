@@ -57,6 +57,6 @@ export interface AudioState {
 
 export interface GlobalState {
   count: number
-  theme?: 'light' | 'dark'
+  theme?: 'light' | 'dark' | 'system'
   searchHistory: string[]
 }

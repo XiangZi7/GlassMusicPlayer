@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { cloudSearch, searchSuggest, searchDefault } from '@/api'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 const state = reactive({
   q: '',
   placeholder: '',
@@ -102,33 +103,33 @@ const handleSearchClick = () => {
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
-    <div class="sticky top-0 z-10 bg-[#0f0f1a] pt-2 pb-3">
+    <div class="sticky top-0 z-10 glass-nav pt-2 pb-3">
       <div class="glass-card flex items-center gap-2 px-3 py-2">
-        <span class="icon-[mdi--magnify] h-5 w-5 text-white/70"></span>
+        <span class="icon-[mdi--magnify] h-5 w-5 text-primary/70"></span>
         <input
           v-model="state.q"
           @keyup.enter="handleSearchClick"
           type="text"
           :placeholder="state.placeholder || '搜索音乐、歌单、MV'"
-          class=" placeholder-white/50 min-w-0 flex-1 bg-transparent text-sm outline-none"
+          class=" placeholder-glass-50 min-w-0 flex-1 bg-transparent text-sm outline-none text-primary"
         />
         <button
           v-if="state.q"
-          class="rounded-md p-2 hover:bg-white/10"
+          class="rounded-md p-2 hover:bg-hover-glass"
           title="清空"
           @click="clearQuery"
         >
-          <span class="icon-[mdi--close-circle-outline] h-5 w-5 text-white/70"></span>
+          <span class="icon-[mdi--close-circle-outline] h-5 w-5 text-primary/70"></span>
         </button>
-        <button class="rounded-md p-2 hover:bg-white/10" title="搜索" @click="handleSearchClick">
-          <span class="icon-[mdi--arrow-right] text白色 h-5 w-5"></span>
+        <button class="rounded-md p-2 hover:bg-hover-glass" title="搜索" @click="handleSearchClick">
+          <span class="icon-[mdi--arrow-right] h-5 w-5 text-primary"></span>
         </button>
       </div>
       <div v-if="state.suggest.length" class="mt-2 grid grid-cols-2 gap-2">
         <button
           v-for="s in state.suggest"
           :key="s"
-          class="glass-button min-w-0 truncate rounded-full px-3 py-1 text-xs text-white/80"
+          class="glass-button min-w-0 truncate rounded-full px-3 py-1 text-xs text-primary/80"
           @click="handleSuggestClick(s)"
         >
           {{ s }}
@@ -136,21 +137,21 @@ const handleSearchClick = () => {
       </div>
       <div class="mt-3 flex items-center gap-2">
         <button
-          :class="state.tab === 'song' ? 'text-white' : 'text-white/60'"
+          :class="state.tab === 'song' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'song'"
         >
           单曲
         </button>
         <button
-          :class="state.tab === 'playlist' ? 'text-white' : 'text-white/60'"
+          :class="state.tab === 'playlist' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'playlist'"
         >
           歌单
         </button>
         <button
-          :class="state.tab === 'mv' ? 'text-white' : 'text-white/60'"
+          :class="state.tab === 'mv' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'mv'"
         >
@@ -177,19 +178,19 @@ const handleSearchClick = () => {
         >
           <div class="glass-card p-3">
             <div class="relative mb-2 overflow-hidden rounded-lg">
-              <img
+              <LazyImage
                 :src="p.coverImgUrl + '?param=300y300'"
                 alt="cover"
-                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                imgClass="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
               />
-              <div
-                class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              >
-                <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
-              </div>
+            <div
+              class="absolute inset-0 flex items-center justify-center bg-hover-glass opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            >
+              <span class="icon-[mdi--play] h-5 w-5 text-[var(--glass-text)]"></span>
             </div>
-            <h3 class="truncate text-xs font-medium text-white">{{ p.name }}</h3>
-            <p class="truncate text-[11px] text-purple-300">{{ p.trackCount }}首</p>
+          </div>
+            <h3 class="truncate text-xs font-medium text-primary">{{ p.name }}</h3>
+            <p class="truncate text-[11px] text-primary/70">{{ p.trackCount }}首</p>
           </div>
         </router-link>
       </section>
@@ -198,10 +199,10 @@ const handleSearchClick = () => {
         <router-link v-for="m in state.mvs" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
           <div class="glass-card p-3">
             <div class="relative mb-2 overflow-hidden rounded-lg">
-              <img :src="m.cover" alt="cover" class="h-full w-full object-cover" />
+              <LazyImage :src="m.cover" alt="cover" imgClass="h-full w-full object-cover" />
             </div>
-            <h3 class="truncate text-xs font-medium text-white">{{ m.name }}</h3>
-            <p class="truncate text-[11px] text-purple-300">{{ m.artist }}</p>
+            <h3 class="truncate text-xs font-medium text-primary">{{ m.name }}</h3>
+            <p class="truncate text-[11px] text-primary/70">{{ m.artist }}</p>
           </div>
         </router-link>
       </section>

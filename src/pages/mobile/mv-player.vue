@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mvDetail, mvUrl, simiMv } from '@/api'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const route = useRoute()
 const mvId = computed(() => String(route.params.id || ''))
@@ -43,24 +44,24 @@ onMounted(() => { if (mvId.value) load(mvId.value) })
       <section class="mb-4">
         <div class="relative overflow-hidden rounded-2xl">
           <Artplayer v-if="state.url" :src="state.url" class="h-48 w-full" />
-          <div v-else class="flex h-48 w-full items-center justify-center rounded-2xl bg-white/10">暂无播放地址</div>
+          <div v-else class="flex h-48 w-full items-center justify-center rounded-2xl glass-button">暂无播放地址</div>
         </div>
         <div class="mt-2">
-          <h1 class="truncate text-lg font-bold text-white">{{ state.name }}</h1>
-          <p class="truncate text-xs text-purple-300">{{ state.artist }}</p>
+          <h1 class="truncate text-lg font-bold text-primary">{{ state.name }}</h1>
+          <p class="truncate text-xs text-primary/70">{{ state.artist }}</p>
         </div>
       </section>
 
       <section>
-        <h3 class="mb-2 text-sm font-semibold text-white">相似 MV</h3>
+        <h3 class="mb-2 text-sm font-semibold text-primary">相似 MV</h3>
         <div class="grid grid-cols-2 gap-3">
           <router-link v-for="m in state.simis" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
             <div class="glass-card p-3">
               <div class="relative mb-2 overflow-hidden rounded-lg">
-                <img :src="m.cover" alt="cover" class="h-full w-full object-cover" />
+            <LazyImage :src="m.cover" alt="cover" imgClass="h-full w-full object-cover" />
               </div>
-              <h3 class="truncate text-xs font-medium text-white">{{ m.name }}</h3>
-              <p class="truncate text-[11px] text-purple-300">{{ m.artist }}</p>
+              <h3 class="truncate text-xs font-medium text-primary">{{ m.name }}</h3>
+              <p class="truncate text-[11px] text-primary/70">{{ m.artist }}</p>
             </div>
           </router-link>
         </div>
