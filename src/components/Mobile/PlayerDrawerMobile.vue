@@ -157,7 +157,7 @@ const handleLyricsTouchStart = (e: TouchEvent) => {
   lyricDragStartY.value = e.touches?.[0]?.clientY ?? null
   lyricDragStartTime.value = currentTime.value
   draggingLyrics.value = true
-  previewLyricTime.value = currentTime.value
+  previewLyricTime.value = null
   lyricDragMoved.value = false
 }
 
@@ -168,7 +168,7 @@ const handleLyricsTouchMove = (e: TouchEvent) => {
   const dy = y - lyricDragStartY.value
   const threshold = 12
   if (Math.abs(dy) < threshold) {
-    previewLyricTime.value = lyricDragStartTime.value
+    previewLyricTime.value = null
     return
   }
   lyricDragMoved.value = true
@@ -542,8 +542,8 @@ onUnmounted(() => {
           @click.stop="showLyrics = false"
         >
           <div
-            v-if="draggingLyrics && previewLyricTime !== null"
-            class="time-indicator absolute right-0 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm"
+            v-if="lyricDragMoved && previewLyricTime !== null"
+            class="time-indicator absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm"
           >
             <span class="text-primary/90">{{ formattedPreviewLyricTime }}</span>
           </div>
