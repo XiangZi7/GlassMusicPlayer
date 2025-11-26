@@ -128,6 +128,7 @@ const lyricDragStartY = ref<number | null>(null)
 const lyricDragStartTime = ref<number | null>(null)
 const draggingLyrics = ref(false)
 const previewLyricTime = ref<number | null>(null)
+const lyricDragMoved = ref(false)
 const formatSeconds = (sec: number | null) => {
   if (sec == null) return ''
   const s = Math.floor(sec)
@@ -157,6 +158,7 @@ const handleLyricsTouchStart = (e: TouchEvent) => {
   lyricDragStartTime.value = currentTime.value
   draggingLyrics.value = true
   previewLyricTime.value = currentTime.value
+  lyricDragMoved.value = false
 }
 
 const handleLyricsTouchMove = (e: TouchEvent) => {
@@ -164,6 +166,12 @@ const handleLyricsTouchMove = (e: TouchEvent) => {
   const y = e.touches?.[0]?.clientY ?? null
   if (lyricDragStartY.value == null || y == null || lyricDragStartTime.value == null) return
   const dy = y - lyricDragStartY.value
+  const threshold = 12
+  if (Math.abs(dy) < threshold) {
+    previewLyricTime.value = lyricDragStartTime.value
+    return
+  }
+  lyricDragMoved.value = true
   const sensitivity = -0.06
   const delta = dy * sensitivity
   const base = lyricDragStartTime.value
@@ -173,7 +181,7 @@ const handleLyricsTouchMove = (e: TouchEvent) => {
 }
 
 const handleLyricsTouchEnd = () => {
-  if (previewLyricTime.value != null) {
+  if (lyricDragMoved.value && previewLyricTime.value != null) {
     setCurrentTime(previewLyricTime.value)
     updateCurrentLyric(true)
   }
@@ -181,6 +189,7 @@ const handleLyricsTouchEnd = () => {
   lyricDragStartY.value = null
   lyricDragStartTime.value = null
   previewLyricTime.value = null
+  lyricDragMoved.value = false
 }
 
 const handleProgressClick = (event: MouseEvent) => {
