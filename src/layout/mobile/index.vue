@@ -21,8 +21,13 @@ const openPlayerDrawer = () => {
 
     <!-- 内容区域：页面组件渲染 -->
     <main
-      class="flex-1 pt-3"
-      style="padding-bottom: calc(var(--mobile-tabbar-h, 56px) + var(--mobile-miniplayer-h, 0px) + env(safe-area-inset-bottom))"
+      class="flex flex-1 flex-col pt-3"
+      style="
+        padding-bottom: calc(
+          var(--mobile-tabbar-h, 56px) + var(--mobile-miniplayer-h, 0px) +
+            env(safe-area-inset-bottom)
+        );
+      "
     >
       <router-view v-slot="{ Component }">
         <keep-alive>

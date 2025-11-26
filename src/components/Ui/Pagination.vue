@@ -43,7 +43,7 @@ const goNext = () => {
 
 <template>
   <div
-    class="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-white"
+    class="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2"
     :class="[isCar ? 'glass-nav' : '']"
   >
     <button
@@ -65,7 +65,9 @@ const goNext = () => {
         {{ p }}
       </button>
     </div>
-    <span class="text-muted-glass text-xs sm:text-sm whitespace-nowrap"> 第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条 </span>
+    <span class="text-muted-glass text-xs whitespace-nowrap sm:text-sm">
+      第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条
+    </span>
     <button
       class="glass-button px-3 py-2 text-sm"
       :class="canNext ? 'text-primary' : 'text-muted-glass cursor-not-allowed opacity-50'"
