@@ -543,7 +543,7 @@ onUnmounted(() => {
         >
           <div
             v-if="lyricDragMoved && previewLyricTime !== null"
-            class="time-indicator absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm"
+            class="time-indicator absolute right-0 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm"
           >
             <span class="text-primary/90">{{ formattedPreviewLyricTime }}</span>
           </div>
