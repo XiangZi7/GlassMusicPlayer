@@ -2,7 +2,7 @@
   <div class="relative w-full rounded-2xl" ref="rootRef">
     <button
       type="button"
-      class="glass-button flex w-full items-center justify-between overflow-hidden rounded-2xl px-3 py-2 text-left text-white"
+      class="glass-button text-primary flex w-full items-center justify-between overflow-hidden rounded-2xl px-3 py-2 text-left"
       @click="toggle"
     >
       <span class="truncate">{{ selectedLabel }}</span>

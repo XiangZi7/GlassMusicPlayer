@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
+import { useSettingsStore } from '@/stores/modules/settings'
+import { storeToRefs } from 'pinia'
 
+const settingsStore = useSettingsStore()
+
+const { footerLyrics } = storeToRefs(settingsStore)
 const {
   currentSong,
   isPlaying,
@@ -23,6 +28,16 @@ const onProgressClick = (event: MouseEvent) => {
 }
 
 const { mergedLines, activeTimeline, fetchLyrics } = useLyrics()
+
+watch(
+  () => mergedLines.value,
+  () => {
+    console.log('🚀 ~ file: MiniPlayerMobile.vue:33 ~ mergedLines:', mergedLines.value)
+  },
+  {
+    immediate: true,
+  }
+)
 const lyric = reactive({ idx: 0 })
 const updateLyricIdx = () => {
   const times = activeTimeline.value
@@ -70,7 +85,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="currentSong" ref="rootRef" class="mask-glass  backdrop-blur-md fixed right-0 bottom-15 left-0 z-50">
+  <div
+    v-if="currentSong"
+    ref="rootRef"
+    class="mask-glass fixed right-0 bottom-15 left-0 z-50 backdrop-blur-md"
+  >
     <div class="glass-card flex items-center gap-3 rounded-t-2xl rounded-tl-2xl rounded-b-none p-3">
       <div class="w-12 overflow-hidden rounded-lg" @click="$emit('open')">
         <img
@@ -89,12 +108,21 @@ onUnmounted(() => {
             <p class="text-primary truncate text-sm font-medium">{{ currentSong.name }}</p>
             <p class="text-primary/70 truncate text-xs">{{ currentSong.artist || '' }}</p>
           </div>
-          <div class="min-w-0 flex-1 text-right">
-            <p class="text-primary truncate text-sm font-medium">
+          <div v-if="footerLyrics.enabled" class="min-w-0 flex-1 text-right">
+            <p
+              v-if="footerLyrics.modes.includes('original')"
+              class="text-primary truncate text-sm font-medium"
+            >
               {{ mergedLines[lyric.idx]?.ori || '' }}
             </p>
-            <p class="text-primary/70 truncate text-xs">
+            <p
+              v-if="footerLyrics.modes.includes('trans')"
+              class="text-primary/70 truncate text-xs"
+            >
               {{ mergedLines[lyric.idx]?.tran || '' }}
+            </p>
+            <p v-if="footerLyrics.modes.includes('roma')" class="text-primary/70 truncate text-xs">
+              {{ mergedLines[lyric.idx]?.roma || '' }}
             </p>
           </div>
         </div>
@@ -131,3 +159,8 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+const settings = useSettingsStore() const { footerLyrics } = storeToRefs(settings) const showOri =
+computed(() => footerLyrics.value.enabled && footerLyrics.value.modes.includes('original')) const
+showTran = computed(() => footerLyrics.value.enabled && footerLyrics.value.modes.includes('trans'))
+const showRoma = computed(() => footerLyrics.value.enabled &&
+footerLyrics.value.modes.includes('roma'))
