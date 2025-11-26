@@ -2,38 +2,75 @@
 import { cloudSearch, searchSuggest, searchDefault } from '@/api'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import Pagination from '@/components/Ui/Pagination.vue'
-const state = reactive({
+import { Song } from '@/stores/interface'
+type SearchTab = 'song' | 'playlist' | 'mv'
+type PlaylistItem = {
+  id: number | string
+  name: string
+  coverImgUrl: string
+  trackCount: number
+}
+type MVItem = { id: number | string; name: string; cover: string; artist: string }
+interface MobileSearchState {
+  q: string
+  placeholder: string
+  tab: SearchTab
+  suggest: string[]
+  loading: boolean
+  suggestVisible: boolean
+  songs: Song[]
+  songPage: number
+  songPageSize: number
+  songTotal: number
+  playlists: PlaylistItem[]
+  playlistPage: number
+  playlistPageSize: number
+  playlistTotal: number
+  mvs: MVItem[]
+  mvPage: number
+  mvPageSize: number
+  mvTotal: number
+}
+const state = reactive<MobileSearchState>({
   q: '',
   placeholder: '',
-  tab: 'song' as 'song' | 'playlist' | 'mv',
-  suggest: [] as string[],
+  tab: 'song',
+  suggest: [],
   loading: false,
   suggestVisible: false,
-  songs: [] as Array<{
-    id: number | string
-    name: string
-    artist: string
-    album: string
-    duration: number
-    cover: string
-  }>,
+  songs: [],
   songPage: 1,
   songPageSize: 20,
   songTotal: 0,
-  playlists: [] as Array<{
-    id: number | string
-    name: string
-    coverImgUrl: string
-    trackCount: number
-  }>,
+  playlists: [],
   playlistPage: 1,
   playlistPageSize: 12,
   playlistTotal: 0,
-  mvs: [] as Array<{ id: number | string; name: string; cover: string; artist: string }>,
+  mvs: [],
   mvPage: 1,
   mvPageSize: 12,
   mvTotal: 0,
 })
+const {
+  q,
+  placeholder,
+  tab,
+  suggest,
+  loading,
+  suggestVisible,
+  songs,
+  songPage,
+  songPageSize,
+  songTotal,
+  playlists,
+  playlistPage,
+  playlistPageSize,
+  playlistTotal,
+  mvs,
+  mvPage,
+  mvPageSize,
+  mvTotal,
+} = toRefs(state)
 
 const fetchDefault = async () => {
   const res = await searchDefault()
@@ -187,15 +224,15 @@ onUnmounted(() => {
       <div ref="searchBoxRef" class="glass-card relative flex items-center gap-2 px-3 py-2">
         <span class="icon-[mdi--magnify] text-primary/70 h-5 w-5"></span>
         <input
-          v-model="state.q"
+          v-model="q"
           @keyup.enter="handleSearchClick"
           @focus="handleInputFocus"
           type="text"
-          :placeholder="state.placeholder || '搜索音乐、歌单、MV'"
+          :placeholder="placeholder || '搜索音乐、歌单、MV'"
           class="placeholder-glass-50 text-primary min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
         <button
-          v-if="state.q"
+          v-if="q"
           class="hover:bg-hover-glass rounded-md p-2"
           title="清空"
           @click="clearQuery"
@@ -206,12 +243,12 @@ onUnmounted(() => {
           <span class="icon-[mdi--arrow-right] text-primary h-5 w-5"></span>
         </button>
         <div
-          v-if="state.suggestVisible && state.suggest.length"
+          v-if="suggestVisible && suggest.length"
           class="glass-dropdown absolute top-full right-0 left-0 z-20 mt-2 rounded-xl p-3 backdrop-blur-md"
         >
           <div class="grid grid-cols-2 gap-2">
             <button
-              v-for="s in state.suggest"
+              v-for="s in suggest"
               :key="s"
               class="glass-button text-primary/80 min-w-0 truncate rounded-full px-3 py-1 text-xs"
               @click="handleSuggestClick(s)"
@@ -223,21 +260,21 @@ onUnmounted(() => {
       </div>
       <div class="mt-3 flex items-center gap-2">
         <button
-          :class="state.tab === 'song' ? 'text-primary' : 'text-primary/60'"
+          :class="tab === 'song' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'song'"
         >
           单曲
         </button>
         <button
-          :class="state.tab === 'playlist' ? 'text-primary' : 'text-primary/60'"
+          :class="tab === 'playlist' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'playlist'"
         >
           歌单
         </button>
         <button
-          :class="state.tab === 'mv' ? 'text-primary' : 'text-primary/60'"
+          :class="tab === 'mv' ? 'text-primary' : 'text-primary/60'"
           class="rounded-md px-3 py-1 text-sm"
           @click="state.tab = 'mv'"
         >
@@ -246,24 +283,24 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="state.loading" class="py-6">
+    <div v-if="loading" class="py-6">
       <PageSkeleton :sections="['list']" :list-count="10" />
     </div>
 
     <div v-else>
-      <section v-show="state.tab === 'song'" class="space-y-3">
-        <HotSongsMobile :songs="state.songs" context="generic" />
+      <section v-show="tab === 'song'" class="space-y-3">
+        <HotSongsMobile :songs="songs" context="generic" />
         <Pagination
-          v-if="state.songTotal > state.songPageSize"
-          v-model="state.songPage"
-          :total="state.songTotal"
-          :page-size="state.songPageSize"
+          v-if="songTotal > songPageSize"
+          v-model="songPage"
+          :total="songTotal"
+          :page-size="songPageSize"
         />
       </section>
 
-      <section v-show="state.tab === 'playlist'" class="grid grid-cols-2 gap-3">
+      <section v-show="tab === 'playlist'" class="grid grid-cols-2 gap-3">
         <router-link
-          v-for="p in state.playlists"
+          v-for="p in playlists"
           :key="p.id"
           :to="`/playlist/${p.id}`"
           class="group"
@@ -287,16 +324,16 @@ onUnmounted(() => {
         </router-link>
         <div class="col-span-2">
           <Pagination
-            v-if="state.playlistTotal > state.playlistPageSize"
-            v-model="state.playlistPage"
-            :total="state.playlistTotal"
-            :page-size="state.playlistPageSize"
+            v-if="playlistTotal > playlistPageSize"
+            v-model="playlistPage"
+            :total="playlistTotal"
+            :page-size="playlistPageSize"
           />
         </div>
       </section>
 
-      <section v-show="state.tab === 'mv'" class="grid grid-cols-2 gap-3">
-        <router-link v-for="m in state.mvs" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
+      <section v-show="tab === 'mv'" class="grid grid-cols-2 gap-3">
+        <router-link v-for="m in mvs" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
           <div class="glass-card p-3">
             <div class="relative mb-2 overflow-hidden rounded-lg">
               <LazyImage :src="m.cover" alt="cover" imgClass="h-full w-full object-cover" />
@@ -307,10 +344,10 @@ onUnmounted(() => {
         </router-link>
         <div class="col-span-2">
           <Pagination
-            v-if="state.mvTotal > state.mvPageSize"
-            v-model="state.mvPage"
-            :total="state.mvTotal"
-            :page-size="state.mvPageSize"
+            v-if="mvTotal > mvPageSize"
+            v-model="mvPage"
+            :total="mvTotal"
+            :page-size="mvPageSize"
           />
         </div>
       </section>
