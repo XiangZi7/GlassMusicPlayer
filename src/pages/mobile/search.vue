@@ -186,7 +186,7 @@ const handleSearchClick = () => {
             <div
               class="absolute inset-0 flex items-center justify-center bg-hover-glass opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             >
-              <span class="icon-[mdi--play] h-5 w-5 text-[var(--glass-text)]"></span>
+              <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
             </div>
           </div>
             <h3 class="truncate text-xs font-medium text-primary">{{ p.name }}</h3>

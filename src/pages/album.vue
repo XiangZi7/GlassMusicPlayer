@@ -151,7 +151,7 @@ onMounted(() => load())
         <h2 class="mb-3 text-lg font-semibold">曲目列表</h2>
         <PageSkeleton v-if="state.loading" :sections="['list']" :list-count="12" />
         <SongList
-          class="!h-[50vh]"
+          class="h-[50vh]!"
           v-else
           :songs="state.songs"
           :current-playing-index="-1"

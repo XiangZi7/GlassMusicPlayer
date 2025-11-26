@@ -173,13 +173,13 @@ const toggleCollect = () => {
             </div>
             <div class="mt-3 flex items-center gap-2">
               <button
-                class="glass-button px-4 py-2 text-sm text-[var(--glass-text)]"
+                class="glass-button px-4 py-2 text-sm text-primary"
                 @click="playAll"
               >
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
               </button>
               <button
-                class="glass-button px-3 py-2 text-sm text-[var(--glass-text)]"
+                class="glass-button px-3 py-2 text-sm text-primary"
                 @click="toggleCollect"
               >
                 <span class="icon-[mdi--heart-outline] mr-1 h-4 w-4"></span
@@ -202,7 +202,7 @@ const toggleCollect = () => {
               <img :src="c.avatarUrl" alt="" class="h-8 w-8 rounded-full" />
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center gap-2">
-                  <span class="text-sm font-medium text-[var(--glass-text)]">{{ c.username }}</span>
+                  <span class="text-sm font-medium text-primary">{{ c.username }}</span>
                   <span class="text-[11px] text-primary/60">{{ c.time }}</span>
                 </div>
                 <p class="text-sm text-primary/80">{{ c.content }}</p>

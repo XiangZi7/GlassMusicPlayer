@@ -127,6 +127,15 @@ const touchStartY = ref<number | null>(null)
 const lyricDragStartY = ref<number | null>(null)
 const lyricDragStartTime = ref<number | null>(null)
 const draggingLyrics = ref(false)
+const previewLyricTime = ref<number | null>(null)
+const formatSeconds = (sec: number | null) => {
+  if (sec == null) return ''
+  const s = Math.floor(sec)
+  const m = Math.floor(s / 60)
+  const ss = s % 60
+  return `${m.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`
+}
+const formattedPreviewLyricTime = computed(() => formatSeconds(previewLyricTime.value))
 const handleCenterTouchStart = (e: TouchEvent) => {
   touchStartY.value = e.touches?.[0]?.clientY ?? null
 }
@@ -147,6 +156,7 @@ const handleLyricsTouchStart = (e: TouchEvent) => {
   lyricDragStartY.value = e.touches?.[0]?.clientY ?? null
   lyricDragStartTime.value = currentTime.value
   draggingLyrics.value = true
+  previewLyricTime.value = currentTime.value
 }
 
 const handleLyricsTouchMove = (e: TouchEvent) => {
@@ -154,19 +164,23 @@ const handleLyricsTouchMove = (e: TouchEvent) => {
   const y = e.touches?.[0]?.clientY ?? null
   if (lyricDragStartY.value == null || y == null || lyricDragStartTime.value == null) return
   const dy = y - lyricDragStartY.value
-  const sensitivity = -0.06 // 每 100px 约调整 6 秒，上滑快退，下滑快进
+  const sensitivity = -0.06
   const delta = dy * sensitivity
   const base = lyricDragStartTime.value
   const total = activeTimeline.value[activeTimeline.value.length - 1] ?? base
   const nextTime = Math.max(0, Math.min(total, base + delta))
-  setCurrentTime(nextTime)
-  updateCurrentLyric()
+  previewLyricTime.value = nextTime
 }
 
 const handleLyricsTouchEnd = () => {
+  if (previewLyricTime.value != null) {
+    setCurrentTime(previewLyricTime.value)
+    updateCurrentLyric(true)
+  }
   draggingLyrics.value = false
   lyricDragStartY.value = null
   lyricDragStartTime.value = null
+  previewLyricTime.value = null
 }
 
 const handleProgressClick = (event: MouseEvent) => {
@@ -511,12 +525,19 @@ onUnmounted(() => {
         </div>
         <div
           v-show="state.showLyrics"
+          ref="lyricsContainerRef"
           class="lyrics-container relative flex max-h-[60vh] w-full flex-col overflow-hidden p-4"
           @touchstart="handleLyricsTouchStart"
           @touchmove.prevent="handleLyricsTouchMove"
           @touchend="handleLyricsTouchEnd"
           @click.stop="showLyrics = false"
         >
+          <div
+            v-if="draggingLyrics && previewLyricTime !== null"
+            class="time-indicator absolute right-0 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm"
+          >
+            <span class="text-primary/90">{{ formattedPreviewLyricTime }}</span>
+          </div>
           <div
             ref="lyricsRef"
             class="lyrics-scroll relative z-20 h-auto"
@@ -810,5 +831,10 @@ onUnmounted(() => {
   border-radius: 0.5rem;
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   white-space: pre-line;
+}
+.time-indicator {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 </style>
