@@ -70,7 +70,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="currentSong" ref="rootRef" class="mask-glass fixed right-0 bottom-15 left-0 z-50">
+  <div v-if="currentSong" ref="rootRef" class="mask-glass  backdrop-blur-md fixed right-0 bottom-15 left-0 z-50">
     <div class="glass-card flex items-center gap-3 rounded-t-2xl rounded-tl-2xl rounded-b-none p-3">
       <div class="w-12 overflow-hidden rounded-lg" @click="$emit('open')">
         <img

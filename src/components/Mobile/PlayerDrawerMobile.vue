@@ -417,7 +417,11 @@ onUnmounted(() => {
 })
 </script>
 <template>
-  <div v-if="state.isRendered" ref="drawerRef" class="mask-glass fixed inset-0 z-9999">
+  <div
+    v-if="state.isRendered"
+    ref="drawerRef"
+    class="mask-glass fixed inset-0 z-9999 backdrop-blur-md"
+  >
     <div v-if="state.useCoverBg" class="absolute inset-0 -z-10">
       <div
         ref="bgARef"
