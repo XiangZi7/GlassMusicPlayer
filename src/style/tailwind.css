@@ -1,8 +1,8 @@
 @import 'tailwindcss';
-@import './theme.css' layer(theme);
-@import './preflight.css' layer(base);
-@import './components.css' layer(components);
-@import './utilities.css' layer(utilities);
+@import './theme.css';
+@import './preflight.css';
+@import './components.css';
+@import './utilities.css';
 
 @plugin '@iconify/tailwind4';
 @layer theme, base, components, utilities;
