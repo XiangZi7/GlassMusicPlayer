@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mvAll } from '@/api'
 import LazyImage from '@/components/Ui/LazyImage.vue'
+import { useI18n } from 'vue-i18n'
 
 const state = reactive({
   loading: true,
@@ -18,6 +19,8 @@ const load = async () => {
 }
 
 onMounted(load)
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -27,7 +30,7 @@ onMounted(load)
       <router-link v-for="m in state.list" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
         <div class="glass-card p-3">
           <div class="relative mb-2 overflow-hidden rounded-lg">
-            <LazyImage :src="m.cover" alt="cover" imgClass="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+            <LazyImage :src="m.cover" :alt="t('mvList.alt.cover')" imgClass="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
           </div>
           <h3 class="truncate text-xs font-medium text-primary">{{ m.name }}</h3>
           <p class="truncate text-[11px] text-primary/70">{{ m.artist }}</p>

@@ -149,6 +149,30 @@ export default {
     noSource: '再生ソースがありません',
     related: '関連 MV',
   },
+  mvList: {
+    title: '🎬 MV特選',
+    subtitle: '魅力的なMVで映像と音の楽しさを',
+    categories: {
+      all: '全部',
+      official: '公式',
+      live: 'ライブ',
+      netease: 'NetEase制作',
+    },
+    actions: {
+      loadMore: 'もっと見る',
+    },
+    tags: {
+      new: 'NEW',
+    },
+    alt: {
+      cover: 'MVカバー',
+    },
+    log: {
+      liked: 'お気に入り',
+      unliked: 'お気に入り解除',
+      sharePrefix: 'MVをシェア: ',
+    },
+  },
   likes: {
     empty: 'お気に入りの曲はまだありません',
   },

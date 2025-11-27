@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
       // 代理配置
       proxy: createProxy(viteEnv.VITE_PROXY),
     },
+    
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

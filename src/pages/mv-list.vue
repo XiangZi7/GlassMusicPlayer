@@ -23,9 +23,9 @@
 
         <div class="relative z-10 p-8">
           <div class="text-center">
-            <h1 class="animate-fade-in-up mb-4 text-5xl font-bold text-white">🎬 MV 精选</h1>
+            <h1 class="animate-fade-in-up mb-4 text-5xl font-bold text-white">{{ t('mvList.title') }}</h1>
             <p class="animate-fade-in-up mb-6 text-xl text-white/80" style="animation-delay: 0.2s">
-              精彩的音乐视频，带给你视听双重享受
+              {{ t('mvList.subtitle') }}
             </p>
 
             <!-- 筛选标签 -->
@@ -35,16 +35,16 @@
             >
               <button
                 v-for="category in categories"
-                :key="category.name"
+                :key="category.key"
                 class="glass-button px-6 py-2 text-white transition-all duration-300"
                 :class="
-                  selectedCategory === category.name
+                  selectedCategoryKey === category.key
                     ? 'bg-white/30'
                     : 'bg-white/10 hover:bg-white/20'
                 "
-                @click="selectCategory(category.name)"
+                @click="selectCategory(category.key)"
               >
-                {{ category.emoji }} {{ category.name }}
+                {{ category.emoji }} {{ t('mvList.categories.' + category.key) }}
               </button>
             </div>
           </div>
@@ -63,7 +63,7 @@
             <!-- MV封面 -->
             <div class="relative overflow-hidden rounded-t-2xl">
               <div class="relative aspect-video">
-                <img :src="mv.cover + '?param=480y270'" alt="mv" class="h-full w-full rounded-t-2xl object-cover" />
+                <img :src="mv.cover + '?param=480y270'" :alt="t('mvList.alt.cover')" class="h-full w-full rounded-t-2xl object-cover" />
 
                 <!-- 播放按钮覆盖层 -->
                 <div
@@ -108,13 +108,13 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                   <span class="inline-block rounded-full bg-white/10 px-2 py-1 text-xs text-white">
-                    {{ mv.category }}
+                    {{ t('mvList.categories.' + mv.categoryKey) }}
                   </span>
                   <span
                     v-if="mv.isNew"
                     class="inline-block rounded-full bg-red-500 px-2 py-1 text-xs text-white"
                   >
-                    NEW
+                    {{ t('mvList.tags.new') }}
                   </span>
                 </div>
 
@@ -152,7 +152,7 @@
             @click="loadMore"
           >
             <span class="icon-[mdi--refresh] mr-2 h-5 w-5"></span>
-            加载更多
+            {{ t('mvList.actions.loadMore') }}
           </button>
         </div>
       </section>
@@ -163,6 +163,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { mvAll } from '@/api'
 
@@ -170,15 +171,15 @@ const router = useRouter()
 
 // 分类与数据状态
 const state = reactive({
-  // 分类列表
+  // 分类列表（显示名通过 i18n 渲染，type 为 API 固定参数）
   categories: [
-    { name: '全部', emoji: '🎬', type: undefined },
-    { name: '官方', emoji: '🏛️', type: '官方版' },
-    { name: '现场', emoji: '🎤', type: '现场版' },
-    { name: '网易出品', emoji: '🅽', type: '网易出品' },
+    { key: 'all', emoji: '🎬', type: undefined },
+    { key: 'official', emoji: '🏛️', type: '官方版' },
+    { key: 'live', emoji: '🎤', type: '现场版' },
+    { key: 'netease', emoji: '🅽', type: '网易出品' },
   ],
-  // 当前选中的分类
-  selectedCategory: '全部',
+  // 当前选中的分类 key
+  selectedCategoryKey: 'all',
   // MV 数据列表
   mvList: [] as Array<{
     id: number
@@ -187,7 +188,7 @@ const state = reactive({
     duration: number
     playCount: string
     cover: string
-    category: string
+  categoryKey: string
     liked: boolean
     isNew: boolean
   }>,
@@ -196,7 +197,7 @@ const state = reactive({
   page: 0,
   isPageLoading: true,
 })
-const { categories, selectedCategory, mvList, hasMore, isPageLoading } = toRefs(state)
+const { categories, selectedCategoryKey, mvList, hasMore, isPageLoading } = toRefs(state)
 
 // 筛选后的MV列表
 const filteredMVs = computed(() => {
@@ -204,8 +205,8 @@ const filteredMVs = computed(() => {
 })
 
 // 选择分类
-const selectCategory = (category: string) => {
-  state.selectedCategory = category
+const selectCategory = (key: string) => {
+  state.selectedCategoryKey = key
   state.page = 0
   state.mvList = []
   fetchList(true)
@@ -219,12 +220,12 @@ const playMV = (mv: any) => {
 // 切换喜欢状态
 const toggleLike = (mv: any) => {
   mv.liked = !mv.liked
-  console.log(`${mv.liked ? '喜欢' : '取消喜欢'}: ${mv.title}`)
+  console.log(`${mv.liked ? t('mvList.log.liked') : t('mvList.log.unliked')}: ${mv.title}`)
 }
 
 // 分享MV
 const shareMV = (mv: any) => {
-  console.log(`分享MV: ${mv.title}`)
+  console.log(`${t('mvList.log.sharePrefix')}${mv.title}`)
   // 这里可以实现分享功能
 }
 
@@ -233,7 +234,7 @@ const formatSec = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds %
 
 const fetchList = async (reset = false) => {
   try {
-    const type = state.categories.find(c => c.name === state.selectedCategory)?.type
+    const type = state.categories.find(c => c.key === state.selectedCategoryKey)?.type
     const limit = 24
     const offset = state.page * limit
     const res: any = await mvAll({ type, order: '最新', limit, offset })
@@ -245,7 +246,7 @@ const fetchList = async (reset = false) => {
       duration: Math.floor((it?.duration || 0) / 1000),
       playCount: String(it?.playCount || ''),
       cover: it?.cover || it?.coverImg || it?.picUrl || '',
-      category: type || '全部',
+      categoryKey: state.selectedCategoryKey,
       liked: false,
       isNew: !!it?.new || false,
     }))
@@ -266,6 +267,8 @@ onMounted(() => {
   state.isPageLoading = true
   fetchList(true)
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

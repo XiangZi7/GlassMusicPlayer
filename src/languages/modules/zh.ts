@@ -149,6 +149,30 @@ export default {
     noSource: '暂无播放地址',
     related: '相似 MV',
   },
+  mvList: {
+    title: '🎬 MV 精选',
+    subtitle: '精彩的音乐视频，带给你视听双重享受',
+    categories: {
+      all: '全部',
+      official: '官方',
+      live: '现场',
+      netease: '网易出品',
+    },
+    actions: {
+      loadMore: '加载更多',
+    },
+    tags: {
+      new: 'NEW',
+    },
+    alt: {
+      cover: 'MV封面',
+    },
+    log: {
+      liked: '喜欢',
+      unliked: '取消喜欢',
+      sharePrefix: '分享MV: ',
+    },
+  },
   likes: {
     empty: '暂无喜欢的歌曲',
   },

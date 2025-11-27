@@ -149,6 +149,30 @@ export default {
     noSource: 'No source available',
     related: 'Related MVs',
   },
+  mvList: {
+    title: '🎬 Featured MVs',
+    subtitle: 'Enjoy music videos with audio and visual delight',
+    categories: {
+      all: 'All',
+      official: 'Official',
+      live: 'Live',
+      netease: 'NetEase Original',
+    },
+    actions: {
+      loadMore: 'Load More',
+    },
+    tags: {
+      new: 'NEW',
+    },
+    alt: {
+      cover: 'MV cover',
+    },
+    log: {
+      liked: 'Liked',
+      unliked: 'Unliked',
+      sharePrefix: 'Share MV: ',
+    },
+  },
   likes: {
     empty: 'No liked songs yet',
   },
