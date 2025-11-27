@@ -9,7 +9,8 @@ import {
   loginStatus,
 } from '@/api'
 import { useUserStore } from '@/stores/modules/user'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'success'): void }>()
 const userStore = useUserStore()
 const visible = ref(true)
@@ -174,8 +175,8 @@ watch(visible, v => {
             >
               <span class="icon-[mdi--account-circle] text-primary h-7 w-7"></span>
             </div>
-            <h3 class="text-primary text-xl font-semibold">欢迎回来</h3>
-            <p class="text-dropdown-glass mt-1 text-sm opacity-80">请选择登录方式以继续</p>
+            <h3 class="text-primary text-xl font-semibold">{{ t('auth.login') }}</h3>
+            <p class="text-dropdown-glass mt-1 text-sm opacity-80">{{ t('auth.tip') || '请选择登录方式以继续' }}</p>
           </div>
 
           <div class="mb-6 flex items-center justify-center">
@@ -189,7 +190,7 @@ watch(visible, v => {
                 "
                 @click="tab = 'password'"
               >
-                密码登录
+                {{ t('auth.passwordLogin') || '密码登录' }}
               </button>
               <button
                 class="glass-button px-4 py-2 text-sm"
@@ -200,7 +201,7 @@ watch(visible, v => {
                 "
                 @click="tab = 'qr'"
               >
-                二维码登录
+                {{ t('auth.qrLogin') || '二维码登录' }}
               </button>
             </div>
           </div>
@@ -219,7 +220,7 @@ watch(visible, v => {
                     @click="useEmail = false"
                   >
                     <span class="icon-[mdi--cellphone] h-4 w-4"></span>
-                    <span>手机号</span>
+                    <span>{{ t('auth.phone') || '手机号' }}</span>
                   </button>
                   <button
                     class="glass-button flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm"
@@ -231,15 +232,13 @@ watch(visible, v => {
                     @click="useEmail = true"
                   >
                     <span class="icon-[mdi--email] h-4 w-4"></span>
-                    <span>邮箱</span>
+                    <span>{{ t('auth.email') || '邮箱' }}</span>
                   </button>
                 </div>
               </div>
 
               <div class="space-y-3">
-                <label class="text-dropdown-glass block text-xs opacity-80">{{
-                  useEmail ? '邮箱' : '手机号'
-                }}</label>
+                <label class="text-dropdown-glass block text-xs opacity-80">{{ useEmail ? (t('auth.email') || '邮箱') : (t('auth.phone') || '手机号') }}</label>
                 <template v-if="!useEmail">
                   <div
                     class="glass-card flex items-center gap-2 px-4 py-3 ring-0 focus-within:ring-2 focus-within:ring-pink-300/40"
@@ -250,7 +249,7 @@ watch(visible, v => {
                     <input
                       v-model="phone"
                       type="tel"
-                      placeholder="请输入手机号"
+                      :placeholder="t('auth.inputPhone') || '请输入手机号'"
                       class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                     />
                   </div>
@@ -263,7 +262,7 @@ watch(visible, v => {
                     <input
                       v-model="email"
                       type="email"
-                      placeholder="请输入邮箱"
+                      :placeholder="t('auth.inputEmail') || '请输入邮箱'"
                       class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                     />
                   </div>
@@ -271,7 +270,7 @@ watch(visible, v => {
               </div>
 
               <div class="space-y-3">
-                <label class="text-dropdown-glass block text-xs opacity-80">密码</label>
+                <label class="text-dropdown-glass block text-xs opacity-80">{{ t('auth.password') || '密码' }}</label>
                 <div
                   class="glass-card flex items-center gap-2 px-4 py-3 ring-0 focus-within:ring-2 focus-within:ring-purple-300/40"
                 >
@@ -279,7 +278,7 @@ watch(visible, v => {
                   <input
                     v-model="password"
                     type="password"
-                    placeholder="请输入密码"
+                      :placeholder="t('auth.inputPassword') || '请输入密码'"
                     class="text-primary flex-1 bg-transparent text-sm placeholder-white/40 outline-none"
                   />
                 </div>
@@ -291,7 +290,7 @@ watch(visible, v => {
                   :disabled="loading || (!useEmail && !phone) || (useEmail && !email) || !password"
                   @click="doPasswordLogin"
                 >
-                  登录
+                  {{ t('auth.login') }}
                 </button>
               </div>
             </div>
@@ -300,7 +299,7 @@ watch(visible, v => {
               <div class="mx-auto w-80 rounded-lg">
                 <div class="flex flex-col items-center space-y-4 p-6 pt-0">
                   <div class="relative">
-                    <img v-if="qrImg" :src="qrImg" alt="二维码" class="h-52 w-52" />
+                    <img v-if="qrImg" :src="qrImg" :alt="t('auth.qr') || '二维码'" class="h-52 w-52" />
                     <div v-else class="animate-shimmer h-52 w-52 rounded-lg bg-white/10"></div>
                     <div
                       v-if="state.qrUser?.avatarUrl"
@@ -317,7 +316,7 @@ watch(visible, v => {
                     </div>
                   </div>
                   <p class="text-primary text-center text-sm">
-                    {{ state.qrUser?.message || qrStatusText || '加载中...' }}
+                    {{ state.qrUser?.message || qrStatusText || (t('common.loading') + '...') }}
                   </p>
                   <div class="text-center" v-if="state.qrUser?.nickname">
                     <p class="text-primary font-semibold">{{ state.qrUser?.nickname }}</p>
@@ -327,7 +326,7 @@ watch(visible, v => {
                     :disabled="loading"
                     @click="genQr"
                   >
-                    刷新二维码
+                    {{ t('auth.refreshQr') || '刷新二维码' }}
                   </button>
                 </div>
               </div>
@@ -370,3 +369,5 @@ watch(visible, v => {
   opacity: 0;
 }
 </style>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()

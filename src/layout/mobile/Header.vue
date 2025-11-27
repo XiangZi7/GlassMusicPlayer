@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // 移动端头部：左侧 Logo/标题，右侧搜索与登录入口
 const router = useRouter()
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 // 搜索入口：跳转到搜索页
 const goSearch = () => router.push('/search')
@@ -17,10 +19,10 @@ const { showLogin } = toRefs(state)
       <h1 class="text-base font-semibold text-primary">Glass Music Player</h1>
     </div>
     <div class="flex items-center gap-2">
-      <button class="rounded-md p-2 hover:bg-hover-glass" title="搜索" @click="goSearch">
+      <button class="rounded-md p-2 hover:bg-hover-glass" :title="t('common.search.label')" @click="goSearch">
         <span class="icon-[mdi--magnify] h-5 w-5"></span>
       </button>
-      <button class="rounded-md p-2 hover:bg-hover-glass" title="登录" @click="showLogin = true">
+      <button class="rounded-md p-2 hover:bg-hover-glass" :title="t('auth.login')" @click="showLogin = true">
         <span class="icon-[mdi--account] h-5 w-5"></span>
       </button>
     </div>

@@ -6,7 +6,8 @@ import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
 import { useNow, useOnline, useBattery } from '@vueuse/core'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const isOpen = defineModel<boolean>()
 const state = reactive({
   isRendered: false,
@@ -443,14 +444,14 @@ onUnmounted(() => {
       <div class="flex items-center gap-2 rounded-2xl p-1">
         <button
           class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
-          title="字体减小"
+          :title="t('player.fontDec')"
           @click="state.lyricsScale = Math.max(0.8, state.lyricsScale - 0.05)"
         >
           <span class="icon-[mdi--format-font-size-decrease] h-4 w-4 text-white"></span>
         </button>
         <button
           class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
-          title="字体增大"
+          :title="t('player.fontInc')"
           @click="state.lyricsScale = Math.min(1.4, state.lyricsScale + 0.05)"
         >
           <span class="icon-[mdi--format-font-size-increase] h-4 w-4 text-white"></span>
@@ -458,7 +459,7 @@ onUnmounted(() => {
         <button
           class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
           :class="state.autoScroll ? 'bg-hover-glass ring-1 ring-white/15' : ''"
-          title="自动居中"
+          :title="t('player.autoCenter')"
           @click="toggleAutoScroll"
         >
           <span
@@ -474,7 +475,7 @@ onUnmounted(() => {
             :class="online ? 'bg-green-400' : 'bg-red-400'"
             class="inline-block h-2 w-2 rounded-full"
           ></span>
-          {{ online ? '在线' : '离线' }}
+          {{ online ? t('player.online') : t('player.offline') }}
         </span>
         <span v-if="battery.isSupported" class="flex items-center gap-1 text-sm text-white">
           <span :class="batteryIcon" class="h-4 w-4"></span>
@@ -494,7 +495,7 @@ onUnmounted(() => {
           @click="toggleTransBtn"
         >
           <span class="icon-[mdi--translate] h-4 w-4"></span>
-          <span>翻译</span>
+          <span>{{ t('player.translate') }}</span>
         </button>
         <button
           v-if="lyricsRoma.length"
@@ -503,14 +504,14 @@ onUnmounted(() => {
           @click="toggleRomaBtn"
         >
           <span class="icon-[mdi--alphabetical-variant] h-4 w-4"></span>
-          <span>罗马音</span>
+          <span>{{ t('player.roma') }}</span>
         </button>
       </div>
       <button
         class="glass-button ml-3 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 hover:scale-110"
         :class="state.useCoverBg ? '' : 'bg-(--glass-hover-item-bg) ring-1 ring-white/15'"
         @click="state.useCoverBg = !state.useCoverBg"
-        title="切换背景：封面/纯色"
+        :title="t('player.toggleBg')"
       >
         <span
           :class="[
@@ -581,18 +582,16 @@ onUnmounted(() => {
         <!-- 歌曲信息 -->
         <div class="text-center">
           <h2 class="mb-2 text-2xl font-bold text-white">
-            {{ currentSong?.name || '未知歌曲' }}
+            {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="text-lg text-white/80">{{ currentSong?.artist || '未知歌手' }}</p>
-          <p class="mt-1 text-sm text-white/60">{{ currentSong?.album || '未知专辑' }}</p>
+          <p class="text-lg text-white/80">{{ currentSong?.artist || t('player.unknownArtist') }}</p>
+          <p class="mt-1 text-sm text-white/60">{{ currentSong?.album || t('player.unknownAlbum') }}</p>
         </div>
       </div>
 
       <!-- 进度条 -->
       <div v-if="currentSong" class="mb-3 flex w-3/5 items-center space-x-3">
-        <span class="text-xs text-white/60">{{
-          isLoading ? '加载中…' : formattedCurrentTime
-        }}</span>
+        <span class="text-xs text-white/60">{{ isLoading ? t('player.loading') : formattedCurrentTime }}</span>
         <div
           @click="handleProgressClick"
           class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"

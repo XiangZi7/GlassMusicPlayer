@@ -46,7 +46,7 @@ const listCount = computed(() => props.listCount ?? 8)
             <div class="aspect-video w-full rounded-lg bg-white/5">
               <div class="absolute-center flex items-center gap-2 text-white/70">
                 <span class="icon-[mdi--loading] h-6 w-6 animate-spin"></span>
-                加载中
+                {{ $t('common.loading') }}
               </div>
             </div>
             <div class="mt-6 space-y-3">

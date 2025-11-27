@@ -64,7 +64,7 @@ const close = () => (show.value = false)
       class="glass-container relative z-10 w-[720px] max-w-[95vw] overflow-hidden rounded-3xl p-4"
     >
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-white">歌曲评论</h3>
+        <h3 class="text-lg font-semibold text-white">{{ $t('comments.title') }}</h3>
         <button
           class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
           @click="close"
@@ -72,7 +72,7 @@ const close = () => (show.value = false)
           <span class="icon-[mdi--close] h-5 w-5 text-white/80"></span>
         </button>
       </div>
-      <p class="mb-4 text-sm text-white/70">总计 {{ state.total }} 条</p>
+      <p class="mb-4 text-sm text-white/70">{{ $t('comments.total', { total: state.total }) }}</p>
       <div class="max-h-[60vh] overflow-auto">
         <div v-if="state.loading" class="px-1">
           <PageSkeleton :sections="['list']" :list-count="8" />
@@ -99,7 +99,7 @@ const close = () => (show.value = false)
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <p class="truncate text-sm text-white">{{ c.user?.nickname || '用户' }}</p>
+                <p class="truncate text-sm text白">{{ c.user?.nickname || $t('comments.user') }}</p>
                 <span class="text-xs text-white/60">{{
                   c.ipLocation?.location || c.ipLocation?.ip || ''
                 }}</span>
@@ -110,7 +110,7 @@ const close = () => (show.value = false)
               <p class="mt-1 text-sm text-white/80">{{ c.content }}</p>
               <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-2 space-y-2">
                 <div v-for="(r, ri) in c.beReplied" :key="ri" class="rounded-lg bg-white/5 p-2">
-                  <p class="truncate text-xs text-white">@{{ r?.user?.nickname || '用户' }}</p>
+                  <p class="truncate text-xs text白">@{{ r?.user?.nickname || $t('comments.user') }}</p>
                   <p class="mt-1 text-xs text-white/70">{{ r?.content }}</p>
                 </div>
               </div>
@@ -120,7 +120,7 @@ const close = () => (show.value = false)
               <span class="text-xs">{{ c.likedCount || 0 }}</span>
             </div>
           </div>
-          <div v-if="state.comments.length === 0" class="text-center text-white/70">暂无评论</div>
+          <div v-if="state.comments.length === 0" class="text-center text白/70">{{ $t('comments.empty') }}</div>
         </div>
       </div>
       <div class="mt-4 flex flex-wrap items-center justify-between gap-2">

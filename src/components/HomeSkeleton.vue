@@ -11,9 +11,9 @@
   <div class="px-4 pb-8">
     <section class="mb-12">
       <div class="mb-6 flex items-center justify-between">
-        <div class="flex items-center text-2xl font-bold text-white">
+        <div class="flex items-center text-2xl font-bold text白">
           <span class="icon-[mdi--playlist-music] mr-3 h-6 w-6 text-pink-400"></span>
-          推荐歌单
+          {{ $t('home.recommendPlaylists') }}
         </div>
         <span class="icon-[mdi--chevron-right] h-5 w-5 text-purple-300"></span>
       </div>
@@ -27,9 +27,9 @@
     </section>
     <section class="mb-12">
       <div class="mb-6 flex items-center justify-between">
-        <div class="flex items-center text-2xl font-bold text-white">
+        <div class="flex items中心 text-2xl font-bold text白">
           <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
-          热门单曲
+          {{ $t('home.hotSongs') }}
         </div>
       </div>
       <div class="h-[40vh] w-full overflow-hidden">
@@ -46,9 +46,9 @@
     </section>
     <section>
       <div class="mb-6 flex items-center justify-between">
-        <div class="flex items-center text-2xl font-bold text-white">
+        <div class="flex items中心 text-2xl font-bold text白">
           <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>
-          最近播放
+          {{ $t('home.recentPlayed') }}
         </div>
       </div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

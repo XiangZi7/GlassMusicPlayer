@@ -44,7 +44,7 @@ onMounted(() => { if (mvId.value) load(mvId.value) })
       <section class="mb-4">
         <div class="relative overflow-hidden rounded-2xl">
           <Artplayer v-if="state.url" :src="state.url" class="h-48 w-full" />
-          <div v-else class="flex h-48 w-full items-center justify-center rounded-2xl glass-button">暂无播放地址</div>
+          <div v-else class="flex h-48 w-full items-center justify-center rounded-2xl glass-button">{{ $t('mv.noSource') }}</div>
         </div>
         <div class="mt-2">
           <h1 class="truncate text-lg font-bold text-primary">{{ state.name }}</h1>
@@ -53,7 +53,7 @@ onMounted(() => { if (mvId.value) load(mvId.value) })
       </section>
 
       <section>
-        <h3 class="mb-2 text-sm font-semibold text-primary">相似 MV</h3>
+        <h3 class="mb-2 text-sm font-semibold text-primary">{{ $t('mv.related') }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <router-link v-for="m in state.simis" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
             <div class="glass-card p-3">

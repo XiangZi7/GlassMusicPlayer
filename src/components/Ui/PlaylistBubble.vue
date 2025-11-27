@@ -56,6 +56,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 const toggle = () => (open.value = !open.value)
 const { playlist, playByIndex, moveSong, queueNext, removeSong, removeSongs, clearPlaylist } =
   useAudio()
+
 const draggingIndex = ref<number | null>(null)
 const selected = reactive<Record<string | number, boolean>>({})
 const toggleSelect = (id: string | number) => (selected[id] = !selected[id])
@@ -94,25 +95,27 @@ const doClearAll = () => {
         </template>
         <template v-else>
           <div class="glass-card relative z-99999 min-h-64 w-full bg-(--playlist-bubble-bg) p-3">
-            <h4 class="mb-2 text-sm font-medium text-(--glass-text)">播放列表</h4>
+            <h4 class="mb-2 text-sm font-medium text-(--glass-text)">
+              {{ $t('playlistBubble.title') }}
+            </h4>
             <div class="mb-2 flex items-center gap-2">
               <button
                 class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                title="下一首播放选中"
+                :title="$t('playlistBubble.queueNextSelected')"
                 @click="doQueueNextSelected"
               >
                 <span class="icon-[mdi--skip-next] h-4 w-4"></span>
               </button>
               <button
                 class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                title="删除选中"
+                :title="$t('playlistBubble.deleteSelected')"
                 @click="doDeleteSelected"
               >
                 <span class="icon-[mdi--delete] h-4 w-4"></span>
               </button>
               <button
                 class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                title="清空播放列表"
+                :title="$t('playlistBubble.clearAll')"
                 @click="doClearAll"
               >
                 <span class="icon-[mdi--delete-sweep] h-4 w-4"></span>
@@ -162,21 +165,21 @@ const doClearAll = () => {
                   }}</span>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                    title="播放"
+                    :title="$t('playlistBubble.actions.play')"
                     @click.stop="playByIndex(i)"
                   >
                     <span class="icon-[mdi--play] h-4 w-4 text-(--glass-text)"></span>
                   </button>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                    title="下一首"
+                    :title="$t('playlistBubble.actions.queueNext')"
                     @click.stop="queueNext(s.id as any)"
                   >
                     <span class="icon-[mdi--skip-next] h-4 w-4 text-(--glass-text)"></span>
                   </button>
                   <button
                     class="glass-button flex h-8 w-8 items-center justify-center rounded-full"
-                    title="删除"
+                    :title="$t('playlistBubble.actions.delete')"
                     @click.stop="removeSong(s.id as any)"
                   >
                     <span class="icon-[mdi--delete] h-4 w-4 text-(--glass-text)"></span>

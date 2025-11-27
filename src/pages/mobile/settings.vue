@@ -2,28 +2,34 @@
 import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '@/stores/modules/global'
+import { useI18n } from 'vue-i18n'
+import { getBackgroundOptions, getThemeOptions, getLangOptions, getShowHideOptions } from '@/config/settingsOptions'
+import I18n from '@/languages'
 
 const settings = useSettingsStore()
 const { footerLyrics, backgroundType } = storeToRefs(settings)
 const globalStore = useGlobalStore()
-const { theme } = storeToRefs(globalStore)
+const { theme, lang } = storeToRefs(globalStore)
+const { t } = useI18n()
 
 const footerEnabled = computed({
   get: () => footerLyrics.value.enabled,
   set: v => settings.setFooterLyricsEnabled(!!v),
 })
 
-const bgOptions = [
-  { value: 'aurora', label: '极光' },
-  { value: 'colorbends', label: '渐变波' },
-  { value: 'ultimate', label: '高级' },
-]
-
-const themeOptions = [
-  { value: 'light', label: '浅色' },
-  { value: 'dark', label: '暗黑' },
-  { value: 'system', label: '跟随系统' },
-]
+const bgOptions = computed(() => getBackgroundOptions(t))
+const themeOptions = computed(() => getThemeOptions(t))
+const langOptions = computed(() => getLangOptions(t))
+const initialLocale = (() => {
+  const cur = I18n.global.locale
+  return typeof cur === 'object' && 'value' in cur ? (cur as any).value : (cur as any)
+})()
+if (!lang.value) lang.value = initialLocale || 'zh'
+watch(lang, v => {
+  const cur = I18n.global.locale
+  if (typeof cur === 'object' && 'value' in cur) cur.value = v || 'zh'
+  else I18n.global.locale = v || 'zh'
+})
 
 const toggleMode = (mode: 'original' | 'trans' | 'roma', checked: boolean) => {
   const modes = new Set(footerLyrics.value.modes)
@@ -59,14 +65,18 @@ const romaChecked = computed({
       <GlassSelect v-model="theme" :options="themeOptions" />
     </section>
     <section class="mb-6">
-      <h2 class="text-primary mb-2 text-sm font-semibold">背景样式</h2>
+      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.themeMode') }}</h2>
+      <GlassSelect v-model="theme" :options="themeOptions" />
+    </section>
+    <section class="mb-6">
+      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.backgroundType') }}</h2>
       <GlassSelect v-model="backgroundType" :options="bgOptions" />
     </section>
 
     <section>
-      <h2 class="text-primary mb-2 text-sm font-semibold">底部歌词</h2>
-      <div class="glass-card mb-3 flex items-center justify-between p-3">
-        <span class="text-primary text-sm">显示底部歌词</span>
+      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.footerLyricsTitle') }}</h2>
+      <div class="glass-card mb-3 flex items中心 justify之间 p-3">
+        <span class="text-primary text-sm">{{ t('components.settings.footerLyricsTitle') }}</span>
         <label class="inline-flex cursor-pointer items-center">
           <input type="checkbox" class="sr-only" v-model="footerEnabled" />
           <span class="bg-hover-glass relative h-6 w-10 rounded-full">
@@ -78,7 +88,7 @@ const romaChecked = computed({
         </label>
       </div>
       <div class="glass-card p-3">
-        <label class="text-primary/80 mb-2 block text-xs">显示语言（最多选择两种）</label>
+        <label class="text-primary/80 mb-2 block text-xs">{{ t('components.settings.footerLyricsModes') }}</label>
         <div class="flex flex-wrap gap-2">
           <button
             class="rounded-full px-3 py-1 text-xs"
@@ -89,7 +99,7 @@ const romaChecked = computed({
             "
             @click="originalChecked = !originalChecked"
           >
-            原文
+            {{ t('common.original') }}
           </button>
           <button
             class="rounded-full px-3 py-1 text-xs"
@@ -100,7 +110,7 @@ const romaChecked = computed({
             "
             @click="transChecked = !transChecked"
           >
-            译文
+            {{ t('common.trans') }}
           </button>
           <button
             class="rounded-full px-3 py-1 text-xs"
@@ -111,7 +121,7 @@ const romaChecked = computed({
             "
             @click="romaChecked = !romaChecked"
           >
-            罗马音
+            {{ t('common.roma') }}
           </button>
         </div>
       </div>

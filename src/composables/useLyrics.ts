@@ -63,6 +63,10 @@ const mergedLines = computed<LyricMerged[]>(() => {
     if (idx > 0) {
       const left = text.slice(0, idx).trim()
       const right = text.slice(idx).trim()
+      // 如果左侧仅包含空白或标点（例如《【（等），则不拆分，整行视为原文
+      if (/^[\p{P}\s]+$/u.test(left)) {
+        return { oriPart: text, tranPart: undefined }
+      }
       return { oriPart: left, tranPart: right && right !== left ? right : undefined }
     }
     return { oriPart: text, tranPart: undefined }

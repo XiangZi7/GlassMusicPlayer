@@ -14,7 +14,7 @@ const playSong = (s: any) => {
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
     <template v-if="!likedSongs.length">
-      <div class="py-10 text-center text-primary/70">暂无喜欢的歌曲</div>
+      <div class="py-10 text-center text-primary/70">{{ $t('likes.empty') }}</div>
     </template>
     <div v-else class="space-y-3">
       <div v-for="s in likedSongs" :key="s.id" class="glass-card flex items-center gap-3 p-3" @click="playSong(s)">

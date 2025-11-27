@@ -3,6 +3,7 @@ import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 interface Song {
   id?: string | number
@@ -46,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 const router = useRouter()
 const { setPlaylist, play, currentSong } = useAudio()
+const { t } = useI18n()
 
 const mapToStoreSong = (s: Song): StoreSong => ({
   id: s.id ?? String(Math.random()),
@@ -120,11 +122,11 @@ const downloadSong = (song: Song, index: number) => {
       >
         <div class="w-12 text-center">#</div>
         <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4 px-4">
-          <div class="col-span-4">歌曲</div>
-          <div class="col-span-3 hidden md:block">歌手</div>
-          <div class="col-span-2 hidden text-center md:block">专辑</div>
-          <div class="col-span-1 text-right">时长</div>
-          <div class="col-span-2 text-center">操作</div>
+          <div class="col-span-4">{{ t('components.songList.headers.song') }}</div>
+          <div class="col-span-3 hidden md:block">{{ t('components.songList.headers.artist') }}</div>
+          <div class="col-span-2 hidden text-center md:block">{{ t('components.songList.headers.album') }}</div>
+          <div class="col-span-1 text-right">{{ t('components.songList.headers.duration') }}</div>
+          <div class="col-span-2 text-center">{{ t('components.songList.headers.actions') }}</div>
         </div>
       </div>
 
@@ -160,7 +162,7 @@ const downloadSong = (song: Song, index: number) => {
               <div class="relative shrink-0">
                 <img
                   :src="(song.cover || '') + '?param=90y90'"
-                  alt="封面"
+                  :alt="t('components.songList.coverAlt')"
                   class="h-12 w-12 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
                 />
                 <div
@@ -241,7 +243,7 @@ const downloadSong = (song: Song, index: number) => {
         class="flex h-full flex-col items-center justify-center py-12 text-center"
       >
         <div class="mb-4 text-6xl">🎵</div>
-        <p class="text-lg text-purple-300">{{ emptyMessage || '快来添加一些音乐吧！' }}</p>
+        <p class="text-lg text-purple-300">{{ emptyMessage || t('components.songList.empty') }}</p>
       </div>
     </div>
   </div>

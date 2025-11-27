@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { banner, topPlaylist, topSong } from '@/api'
 import { useAudio } from '@/composables/useAudio'
+import { useI18n } from 'vue-i18n'
 
 const state = reactive({
   banners: [] as Array<{
@@ -53,8 +54,8 @@ const loadDiscover = async () => {
     ])
     const bannerList: any[] = (b as any)?.data?.banners || (b as any)?.banners || []
     state.banners = bannerList.slice(0, 6).map((item: any, i: number) => ({
-      title: item?.typeTitle || '精选推荐',
-      description: item?.title || '为你推荐的精彩内容',
+      title: item?.typeTitle || t('home.bannerTitleDefault'),
+      description: item?.title || t('home.bannerDescDefault'),
       coverImgUrl: item?.imageUrl || '',
       gradient: gradients[i % gradients.length],
       url: item?.url || '',
@@ -63,7 +64,7 @@ const loadDiscover = async () => {
     const playlistsList: any[] = (p as any)?.data?.playlists || (p as any)?.playlists || []
     state.playlists = playlistsList.slice(0, 12).map((pl: any) => ({
       id: pl?.id,
-      name: pl?.name || '歌单',
+      name: pl?.name || t('home.playlistFallback'),
       coverImgUrl: pl?.coverImgUrl || '',
       trackCount: pl?.trackCount || 0,
     }))
@@ -93,6 +94,7 @@ onMounted(() => {
 })
 
 const { setPlaylist, play } = useAudio()
+const { t } = useI18n()
 const mapToStoreSong = (s: {
   id: number | string
   name: string
@@ -122,8 +124,8 @@ const handlePlay = (song: { id: number | string }) => {
       <PageSkeleton v-if="isPageLoading" :sections="['hero','grid','list']" :grid-count="12" :list-count="12" />
       <template v-else>
       <div class="mb-8">
-        <h1 class="text-2xl font-bold text-white">发现音乐</h1>
-        <p class="mt-1 text-sm text-white/70">为你呈现精选歌单和新歌速递</p>
+        <h1 class="text-2xl font-bold text-white">{{ t('components.discover.title') }}</h1>
+        <p class="mt-1 text-sm text-white/70">{{ t('components.discover.subtitle') }}</p>
       </div>
 
       <!-- 轮播推荐 -->
@@ -147,7 +149,7 @@ const handlePlay = (song: { id: number | string }) => {
       <!-- 热门歌单 -->
       <section class="mb-10">
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-white">热门歌单</h2>
+          <h2 class="text-xl font-semibold text-white">{{ t('components.discover.hotPlaylists') }}</h2>
           <router-link to="/mv-list" class="text-purple-300 transition-colors hover:text-white">
             <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
           </router-link>
@@ -165,7 +167,7 @@ const handlePlay = (song: { id: number | string }) => {
               <div class="relative mb-3 overflow-hidden rounded-xl">
                 <img
                   :src="pl.coverImgUrl + '?param=500y500'"
-                  alt="歌单封面"
+                  :alt="t('components.songList.coverAlt')"
                   class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                 />
                 <div
@@ -177,7 +179,7 @@ const handlePlay = (song: { id: number | string }) => {
                 </div>
               </div>
               <h3 class="mb-1 truncate text-sm font-medium text-white">{{ pl.name }}</h3>
-              <p class="truncate text-xs text-purple-300">{{ pl.trackCount }}首歌曲</p>
+              <p class="truncate text-xs text-purple-300">{{ t('components.discover.playlistCount', { count: pl.trackCount }) }}</p>
             </div>
           </router-link>
         </div>
@@ -186,7 +188,7 @@ const handlePlay = (song: { id: number | string }) => {
       <!-- 新歌速递 -->
       <section>
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-white">新歌速递</h2>
+          <h2 class="text-xl font-semibold text-white">{{ t('components.discover.newSongs') }}</h2>
         </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div

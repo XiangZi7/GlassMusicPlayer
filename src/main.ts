@@ -28,7 +28,7 @@ app.use(I18n)
 app.mount('#app')
 
 const globalStore = useGlobalStore()
-const { theme } = storeToRefs(globalStore)
+const { theme, lang } = storeToRefs(globalStore)
 const preferredDark = usePreferredDark()
 const applyThemeClass = (t: 'light' | 'dark') => {
   const root = document.documentElement
@@ -53,3 +53,10 @@ watch(
   width,
   useDebounceFn(w => setRootFontSize(w), 100)
 )
+const setLocale = (l?: 'zh' | 'en' | 'ja') => {
+  const cur = I18n.global.locale as any
+  if (cur && typeof cur === 'object' && 'value' in cur) cur.value = l || cur.value
+  else (I18n.global.locale as any) = l || cur
+}
+if (lang.value) setLocale(lang.value)
+watch(lang, l => setLocale(l))

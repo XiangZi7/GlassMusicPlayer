@@ -4,5 +4,8 @@
  */
 export function getBrowserLang(): string {
   const browserLang = navigator.language
-  return ['cn', 'zh', 'zh-cn'].includes(browserLang.toLowerCase()) ? 'zh' : 'en'
+  const l = browserLang.toLowerCase()
+  if (['cn', 'zh', 'zh-cn', 'zh-hans'].includes(l)) return 'zh'
+  if (['ja', 'ja-jp'].includes(l)) return 'ja'
+  return 'en'
 }

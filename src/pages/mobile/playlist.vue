@@ -2,6 +2,8 @@
 import { playlistDetail, playlistTrackAll, commentNew } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import LazyImage from '@/components/Ui/LazyImage.vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 type PlaylistInfo = {
   name: string
@@ -71,7 +73,7 @@ const load = async (id: number) => {
         createTime: detail?.createTime ? new Date(detail.createTime).toLocaleDateString() : '',
         songCount: detail?.trackCount || 0,
         likes: String(detail?.subscribedCount || detail?.bookedCount || 0),
-        category: detail?.tags?.[0] || '歌单',
+        category: detail?.tags?.[0] || t('home.playlistFallback'),
         coverImgUrl: detail?.coverImgUrl || '',
         gradient: pickGradient(),
       }
@@ -99,7 +101,7 @@ const load = async (id: number) => {
     const list = (commentsRes as any)?.data?.comments || (commentsRes as any)?.comments || []
     if (Array.isArray(list)) {
       state.comments = list.slice(0, 5).map((c: any) => ({
-        username: c?.user?.nickname || '用户',
+        username: c?.user?.nickname || t('comments.user'),
         avatarUrl: c?.user?.avatarUrl || '',
         time: c?.time ? new Date(c.time).toLocaleString() : '',
         content: c?.content || '',
@@ -164,7 +166,7 @@ const toggleCollect = () => {
               >
               <span class="flex items-center gap-1"
                 ><span class="icon-[mdi--music-note] h-4 w-4"></span
-                >{{ state.info.songCount }}首</span
+                >{{ t('commonUnits.songsShort', { count: state.info.songCount }) }}</span
               >
               <span class="flex items-center gap-1"
                 ><span class="icon-[mdi--heart] h-4 w-4 text-primary/70"></span
@@ -176,14 +178,14 @@ const toggleCollect = () => {
                 class="glass-button px-4 py-2 text-sm text-primary"
                 @click="playAll"
               >
-                <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
+                <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>{{ t('actions.playAll') }}
               </button>
               <button
                 class="glass-button px-3 py-2 text-sm text-primary"
                 @click="toggleCollect"
               >
                 <span class="icon-[mdi--heart-outline] mr-1 h-4 w-4"></span
-                >{{ state.collected ? '已收藏' : '收藏' }}
+                >{{ state.collected ? t('playlist.collected') : t('playlist.collect') }}
               </button>
             </div>
           </div>
@@ -195,7 +197,7 @@ const toggleCollect = () => {
       </section>
 
       <section v-if="state.comments.length" class="mt-6">
-        <h3 class="mb-3 text-sm font-semibold text-primary">精选评论</h3>
+        <h3 class="mb-3 text-sm font-semibold text-primary">{{ t('playlist.featuredComments') }}</h3>
         <div class="space-y-3">
           <div v-for="(c, i) in state.comments" :key="i" class="glass-card p-3">
             <div class="flex items-start gap-3">

@@ -6,6 +6,7 @@ export const useGlobalStore = defineStore('global', {
     count: 0,
     theme: 'system' as 'light' | 'dark' | 'system',
     searchHistory: [],
+    lang: undefined,
   }),
   actions: {
     setGlobalState<K extends keyof GlobalState>(key: K, value: GlobalState[K]) {
@@ -18,6 +19,9 @@ export const useGlobalStore = defineStore('global', {
     },
     toggleTheme() {
       this.theme = this.theme === 'dark' ? 'light' : 'dark'
+    },
+    setLang(lang: 'zh' | 'en' | 'ja') {
+      this.lang = lang
     },
     addSearchHistory(q: string) {
       const s = q.trim()

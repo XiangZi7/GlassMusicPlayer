@@ -2,7 +2,8 @@
 import { banner, topPlaylist, topSong } from '@/api'
 import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
 import LazyImage from '@/components/Ui/LazyImage.vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface HomeState {
   banners: BannerItem[]
   currentBannerIndex: number
@@ -21,8 +22,7 @@ const state = reactive<HomeState>({
   isHomeLoading: true,
 })
 
-const { banners, currentBannerIndex, recommendPlaylists, hotSongs, recentPlayed, isHomeLoading } =
-  toRefs(state)
+const { banners, currentBannerIndex, recommendPlaylists, hotSongs, isHomeLoading } = toRefs(state)
 
 const playlistScrollRef = ref<HTMLElement | null>(null)
 const canScrollLeft = ref(false)
@@ -68,8 +68,8 @@ const loadHomeData = async () => {
     if (Array.isArray(bannerList) && bannerList.length) {
       state.banners = bannerList.map(
         (item: any, i: number): BannerItem => ({
-          title: item?.typeTitle || '精选推荐',
-          description: item?.title || '为你推荐的精彩内容',
+          title: item?.typeTitle || t('home.bannerTitleDefault'),
+          description: item?.title || t('home.bannerDescDefault'),
           gradient: gradients[i % gradients.length],
           coverImgUrl: item?.imageUrl || '',
           url: item?.url || '',
@@ -82,7 +82,7 @@ const loadHomeData = async () => {
       state.recommendPlaylists = playlists.map(
         (pl: any, i: number): PlaylistItem => ({
           id: pl?.id || 0,
-          name: pl?.name || '歌单',
+          name: pl?.name || t('home.playlistFallback'),
           count: pl?.trackCount || 0,
           emoji: emojis[i % emojis.length],
           gradient: gradients[i % gradients.length],
@@ -146,7 +146,7 @@ watch(
           <LazyImage
             v-if="banners[currentBannerIndex]?.coverImgUrl"
             :src="banners[currentBannerIndex]?.coverImgUrl"
-            alt="轮播封面"
+            :alt="t('home.bannerAlt')"
             imgClass="absolute inset-0 h-full w-full object-cover"
           />
           <div
@@ -163,10 +163,10 @@ watch(
               </p>
               <router-link
                 to="/mv-list"
-                class="glass-button inline-flex items-center gap-1 px-4 py-2 text-sm text-white"
+                class="glass-button text白 inline-flex items-center gap-1 px-4 py-2 text-sm"
               >
                 <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>
-                立即播放
+                {{ t('home.playNow') }}
               </router-link>
             </div>
           </div>
@@ -178,7 +178,7 @@ watch(
           <div class="mb-4 flex items-center justify-between">
             <h2 class="text-primary flex items-center text-lg font-bold">
               <span class="icon-[mdi--playlist-music] mr-2 h-5 w-5 text-pink-400"></span>
-              推荐歌单
+              {{ t('home.recommendPlaylists') }}
             </h2>
             <router-link
               to="/playlist/1"
@@ -219,14 +219,16 @@ watch(
                   <div class="relative mb-2 w-full overflow-hidden rounded-lg">
                     <LazyImage
                       :src="playlist.coverImgUrl + '?param=300y300'"
-                      alt="歌单封面"
+                      :alt="t('components.songList.coverAlt')"
                       imgClass="h-full w-full object-cover "
                     />
                   </div>
                   <h3 class="text-primary mb-1 truncate text-xs font-medium">
                     {{ playlist.name }}
                   </h3>
-                  <p class="text-primary/70 truncate text-xs">{{ playlist.count }}首歌曲</p>
+                  <p class="text-primary/70 truncate text-xs">
+                    {{ t('home.playlistCount', { count: playlist.count }) }}
+                  </p>
                 </div>
               </router-link>
             </div>
@@ -237,7 +239,7 @@ watch(
           <div class="mb-4 flex items-center justify-between">
             <h2 class="text-primary flex items-center text-lg font-bold">
               <span class="icon-[mdi--fire] mr-2 h-5 w-5 text-orange-400"></span>
-              热门单曲
+              {{ t('home.hotSongs') }}
             </h2>
           </div>
           <div class="w-full">

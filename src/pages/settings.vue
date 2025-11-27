@@ -6,21 +6,27 @@ import GlassSelect from '@/components/Ui/GlassSelect.vue'
 import GlassCheckbox from '@/components/Ui/GlassCheckbox.vue'
 import { useSettingsStore } from '@/stores/modules/settings'
 import { useGlobalStore } from '@/stores/modules/global'
+import I18n from '@/languages'
+import { useI18n } from 'vue-i18n'
+import { getBackgroundOptions, getThemeOptions, getLangOptions, getShowHideOptions } from '@/config/settingsOptions'
 const settings = useSettingsStore()
 const { backgroundType, footerLyrics } = storeToRefs(settings)
 const globalStore = useGlobalStore()
-const { theme } = storeToRefs(globalStore)
-
-const bgOptions = [
-  { label: 'Aurora', value: 'aurora' },
-  { label: 'ColorBends', value: 'colorbends' },
-  { label: 'Ultimate', value: 'ultimate' },
-]
-const themeOptions = [
-  { label: '浅色模式', value: 'light' },
-  { label: '暗黑模式', value: 'dark' },
-  { label: '跟随系统', value: 'system' },
-]
+const { theme, lang } = storeToRefs(globalStore)
+const { t } = useI18n()
+const bgOptions = computed(() => getBackgroundOptions(t))
+const themeOptions = computed(() => getThemeOptions(t))
+const langOptions = computed(() => getLangOptions(t))
+const initialLocale = (() => {
+  const cur = I18n.global.locale
+  return typeof cur === 'object' && 'value' in cur ? (cur as any).value : (cur as any)
+})()
+if (!lang.value) lang.value = initialLocale || 'zh'
+watch(lang, v => {
+  const cur = I18n.global.locale
+  if (typeof cur === 'object' && 'value' in cur) cur.value = v || 'zh'
+  else I18n.global.locale = v || 'zh'
+})
 const state = reactive({ isPageLoading: false })
 
 const toggleMode = (mode: 'original' | 'trans' | 'roma', checked: boolean) => {
@@ -54,13 +60,16 @@ const romaChecked = computed({
   <div class="flex w-full flex-col gap-6 overflow-auto p-6">
     <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="6" />
     <template v-else>
-      <h2 class="text-xl font-semibold text-white">设置</h2>
+      <h2 class="text-xl font-semibold text-white">{{ t('components.settings.title') }}</h2>
       <div class="flex flex-col gap-3">
-        <label class="mb-2 block text-sm text-white/80">背景类型</label>
+        <label class="mb-2 block text-sm text-white/80">{{ t('components.settings.backgroundType') }}</label>
         <GlassSelect v-model="backgroundType" :options="bgOptions" />
 
-        <label class="mt-4 mb-2 block text-sm text-white/80">主题模式</label>
+        <label class="mt-4 mb-2 block text-sm text-white/80">{{ t('components.settings.themeMode') }}</label>
         <GlassSelect v-model="theme" :options="themeOptions" />
+
+        <label class="mt-4 mb-2 block text-sm text-white/80">{{ t('components.settings.uiLanguage') }}</label>
+        <GlassSelect v-model="lang" :options="langOptions" />
 
         <!-- 参数面板 -->
         <component
@@ -73,23 +82,17 @@ const romaChecked = computed({
           "
         />
         <div class="glass-card mt-6 p-4">
-          <h3 class="mb-3 text-sm font-semibold text-white">底部播放器歌词</h3>
+          <h3 class="mb-3 text-sm font-semibold text-white">{{ t('components.settings.footerLyricsTitle') }}</h3>
           <div class="mb-3 flex items-center gap-3">
-            <label class="text-xs text-nowrap text-white/80">是否显示</label>
-            <GlassSelect
-              :options="[
-                { label: '显示', value: true },
-                { label: '隐藏', value: false },
-              ]"
-              v-model="footerLyrics.enabled"
-            />
+            <label class="text-xs text-nowrap text-white/80">{{ t('common.show') }}/{{ t('common.hide') }}</label>
+            <GlassSelect :options="getShowHideOptions(t)" v-model="footerLyrics.enabled" />
           </div>
           <div class="space-y-2">
-            <label class="text-xs text-white/80">显示语言（最多选择两种）</label>
+            <label class="text-xs text-white/80">{{ t('components.settings.footerLyricsModes') }}</label>
             <div class="flex flex-wrap gap-3 text-white/80">
-              <GlassCheckbox v-model="originalChecked" label="原文" />
-              <GlassCheckbox v-model="transChecked" label="译文" />
-              <GlassCheckbox v-model="romaChecked" label="罗马音" />
+              <GlassCheckbox v-model="originalChecked" :label="t('common.original')" />
+              <GlassCheckbox v-model="transChecked" :label="t('common.trans')" />
+              <GlassCheckbox v-model="romaChecked" :label="t('common.roma')" />
             </div>
           </div>
         </div>

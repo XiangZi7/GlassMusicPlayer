@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { topSong } from '@/api'
 
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const types = [
-  { key: 0, label: '全部' },
-  { key: 7, label: '华语' },
-  { key: 96, label: '欧美' },
-  { key: 8, label: '日本' },
-  { key: 16, label: '韩国' },
+  { key: 0, labelKey: 'charts.types.all' },
+  { key: 7, labelKey: 'charts.types.mandarin' },
+  { key: 96, labelKey: 'charts.types.west' },
+  { key: 8, labelKey: 'charts.types.japan' },
+  { key: 16, labelKey: 'charts.types.korea' },
 ]
 
 const state = reactive({ tab: 0 as 0 | 7 | 96 | 8 | 16, loading: true, songs: [] as any[] })
@@ -39,7 +41,7 @@ onMounted(() => load(state.tab))
   <div class="flex-1 overflow-auto px-3 pb-6">
     <div class="sticky top-0 z-10 glass-nav pb-3 pt-2">
       <div class="flex items-center gap-2">
-        <button v-for="t in types" :key="t.key" class="rounded-md px-3 py-1 text-sm" :class="state.tab===t.key ? 'text-primary' : 'text-primary/60'" @click="state.tab=t.key; load(state.tab)">{{ t.label }}</button>
+        <button v-for="type in types" :key="type.key" class="rounded-md px-3 py-1 text-sm" :class="state.tab===type.key ? 'text-primary' : 'text-primary/60'" @click="state.tab=type.key; load(state.tab)">{{ t(type.labelKey) }}</button>
       </div>
     </div>
     <div v-if="state.loading" class="py-6"><PageSkeleton :sections="['list']" :list-count="10" /></div>

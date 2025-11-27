@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import MiniPlayerMobile from '@/components/Mobile/MiniPlayerMobile.vue'
 
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const items = [
-  { to: '/', icon: 'icon-[mdi--home]', label: '首页' },
-  { to: '/discover', icon: 'icon-[mdi--compass-outline]', label: '发现' },
-  { to: '/search', icon: 'icon-[mdi--magnify]', label: '搜索' },
-  { to: '/my-music', icon: 'icon-[mdi--music-circle-outline]', label: '我的' },
-  { to: '/settings', icon: 'icon-[mdi--cog-outline]', label: '设置' },
+  { to: '/', icon: 'icon-[mdi--home]', labelKey: 'layout.nav.home' },
+  { to: '/discover', icon: 'icon-[mdi--compass-outline]', labelKey: 'layout.nav.discover' },
+  { to: '/search', icon: 'icon-[mdi--magnify]', labelKey: 'common.search.label' },
+  { to: '/my-music', icon: 'icon-[mdi--music-circle-outline]', labelKey: 'layout.nav.myMusic' },
+  { to: '/settings', icon: 'icon-[mdi--cog-outline]', labelKey: 'layout.aside.menu.settings' },
 ]
 
 const emit = defineEmits(['show-player'])
@@ -45,7 +47,7 @@ onUnmounted(() => {
         :class="$route.path.startsWith(it.to) ? 'text-primary' : 'text-primary/60'"
       >
         <component :is="'span'" :class="it.icon" class="mb-1 h-6 w-6" />
-        <span>{{ it.label }}</span>
+        <span>{{ t(it.labelKey) }}</span>
       </RouterLink>
     </div>
   </nav>

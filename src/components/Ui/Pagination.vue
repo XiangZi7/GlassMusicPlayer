@@ -39,6 +39,8 @@ const goPrev = () => {
 const goNext = () => {
   if (canNext.value) page.value = page.value + 1
 }
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 </script>
 
 <template>
@@ -52,7 +54,7 @@ const goNext = () => {
       :disabled="!canPrev"
       @click="goPrev"
     >
-      上一页
+      {{ t('components.pagination.prev') }}
     </button>
     <div class="flex items-center gap-2">
       <button
@@ -66,7 +68,7 @@ const goNext = () => {
       </button>
     </div>
     <span class="text-muted-glass text-xs whitespace-nowrap sm:text-sm">
-      第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条
+      {{ t('components.pagination.status', { page, totalPages: totalPages, total: props.total }) }}
     </span>
     <button
       class="glass-button px-3 py-2 text-sm"
@@ -74,7 +76,7 @@ const goNext = () => {
       :disabled="!canNext"
       @click="goNext"
     >
-      下一页
+      {{ t('components.pagination.next') }}
     </button>
   </div>
 </template>

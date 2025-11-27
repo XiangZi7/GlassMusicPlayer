@@ -16,6 +16,7 @@
     "build:test": "vite build --mode test",
     "preview": "vite preview",
     "screenshots": "node scripts/capture-screenshots.mjs",
+    "screenshots:mobile": "node scripts/capture-screenshots-mobile.mjs",
     "lint": "eslint --ext .js,.vue --fix .",
     "format": "prettier --write ."
   },

@@ -8,13 +8,11 @@
 
 ### 介绍 📖
 
-**Glass Music Player** 是一款基于
-**Vue3.5**、**Vite5**、**Pinia**、**Tailwindcss** 和 **Element-Plus**
-开发的开源 Web 音乐播放器。它采用目前最新的技术栈，提供流畅且美观的音乐播放体验。
+**Glass Music Player** 是一款简约高颜值的毛玻璃风格 Web 音乐播放器，支持 PC & Mobile 响应式体验。项目基于 **Vue 3.5**、**Vite 7**、**Pinia**、**Tailwind CSS 4** 构建，并配合 **Vue Router**、**Vue I18n** 等生态，提供流畅的导航与国际化支持。页面采用现代化设计与动效，兼顾性能与可维护性。
 
 ### 系统需求 ⚙️
 
-- **Node.js** 版本需大于 **18**。
+- **Node.js** 版本需大于等于 **22**。
 
 ### 在线预览 👀
 
@@ -22,7 +20,7 @@
 
 ### 代码仓库 ⭐
 
-[GitHub 代码仓库](https://github.com/XiangZi7/KM-Music-Player)
+- [GitHub 代码仓库](https://github.com/XiangZi7/KM-Music-Player)
 
 ### 项目功能 🔨
 
@@ -49,6 +47,12 @@
 - 评论与歌词
   - 评论弹窗：分页、IP归属与时间、楼中楼显示
   - 底部歌词：设置可选显示原文/译文/罗马音（最多两行）
+- 移动端支持
+  - 响应式布局与触控优化
+  - 移动端导航与界面适配（底部/抽屉导航等，不同页面自适应）
+  - 支持生成移动端截图：`pnpm screenshots:mobile`（可通过 `APP_URL` 指定预览地址）
+ - 多语言
+  - 设置页提供语言切换（中文 / English / 日本語），并持久化保存
 
 ### 安装使用步骤 📔
 
@@ -137,6 +141,14 @@ pnpm dev
 
 ![项目截图 17](images/image-17.png)
 
+### 移动端截图 📱
+
+![移动端截图 1](images/mobile/image-1.png)
+![移动端截图 2](images/mobile/image-2.png)
+![移动端截图 3](images/mobile/image-3.png)
+![移动端截图 4](images/mobile/image-4.png)
+![移动端截图 5](images/mobile/image-5.png)
+![移动端截图 6](images/mobile/image-6.png)
 
 ### 项目后台接口 🧩
 
@@ -145,8 +157,7 @@ pnpm dev
 
 ### 免责声明 ⚠️
 
-KMMusicPlayer（Kuriyama Mirai Music
-Player）项目仅用于学习和研究目的。使用该项目的用户需自行承担相关风险。本项目所使用的相关API和数据源均为第三方提供，使用时请遵循相关法律法规及第三方的使用条款。本项目不得用于任何商业目的，我们不对任何由于使用本项目而引起的直接或间接的损失或法律责任负责。
+GlassMusicPlayer项目仅用于学习和研究目的。使用该项目的用户需自行承担相关风险。本项目所使用的相关API和数据源均为第三方提供，使用时请遵循相关法律法规及第三方的使用条款。本项目不得用于任何商业目的，我们不对任何由于使用本项目而引起的直接或间接的损失或法律责任负责。
 
 请在使用之前仔细阅读该免责声明，并确保遵守以上条款。谢谢您的理解与支持。
 
@@ -154,17 +165,23 @@ Player）项目仅用于学习和研究目的。使用该项目的用户需自�
 
 ![1686722147442.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2ef2a97c45df4a6fa5c78b34a28a42fc~tplv-k3u1fbpfcp-watermark.image#?w=238&h=250&s=10821&e=png&a=1&b=f8f8f8)
 
-### 捐赠 （❤
+### 捐赠（❤）
 
-如果觉得该项目能对你有帮助或喜欢可投食 | 微信 | 支付宝 | |
-:--------------------------------------------------------------------------------:
-|
-:--------------------------------------------------------------------------------:
-| |
-<img src="https://github.com/user-attachments/assets/46d07565-72b9-4d48-bea2-4a7242e5ada0" alt="Alipay QRcode" width=170>
-|
-<img src="https://github.com/user-attachments/assets/7c3e1e96-cfc3-460d-b534-8a1da636cc09" alt="Wechat QRcode" width=170>
-|
+<div>
+  <p>如果觉得该项目能对你有帮助或喜欢，欢迎投食。</p>
+  <table border="1" cellspacing="0" cellpadding="8">
+    <tr>
+      <td >
+        <strong>支付宝</strong><br/>
+        <img src="https://github.com/user-attachments/assets/46d07565-72b9-4d48-bea2-4a7242e5ada0" alt="Alipay QRcode" width="170" />
+      </td>
+      <td >
+        <strong>微信</strong><br/>
+        <img src="https://github.com/user-attachments/assets/7c3e1e96-cfc3-460d-b534-8a1da636cc09" alt="Wechat QRcode" width="170" />
+      </td>
+    </tr>
+  </table>
+</div>
 
 ### GitHub Star 趋势
 

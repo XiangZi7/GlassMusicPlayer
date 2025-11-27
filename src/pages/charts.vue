@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import SongList from '@/components/SongList.vue'
 import { topSong } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const state = reactive({
   activeType: 0 as 0 | 7 | 96 | 8 | 16,
   songs: [] as any[],
@@ -9,12 +10,13 @@ const state = reactive({
 })
 const { activeType } = toRefs(state)
 
+
 const types = [
-  { key: 0, label: '全部' },
-  { key: 7, label: '华语' },
-  { key: 96, label: '欧美' },
-  { key: 8, label: '日本' },
-  { key: 16, label: '韩国' },
+  { key: 0, labelKey: 'charts.types.all' },
+  { key: 7, labelKey: 'charts.types.mandarin' },
+  { key: 96, labelKey: 'charts.types.west' },
+  { key: 8, labelKey: 'charts.types.japan' },
+  { key: 16, labelKey: 'charts.types.korea' },
 ]
 
 const load = async () => {
@@ -46,13 +48,13 @@ onMounted(() => load())
       <div class="mb-4 flex items-center gap-2">
         <div class="glass-nav inline-flex gap-2 rounded-2xl p-2">
           <button
-            v-for="t in types"
-            :key="t.key"
+            v-for="type in types"
+            :key="type.key"
             class="glass-button px-4 py-2 text-sm"
-            :class="activeType === t.key ? 'bg-white/25 text-white ring-1 ring-pink-300/40' : 'text-white/80'"
-            @click="activeType = t.key as any"
+            :class="activeType === type.key ? 'bg-white/25 text-white ring-1 ring-pink-300/40' : 'text-white/80'"
+            @click="activeType = type.key as any"
           >
-            {{ t.label }}
+            {{ t(type.labelKey) }}
           </button>
         </div>
       </div>

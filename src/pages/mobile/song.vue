@@ -103,10 +103,10 @@ const toggleLike = () => { state.liked = !state.liked }
       </section>
 
       <section>
-        <h3 class="mb-2 text-sm font-semibold text-primary">歌词</h3>
+        <h3 class="mb-2 text-sm font-semibold text-primary">{{ $t('song.lyrics') }}</h3>
         <div class="glass-card max-h-64 overflow-auto p-3">
           <p v-for="(l, i) in state.lrc" :key="i" class="mb-1 text-sm text-primary/80">{{ l.text }}</p>
-          <p v-if="!state.lrc.length" class="text-sm text-primary/60">暂无歌词</p>
+          <p v-if="!state.lrc.length" class="text-sm text-primary/60">{{ $t('song.noLyrics') }}</p>
         </div>
       </section>
     </template>

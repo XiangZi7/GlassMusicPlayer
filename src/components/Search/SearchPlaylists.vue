@@ -63,7 +63,7 @@ watch([() => props.keywords, () => props.limit, () => props.offset], () => { fet
           </div>
         </div>
         <h3 class="mb-1 truncate text-sm font-medium text-white">{{ pl.name }}</h3>
-        <p class="truncate text-xs text-purple-300">{{ pl.trackCount }}首歌曲</p>
+        <p class="truncate text-xs text-purple-300">{{ $t('components.discover.playlistCount', { count: pl.trackCount }) }}</p>
       </div>
     </router-link>
   </div>

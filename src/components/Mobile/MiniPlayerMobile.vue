@@ -29,15 +29,6 @@ const onProgressClick = (event: MouseEvent) => {
 
 const { mergedLines, activeTimeline, fetchLyrics } = useLyrics()
 
-watch(
-  () => mergedLines.value,
-  () => {
-    console.log('🚀 ~ file: MiniPlayerMobile.vue:33 ~ mergedLines:', mergedLines.value)
-  },
-  {
-    immediate: true,
-  }
-)
 const lyric = reactive({ idx: 0 })
 const updateLyricIdx = () => {
   const times = activeTimeline.value
@@ -139,7 +130,7 @@ onUnmounted(() => {
       </div>
       <button
         class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
-        :title="isPlaying ? '暂停' : '播放'"
+        :title="isPlaying ? $t('player.pause') : $t('player.play')"
         @click="togglePlay"
       >
         <span v-if="isLoading" class="icon-[mdi--loading] text-primary h-5 w-5 animate-spin"></span>
@@ -151,7 +142,7 @@ onUnmounted(() => {
       </button>
       <button
         class="glass-button ml-1 flex h-10 w-10 items-center justify-center rounded-full"
-        title="下一首"
+        :title="$t('playlistBubble.actions.queueNext')"
         @click="next"
       >
         <span class="icon-[mdi--skip-next] text-primary h-5 w-5"></span>

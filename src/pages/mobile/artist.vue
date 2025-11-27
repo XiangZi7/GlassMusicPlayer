@@ -40,7 +40,7 @@ onMounted(() => {
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
-    <div class="mb-3 text-sm text-primary/80">搜索歌手：{{ kw }}</div>
+    <div class="mb-3 text-sm text-primary/80">{{ $t('artist.searchPrefix') }}{{ kw }}</div>
     <div v-if="state.loading" class="py-6">
       <PageSkeleton :sections="['list']" :list-count="10" />
     </div>

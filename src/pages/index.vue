@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { banner, topPlaylist, topSong } from '@/api'
+import { useI18n } from 'vue-i18n'
 import { BannerItem, PlaylistItem, SongItem, RecentItem } from '@/api/interface'
 
 interface HomeState {
@@ -35,6 +36,8 @@ const state = reactive<HomeState>({
   // 首页加载状态
   isHomeLoading: true,
 })
+
+const { t } = useI18n()
 
 // 模板中使用的变量解构为 ref（仅供 template 使用）
 const {
@@ -93,8 +96,8 @@ const loadHomeData = async () => {
     if (Array.isArray(bannerList) && bannerList.length) {
       state.banners = bannerList.map(
         (item: any, i: number): BannerItem => ({
-          title: item?.typeTitle || '精选推荐',
-          description: item?.title || '为你推荐的精彩内容',
+          title: item?.typeTitle || t('home.bannerTitleDefault'),
+          description: item?.title || t('home.bannerDescDefault'),
           gradient: gradients[i % gradients.length],
           coverImgUrl: item?.imageUrl || '',
           url: item?.url || '',
@@ -107,7 +110,7 @@ const loadHomeData = async () => {
       state.recommendPlaylists = playlists.map(
         (pl: any, i: number): PlaylistItem => ({
           id: pl?.id || 0,
-          name: pl?.name || '歌单',
+          name: pl?.name || t('home.playlistFallback'),
           count: pl?.trackCount || 0,
           emoji: emojis[i % emojis.length],
           gradient: gradients[i % gradients.length],
@@ -183,7 +186,7 @@ watch(
               <img
                 v-if="banner.coverImgUrl"
                 :src="banner.coverImgUrl"
-                alt="轮播封面"
+                :alt="t('home.bannerAlt')"
                 loading="lazy"
                 class="absolute inset-0 h-full w-full object-cover"
               />
@@ -220,7 +223,7 @@ watch(
                     style="animation-delay: 0.4s"
                   >
                     <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
-                    立即播放
+                    {{ t('home.playNow') }}
                   </router-link>
                 </div>
                 <div class="hidden md:block">
@@ -270,7 +273,7 @@ watch(
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
               <span class="icon-[mdi--playlist-music] mr-3 h-6 w-6 text-pink-400"></span>
-              推荐歌单
+              {{ t('home.recommendPlaylists') }}
             </h2>
             <router-link
               to="/playlist/1"
@@ -323,7 +326,7 @@ watch(
                     </div>
                   </div>
                   <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
-                  <p class="truncate text-xs text-purple-300">{{ playlist.count }}首歌曲</p>
+                  <p class="truncate text-xs text-purple-300">{{ t('home.playlistCount', { count: playlist.count }) }}</p>
                 </div>
               </router-link>
             </div>
@@ -334,7 +337,7 @@ watch(
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
               <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
-              热门单曲
+              {{ t('home.hotSongs') }}
             </h2>
           </div>
           <div class="h-[40vh] w-full overflow-hidden">
@@ -351,7 +354,7 @@ watch(
           <div class="mb-6 flex items-center justify-between">
             <h2 class="flex items-center text-2xl font-bold text-white">
               <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>
-              最近播放
+              {{ t('home.recentPlayed') }}
             </h2>
             <router-link to="/mv-list" class="text-purple-300 transition-colors hover:text-white">
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>

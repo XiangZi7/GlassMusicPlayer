@@ -3,6 +3,10 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 // 使用音频播放器组合式API
 const {
   // 状态
@@ -114,11 +118,11 @@ const handleProgressClick = (event: MouseEvent) => {
           }"
         ></div>
         <div class="flex min-w-0 flex-col justify-around">
-          <p class="truncate text-sm font-medium text-white">
-            {{ currentSong?.name || '暂无播放' }}
+          <p class="truncate text-sm font-medium text白">
+            {{ currentSong?.name || t('player.unknownSong') }}
           </p>
-          <p class="truncate text-xs text-purple-300">
-            {{ currentSong?.artist || '未知艺术家' }}
+          <p class="truncate text-xs text紫-300">
+            {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
         </div>
         <div
@@ -153,7 +157,7 @@ const handleProgressClick = (event: MouseEvent) => {
         </button>
         <button
           @click="togglePlay"
-          :title="isPlaying ? '暂停' : '播放'"
+          :title="isPlaying ? t('player.pause') : t('player.play')"
           class="glass-button flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
         >
           <span v-if="isLoading" class="icon-[mdi--loading] h-6 w-6 animate-spin text-white"></span>
@@ -206,7 +210,7 @@ const handleProgressClick = (event: MouseEvent) => {
     <!-- 进度条 -->
 
     <div v-if="currentSong" class="mt-3 flex items-center space-x-3">
-      <span class="text-xs text-white/60">{{ isLoading ? '加载中…' : formattedCurrentTime }}</span>
+      <span class="text-xs text白/60">{{ isLoading ? t('player.loading') : formattedCurrentTime }}</span>
       <div
         @click="handleProgressClick"
         class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"

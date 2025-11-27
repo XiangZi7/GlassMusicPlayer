@@ -99,7 +99,7 @@ const playAll = () => {
             <p class="truncate text-[11px] text-primary/70">{{ state.publish }}</p>
             <div class="mt-3 flex items-center gap-2">
               <button class="glass-button px-4 py-2 text-sm text-primary" @click="playAll">
-                <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>播放全部
+                <span class="icon-[mdi--play] mr-1 h-4 w-4"></span>{{ $t('actions.playAll') }}
               </button>
             </div>
           </div>

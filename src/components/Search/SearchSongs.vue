@@ -66,5 +66,5 @@ watch(
 )
 </script>
 <template>
-  <SongList :songs="results" :showHeader="true" :showControls="false" emptyMessage="暂无歌曲" />
+  <SongList :songs="results" :showHeader="true" :showControls="false" :emptyMessage="$t('components.songList.empty')" />
 </template>

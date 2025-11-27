@@ -5,6 +5,7 @@ import SearchPlaylists from '@/components/Search/SearchPlaylists.vue'
 import SearchMVs from '@/components/Search/SearchMVs.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import Pagination from '@/components/Ui/Pagination.vue'
+import { useI18n } from 'vue-i18n'
 // 路由实例：读取/更新查询参数
 const route = useRoute()
 
@@ -24,15 +25,16 @@ const { activeType, page, total, isLoading } = toRefs(state)
 // 已移除输入历史功能
 
 // Tab 配置：类型、标签、组件与图标
+
 const tabs = [
-  { key: 1 as const, label: '单曲', component: SearchSongs, icon: 'icon-[mdi--music-circle]' },
+  { key: 1 as const, labelKey: 'search.tabs.song', component: SearchSongs, icon: 'icon-[mdi--music-circle]' },
   {
     key: 1000 as const,
-    label: '歌单',
+    labelKey: 'search.tabs.playlist',
     component: SearchPlaylists,
     icon: 'icon-[mdi--playlist-music]',
   },
-  { key: 1004 as const, label: 'MV', component: SearchMVs, icon: 'icon-[mdi--movie-open-play]' },
+  { key: 1004 as const, labelKey: 'search.tabs.mv', component: SearchMVs, icon: 'icon-[mdi--movie-open-play]' },
 ]
 
 // 当前激活类型对应的组件（动态组件）
@@ -75,18 +77,18 @@ watch(page, () => {
         <div class="glass-nav mb-5 flex items-center justify-between gap-2 rounded-xl p-2">
           <div class="flex items-center gap-2">
             <button
-              v-for="t in tabs"
-              :key="t.key"
+              v-for="tab in tabs"
+              :key="tab.key"
               class="glass-button flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition-all"
               :class="
-                activeType === t.key
+                activeType === tab.key
                   ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40'
                   : 'text-white/80'
               "
-              @click="activeType = t.key"
+              @click="activeType = tab.key"
             >
-              <span :class="[t.icon, 'h-5 w-5']"></span>
-              {{ t.label }}
+              <span :class="[tab.icon, 'h-5 w-5']"></span>
+              {{ $t(tab.labelKey) }}
             </button>
           </div>
 

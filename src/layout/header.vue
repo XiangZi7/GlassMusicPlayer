@@ -3,13 +3,15 @@ import LoginDialog from '@/components/Auth/LoginDialog.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 const navItems = [
-  { to: '/', label: '首页', accent: true },
-  { to: '/discover', label: '发现音乐' },
-  { to: '/my-music', label: '我的音乐' },
+  { to: '/', labelKey: 'layout.nav.home', accent: true },
+  { to: '/discover', labelKey: 'layout.nav.discover' },
+  { to: '/my-music', labelKey: 'layout.nav.myMusic' },
 ]
 
 const router = useRouter()
+const { t } = useI18n()
 // 头部本地状态：搜索输入值、登录弹窗开关、历史下拉开关
 const state = reactive({
   searchQuery: '',
@@ -78,7 +80,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             $route.path === item.to ? 'bg-white/10 text-white' : '',
           ]"
         >
-          {{ item.label }}
+          {{ t(item.labelKey) }}
         </RouterLink>
       </nav>
       <!-- 外链菜单 -->
@@ -90,7 +92,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
         >
           <span class="icon-[mdi--github] mr-2 h-4 w-4"></span>
-          项目仓库
+          {{ t('layout.nav.repo') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </a>
         <a
@@ -100,7 +102,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
         >
           <span class="icon-[mdi--movie-open-play] mr-2 h-4 w-4"></span>
-          影视网站
+          {{ t('layout.nav.movies') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </a>
       </nav>
@@ -116,13 +118,13 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           @keyup.enter="handleSearchEnter"
           @focus="openHistoryIfAny"
           type="text"
-          placeholder="搜索音乐、歌手、专辑..."
+          :placeholder="t('common.search.placeholder')"
           class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none pr-10"
         />
         <button
           class="absolute right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full transition-opacity duration-150"
           :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'opacity-0 pointer-events-none'"
-          title="清除"
+          :title="t('common.clear')"
           @click="clearSearch"
         >
           <span class="icon-[mdi--close] h-4 w-4 text-white/70"></span>
@@ -141,7 +143,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
               <span class="truncate pr-8">{{ opt }}</span>
               <button
                 class="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
-                title="删除"
+                :title="t('common.delete')"
                 @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
               >
                 <span class="icon-[mdi--close] h-4 w-4 text-(--glass-dropdown-text)"></span>
@@ -162,7 +164,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         @click="showLogin = true"
       >
         <icon-ic:baseline-person-pin />
-        登录
+        {{ t('auth.login') }}
       </button>
 
       <!-- 移动端菜单按钮 -->
@@ -173,3 +175,4 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
   </header>
   <LoginDialog v-if="showLogin" @close="showLogin = false" />
 </template>
+const { t } = useI18n()

@@ -59,4 +59,5 @@ export interface GlobalState {
   count: number
   theme?: 'light' | 'dark' | 'system'
   searchHistory: string[]
+  lang?: 'zh' | 'en' | 'ja'
 }
