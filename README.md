@@ -148,16 +148,6 @@ VITE_APP_BASE_API = '你的网易云接口地址'
 pnpm dev
 ```
 
-### 生成截图
-
-```bash
-# PC 端截图
-pnpm screenshots
-
-# 移动端截图
-pnpm screenshots:mobile
-```
-
 ## 📷 项目截图
 
 ### 桌面端
