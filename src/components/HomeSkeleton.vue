@@ -27,7 +27,7 @@
     </section>
     <section class="mb-12">
       <div class="mb-6 flex items-center justify-between">
-        <div class="flex items中心 text-2xl font-bold text白">
+        <div class="flex items-center text-2xl font-bold text白">
           <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
           {{ $t('home.hotSongs') }}
         </div>
@@ -46,7 +46,7 @@
     </section>
     <section>
       <div class="mb-6 flex items-center justify-between">
-        <div class="flex items中心 text-2xl font-bold text白">
+        <div class="flex items-center text-2xl font-bold text白">
           <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>
           {{ $t('home.recentPlayed') }}
         </div>

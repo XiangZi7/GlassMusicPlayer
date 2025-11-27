@@ -3,7 +3,12 @@ import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '@/stores/modules/global'
 import { useI18n } from 'vue-i18n'
-import { getBackgroundOptions, getThemeOptions, getLangOptions, getShowHideOptions } from '@/config/settingsOptions'
+import {
+  getBackgroundOptions,
+  getThemeOptions,
+  getLangOptions,
+  getShowHideOptions,
+} from '@/config/settingsOptions'
 import I18n from '@/languages'
 
 const settings = useSettingsStore()
@@ -61,34 +66,45 @@ const romaChecked = computed({
 <template>
   <div class="h-full flex-1 overflow-auto px-3 pb-6">
     <section class="mb-6">
-      <h2 class="text-primary mb-2 text-sm font-semibold">主题模式</h2>
+      <h2 class="text-primary mb-2 text-sm font-semibold">
+        {{ t('components.settings.themeMode') }}
+      </h2>
       <GlassSelect v-model="theme" :options="themeOptions" />
     </section>
     <section class="mb-6">
-      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.themeMode') }}</h2>
-      <GlassSelect v-model="theme" :options="themeOptions" />
-    </section>
-    <section class="mb-6">
-      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.backgroundType') }}</h2>
+      <h2 class="text-primary mb-2 text-sm font-semibold">
+        {{ t('components.settings.backgroundType') }}
+      </h2>
       <GlassSelect v-model="backgroundType" :options="bgOptions" />
     </section>
 
+    <section class="mb-6">
+      <h2 class="text-primary mb-2 text-sm font-semibold">
+        {{ t('components.settings.uiLanguage') }}
+      </h2>
+      <GlassSelect v-model="lang" :options="langOptions" />
+    </section>
+
     <section>
-      <h2 class="text-primary mb-2 text-sm font-semibold">{{ t('components.settings.footerLyricsTitle') }}</h2>
-      <div class="glass-card mb-3 flex items中心 justify之间 p-3">
+      <h2 class="text-primary mb-2 text-sm font-semibold">
+        {{ t('components.settings.footerLyricsTitle') }}
+      </h2>
+      <div class="glass-card mb-3 flex items-center justify-between p-3">
         <span class="text-primary text-sm">{{ t('components.settings.footerLyricsTitle') }}</span>
         <label class="inline-flex cursor-pointer items-center">
           <input type="checkbox" class="sr-only" v-model="footerEnabled" />
           <span class="bg-hover-glass relative h-6 w-10 rounded-full">
             <span
-              :class="footerEnabled ? 'translate-x-5 bg-pink-500' : ' bg-gray-500 translate-x-0'"
+              :class="footerEnabled ? 'translate-x-5 bg-pink-500' : 'translate-x-0 bg-gray-500'"
               class="absolute top-1/2 left-0 h-5 w-5 -translate-y-1/2 rounded-full transition-transform"
             ></span>
           </span>
         </label>
       </div>
       <div class="glass-card p-3">
-        <label class="text-primary/80 mb-2 block text-xs">{{ t('components.settings.footerLyricsModes') }}</label>
+        <label class="text-primary/80 mb-2 block text-xs">{{
+          t('components.settings.footerLyricsModes')
+        }}</label>
         <div class="flex flex-wrap gap-2">
           <button
             class="rounded-full px-3 py-1 text-xs"
