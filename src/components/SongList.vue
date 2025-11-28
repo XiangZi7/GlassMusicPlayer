@@ -2,7 +2,8 @@
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 import { useI18n } from 'vue-i18n'
 
 interface Song {
@@ -164,10 +165,11 @@ const downloadSong = (song: Song, index: number) => {
           <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
             <div class="col-span-4 flex items-center space-x-3">
               <div class="relative shrink-0">
-                <img
+                <LazyImage
                   :src="(song.cover || '') + '?param=90y90'"
                   :alt="t('components.songList.coverAlt')"
-                  class="h-12 w-12 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
+                  imgClass="h-12 w-12 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
+                  wrapperClass="h-12 w-12"
                 />
                 <div
                   class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
