@@ -91,18 +91,7 @@ const router = createRouter({
         {
           path: '/discover',
           name: 'discover',
-          component: responsive(
-            () => import('@/pages/discover.vue'),
-            () => import('@/pages/mobile/discover.vue'),
-          ),
-        },
-        {
-          path: '/my-music',
-          name: 'my-music',
-          component: responsive(
-            () => import('@/pages/my-music.vue'),
-            () => import('@/pages/mobile/my-music.vue'),
-          ),
+          component: () => import('@/pages/discover.vue'),
         },
         {
           path: '/search',
@@ -121,7 +110,7 @@ const router = createRouter({
           ),
         },
         {
-          path: '/artist/:name',
+          path: '/artist/:id',
           name: 'artist',
           component: responsive(
             () => import('@/pages/artist.vue'),

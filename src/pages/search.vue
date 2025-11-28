@@ -5,7 +5,6 @@ import SearchPlaylists from '@/components/Search/SearchPlaylists.vue'
 import SearchMVs from '@/components/Search/SearchMVs.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import Pagination from '@/components/Ui/Pagination.vue'
-import { useI18n } from 'vue-i18n'
 // 路由实例：读取/更新查询参数
 const route = useRoute()
 
@@ -27,14 +26,24 @@ const { activeType, page, total, isLoading } = toRefs(state)
 // Tab 配置：类型、标签、组件与图标
 
 const tabs = [
-  { key: 1 as const, labelKey: 'search.tabs.song', component: SearchSongs, icon: 'icon-[mdi--music-circle]' },
+  {
+    key: 1 as const,
+    labelKey: 'search.tabs.song',
+    component: SearchSongs,
+    icon: 'icon-[mdi--music-circle]',
+  },
   {
     key: 1000 as const,
     labelKey: 'search.tabs.playlist',
     component: SearchPlaylists,
     icon: 'icon-[mdi--playlist-music]',
   },
-  { key: 1004 as const, labelKey: 'search.tabs.mv', component: SearchMVs, icon: 'icon-[mdi--movie-open-play]' },
+  {
+    key: 1004 as const,
+    labelKey: 'search.tabs.mv',
+    component: SearchMVs,
+    icon: 'icon-[mdi--movie-open-play]',
+  },
 ]
 
 // 当前激活类型对应的组件（动态组件）
@@ -70,7 +79,7 @@ watch(page, () => {
 <template>
   <!-- 页面主容器 -->
   <div class="flex flex-1 flex-col overflow-hidden">
-    <div class="flex h-full flex-col overflow-x-hidden px-6">
+    <div class="flex h-full flex-col overflow-x-hidden px-4">
       <!-- 主内容：Tab + 结果 + 分页 -->
       <div class="flex flex-1 flex-col overflow-hidden">
         <!-- Tab 导航 -->

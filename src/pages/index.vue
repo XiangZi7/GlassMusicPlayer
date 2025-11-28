@@ -19,6 +19,8 @@ interface HomeState {
   // 首页加载状态
   isHomeLoading: boolean
 }
+const { t } = useI18n()
+
 // 页面响应式状态容器（仅模板使用的变量通过 toRefs 解构）
 const state = reactive<HomeState>({
   // 轮播图数据
@@ -36,8 +38,6 @@ const state = reactive<HomeState>({
   // 首页加载状态
   isHomeLoading: true,
 })
-
-const { t } = useI18n()
 
 // 模板中使用的变量解构为 ref（仅供 template 使用）
 const {
@@ -131,7 +131,9 @@ const loadHomeData = async () => {
           id: (it?.id ?? '') as number | string,
           name: it?.name,
           artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
+          artistId: Array.isArray(it?.artists) && it.artists[0]?.id ? it.artists[0].id : 0,
           album: it?.album?.name || '',
+          albumId: it?.album?.id || 0,
           duration: it?.duration || 0,
           emoji: emojis[i % emojis.length],
           gradient: gradients[i % gradients.length],
@@ -326,7 +328,9 @@ watch(
                     </div>
                   </div>
                   <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
-                  <p class="truncate text-xs text-purple-300">{{ t('home.playlistCount', { count: playlist.count }) }}</p>
+                  <p class="truncate text-xs text-purple-300">
+                    {{ t('home.playlistCount', { count: playlist.count }) }}
+                  </p>
                 </div>
               </router-link>
             </div>

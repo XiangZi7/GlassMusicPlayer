@@ -7,7 +7,6 @@ import { useI18n } from 'vue-i18n'
 const navItems = [
   { to: '/', labelKey: 'layout.nav.home', accent: true },
   { to: '/discover', labelKey: 'layout.nav.discover' },
-  { to: '/my-music', labelKey: 'layout.nav.myMusic' },
 ]
 
 const router = useRouter()
@@ -34,7 +33,10 @@ const handleSearchEnter = () => {
 }
 // 聚焦时如果有历史则打开下拉
 const openHistoryIfAny = () => {
-  state.historyOpen = searchHistory.value.length > 0
+  if (searchHistory.value.length > 0) {
+    updateDropdownPos()
+    state.historyOpen = true
+  }
 }
 // 选择历史项后直接填充并执行搜索
 const selectHistory = (q: string) => {
@@ -47,6 +49,17 @@ const clearSearch = () => {
 }
 // 搜索框容器用于点击外部关闭下拉
 const rootRef = ref<HTMLElement | null>(null)
+const dropdownStyle = ref({ top: '0px', left: '0px', width: '0px' })
+const updateDropdownPos = () => {
+  const el = rootRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  dropdownStyle.value = {
+    top: `${rect.bottom + 8}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+  }
+}
 const onDocClick = (e: Event) => {
   const el = rootRef.value
   if (!el) return
@@ -119,19 +132,22 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           @focus="openHistoryIfAny"
           type="text"
           :placeholder="t('common.search.placeholder')"
-          class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none pr-10"
+          class="min-w-0 flex-1 bg-transparent pr-10 text-sm text-white placeholder-white/50 outline-none"
         />
         <button
-          class="absolute right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full transition-opacity duration-150"
-          :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'opacity-0 pointer-events-none'"
+          class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
+          :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'pointer-events-none opacity-0'"
           :title="t('common.clear')"
           @click="clearSearch"
         >
           <span class="icon-[mdi--close] h-4 w-4 text-white/70"></span>
         </button>
+      </div>
+      <Teleport to="body">
         <div
           v-if="historyOpen && searchHistory.length"
-          class="glass-dropdown absolute top-full right-0 left-0 z-100000 mt-2 overflow-hidden rounded-2xl shadow-lg"
+          class="glass-dropdown fixed z-99999 overflow-hidden rounded-2xl shadow-lg"
+          :style="dropdownStyle"
         >
           <ul class="max-h-60 overflow-auto">
             <li
@@ -142,7 +158,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             >
               <span class="truncate pr-8">{{ opt }}</span>
               <button
-                class="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
+                class="absolute top-1/2 right-2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
                 :title="t('common.delete')"
                 @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
               >
@@ -151,7 +167,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             </li>
           </ul>
         </div>
-      </div>
+      </Teleport>
 
       <!-- 用户头像 / 登录按钮 -->
       <div v-if="userStore.isLoggedIn" class="flex items-center gap-2">
@@ -175,4 +191,3 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
   </header>
   <LoginDialog v-if="showLogin" @close="showLogin = false" />
 </template>
-const { t } = useI18n()

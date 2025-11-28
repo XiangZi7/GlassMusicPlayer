@@ -16,6 +16,7 @@ interface SongResult {
   id: number | string
   name: string
   artist: string
+  artistId?: number | string
   album: string
   albumId?: number | string
   duration: number
@@ -48,6 +49,9 @@ const fetchSongs = async () => {
     artist: Array.isArray(it?.artists || it?.ar)
       ? (it?.artists || it?.ar).map((a: any) => a.name).join(' / ')
       : '',
+    artistId: Array.isArray(it?.artists || it?.ar) && (it?.artists || it?.ar)[0]?.id
+      ? (it?.artists || it?.ar)[0].id
+      : undefined,
     album: it?.album?.name || it?.al?.name || '',
     albumId: it?.album?.id || it?.al?.id,
     duration: it?.duration ?? it?.dt ?? 0,

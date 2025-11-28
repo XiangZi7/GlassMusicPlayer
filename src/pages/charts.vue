@@ -10,7 +10,6 @@ const state = reactive({
 })
 const { activeType } = toRefs(state)
 
-
 const types = [
   { key: 0, labelKey: 'charts.types.all' },
   { key: 7, labelKey: 'charts.types.mandarin' },
@@ -28,6 +27,7 @@ const load = async () => {
       id: it?.id,
       name: it?.name,
       artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
+      artistId: Array.isArray(it?.artists) && it.artists[0]?.id ? it.artists[0].id : 0,
       album: it?.album?.name || '',
       albumId: it?.album?.id,
       duration: it?.duration || 0,
@@ -51,7 +51,11 @@ onMounted(() => load())
             v-for="type in types"
             :key="type.key"
             class="glass-button px-4 py-2 text-sm"
-            :class="activeType === type.key ? 'bg-white/25 text-white ring-1 ring-pink-300/40' : 'text-white/80'"
+            :class="
+              activeType === type.key
+                ? 'bg-white/25 text-white ring-1 ring-pink-300/40'
+                : 'text-white/80'
+            "
             @click="activeType = type.key as any"
           >
             {{ t(type.labelKey) }}

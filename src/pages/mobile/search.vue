@@ -3,6 +3,9 @@ import { cloudSearch, searchSuggest, searchDefault } from '@/api'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import Pagination from '@/components/Ui/Pagination.vue'
 import { Song } from '@/stores/interface'
+import { useAudio } from '@/composables/useAudio'
+import { useI18n } from 'vue-i18n'
+
 type SearchTab = 'song' | 'playlist' | 'mv'
 type PlaylistItem = {
   id: number | string
@@ -11,6 +14,10 @@ type PlaylistItem = {
   trackCount: number
 }
 type MVItem = { id: number | string; name: string; cover: string; artist: string }
+
+const { t } = useI18n()
+const { setPlaylist, play, currentSong, isPlaying } = useAudio()
+
 interface MobileSearchState {
   q: string
   placeholder: string
@@ -32,41 +39,23 @@ interface MobileSearchState {
   mvTotal: number
 }
 const state = reactive<MobileSearchState>({
-  // 搜索关键词
   q: '',
-  // 输入框默认占位文案
   placeholder: '',
-  // 当前选中的搜索类型 Tab（单曲/歌单/MV）
   tab: 'song',
-  // 联想词列表（来自 suggest 接口）
   suggest: [],
-  // 是否处于加载中（请求三类结果时）
   loading: false,
-  // 是否显示联想下拉
   suggestVisible: false,
-  // 单曲搜索结果列表
   songs: [],
-  // 单曲分页页码
   songPage: 1,
-  // 单曲每页数量
   songPageSize: 20,
-  // 单曲总条数
   songTotal: 0,
-  // 歌单搜索结果列表
   playlists: [],
-  // 歌单分页页码
   playlistPage: 1,
-  // 歌单每页数量
   playlistPageSize: 12,
-  // 歌单总条数
   playlistTotal: 0,
-  // MV 搜索结果列表
   mvs: [],
-  // MV 分页页码
   mvPage: 1,
-  // MV 每页数量
   mvPageSize: 12,
-  // MV 总条数
   mvTotal: 0,
 })
 const {
@@ -237,114 +226,210 @@ const handleDocClick = (e: MouseEvent) => {
 onUnmounted(() => {
   document.removeEventListener('click', handleDocClick)
 })
+
+const formatDuration = (ms: number) => {
+  const total = Math.floor(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+const mapToStoreSong = (s: Song): Song => ({
+  id: s.id,
+  name: s.name,
+  artist: s.artist,
+  album: s.album,
+  duration: s.duration,
+  cover: s.cover,
+})
+
+const playSong = (s: Song, index: number) => {
+  const list: Song[] = state.songs.map(mapToStoreSong)
+  setPlaylist(list, index)
+  play(list[index], index)
+}
+
+const isCurrent = (s: Song) => {
+  const cur = currentSong.value
+  if (!cur) return false
+  return String(s.id) === String(cur.id)
+}
+
+const playAllSongs = () => {
+  if (!state.songs.length) return
+  const list: Song[] = state.songs.map(mapToStoreSong)
+  setPlaylist(list, 0)
+  play(list[0], 0)
+}
+
+const tabs = computed(() => [
+  { key: 'song' as const, icon: 'icon-[mdi--music-circle]', label: t('search.tabs.song') },
+  {
+    key: 'playlist' as const,
+    icon: 'icon-[mdi--playlist-music]',
+    label: t('search.tabs.playlist'),
+  },
+  { key: 'mv' as const, icon: 'icon-[mdi--video]', label: 'MV' },
+])
 </script>
 
 <template>
-  <div class="flex-1 overflow-auto px-3 pb-6">
-    <div class="glass-nav sticky top-0 z-10 pt-2 pb-3">
-      <div ref="searchBoxRef" class="glass-card relative flex items-center gap-2 px-3 py-2">
-        <span class="icon-[mdi--magnify] text-primary/70 h-5 w-5"></span>
-        <input
-          ref="inputRef"
-          v-model="q"
-          @keyup.enter="handleSearchClick"
-          @focus="handleInputFocus"
-          type="text"
-          :placeholder="placeholder || $t('common.search.placeholder')"
-          class="placeholder-glass-50 text-primary min-w-0 flex-1 bg-transparent text-sm outline-none"
-        />
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <div class="shrink-0 px-4 pb-3">
+      <div ref="searchBoxRef" class="relative">
+        <div class="glass-card flex items-center gap-2 px-3 py-2.5">
+          <span class="icon-[mdi--magnify] search-icon h-5 w-5 shrink-0"></span>
+          <input
+            ref="inputRef"
+            v-model="q"
+            @keyup.enter="handleSearchClick"
+            @focus="handleInputFocus"
+            type="text"
+            :placeholder="placeholder || $t('common.search.placeholder')"
+            class="search-input min-w-0 flex-1 bg-transparent text-sm outline-none"
+          />
+          <button
+            v-if="q"
+            class="clear-btn flex h-7 w-7 items-center justify-center rounded-full transition-all"
+            :title="$t('common.clear')"
+            @click="clearQuery"
+          >
+            <span class="icon-[mdi--close-circle] h-4 w-4"></span>
+          </button>
+          <button
+            class="search-btn flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium text-white transition-all active:scale-95"
+            @click="handleSearchClick"
+          >
+            <span class="icon-[mdi--magnify] h-4 w-4"></span>
+            {{ $t('common.search.label') }}
+          </button>
+        </div>
+
+        <Transition name="dropdown">
+          <div
+            v-if="suggestVisible && suggest.length"
+            class="suggest-dropdown absolute top-full right-0 left-0 z-20 mt-2 rounded-2xl p-3"
+          >
+            <p class="suggest-title mb-2 px-1 text-[10px] font-medium tracking-wider uppercase">
+              {{ $t('common.search.suggest') }}
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="s in suggest"
+                :key="s"
+                class="suggest-tag rounded-full px-3 py-1.5 text-xs transition-all active:scale-95"
+                @click="handleSuggestClick(s)"
+              >
+                {{ s }}
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
+      <div class="glass-card mt-3 inline-flex w-full gap-1.5 p-1.5">
         <button
-          v-if="q"
-          class="hover:bg-hover-glass rounded-md p-2"
-          :title="$t('common.clear')"
-          @click="clearQuery"
+          v-for="tabItem in tabs"
+          :key="tabItem.key"
+          class="tab-button flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-300"
+          :class="tab === tabItem.key ? 'tab-button-active' : ''"
+          @click="state.tab = tabItem.key"
         >
-          <span class="icon-[mdi--close-circle-outline] text-primary/70 h-5 w-5"></span>
+          <span :class="tabItem.icon" class="h-4 w-4" />
+          <span>{{ tabItem.label }}</span>
         </button>
-        <button class="hover:bg-hover-glass rounded-md p-2" :title="$t('common.search.label')" @click="handleSearchClick">
-          <span class="icon-[mdi--arrow-right] text-primary h-5 w-5"></span>
-        </button>
-        <div
-          v-if="suggestVisible && suggest.length"
-          class="glass-dropdown absolute top-full right-0 left-0 z-20 mt-2 rounded-xl p-3 backdrop-blur-md"
-        >
-          <div class="grid grid-cols-2 gap-2">
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-auto px-4 pb-6">
+      <div v-if="loading" class="py-6">
+        <PageSkeleton :sections="['list']" :list-count="10" />
+      </div>
+
+      <Transition name="slide-fade" mode="out-in">
+        <div v-if="!loading && tab === 'song'" key="song" class="space-y-3">
+          <div v-if="songs.length > 0" class="flex items-center justify-between py-2">
+            <p class="info-text text-xs">
+              {{ t('search.result', { count: songTotal }) }}
+            </p>
             <button
-              v-for="s in suggest"
-              :key="s"
-              class="glass-button text-primary/80 min-w-0 truncate rounded-full px-3 py-1 text-xs"
-              @click="handleSuggestClick(s)"
+              class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-all duration-200 active:scale-95"
+              @click="playAllSongs"
             >
-              {{ s }}
+              <span class="icon-[mdi--play] h-4 w-4" />
+              {{ t('actions.playAll') }}
             </button>
           </div>
-        </div>
-      </div>
-      <div class="mt-3 flex items-center gap-2">
-        <button
-          :class="tab === 'song' ? 'text-primary' : 'text-primary/60'"
-          class="rounded-md px-3 py-1 text-sm"
-          @click="state.tab = 'song'"
-        >
-          {{ $t('search.tabs.song') }}
-        </button>
-        <button
-          :class="tab === 'playlist' ? 'text-primary' : 'text-primary/60'"
-          class="rounded-md px-3 py-1 text-sm"
-          @click="state.tab = 'playlist'"
-        >
-          {{ $t('search.tabs.playlist') }}
-        </button>
-        <button
-          :class="tab === 'mv' ? 'text-primary' : 'text-primary/60'"
-          class="rounded-md px-3 py-1 text-sm"
-          @click="state.tab = 'mv'"
-        >
-          MV
-        </button>
-      </div>
-    </div>
 
-    <div v-if="loading" class="py-6">
-      <PageSkeleton :sections="['list']" :list-count="10" />
-    </div>
-
-    <div v-else>
-      <section v-show="tab === 'song'" class="space-y-3">
-        <HotSongsMobile :songs="songs" context="generic" />
-        <Pagination
-          v-if="songTotal > songPageSize"
-          v-model="songPage"
-          :total="songTotal"
-          :page-size="songPageSize"
-        />
-      </section>
-
-      <section v-show="tab === 'playlist'" class="grid grid-cols-2 gap-3">
-        <router-link
-          v-for="p in playlists"
-          :key="p.id"
-          :to="`/playlist/${p.id}`"
-          class="group"
-        >
-          <div class="glass-card p-3">
-            <div class="relative mb-2 overflow-hidden rounded-lg">
-              <LazyImage
-                :src="p.coverImgUrl + '?param=300y300'"
-                alt="cover"
-                imgClass="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div
-                class="bg-hover-glass absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              >
-                <span class="icon-[mdi--play] text-primary h-5 w-5"></span>
-              </div>
+          <div
+            v-if="songs.length === 0 && !loading"
+            class="empty-state flex flex-col items-center py-16"
+          >
+            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+              <span class="icon-[mdi--music-note-off] h-10 w-10 opacity-40" />
             </div>
-            <h3 class="text-primary truncate text-xs font-medium">{{ p.name }}</h3>
-            <p class="text-primary/70 truncate text-[11px]">{{ $t('commonUnits.songsShort', { count: p.trackCount }) }}</p>
+            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
           </div>
-        </router-link>
-        <div class="col-span-2">
+
+          <MobileSongList v-else :songs="songs" variant="compact" :show-index="true" />
+
+          <Pagination
+            v-if="songTotal > songPageSize"
+            v-model="songPage"
+            :total="songTotal"
+            :page-size="songPageSize"
+          />
+        </div>
+
+        <div v-else-if="!loading && tab === 'playlist'" key="playlist" class="space-y-3">
+          <div v-if="playlists.length > 0" class="py-2">
+            <p class="info-text text-xs">
+              {{ t('search.result', { count: playlistTotal }) }}
+            </p>
+          </div>
+
+          <div
+            v-if="playlists.length === 0 && !loading"
+            class="empty-state flex flex-col items-center py-16"
+          >
+            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+              <span class="icon-[mdi--playlist-remove] h-10 w-10 opacity-40" />
+            </div>
+            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
+          </div>
+
+          <div v-else class="grid grid-cols-2 gap-4">
+            <router-link
+              v-for="p in playlists"
+              :key="p.id"
+              :to="`/playlist/${p.id}`"
+              class="playlist-card group"
+            >
+              <div class="playlist-cover relative mb-3 aspect-square overflow-hidden rounded-2xl">
+                <LazyImage
+                  :src="p.coverImgUrl + '?param=300y300'"
+                  :alt="p.name"
+                  imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-110"
+                />
+                <div class="playlist-cover-overlay absolute inset-0"></div>
+                <div
+                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+                >
+                  <span class="icon-[mdi--music-note] h-3 w-3"></span>
+                  {{ p.trackCount }}
+                </div>
+                <div
+                  class="playlist-play-btn absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-300"
+                >
+                  <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+                </div>
+              </div>
+              <p class="playlist-name line-clamp-2 px-1 text-[13px] font-medium leading-snug">
+                {{ p.name }}
+              </p>
+            </router-link>
+          </div>
+
           <Pagination
             v-if="playlistTotal > playlistPageSize"
             v-model="playlistPage"
@@ -352,19 +437,57 @@ onUnmounted(() => {
             :page-size="playlistPageSize"
           />
         </div>
-      </section>
 
-      <section v-show="tab === 'mv'" class="grid grid-cols-2 gap-3">
-        <router-link v-for="m in mvs" :key="m.id" :to="`/mv-player/${m.id}`" class="group">
-          <div class="glass-card p-3">
-            <div class="relative mb-2 overflow-hidden rounded-lg">
-              <LazyImage :src="m.cover" alt="cover" imgClass="h-full w-full object-cover" />
-            </div>
-            <h3 class="text-primary truncate text-xs font-medium">{{ m.name }}</h3>
-            <p class="text-primary/70 truncate text-[11px]">{{ m.artist }}</p>
+        <div v-else-if="!loading && tab === 'mv'" key="mv" class="space-y-3">
+          <div v-if="mvs.length > 0" class="py-2">
+            <p class="info-text text-xs">
+              {{ t('search.result', { count: mvTotal }) }}
+            </p>
           </div>
-        </router-link>
-        <div class="col-span-2">
+
+          <div
+            v-if="mvs.length === 0 && !loading"
+            class="empty-state flex flex-col items-center py-16"
+          >
+            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+              <span class="icon-[mdi--video-off] h-10 w-10 opacity-40" />
+            </div>
+            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
+          </div>
+
+          <div v-else class="grid grid-cols-1 gap-4">
+            <router-link
+              v-for="m in mvs"
+              :key="m.id"
+              :to="`/mv-player/${m.id}`"
+              class="mv-card group"
+            >
+              <div class="mv-cover relative aspect-video overflow-hidden rounded-2xl">
+                <LazyImage
+                  :src="m.cover + '?param=480y270'"
+                  :alt="m.name"
+                  imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-105"
+                />
+                <div class="mv-cover-overlay absolute inset-0"></div>
+                <div
+                  class="mv-play-btn absolute top-1/2 left-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-xl transition-all duration-300"
+                >
+                  <span class="icon-[mdi--play] h-7 w-7 text-white"></span>
+                </div>
+                <div class="absolute right-0 bottom-0 left-0 p-3">
+                  <p class="mv-title truncate text-sm font-semibold text-white">{{ m.name }}</p>
+                  <p class="mv-artist mt-0.5 truncate text-xs text-white/70">{{ m.artist }}</p>
+                </div>
+                <div
+                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+                >
+                  <span class="icon-[mdi--video] h-3 w-3"></span>
+                  MV
+                </div>
+              </div>
+            </router-link>
+          </div>
+
           <Pagination
             v-if="mvTotal > mvPageSize"
             v-model="mvPage"
@@ -372,7 +495,263 @@ onUnmounted(() => {
             :page-size="mvPageSize"
           />
         </div>
-      </section>
+      </Transition>
     </div>
   </div>
 </template>
+
+<style scoped>
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.search-icon {
+  color: var(--glass-text);
+  opacity: 0.5;
+}
+
+.search-input {
+  color: var(--glass-text);
+}
+
+.search-input::placeholder {
+  color: var(--glass-text);
+  opacity: 0.4;
+}
+
+.clear-btn {
+  color: var(--glass-text);
+  opacity: 0.4;
+}
+
+.clear-btn:active {
+  opacity: 0.7;
+  background: var(--glass-hover-item-bg);
+}
+
+.search-btn {
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.suggest-dropdown {
+  background: var(--glass-dropdown-bg);
+  border: 1px solid var(--glass-dropdown-border);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.suggest-title {
+  color: var(--glass-text);
+  opacity: 0.4;
+}
+
+.suggest-tag {
+  background: var(--glass-hover-item-bg);
+  color: var(--glass-text);
+  opacity: 0.8;
+}
+
+.suggest-tag:active {
+  background: linear-gradient(to right, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+  opacity: 1;
+}
+
+.tab-button {
+  color: var(--glass-text);
+  opacity: 0.6;
+}
+
+.tab-button-active {
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  color: white;
+  opacity: 1;
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+}
+
+.info-text {
+  color: var(--glass-text);
+  opacity: 0.5;
+}
+
+.play-all-button {
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+}
+
+.play-all-button:active {
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.empty-icon {
+  background: linear-gradient(to bottom right, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15));
+}
+
+:root.dark .empty-icon,
+html.dark .empty-icon {
+  background: linear-gradient(to bottom right, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+}
+
+.empty-title {
+  color: var(--glass-text);
+  opacity: 0.6;
+}
+
+.song-item:not(.song-item-active):active {
+  background: var(--glass-hover-item-bg);
+}
+
+.song-item-active {
+  background: linear-gradient(to right, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+}
+
+:root.dark .song-item-active,
+html.dark .song-item-active {
+  background: linear-gradient(to right, rgba(236, 72, 153, 0.25), rgba(139, 92, 246, 0.25));
+}
+
+.song-index {
+  color: var(--glass-text);
+  opacity: 0.3;
+}
+
+.song-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:root.dark .song-cover,
+html.dark .song-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.song-name {
+  color: var(--glass-text);
+}
+
+.song-artist {
+  color: var(--glass-text);
+  opacity: 0.5;
+}
+
+.song-duration {
+  color: var(--glass-text);
+  opacity: 0.3;
+}
+
+.playlist-card {
+  transition: transform 0.3s ease;
+}
+
+.playlist-card:active {
+  transform: scale(0.97);
+}
+
+.playlist-cover {
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.15),
+    0 4px 8px -2px rgba(0, 0, 0, 0.08);
+}
+
+:root.dark .playlist-cover,
+html.dark .playlist-cover {
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.4),
+    0 4px 8px -2px rgba(0, 0, 0, 0.25);
+}
+
+.playlist-cover-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.4) 0%,
+    transparent 40%,
+    transparent 100%
+  );
+}
+
+.playlist-play-btn {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.playlist-card:active .playlist-play-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.playlist-name {
+  color: var(--glass-text);
+  opacity: 0.9;
+}
+
+.mv-card {
+  transition: transform 0.3s ease;
+}
+
+.mv-card:active {
+  transform: scale(0.98);
+}
+
+.mv-cover {
+  box-shadow:
+    0 12px 32px -4px rgba(0, 0, 0, 0.2),
+    0 4px 12px -2px rgba(0, 0, 0, 0.1);
+}
+
+:root.dark .mv-cover,
+html.dark .mv-cover {
+  box-shadow:
+    0 12px 32px -4px rgba(0, 0, 0, 0.5),
+    0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.mv-cover-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.2) 30%,
+    transparent 60%,
+    transparent 100%
+  );
+}
+
+.mv-play-btn {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.9), rgba(139, 92, 246, 0.9));
+  backdrop-filter: blur(8px);
+}
+
+.mv-card:active .mv-play-btn {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.mv-title {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.mv-artist {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+</style>

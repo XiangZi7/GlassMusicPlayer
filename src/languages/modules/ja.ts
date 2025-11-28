@@ -13,7 +13,7 @@ export default {
     delete: '削除',
     clear: 'クリア',
     loading: '読み込み中',
-    search: { placeholder: '楽曲・アーティスト・アルバムを検索...', label: '検索' },
+    search: { placeholder: '楽曲・アーティスト・アルバムを検索...', label: '検索', suggest: '検索候補' },
   },
   home: {
     welcome: 'ようこそ',
@@ -29,6 +29,8 @@ export default {
   },
   search: {
     tabs: { song: '曲', playlist: 'プレイリスト', mv: 'MV' },
+    result: '{count} 件の結果',
+    empty: '検索結果がありません',
   },
   charts: {
     types: { all: '全部', mandarin: '華語', west: '洋楽', japan: '日本', korea: '韓国' },
@@ -47,17 +49,26 @@ export default {
     discover: {
       title: '音楽を発見',
       subtitle: '厳選されたプレイリストと新曲',
-      hotPlaylists: '人気プレイリスト',
+      hotPlaylists: 'おすすめ',
       newSongs: '新曲',
+      recommendMv: 'おすすめMV',
+      hotArtists: '人気アーティスト',
+      quickPicks: 'あなたへのおすすめ',
+      viewMore: 'もっと見る',
       playlistCount: '{count} 曲',
     },
     settings: {
       title: '設定',
+      desc: '音楽体験をカスタマイズ',
       backgroundType: '背景タイプ',
+      backgroundTypeDesc: '背景効果を選択',
       backgroundNames: { aurora: 'オーロラ', colorbends: 'グラデーション波', ultimate: 'アドバンス' },
       themeMode: 'テーマモード',
+      themeModeDesc: 'テーマを選択',
       uiLanguage: '言語',
+      uiLanguageDesc: '言語を選択',
       footerLyricsTitle: 'フッター歌詞',
+      footerLyricsDesc: 'フッター歌詞の表示設定',
       footerLyricsModes: '表示言語（最大2つ）',
       themeOptions: { light: 'ライト', dark: 'ダーク', system: 'システムに従う' },
     },
@@ -67,6 +78,7 @@ export default {
       home: 'ホーム',
       discover: '発見',
       myMusic: 'マイミュージック',
+      recent: 'マイ',
       repo: 'リポジトリ',
       movies: 'ムービー',
     },
@@ -97,10 +109,15 @@ export default {
     offline: 'オフライン',
     toggleBg: '背景切り替え：カバー/プレーン',
     autoCenter: '自動中央',
-    fontInc: 'フォント拡大',
-    fontDec: 'フォント縮小',
+    fontInc: 'フォント+',
+    fontDec: 'フォント-',
     translate: '翻訳',
     roma: 'ローマ字',
+    nowPlaying: '再生中',
+    bgToggle: '背景',
+    repeatOne: 'リピート',
+    repeatAll: 'リストリピート',
+    shuffle: 'シャッフル',
   },
   auth: {
     login: 'ログイン',
@@ -176,6 +193,11 @@ export default {
   likes: {
     empty: 'お気に入りの曲はまだありません',
   },
+  recent: {
+    title: '最近の再生',
+    subtitle: 'あなたの最近の音楽体験を記録',
+    empty: '再生履歴がありません。素敵な音楽を探しに行きましょう！',
+  },
   mobile: {
     myMusic: {
       playingList: '再生中リスト',
@@ -184,6 +206,12 @@ export default {
       clear: 'クリア',
       emptyTitle: '再生中の曲はありません',
       emptyHint: 'プレイリストや検索からお気に入りを追加してください',
+    },
+    recent: {
+      playlist: 'プレイリスト',
+      history: '再生履歴',
+      nowPlaying: '再生中',
+      recentlyPlayed: '最近再生した曲',
     },
   },
   commonUnits: {

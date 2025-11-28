@@ -42,8 +42,12 @@ export interface SongItem {
   name: string
   // 艺术家名（已拼接）
   artist: string
+  // 艺术家ID
+  artistId?: number | string
   // 专辑名
   album: string
+  // 专辑ID
+  albumId?: number | string
   // 时长（毫秒）
   duration: number
   // 表情图标

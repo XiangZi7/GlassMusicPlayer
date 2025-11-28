@@ -63,6 +63,11 @@ const load = async () => {
         : Array.isArray(s?.artists)
           ? s.artists.map((a: any) => a.name).join(' / ')
           : '',
+      artistId: Array.isArray(s?.ar) && s.ar[0]?.id
+        ? s.ar[0].id
+        : Array.isArray(s?.artists) && s.artists[0]?.id
+          ? s.artists[0].id
+          : 0,
       album: s?.al?.name || s?.album?.name || album?.name || '',
       albumId: s?.al?.id ?? s?.album?.id ?? album?.id,
       duration: s?.dt ?? s?.duration ?? 0,

@@ -246,31 +246,48 @@ const scrollToCurrentLyric = (instant = false) => {
 const setBackground = (url?: string) => {
   if (!state.useCoverBg || !url) return
   if (state.bgAUrl === '' && state.bgBUrl === '') {
-    // 初始设置：直接显示A层
     state.bgAUrl = url
-    if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
-    if (bgARef.value) gsap.to(bgARef.value, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
+    if (bgARef.value) {
+      gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
+      gsap.to(bgARef.value, {
+        opacity: 0.55,
+        scale: 1.5,
+        duration: 1.2,
+        ease: 'power2.out',
+      })
+    }
     state.bgActive = 'A'
     return
   }
 
+  const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
+  const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
+
   if (state.bgActive === 'A') {
     state.bgBUrl = url
-    if (bgBRef.value) gsap.set(bgBRef.value, { opacity: 0 })
-    if (bgBRef.value)
-      gsap.to(bgBRef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    if (bgARef.value)
-      gsap.to(bgARef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
-    state.bgActive = 'B'
   } else {
     state.bgAUrl = url
-    if (bgARef.value) gsap.set(bgARef.value, { opacity: 0 })
-    if (bgARef.value)
-      gsap.to(bgARef.value as any, { opacity: 0.6, duration: 0.8, ease: 'power2.out' })
-    if (bgBRef.value)
-      gsap.to(bgBRef.value as any, { opacity: 0, duration: 0.8, ease: 'power2.out' })
-    state.bgActive = 'A'
   }
+
+  if (incomingRef.value) {
+    gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
+    gsap.to(incomingRef.value, {
+      opacity: 0.55,
+      scale: 1.5,
+      duration: 1.4,
+      ease: 'power2.inOut',
+    })
+  }
+  if (outgoingRef.value) {
+    gsap.to(outgoingRef.value, {
+      opacity: 0,
+      scale: 1.45,
+      duration: 1.4,
+      ease: 'power2.inOut',
+    })
+  }
+
+  state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
 }
 
 // 抽屉动画
@@ -376,16 +393,6 @@ watch(currentTime, () => {
   updateCurrentLyric()
 })
 
-watch(
-  () => activeSingleLyrics.value,
-  () => {
-    console.log(
-      '🚀 ~ file: PlayerDrawer.vue:377 ~ activeSingleLyrics.value:',
-      activeSingleLyrics.value
-    )
-  }
-)
-
 // 当前歌曲变化时拉取歌词
 watch(
   currentSong,
@@ -428,15 +435,15 @@ onUnmounted(() => {
     ]"
   >
     <!-- 背景：封面放大+模糊（双层淡入淡出） -->
-    <div v-if="state.useCoverBg" class="absolute inset-0 -z-10">
+    <div v-if="state.useCoverBg" class="absolute inset-0 -z-10 overflow-hidden">
       <div
         ref="bgARef"
-        class="absolute inset-0 scale-130 transform bg-cover bg-top opacity-50 blur-2xl"
+        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
         :style="state.bgAUrl ? { backgroundImage: `url(${state.bgAUrl})` } : {}"
       ></div>
       <div
         ref="bgBRef"
-        class="absolute inset-0 scale-130 transform bg-cover bg-top opacity-50 blur-2xl"
+        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
         :style="state.bgBUrl ? { backgroundImage: `url(${state.bgBUrl})` } : {}"
       ></div>
     </div>
@@ -734,6 +741,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.bg-layer {
+  transform: scale(1.5);
+  filter: blur(48px) saturate(1.3);
+  transition: filter 0.3s ease;
+  will-change: transform, opacity;
+}
+
 .vinyl-disc {
   background: radial-gradient(circle at 50% 50%, #161616 0%, #0b0b0b 60%, #000 100%);
 }

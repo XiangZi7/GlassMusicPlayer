@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { songUrl } from '@/api'
-import { Song, PlayMode } from '../interface'
+import { Song, PlayMode, AudioStoreState } from '../interface'
 import piniaPersistConfig from '../persist'
 import { trackListData } from '@/mock'
 let globalAudio: HTMLAudioElement | null = null
@@ -24,12 +24,13 @@ const shuffleArray = <T>(array: T[]): T[] => {
 }
 
 export const useAudioStore = defineStore('audio', {
-  state: () => ({
-    // 全局计数器（保留原有字段）
+  state: (): AudioStoreState => ({
+    // 全局计数器
     count: 0,
     // 音频播放器状态
     audio: {
-      audio: null as HTMLAudioElement | null,
+      // 音频实例
+      audio: null,
       // 是否正在播放
       isPlaying: false,
       // 是否已暂停
@@ -37,15 +38,15 @@ export const useAudioStore = defineStore('audio', {
       // 是否正在加载
       isLoading: false,
       // 当前播放的歌曲
-      currentSong: null as Song | null,
+      currentSong: null,
       // 当前歌曲在播放列表中的索引
       currentIndex: -1,
       // 当前播放列表
       playlist: trackListData as unknown as Song[],
       // 原始播放列表（用于随机模式恢复）
-      originalPlaylist: [] as Song[],
+      originalPlaylist: [],
       // 播放模式（列表循环/单曲循环/随机播放）
-      playMode: PlayMode.LIST as PlayMode,
+      playMode: PlayMode.LIST,
       // 音量大小（0-1）
       volume: 1,
       // 是否静音
@@ -55,9 +56,9 @@ export const useAudioStore = defineStore('audio', {
       // 歌曲总时长（秒）
       duration: 0,
       // 播放历史记录
-      playHistory: [] as Song[],
+      playHistory: [],
       // 错误信息
-      error: null as string | null,
+      error: null,
     },
   }),
 
@@ -97,9 +98,6 @@ export const useAudioStore = defineStore('audio', {
     initAudio() {
       if (!this.audio.audio) {
         this.audio.audio = getAudioSingleton()
-        try {
-          // this.audio.audio.crossOrigin = 'anonymous'
-        } catch {}
         this.setupAudioEvents()
         // 如果有歌曲的情况下
         if (this.audio.playlist.length > 0) {
@@ -606,15 +604,21 @@ export const useAudioStore = defineStore('audio', {
 
     // 添加到播放历史
     addToHistory(song: Song) {
-      // 避免重复添加相同歌曲
-      const lastSong = this.audio.playHistory[this.audio.playHistory.length - 1]
-      if (!lastSong || lastSong.id !== song.id) {
-        this.audio.playHistory.push(song)
+      // 移除已存在的相同歌曲（避免重复）
+      const existingIndex = this.audio.playHistory.findIndex(
+        (s: { id: string | number }) => s.id === song.id
+      )
 
-        // 限制历史记录数量
-        if (this.audio.playHistory.length > 50) {
-          this.audio.playHistory.shift()
-        }
+      if (existingIndex !== -1) {
+        this.audio.playHistory.splice(existingIndex, 1)
+      }
+
+      // 添加到历史记录末尾
+      this.audio.playHistory.push(song)
+
+      // 限制历史记录数量
+      if (this.audio.playHistory.length > 100) {
+        this.audio.playHistory.shift()
       }
     },
 
@@ -635,7 +639,6 @@ export const useAudioStore = defineStore('audio', {
         this.audio.audio.src = ''
         this.audio.audio = null
       }
-      
 
       this.audio.isPlaying = false
       this.audio.isPaused = false
@@ -646,8 +649,6 @@ export const useAudioStore = defineStore('audio', {
       this.audio.duration = 0
       this.audio.error = null
     },
-
-    
   },
 
   persist: piniaPersistConfig('audio', [
@@ -659,5 +660,6 @@ export const useAudioStore = defineStore('audio', {
     'audio.playMode',
     'audio.volume',
     'audio.isMuted',
+    'audio.playHistory',
   ]),
 })

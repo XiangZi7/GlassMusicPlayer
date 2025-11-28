@@ -22,6 +22,7 @@
     --accent: #8b5cf6;
     --progress-track-bg: rgba(17, 24, 39, 0.16);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+    --skeleton-bg: #d9dadb;
   }
 
   :root.dark,
@@ -48,6 +49,7 @@
     --accent: #a78bfa;
     --progress-track-bg: rgba(255, 255, 255, 0.22);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+    --skeleton-bg: rgba(255, 255, 255, 0.08);
     color-scheme: dark;
   }
 

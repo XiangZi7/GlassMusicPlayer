@@ -157,3 +157,27 @@ export const searchSong = (params: { keywords: string; limit?: number; offset?: 
 
 // 歌词相关
 export const lyric = (params: { id: number | string }) => httpGet('/lyric', params)
+
+// 推荐相关
+export const personalized = (params?: { limit?: number }) => httpGet('/personalized', params)
+export const personalizedNewsong = (params?: { limit?: number }) =>
+  httpGet('/personalized/newsong', params)
+export const personalizedMv = () => httpGet('/personalized/mv')
+export const playlistCatlist = () => httpGet('/playlist/catlist')
+export const topArtists = (params?: { limit?: number; offset?: number }) =>
+  httpGet('/top/artists', params)
+export const artistList = (params?: {
+  type?: number
+  area?: number
+  initial?: string
+  limit?: number
+  offset?: number
+}) => httpGet('/artist/list', params)
+
+export const artistDetail = (params: { id: number }) => httpGet('/artist/detail', params)
+export const artistTopSong = (params: { id: number }) => httpGet('/artist/top/song', params)
+export const artistAlbum = (params: { id: number; limit?: number; offset?: number }) =>
+  httpGet('/artist/album', params)
+export const artistDesc = (params: { id: number }) => httpGet('/artist/desc', params)
+export const artistMv = (params: { id: number; limit?: number; offset?: number }) =>
+  httpGet('/artist/mv', params)

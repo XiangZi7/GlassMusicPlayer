@@ -12,6 +12,27 @@ export interface Song {
   liked?: boolean
 }
 
+export interface AudioStoreState {
+  count: number
+  audio: {
+    audio: HTMLAudioElement | null
+    isPlaying: boolean
+    isPaused: boolean
+    isLoading: boolean
+    currentSong: Song | null
+    currentIndex: number
+    playlist: Song[]
+    originalPlaylist: Song[]
+    playMode: PlayMode
+    volume: number
+    isMuted: boolean
+    currentTime: number
+    duration: number
+    playHistory: Song[]
+    error: string | null
+  }
+}
+
 // 播放模式枚举
 export enum PlayMode {
   LIST = 'list', // 列表循环

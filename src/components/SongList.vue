@@ -10,6 +10,7 @@ interface Song {
   mvId?: string | number
   name: string
   artist: string
+  artistId?: string | number
   album?: string
   albumId?: string | number
   duration: number
@@ -62,7 +63,6 @@ const mapToStoreSong = (s: Song): StoreSong => ({
 })
 
 const playSong = async (song: Song, index: number) => {
-
   try {
     const playlistMapped: StoreSong[] = props.songs.map(mapToStoreSong)
     setPlaylist(playlistMapped, index)
@@ -123,8 +123,12 @@ const downloadSong = (song: Song, index: number) => {
         <div class="w-12 text-center">#</div>
         <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4 px-4">
           <div class="col-span-4">{{ t('components.songList.headers.song') }}</div>
-          <div class="col-span-3 hidden md:block">{{ t('components.songList.headers.artist') }}</div>
-          <div class="col-span-2 hidden text-center md:block">{{ t('components.songList.headers.album') }}</div>
+          <div class="col-span-3 hidden md:block">
+            {{ t('components.songList.headers.artist') }}
+          </div>
+          <div class="col-span-2 hidden text-center md:block">
+            {{ t('components.songList.headers.album') }}
+          </div>
           <div class="col-span-1 text-right">{{ t('components.songList.headers.duration') }}</div>
           <div class="col-span-2 text-center">{{ t('components.songList.headers.actions') }}</div>
         </div>
@@ -157,7 +161,7 @@ const downloadSong = (song: Song, index: number) => {
             </button>
           </div>
 
-          <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4 px-4">
+          <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
             <div class="col-span-4 flex items-center space-x-3">
               <div class="relative shrink-0">
                 <img
@@ -178,12 +182,16 @@ const downloadSong = (song: Song, index: number) => {
 
             <div class="col-span-3 hidden overflow-hidden md:block">
               <RouterLink
-                :to="`/artist/${(song.artist || '').split(' / ')[0]}`"
+                v-if="song.artistId"
+                :to="`/artist/${song.artistId}`"
                 :title="song.artist"
                 class="truncate text-left text-sm text-purple-300 transition-colors hover:text-white"
               >
                 {{ song.artist }}
               </RouterLink>
+              <span v-else :title="song.artist" class="truncate text-sm text-purple-300">
+                {{ song.artist }}
+              </span>
             </div>
 
             <div class="col-span-2 hidden overflow-hidden text-center md:block">

@@ -5,9 +5,8 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const items = [
   { to: '/', icon: 'icon-[mdi--home]', labelKey: 'layout.nav.home' },
-  { to: '/discover', icon: 'icon-[mdi--compass-outline]', labelKey: 'layout.nav.discover' },
   { to: '/search', icon: 'icon-[mdi--magnify]', labelKey: 'common.search.label' },
-  { to: '/my-music', icon: 'icon-[mdi--music-circle-outline]', labelKey: 'layout.nav.myMusic' },
+  { to: '/recent', icon: 'icon-[mdi--music-circle-outline]', labelKey: 'layout.nav.myMusic' },
   { to: '/settings', icon: 'icon-[mdi--cog-outline]', labelKey: 'layout.aside.menu.settings' },
 ]
 
@@ -37,7 +36,7 @@ onUnmounted(() => {
 <template>
   <MiniPlayerMobile @open="emit('show-player')" />
 
-  <nav ref="tabbarRef" class="mobile-tabbar backdrop-blur-md fixed right-0 bottom-0 left-0 z-50">
+  <nav ref="tabbarRef" class="mobile-tabbar fixed right-0 bottom-0 left-0 z-50 backdrop-blur-md">
     <div class="mx-auto flex items-center justify-around">
       <RouterLink
         v-for="it in items"

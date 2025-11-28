@@ -1,52 +1,240 @@
 <script setup lang="ts">
-import { recordRecentSong } from '@/api'
+import { useAudioStore } from '@/stores/modules/audio'
+import { storeToRefs } from 'pinia'
 import { useAudio } from '@/composables/useAudio'
-import LazyImage from '@/components/Ui/LazyImage.vue'
+import type { Song as StoreSong } from '@/stores/interface'
+import MobileSongList from '@/components/Mobile/MobileSongList.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const { setPlaylist, play, playlist, clearPlaylist } = useAudio()
 
 const state = reactive({
-  loading: true,
-  songs: [] as Array<{ id: number | string; name: string; artist: string; album: string; duration: number; cover: string }>,
+  activeTab: 0,
 })
 
-const { play } = useAudio()
+const { activeTab } = toRefs(state)
 
-const load = async () => {
-  try {
-    const res = await recordRecentSong({ limit: 50 })
-    const list = (res as any)?.data || (res as any)?.songs || []
-    state.songs = list.map((it: any) => ({
-      id: it?.song?.id || it?.id || 0,
-      name: it?.song?.name || it?.name || '',
-      artist: Array.isArray(it?.song?.ar) ? it.song.ar.map((a: any) => a.name).join(' / ') : '',
-      album: it?.song?.al?.name || '',
-      duration: it?.song?.dt ?? 0,
-      cover: it?.song?.al?.picUrl || '',
-    }))
-  } finally {
-    state.loading = false
-  }
+const audioStore = useAudioStore()
+const { audio } = storeToRefs(audioStore)
+const recentSongs = computed<StoreSong[]>(() => audio.value?.playHistory || [])
+
+const playAllRecent = () => {
+  if (!recentSongs.value.length) return
+  const list = recentSongs.value
+  setPlaylist(list, 0)
+  play(list[0], 0)
 }
 
-onMounted(load)
+const handleClearQueue = () => {
+  clearPlaylist()
+}
 
-const playSong = (s: any) => play({ id: s.id, name: s.name, artist: s.artist, album: s.album, duration: Math.floor((s.duration || 0) / 1000), cover: s.cover }, 0)
+const tabs = computed(() => [
+  {
+    icon: 'icon-[mdi--playlist-play]',
+    label: t('mobile.recent.playlist'),
+    count: playlist.value.length,
+  },
+  {
+    icon: 'icon-[mdi--history]',
+    label: t('mobile.recent.history'),
+    count: recentSongs.value.length,
+  },
+])
 </script>
 
 <template>
-  <div class="flex-1 overflow-auto px-3 pb-6">
-    <div v-if="state.loading" class="py-6"><PageSkeleton :sections="['list']" :list-count="10" /></div>
-    <div v-else class="space-y-3">
-      <div v-for="s in state.songs" :key="s.id" class="glass-card flex items-center gap-3 p-3" @click="playSong(s)">
-        <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-          <LazyImage v-if="s.cover" :src="s.cover+'?param=200y200'" alt="cover" imgClass="h-full w-full object-cover" />
-          <div v-else class="flex h-full w-full items-center justify-center rounded-lg bg-white/10">🎵</div>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium text-white">{{ s.name }}</p>
-          <p class="truncate text-xs text-purple-300">{{ s.artist }}</p>
-        </div>
-        <span class="icon-[mdi--play] h-5 w-5 text-primary/80"></span>
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <div class="shrink-0 px-4 pb-3">
+      <div class="glass-card inline-flex w-full gap-1.5 p-1.5">
+        <button
+          v-for="(tab, i) in tabs"
+          :key="i"
+          class="tab-button flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all duration-300"
+          :class="activeTab === i ? 'tab-button-active' : ''"
+          @click="activeTab = i"
+        >
+          <span :class="tab.icon" class="h-5 w-5" />
+          <span>{{ tab.label }}</span>
+          <span
+            v-if="tab.count > 0"
+            class="tab-count rounded-full px-2 py-0.5 text-xs"
+            :class="activeTab === i ? 'tab-count-active' : ''"
+          >
+            {{ tab.count }}
+          </span>
+        </button>
       </div>
     </div>
+
+    <Transition name="slide-fade" mode="out-in">
+      <div v-if="activeTab === 0" key="playlist" class="flex flex-1 flex-col overflow-hidden">
+        <div
+          v-if="playlist.length > 0"
+          class="flex shrink-0 items-center justify-between px-4 py-3"
+        >
+          <p class="info-text text-xs">
+            {{ t('mobile.recent.nowPlaying') }}
+          </p>
+          <button
+            class="clear-button flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all duration-200"
+            @click="handleClearQueue"
+          >
+            <span class="icon-[mdi--delete-outline] h-4 w-4" />
+            {{ t('mobile.myMusic.clear') }}
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-auto px-4 pb-6">
+          <div
+            v-if="playlist.length === 0"
+            class="flex h-full flex-col items-center justify-center py-16 text-center"
+          >
+            <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+              <span class="icon-[mdi--playlist-music] empty-icon-inner h-12 w-12" />
+            </div>
+            <p class="empty-title mb-2 text-sm font-medium">
+              {{ t('mobile.myMusic.emptyTitle') }}
+            </p>
+            <p class="empty-hint text-xs">{{ t('mobile.myMusic.emptyHint') }}</p>
+          </div>
+          <MobileSongList
+            v-else
+            :songs="playlist"
+            variant="card"
+            :show-index="false"
+            context="queue"
+          />
+        </div>
+      </div>
+
+      <div v-else key="recent" class="flex flex-1 flex-col overflow-hidden">
+        <div
+          v-if="recentSongs.length > 0"
+          class="flex shrink-0 items-center justify-between px-4 py-3"
+        >
+          <p class="info-text text-xs">
+            {{ t('mobile.recent.recentlyPlayed') }}
+          </p>
+          <button
+            class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-all duration-200 active:scale-95"
+            @click="playAllRecent"
+          >
+            <span class="icon-[mdi--play] h-4 w-4" />
+            {{ t('actions.playAll') }}
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-auto px-4 pb-6">
+          <div
+            v-if="!recentSongs.length"
+            class="flex h-full flex-col items-center justify-center py-16 text-center"
+          >
+            <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+              <span class="icon-[mdi--history] empty-icon-inner h-12 w-12" />
+            </div>
+            <p class="empty-title mb-2 text-sm font-medium">{{ t('recent.empty') }}</p>
+          </div>
+          <MobileSongList
+            v-else
+            :songs="recentSongs"
+            variant="compact"
+            :show-index="true"
+            context="queue"
+          />
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.tab-button {
+  color: var(--glass-text);
+  opacity: 0.6;
+}
+
+.tab-button-active {
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  color: white;
+  opacity: 1;
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+}
+
+.tab-count {
+  background: var(--glass-hover-item-bg);
+  color: var(--glass-text);
+  opacity: 0.7;
+}
+
+.tab-count-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  opacity: 1;
+}
+
+.info-text {
+  color: var(--glass-text);
+  opacity: 0.5;
+}
+
+.clear-button {
+  background: var(--glass-hover-item-bg);
+  color: var(--glass-text);
+  opacity: 0.7;
+}
+
+.clear-button:active {
+  background: var(--glass-bg-button);
+  opacity: 1;
+}
+
+.play-all-button {
+  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+}
+
+.play-all-button:active {
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.empty-icon {
+  background: linear-gradient(to bottom right, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15));
+}
+
+:root.dark .empty-icon,
+html.dark .empty-icon {
+  background: linear-gradient(to bottom right, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+}
+
+.empty-icon-inner {
+  color: var(--glass-text);
+  opacity: 0.4;
+}
+
+.empty-title {
+  color: var(--glass-text);
+  opacity: 0.7;
+}
+
+.empty-hint {
+  color: var(--glass-text);
+  opacity: 0.4;
+}
+</style>
