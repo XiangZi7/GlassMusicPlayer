@@ -49,6 +49,7 @@ const clearSearch = () => {
 }
 // 搜索框容器用于点击外部关闭下拉
 const rootRef = ref<HTMLElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
 const dropdownStyle = ref({ top: '0px', left: '0px', width: '0px' })
 const updateDropdownPos = () => {
   const el = rootRef.value
@@ -62,8 +63,12 @@ const updateDropdownPos = () => {
 }
 const onDocClick = (e: Event) => {
   const el = rootRef.value
+  const dd = dropdownRef.value
   if (!el) return
-  if (!el.contains(e.target as Node)) state.historyOpen = false
+  const target = e.target as Node
+  if (el.contains(target)) return
+  if (dd && dd.contains(target)) return
+  state.historyOpen = false
 }
 // 监听与清理：文档点击关闭下拉
 onMounted(() => {
@@ -146,6 +151,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <Teleport to="body">
         <div
           v-if="historyOpen && searchHistory.length"
+          ref="dropdownRef"
           class="glass-dropdown fixed z-99999 overflow-hidden rounded-2xl shadow-lg"
           :style="dropdownStyle"
         >
