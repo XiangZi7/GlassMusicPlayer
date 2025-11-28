@@ -50,7 +50,7 @@ const { t } = useI18n()
   >
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canPrev ? 'text-primary' : 'text-muted-glass cursor-not-allowed opacity-50'"
+      :class="canPrev ? 'text-white' : 'cursor-not-allowed text-white opacity-50'"
       :disabled="!canPrev"
       @click="goPrev"
     >
@@ -61,18 +61,18 @@ const { t } = useI18n()
         v-for="p in pageNumbers"
         :key="p"
         class="page-btn glass-button px-2 py-1 text-sm"
-        :class="p === page ? 'selected' : 'text-muted-glass'"
+        :class="p === page ? 'selected' : 'text-white'"
         @click="page = p"
       >
         {{ p }}
       </button>
     </div>
-    <span class="text-muted-glass text-xs whitespace-nowrap sm:text-sm">
+    <span class="text-xs whitespace-nowrap text-white sm:text-sm">
       {{ t('components.pagination.status', { page, totalPages: totalPages, total: props.total }) }}
     </span>
     <button
       class="glass-button px-3 py-2 text-sm"
-      :class="canNext ? 'text-primary' : 'text-muted-glass cursor-not-allowed opacity-50'"
+      :class="canNext ? 'text-white' : 'cursor-not-allowed text-white opacity-50'"
       :disabled="!canNext"
       @click="goNext"
     >

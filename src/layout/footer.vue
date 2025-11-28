@@ -118,10 +118,10 @@ const handleProgressClick = (event: MouseEvent) => {
           }"
         ></div>
         <div class="flex min-w-0 flex-col justify-around">
-          <p class="truncate text-sm font-medium text白">
+          <p class="text-white truncate text-sm font-medium">
             {{ currentSong?.name || t('player.unknownSong') }}
           </p>
-          <p class="truncate text-xs text紫-300">
+          <p class="text-white/80 truncate text-xs">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
         </div>
@@ -130,13 +130,13 @@ const handleProgressClick = (event: MouseEvent) => {
           class="flex min-w-0 flex-col justify-around"
         >
           <template v-for="mode in footerLyrics.modes" :key="mode">
-            <p v-if="mode === 'original'" class="truncate text-sm text-white/80">
+            <p v-if="mode === 'original'" class="text-white/80 truncate text-sm">
               {{ mergedLines[currentLyricIndex]?.ori || '' }}
             </p>
-            <p v-else-if="mode === 'trans'" class="truncate text-xs text-white/70">
+            <p v-else-if="mode === 'trans'" class="text-white/70 truncate text-xs">
               {{ mergedLines[currentLyricIndex]?.tran || '' }}
             </p>
-            <p v-else-if="mode === 'roma'" class="truncate text-xs text-white/70">
+            <p v-else-if="mode === 'roma'" class="text-white/70 truncate text-xs">
               {{ mergedLines[currentLyricIndex]?.roma || '' }}
             </p>
           </template>
@@ -210,7 +210,9 @@ const handleProgressClick = (event: MouseEvent) => {
     <!-- 进度条 -->
 
     <div v-if="currentSong" class="mt-3 flex items-center space-x-3">
-      <span class="text-xs text白/60">{{ isLoading ? t('player.loading') : formattedCurrentTime }}</span>
+      <span class="text-white/60 text-xs">{{
+        isLoading ? t('player.loading') : formattedCurrentTime
+      }}</span>
       <div
         @click="handleProgressClick"
         class="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/20"
@@ -220,7 +222,7 @@ const handleProgressClick = (event: MouseEvent) => {
           :style="{ width: `${progress}%` }"
         ></div>
       </div>
-      <span class="text-xs text-white/60">{{ formattedDuration }}</span>
+      <span class="text-white/60 text-xs">{{ formattedDuration }}</span>
     </div>
   </footer>
 </template>

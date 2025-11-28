@@ -540,18 +540,18 @@ onUnmounted(() => {
     </div>
 
     <!-- 左侧：歌曲信息和控件 -->
-    <div class="flex w-1/2 flex-col items-center justify-center px-12 py-16">
+    <div class="player-left-panel flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2 lg:px-8 lg:py-16 xl:px-12">
       <!-- 专辑封面区域（黑胶风格） -->
-      <div class="mb-8 flex flex-col items-center">
-        <div class="album-wrapper relative mb-6 h-96 w-96">
+      <div class="mb-6 flex flex-col items-center lg:mb-8">
+        <div class="album-wrapper relative mb-4 h-64 w-64 sm:h-72 sm:w-72 md:h-80 md:w-80 lg:mb-6 lg:h-96 lg:w-96">
           <!-- 黑胶盘：外层为黑胶，内层为封面标签 -->
           <div
             ref="albumCoverRef"
-            class="album-cover vinyl-disc relative h-96 w-96 overflow-hidden rounded-full shadow-2xl"
+            class="album-cover vinyl-disc relative h-full w-full overflow-hidden rounded-full shadow-2xl"
           >
             <!-- 封面标签（纸质质感 + 内外圈） -->
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 flex h-48 w-48 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
+              class="vinyl-label absolute top-1/2 left-1/2 flex h-1/2 w-1/2 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -588,16 +588,16 @@ onUnmounted(() => {
 
         <!-- 歌曲信息 -->
         <div class="text-center">
-          <h2 class="mb-2 text-2xl font-bold text-white">
+          <h2 class="mb-1 text-xl font-bold text-white sm:mb-2 sm:text-2xl">
             {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="text-lg text-white/80">{{ currentSong?.artist || t('player.unknownArtist') }}</p>
-          <p class="mt-1 text-sm text-white/60">{{ currentSong?.album || t('player.unknownAlbum') }}</p>
+          <p class="text-base text-white/80 sm:text-lg">{{ currentSong?.artist || t('player.unknownArtist') }}</p>
+          <p class="mt-1 text-xs text-white/60 sm:text-sm">{{ currentSong?.album || t('player.unknownAlbum') }}</p>
         </div>
       </div>
 
       <!-- 进度条 -->
-      <div v-if="currentSong" class="mb-3 flex w-3/5 items-center space-x-3">
+      <div v-if="currentSong" class="mb-3 flex w-4/5 items-center space-x-3 sm:w-3/5">
         <span class="text-xs text-white/60">{{ isLoading ? t('player.loading') : formattedCurrentTime }}</span>
         <div
           @click="handleProgressClick"
@@ -612,7 +612,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 控制按钮 -->
-      <div class="mb-8 flex items-center space-x-6">
+      <div class="mb-6 flex items-center space-x-4 sm:mb-8 sm:space-x-6">
         <!-- 播放模式 -->
         <button
           @click="togglePlayMode"
@@ -702,10 +702,9 @@ onUnmounted(() => {
     </div>
 
     <!-- 右侧：歌词区域 -->
-    <div class="flex w-1/2 flex-col px-12 py-16">
-      <div class="flex h-full flex-col p-8">
-        <!-- 歌词滚动区域（支持单轨或双轨对照） -->
-        <div class="lyrics-container relative flex-1 overflow-hidden">
+    <div class="player-right-panel hidden w-1/2 flex-col px-6 py-12 lg:flex lg:px-8 lg:py-16 xl:px-12">
+      <!-- 歌词滚动区域（支持单轨或双轨对照） -->
+      <div class="lyrics-container relative h-full flex-1 overflow-hidden">
           <div
             ref="lyricsRef"
             class="lyrics-scroll relative z-20 h-full"
@@ -734,7 +733,6 @@ onUnmounted(() => {
             class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"
           ></div>
         </div>
-      </div>
     </div>
   </div>
   <SongCommentsDialog v-model:show="isCommentsOpen" :song-id="currentSong?.id ?? null" />
@@ -976,29 +974,26 @@ onUnmounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
-  .drawer-content {
-    flex-direction: column;
-  }
-
-  .left-panel,
-  .right-panel {
+  .player-left-panel {
     width: 100%;
   }
 
-  .album-cover {
-    width: 16rem;
-    height: 16rem;
+  .tonearm {
+    transform: scale(0.7);
+    top: -0.5rem;
+    right: -3rem;
   }
 }
 
-@media (max-width: 768px) {
-  .album-cover {
-    width: 12rem;
-    height: 12rem;
-  }
-
+@media (max-width: 640px) {
   .lyric-line {
     font-size: 0.875rem;
+  }
+
+  .tonearm {
+    transform: scale(0.6);
+    top: -0.25rem;
+    right: -2.5rem;
   }
 }
 </style>
