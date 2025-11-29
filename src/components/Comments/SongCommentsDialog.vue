@@ -64,15 +64,15 @@ const close = () => (show.value = false)
       class="glass-container relative z-10 w-[720px] max-w-[95vw] overflow-hidden rounded-3xl p-4"
     >
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-white">{{ $t('comments.title') }}</h3>
+        <h3 class="text-lg font-semibold text-primary">{{ $t('comments.title') }}</h3>
         <button
           class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
           @click="close"
         >
-          <span class="icon-[mdi--close] h-5 w-5 text-white/80"></span>
+          <span class="icon-[mdi--close] h-5 w-5 text-primary/80"></span>
         </button>
       </div>
-      <p class="mb-4 text-sm text-white/70">{{ $t('comments.total', { total: state.total }) }}</p>
+      <p class="mb-4 text-sm text-primary/70">{{ $t('comments.total', { total: state.total }) }}</p>
       <div class="max-h-[60vh] overflow-auto">
         <div v-if="state.loading" class="px-1">
           <PageSkeleton :sections="['list']" :list-count="8" />
@@ -94,28 +94,28 @@ const close = () => (show.value = false)
                 v-else
                 class="flex h-full w-full items-center justify-center rounded-md bg-linear-to-br from-pink-400 to-purple-500"
               >
-                <span class="icon-[mdi--account] h-5 w-5 text-white"></span>
+                <span class="icon-[mdi--account] h-5 w-5 text-primary"></span>
               </div>
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <p class="truncate text-sm text白">{{ c.user?.nickname || $t('comments.user') }}</p>
-                <span class="text-xs text-white/60">{{
+                <span class="text-xs text-primary/60">{{
                   c.ipLocation?.location || c.ipLocation?.ip || ''
                 }}</span>
-                <span class="text-xs text-white/60">{{
+                <span class="text-xs text-primary/60">{{
                   c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '')
                 }}</span>
               </div>
-              <p class="mt-1 text-sm text-white/80">{{ c.content }}</p>
+              <p class="mt-1 text-sm text-primary/80">{{ c.content }}</p>
               <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-2 space-y-2">
                 <div v-for="(r, ri) in c.beReplied" :key="ri" class="rounded-lg bg-white/5 p-2">
                   <p class="truncate text-xs text白">@{{ r?.user?.nickname || $t('comments.user') }}</p>
-                  <p class="mt-1 text-xs text-white/70">{{ r?.content }}</p>
+                  <p class="mt-1 text-xs text-primary/70">{{ r?.content }}</p>
                 </div>
               </div>
             </div>
-            <div class="flex shrink-0 items-center gap-1 text-white/60">
+            <div class="flex shrink-0 items-center gap-1 text-primary/60">
               <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
               <span class="text-xs">{{ c.likedCount || 0 }}</span>
             </div>

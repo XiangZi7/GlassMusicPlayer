@@ -153,15 +153,15 @@ const goToArtist = () => {
 
             <div class="flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
-                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-white">
+                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-primary">
                   {{ state.info.name }}
                 </h1>
                 <div class="artist-info flex items-center gap-2" @click="goToArtist">
-                  <span class="text-xs text-white/70">{{ state.info.artist }}</span>
-                  <span class="icon-[mdi--chevron-right] h-4 w-4 text-white/50"></span>
+                  <span class="text-xs text-primary/70">{{ state.info.artist }}</span>
+                  <span class="icon-[mdi--chevron-right] h-4 w-4 text-primary/50"></span>
                 </div>
               </div>
-              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/60">
+              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-primary/60">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--music-note] h-3.5 w-3.5"></span>
                   {{ state.info.songCount }}首
@@ -184,12 +184,12 @@ const goToArtist = () => {
             @click="state.showFullDesc = !state.showFullDesc"
           >
             <p
-              class="text-xs leading-relaxed text-white/60"
+              class="text-xs leading-relaxed text-primary/60"
               :class="state.showFullDesc ? '' : 'line-clamp-2'"
             >
               {{ state.info.description }}
             </p>
-            <span class="mt-1 inline-flex items-center text-[10px] text-white/40">
+            <span class="mt-1 inline-flex items-center text-[10px] text-primary/40">
               {{ state.showFullDesc ? '收起' : '展开' }}
               <span
                 :class="state.showFullDesc ? 'icon-[mdi--chevron-up]' : 'icon-[mdi--chevron-down]'"
@@ -202,7 +202,7 @@ const goToArtist = () => {
 
       <div class="action-bar flex items-center gap-3 px-4 py-3">
         <button
-          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-white"
+          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-primary"
           @click="playAll"
         >
           <span class="icon-[mdi--play-circle] h-5 w-5"></span>

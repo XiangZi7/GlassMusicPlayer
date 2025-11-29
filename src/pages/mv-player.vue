@@ -44,7 +44,7 @@ const loadMV = async (id: number) => {
       publishDate: d?.publishTime || d?.publishDate || '',
       category: d?.subed ? '已订阅' : 'MV',
       emoji: '🎬',
-      gradient: 'from-indigo-500 to-purple-600',
+      gradient: 'from-indigo-500 to-primary-600',
       liked: !!d?.liked,
       isNew: false,
       description: d?.desc || d?.briefDesc || '',
@@ -60,7 +60,7 @@ const loadMV = async (id: number) => {
         playCount: String(mv?.playCount || ''),
         cover: mv?.cover || mv?.coverImg || mv?.picUrl || '',
         emoji: '🎵',
-        gradient: 'from-pink-400 to-purple-500',
+        gradient: 'from-pink-400 to-primary-500',
       })
     )
   } catch {
@@ -83,14 +83,20 @@ const loadComments = async (id: number) => {
   } catch {}
 }
 
-onMounted(() => {
-  const mvId = Number(route.params.id)
-  if (!Number.isNaN(mvId)) {
-    state.isPageLoading = true
-    loadMV(mvId)
-    loadComments(mvId)
+watch(
+  () => route.params.id,
+  id => {
+    const mvId = Number(id)
+    if (!Number.isNaN(mvId)) {
+      state.isPageLoading = true
+      loadMV(mvId)
+      loadComments(mvId)
+    }
+  },
+  {
+    immediate: true,
   }
-})
+)
 </script>
 <template>
   <div class="flex-1 overflow-hidden">
@@ -101,7 +107,7 @@ onMounted(() => {
         <div class="p-4">
           <router-link
             to="/mv-list"
-            class="glass-button flex items-center space-x-2 bg-white/10 px-4 py-2 text-white transition-all duration-300 hover:bg-white/20"
+            class="glass-button text-primary flex items-center space-x-2 bg-white/10 px-4 py-2 transition-all duration-300 hover:bg-white/20"
           >
             <span class="icon-[mdi--arrow-left] h-5 w-5"></span>
             <span>返回</span>
@@ -109,7 +115,7 @@ onMounted(() => {
         </div>
 
         <!-- MV播放器区域 -->
-        <section class="px-8 pb-8">
+        <section class="px-4 pb-8">
           <div class="glass-card grid grid-cols-12 gap-6 overflow-hidden p-6">
             <div class="col-span-12 lg:col-span-9">
               <!-- 视频播放器 -->
@@ -127,7 +133,7 @@ onMounted(() => {
                   v-else
                   class="flex h-60 w-full items-center justify-center rounded-lg bg-white/5"
                 >
-                  <span class="icon-[mdi--loading] h-8 w-8 animate-spin text-white"></span>
+                  <span class="icon-[mdi--loading] text-primary h-8 w-8 animate-spin"></span>
                 </div>
               </div>
               <!-- MV信息区域 -->
@@ -137,11 +143,11 @@ onMounted(() => {
                   <div class="mb-6 flex-1 lg:mb-0">
                     <div class="mb-4 flex items-start justify-between">
                       <div>
-                        <h1 class="mb-2 text-3xl font-bold text-white">{{ currentMV.title }}</h1>
-                        <p class="mb-4 text-xl text-purple-300">{{ currentMV.artist }}</p>
+                        <h1 class="text-primary mb-2 text-3xl font-bold">{{ currentMV.title }}</h1>
+                        <p class="text-primary-300 mb-4 text-xl">{{ currentMV.artist }}</p>
 
                         <!-- 统计信息 -->
-                        <div class="mb-4 flex flex-wrap items-center gap-6 text-white/70">
+                        <div class="text-primary/70 mb-4 flex flex-wrap items-center gap-6">
                           <div class="flex items-center space-x-2">
                             <span class="icon-[mdi--play] h-5 w-5"></span>
                             <span>{{ currentMV.playCount }} 次播放</span>
@@ -159,18 +165,18 @@ onMounted(() => {
                         <!-- 标签 -->
                         <div class="mb-4 flex flex-wrap gap-2">
                           <span
-                            class="inline-block rounded-full bg-white/10 px-3 py-1 text-sm text-white"
+                            class="text-primary inline-block rounded-full bg-white/10 px-3 py-1 text-sm"
                           >
                             {{ currentMV.category }}
                           </span>
                           <span
                             v-if="currentMV.isNew"
-                            class="inline-block rounded-full bg-red-500 px-3 py-1 text-sm text-white"
+                            class="text-primary inline-block rounded-full bg-red-500 px-3 py-1 text-sm"
                           >
                             NEW
                           </span>
                           <span
-                            class="inline-block rounded-full bg-purple-500/50 px-3 py-1 text-sm text-white"
+                            class="bg-primary-500/50 text-primary inline-block rounded-full px-3 py-1 text-sm"
                           >
                             高清
                           </span>
@@ -180,13 +186,13 @@ onMounted(() => {
                       <!-- 操作按钮 -->
                       <div class="flex flex-col space-y-3">
                         <button
-                          class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20"
+                          class="glass-button text-primary bg-white/10 px-6 py-3 hover:bg-white/20"
                         >
                           <span class="icon-[mdi--share] mr-2 h-5 w-5"></span>
                           分享
                         </button>
                         <button
-                          class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20"
+                          class="glass-button text-primary bg-white/10 px-6 py-3 hover:bg-white/20"
                         >
                           <span class="icon-[mdi--download] mr-2 h-5 w-5"></span>
                           下载
@@ -196,18 +202,18 @@ onMounted(() => {
 
                     <!-- MV描述 -->
                     <div class="mb-6">
-                      <h3 class="mb-3 text-lg font-semibold text-white">MV简介</h3>
-                      <p class="leading-relaxed text-white/80">
+                      <h3 class="text-primary mb-3 text-lg font-semibold">MV简介</h3>
+                      <p class="text-primary/80 leading-relaxed">
                         {{ currentMV.description }}
                       </p>
                     </div>
 
                     <!-- 评论列表 -->
                     <div class="space-y-6">
-                      <h3 class="text-lg font-semibold text-white">评论</h3>
+                      <h3 class="text-primary text-lg font-semibold">评论</h3>
                       <div
                         v-if="comments.length === 0"
-                        class="rounded-lg bg-white/5 p-4 text-purple-300"
+                        class="text-primary-300 rounded-lg bg-white/5 p-4"
                       >
                         暂无评论
                       </div>
@@ -220,18 +226,18 @@ onMounted(() => {
                           <img :src="c.avatarUrl" alt="" class="h-10 w-10 rounded-full" />
                           <div class="min-w-0 flex-1">
                             <div class="mb-1 flex items-center space-x-2">
-                              <h4 class="text-sm font-medium text-white">{{ c.username }}</h4>
-                              <span class="text-xs text-purple-400">{{ c.time }}</span>
+                              <h4 class="text-primary text-sm font-medium">{{ c.username }}</h4>
+                              <span class="text-primary-400 text-xs">{{ c.time }}</span>
                             </div>
-                            <p class="text-sm text-white/80">{{ c.content }}</p>
-                            <div class="mt-2 flex items-center space-x-4 text-purple-300">
+                            <p class="text-primary/80 text-sm">{{ c.content }}</p>
+                            <div class="text-primary-300 mt-2 flex items-center space-x-4">
                               <button
-                                class="flex items-center space-x-1 transition-colors hover:text-white"
+                                class="hover:text-primary flex items-center space-x-1 transition-colors"
                               >
                                 <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
                                 <span class="text-xs">{{ c.likes }}</span>
                               </button>
-                              <button class="transition-colors hover:text-white">
+                              <button class="hover:text-primary transition-colors">
                                 <span class="icon-[mdi--reply] h-4 w-4"></span>
                               </button>
                             </div>
@@ -246,7 +252,7 @@ onMounted(() => {
             <aside class="col-span-12 lg:sticky lg:top-6 lg:col-span-3">
               <!-- 右侧：相关推荐 -->
               <div class="w-full lg:w-80">
-                <h3 class="mb-4 text-lg font-semibold text-white">相关推荐</h3>
+                <h3 class="text-primary mb-4 text-lg font-semibold">相关推荐</h3>
                 <div class="space-y-4">
                   <div
                     v-for="relatedMV in relatedMVs"
@@ -266,10 +272,10 @@ onMounted(() => {
                       <div
                         class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity duration-300 hover:opacity-100"
                       >
-                        <span class="icon-[mdi--play] h-4 w-4 text-white"></span>
+                        <span class="icon-[mdi--play] text-primary h-4 w-4"></span>
                       </div>
                       <div
-                        class="absolute right-1 bottom-1 rounded bg-black/60 px-1 text-xs text-white"
+                        class="text-primary absolute right-1 bottom-1 rounded bg-black/60 px-1 text-xs"
                       >
                         {{ formatSec(relatedMV.duration) }}
                       </div>
@@ -277,11 +283,11 @@ onMounted(() => {
 
                     <!-- 信息 -->
                     <div class="min-w-0 flex-1">
-                      <h4 class="mb-1 truncate text-sm font-medium text-white">
+                      <h4 class="text-primary mb-1 truncate text-sm font-medium">
                         {{ relatedMV.title }}
                       </h4>
-                      <p class="mb-1 truncate text-xs text-purple-300">{{ relatedMV.artist }}</p>
-                      <p class="text-xs text-white/60">{{ relatedMV.playCount }} 播放</p>
+                      <p class="text-primary-300 mb-1 truncate text-xs">{{ relatedMV.artist }}</p>
+                      <p class="text-primary/60 text-xs">{{ relatedMV.playCount }} 播放</p>
                     </div>
                   </div>
                 </div>

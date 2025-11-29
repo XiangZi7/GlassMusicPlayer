@@ -37,11 +37,11 @@ const playAll = () => {
       <div class="relative z-10 p-6 md:p-8">
         <div class="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 class="mb-2 text-3xl font-bold text-white md:text-4xl">
+            <h1 class="mb-2 text-3xl font-bold text-primary md:text-4xl">
               {{ $t('recent.title') }}
             </h1>
-            <p class="text-sm text-white/70 md:text-base">{{ $t('recent.subtitle') }}</p>
-            <div class="mt-3 flex items-center gap-4 text-white/60">
+            <p class="text-sm text-primary/70 md:text-base">{{ $t('recent.subtitle') }}</p>
+            <div class="mt-3 flex items-center gap-4 text-primary/60">
               <div class="flex items-center gap-1">
                 <span class="icon-[mdi--music-note] h-4 w-4"></span>
                 <span class="text-sm">{{
@@ -52,7 +52,7 @@ const playAll = () => {
           </div>
           <div class="flex items-center gap-3">
             <button
-              class="glass-button flex items-center gap-2 bg-linear-to-r from-pink-500 to-purple-600 px-6 py-3 font-medium text-white transition-transform hover:scale-105"
+              class="glass-button flex items-center gap-2 bg-linear-to-r from-pink-500 to-purple-600 px-6 py-3 font-medium text-primary transition-transform hover:scale-105"
               :disabled="!recentList.length"
               @click="playAll"
             >

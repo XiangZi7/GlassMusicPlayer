@@ -92,7 +92,7 @@ watch(page, () => {
               :class="
                 activeType === tab.key
                   ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40'
-                  : 'text-white/80'
+                  : 'text-primary/80'
               "
               @click="activeType = tab.key"
             >

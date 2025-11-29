@@ -53,7 +53,7 @@ watch(songId, () => loadInfo())
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-white">
+  <div class="flex-1 overflow-hidden text-primary">
     <div class="h-full overflow-auto p-6">
       <div class="mb-4 flex items-center justify-between">
         <h1 class="text-2xl font-bold">歌曲详情</h1>
@@ -89,9 +89,9 @@ watch(songId, () => loadInfo())
       <div class="glass-card p-6">
         <div class="space-y-4">
           <div v-for="(m, i) in mergedLines" :key="i" class="rounded-xl bg-white/5 p-3">
-            <p class="text-white">{{ m.ori }}</p>
-            <p v-if="m.tran" class="text-white/80">{{ m.tran }}</p>
-            <p v-if="m.roma" class="text-white/70">{{ m.roma }}</p>
+            <p class="text-primary">{{ m.ori }}</p>
+            <p v-if="m.tran" class="text-primary/80">{{ m.tran }}</p>
+            <p v-if="m.roma" class="text-primary/70">{{ m.roma }}</p>
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@ watch(songId, () => loadInfo())
               />
             </div>
             <p class="truncate text-sm">{{ pl.name }}</p>
-            <p class="truncate text-xs text-white/70">{{ pl.trackCount }} 首</p>
+            <p class="truncate text-xs text-primary/70">{{ pl.trackCount }} 首</p>
           </router-link>
         </div>
       </div>

@@ -174,26 +174,26 @@ const tabs = ['热门歌曲', '专辑']
               />
             </div>
 
-            <h1 class="mb-1 text-xl font-bold text-white">{{ state.info.name }}</h1>
-            <p v-if="state.info.alias?.length" class="mb-3 text-xs text-white/50">
+            <h1 class="mb-1 text-xl font-bold text-primary">{{ state.info.name }}</h1>
+            <p v-if="state.info.alias?.length" class="mb-3 text-xs text-primary/50">
               {{ state.info.alias.join(' / ') }}
             </p>
 
-            <div class="mb-4 flex items-center gap-6 text-center text-xs text-white/70">
+            <div class="mb-4 flex items-center gap-6 text-center text-xs text-primary/70">
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-white">{{ state.info.musicSize }}</span>
+                <span class="text-base font-semibold text-primary">{{ state.info.musicSize }}</span>
                 <span>歌曲</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-white">{{ state.info.albumSize }}</span>
+                <span class="text-base font-semibold text-primary">{{ state.info.albumSize }}</span>
                 <span>专辑</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-white">{{ state.info.mvSize }}</span>
+                <span class="text-base font-semibold text-primary">{{ state.info.mvSize }}</span>
                 <span>MV</span>
               </div>
               <div v-if="state.info.fansCount" class="flex flex-col items-center">
-                <span class="text-base font-semibold text-white">{{
+                <span class="text-base font-semibold text-primary">{{
                   formatCount(state.info.fansCount)
                 }}</span>
                 <span>粉丝</span>
@@ -202,7 +202,7 @@ const tabs = ['热门歌曲', '专辑']
 
             <p
               v-if="state.info.briefDesc"
-              class="mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed text-white/60"
+              class="mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed text-primary/60"
             >
               {{ state.info.briefDesc }}
             </p>
@@ -212,7 +212,7 @@ const tabs = ['热门歌曲', '专辑']
 
       <div class="action-bar flex items-center gap-3 px-4 py-3">
         <button
-          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-white"
+          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-primary"
           @click="playAll"
         >
           <span class="icon-[mdi--play-circle] h-5 w-5"></span>
@@ -270,8 +270,8 @@ const tabs = ['热门歌曲', '专辑']
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div class="absolute right-2 bottom-2 left-2">
-                  <p class="truncate text-xs font-medium text-white">{{ album.name }}</p>
-                  <p class="text-[10px] text-white/60">
+                  <p class="truncate text-xs font-medium text-primary">{{ album.name }}</p>
+                  <p class="text-[10px] text-primary/60">
                     {{ album.publishTime }} · {{ album.size }}首
                   </p>
                 </div>

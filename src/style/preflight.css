@@ -2,14 +2,15 @@
   :root {
     --glass-border: rgba(255, 255, 255, 0.2);
     --glass-bg-base: rgba(255, 255, 255, 0.1);
-    --glass-bg-container: rgba(255, 255, 255, 0.08);
+    --glass-bg-container: rgba(255, 255, 255, 0.3);
     --glass-bg-card: rgba(255, 255, 255, 0.12);
     --glass-bg-nav: rgba(255, 255, 255, 0.06);
     --glass-bg-button: rgba(255, 255, 255, 0.15);
     --glass-hover-button-bg: rgba(255, 255, 255, 0.2);
-    --glass-text: rgba(0, 0, 0, 0.85);
+    --glass-text: rgba(60, 58, 58, 1);
     --glass-hover-item-bg: rgba(17, 24, 39, 0.06);
     --glass-hover-text: #111827;
+    --glass-bg: rgba(255, 255, 255);
     --glass-dropdown-bg: rgba(255, 255, 255, 0.92);
     --glass-dropdown-border: rgba(17, 24, 39, 0.08);
     --glass-dropdown-text: rgba(17, 24, 39, 0.95);
@@ -23,6 +24,7 @@
     --progress-track-bg: rgba(17, 24, 39, 0.16);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
     --skeleton-bg: #d9dadb;
+    --color-overlay: rgba(255, 255, 255, 1);
   }
 
   :root.dark,
@@ -37,6 +39,7 @@
     --glass-text: rgba(255, 255, 255, 0.85);
     --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
     --glass-hover-text: #ffffff;
+    --glass-bg: rgba(0, 0, 0);
     --glass-dropdown-bg: rgba(0, 0, 0, 0.9);
     --glass-dropdown-border: rgba(255, 255, 255, 0.12);
     --glass-dropdown-text: rgba(255, 255, 255, 0.95);
@@ -50,10 +53,27 @@
     --progress-track-bg: rgba(255, 255, 255, 0.22);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
     --skeleton-bg: rgba(255, 255, 255, 0.08);
+    --color-overlay: rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
 
   html.dark body {
     background-color: #0b0b0f;
+  }
+
+  html:not(.dark) body .custom-theme::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.45) 100%
+    );
+    -webkit-backdrop-filter: saturate(3);
+    backdrop-filter: saturate(3);
   }
 }

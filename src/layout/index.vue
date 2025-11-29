@@ -32,13 +32,12 @@ const positions = computed(() => {
 
 const openPlayerDrawer = () => {
   state.isDrawerOpen = true
-  console.log('🚀 ~ file: index.vue:30 ~ isDrawerOpen:', state.isDrawerOpen)
 }
 </script>
 
 <template>
   <div class="relative flex h-full w-full overflow-hidden">
-    <div class="absolute inset-0 h-full w-full">
+    <div class="custom-theme absolute inset-0 h-full w-full">
       <component
         :is="
           backgroundType === 'colorbends'
@@ -69,7 +68,7 @@ const openPlayerDrawer = () => {
         <!-- 头部区域 -->
         <Header />
         <!-- 主内容区域 -->
-        <main class="flex flex-1 overflow-x-hidden">
+        <main class="flex h-full overflow-x-hidden">
           <!-- 左侧边栏 -->
           <Aside />
           <!-- 右侧主内容 -->

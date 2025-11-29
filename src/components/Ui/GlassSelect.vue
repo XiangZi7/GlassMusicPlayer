@@ -7,7 +7,7 @@
     >
       <span class="truncate">{{ selectedLabel }}</span>
       <span
-        class="icon-[mdi--chevron-down] h-5 w-5 text-white/70 transition"
+        class="icon-[mdi--chevron-down] h-5 w-5 text-primary/70 transition"
         :class="{ 'rotate-180': open }"
       ></span>
     </button>

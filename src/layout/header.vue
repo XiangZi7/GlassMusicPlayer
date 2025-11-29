@@ -83,7 +83,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- Logo -->
       <div class="flex items-center space-x-3">
         <img src="/logo.png" alt="logo" class="w-10" />
-        <h1 class="text-xl font-bold text-white">Glass Music Player</h1>
+        <h1 class="text-xl font-bold text-primary">Glass Music Player</h1>
       </div>
 
       <!-- 导航菜单 -->
@@ -94,8 +94,8 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           :to="item.to"
           class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           :class="[
-            item.accent ? 'glass-button text-white' : 'text-white/70 hover:text-white',
-            $route.path === item.to ? 'bg-white/10 text-white' : '',
+            item.accent ? 'glass-button text-primary' : 'text-primary/70 hover:text-primary',
+            $route.path === item.to ? 'bg-white/10 text-primary' : '',
           ]"
         >
           {{ t(item.labelKey) }}
@@ -107,7 +107,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://github.com/XiangZi7/GlassMusicPlayer"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
+          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-primary"
         >
           <span class="icon-[mdi--github] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.repo') }}
@@ -117,7 +117,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://miraitv.netlify.app/"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-white"
+          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-primary"
         >
           <span class="icon-[mdi--movie-open-play] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.movies') }}
@@ -130,14 +130,14 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
     <div class="flex items-center space-x-4">
       <!-- 搜索框 -->
       <div ref="rootRef" class="glass-card relative hidden min-w-0 items-center px-4 py-2 lg:flex">
-        <span class="icon-[mdi--magnify] mr-2 h-4 w-4 text-white/60"></span>
+        <span class="icon-[mdi--magnify] mr-2 h-4 w-4 text-primary/60"></span>
         <input
           v-model="searchQuery"
           @keyup.enter="handleSearchEnter"
           @focus="openHistoryIfAny"
           type="text"
           :placeholder="t('common.search.placeholder')"
-          class="min-w-0 flex-1 bg-transparent pr-10 text-sm text-white placeholder-white/50 outline-none"
+          class="min-w-0 flex-1 bg-transparent pr-10 text-sm text-primary placeholder-primary/50 outline-none"
         />
         <button
           class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
@@ -145,7 +145,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           :title="t('common.clear')"
           @click="clearSearch"
         >
-          <span class="icon-[mdi--close] h-4 w-4 text-white/70"></span>
+          <span class="icon-[mdi--close] h-4 w-4 text-primary/70"></span>
         </button>
       </div>
       <Teleport to="body">
@@ -178,11 +178,11 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- 用户头像 / 登录按钮 -->
       <div v-if="userStore.isLoggedIn" class="flex items-center gap-2">
         <img :src="userStore.avatarUrl" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
-        <span class="text-sm text-white/90">{{ userStore.nickname }}</span>
+        <span class="text-sm text-primary/90">{{ userStore.nickname }}</span>
       </div>
       <button
         v-else
-        class="glass-button flex items-center gap-1 px-3 py-2 text-sm text-white"
+        class="glass-button flex items-center gap-1 px-3 py-2 text-sm text-primary"
         @click="showLogin = true"
       >
         <icon-ic:baseline-person-pin />
@@ -191,7 +191,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
       <!-- 移动端菜单按钮 -->
       <button class="glass-button p-2 md:hidden">
-        <span class="icon-[mdi--menu] h-5 w-5 text-white"></span>
+        <span class="icon-[mdi--menu] h-5 w-5 text-primary"></span>
       </button>
     </div>
   </header>

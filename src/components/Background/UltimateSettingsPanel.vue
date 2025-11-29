@@ -100,79 +100,79 @@ const previewStyle = computed(() => {
 
 <template>
   <div class="glass-card p-4">
-    <h3 class="mb-4 text-lg font-semibold text-white">Ultimate 设置</h3>
+    <h3 class="mb-4 text-lg font-semibold text-primary">Ultimate 设置</h3>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div class="space-y-6">
         <div>
-          <label class="mb-2 block text-sm text-white/80">背景</label>
+          <label class="mb-2 block text-sm text-primary/80">背景</label>
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-2">
               <input v-model="bg1" type="color" class="h-9 w-full rounded" />
-              <input v-model="bg1" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="bg1" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="bg2" type="color" class="h-9 w-full rounded" />
-              <input v-model="bg2" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="bg2" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
           </div>
         </div>
 
         <div>
-          <label class="mb-2 block text-sm text-white/80">颜色</label>
+          <label class="mb-2 block text-sm text-primary/80">颜色</label>
           <div class="grid grid-cols-3 gap-3">
             <div class="space-y-2">
               <input v-model="color1" type="color" class="h-9 w-full rounded" />
-              <input v-model="color1" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="color1" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="color2" type="color" class="h-9 w-full rounded" />
-              <input v-model="color2" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="color2" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="color3" type="color" class="h-9 w-full rounded" />
-              <input v-model="color3" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="color3" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="color4" type="color" class="h-9 w-full rounded" />
-              <input v-model="color4" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="color4" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="color5" type="color" class="h-9 w-full rounded" />
-              <input v-model="color5" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="color5" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="space-y-2">
               <input v-model="interactiveColor" type="color" class="h-9 w-full rounded" />
-              <input v-model="interactiveColor" type="text" class="w-full rounded bg-white/10 p-2 text-white" />
+              <input v-model="interactiveColor" type="text" class="w-full rounded bg-white/10 p-2 text-primary" />
             </div>
           </div>
         </div>
 
         <div>
-          <label class="mb-2 block text-sm text-white/80">参数</label>
+          <label class="mb-2 block text-sm text-primary/80">参数</label>
           <div class="space-y-3">
             <div class="flex items-center gap-3">
-              <span class="w-24 text-xs text-white/70">尺寸</span>
-              <input v-model="circleSize" type="text" class="w-24 rounded bg-white/10 p-2 text-white" />
+              <span class="w-24 text-xs text-primary/70">尺寸</span>
+              <input v-model="circleSize" type="text" class="w-24 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-24 text-xs text-white/70">混合模式</span>
+              <span class="w-24 text-xs text-primary/70">混合模式</span>
               <GlassSelect v-model="blending" :options="blendingOptions" />
             </div>
           </div>
         </div>
 
         <div class="flex items-center justify-between">
-          <p class="text-xs text-white/60">参数与颜色实时应用到背景。</p>
-          <button class="rounded bg-white/10 px-3 py-2 text-white hover:bg-white/20" @click="reset">重置默认</button>
+          <p class="text-xs text-primary/60">参数与颜色实时应用到背景。</p>
+          <button class="rounded bg-white/10 px-3 py-2 text-primary hover:bg-white/20" @click="reset">重置默认</button>
         </div>
       </div>
 
       <div>
-        <label class="mb-2 block text-sm text-white/80">预览</label>
+        <label class="mb-2 block text-sm text-primary/80">预览</label>
         <div class="relative overflow-hidden rounded-lg border border-white/10 bg-black/20">
           <div class="aspect-video w-full" :style="previewStyle"></div>
-          <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-black/30 px-3 py-2 text-xs text-white/80">
+          <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-black/30 px-3 py-2 text-xs text-primary/80">
             <span>{{ bg1 }} · {{ bg2 }}</span>
             <span>{{ blending }} / {{ circleSize }}</span>
           </div>

@@ -165,7 +165,7 @@ const toggleFollow = () => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-white">
+  <div class="flex-1 overflow-hidden text-primary">
     <div class="h-full overflow-auto">
       <div class="relative mb-6 h-56 w-full">
         <div class="absolute inset-0 overflow-hidden rounded-b-3xl">
@@ -194,10 +194,10 @@ const toggleFollow = () => {
             </div>
             <div>
               <h1 class="text-3xl font-bold">{{ state.info.name }}</h1>
-              <p v-if="state.info.alias?.length" class="mt-1 text-sm text-white/60">
+              <p v-if="state.info.alias?.length" class="mt-1 text-sm text-primary/60">
                 {{ state.info.alias.join(' / ') }}
               </p>
-              <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/80">
+              <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-primary/80">
                 <span class="glass-button px-3 py-1">
                   <span class="icon-[mdi--music-note] mr-1 h-4 w-4"></span>
                   {{ state.info.musicSize }} 歌曲
@@ -245,7 +245,7 @@ const toggleFollow = () => {
       <div class="p-6">
         <div v-if="state.info.briefDesc" class="glass-card mb-6 p-4">
           <h3 class="mb-2 text-sm font-semibold">艺人简介</h3>
-          <p class="line-clamp-3 text-sm text-white/80">{{ state.info.briefDesc }}</p>
+          <p class="line-clamp-3 text-sm text-primary/80">{{ state.info.briefDesc }}</p>
         </div>
 
         <h2 class="mb-3 text-lg font-semibold">热门歌曲</h2>
@@ -273,7 +273,7 @@ const toggleFollow = () => {
               />
             </div>
             <p class="truncate text-sm font-medium">{{ al.name }}</p>
-            <p class="truncate text-xs text-white/60">{{ al.publishTime }} · {{ al.size }}首</p>
+            <p class="truncate text-xs text-primary/60">{{ al.publishTime }} · {{ al.size }}首</p>
           </div>
         </div>
       </div>

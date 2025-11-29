@@ -32,14 +32,14 @@ const onSlideChange = (): void => {
   <div class="relative mx-auto max-w-4xl">
     <!-- 自定义左右箭头 -->
     <button
-      class="custom-prev absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full bg-gray-800/50 p-2 text-white"
+      class="custom-prev absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full bg-gray-800/50 p-2 text-primary"
       @click="swiper?.slidePrev()"
       aria-label="Previous slide"
     >
       ‹
     </button>
     <button
-      class="custom-next absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full bg-gray-800/50 p-2 text-white"
+      class="custom-next absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full bg-gray-800/50 p-2 text-primary"
       @click="swiper?.slideNext()"
       aria-label="Next slide"
     >

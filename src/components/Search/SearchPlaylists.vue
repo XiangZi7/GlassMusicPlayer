@@ -58,12 +58,12 @@ watch([() => props.keywords, () => props.limit, () => props.offset], () => { fet
             class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           >
             <button class="glass-button flex h-10 w-10 items-center justify-center">
-              <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+              <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
             </button>
           </div>
         </div>
-        <h3 class="mb-1 truncate text-sm font-medium text-white">{{ pl.name }}</h3>
-        <p class="truncate text-xs text-purple-300">{{ $t('components.discover.playlistCount', { count: pl.trackCount }) }}</p>
+        <h3 class="mb-1 truncate text-sm font-medium text-primary">{{ pl.name }}</h3>
+        <p class="truncate text-xs text-primary/50">{{ $t('components.discover.playlistCount', { count: pl.trackCount }) }}</p>
       </div>
     </router-link>
   </div>

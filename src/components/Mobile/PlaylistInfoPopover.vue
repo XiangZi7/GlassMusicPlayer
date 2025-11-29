@@ -30,7 +30,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       class="info-trigger flex h-7 w-7 items-center justify-center rounded-full"
       @click.stop="toggle"
     >
-      <span class="icon-[mdi--information-outline] h-4 w-4 text-white/60"></span>
+      <span class="icon-[mdi--information-outline] h-4 w-4 text-primary/60"></span>
     </button>
     <Transition name="popover">
       <div
@@ -41,23 +41,23 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         <div class="space-y-2 text-xs">
           <div class="flex items-center gap-2">
             <span class="icon-[mdi--music-note] h-4 w-4 text-pink-400"></span>
-            <span class="text-white/80">{{ songCount }}首歌曲</span>
+            <span class="text-primary/80">{{ songCount }}首歌曲</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="icon-[mdi--heart] h-4 w-4 text-pink-400"></span>
-            <span class="text-white/80">{{ likes }}收藏</span>
+            <span class="text-primary/80">{{ likes }}收藏</span>
           </div>
           <div v-if="playCount" class="flex items-center gap-2">
             <span class="icon-[mdi--play] h-4 w-4 text-pink-400"></span>
-            <span class="text-white/80">{{ playCount }}播放</span>
+            <span class="text-primary/80">{{ playCount }}播放</span>
           </div>
           <div v-if="category" class="flex items-center gap-2">
             <span class="icon-[mdi--tag] h-4 w-4 text-pink-400"></span>
-            <span class="text-white/80">{{ category }}</span>
+            <span class="text-primary/80">{{ category }}</span>
           </div>
           <div v-if="createTime" class="flex items-center gap-2">
             <span class="icon-[mdi--calendar] h-4 w-4 text-pink-400"></span>
-            <span class="text-white/80">{{ createTime }}</span>
+            <span class="text-primary/80">{{ createTime }}</span>
           </div>
         </div>
       </div>

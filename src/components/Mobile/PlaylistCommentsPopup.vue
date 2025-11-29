@@ -134,7 +134,7 @@ const closePopup = () => {
                       />
                       <div
                         v-if="i < 3"
-                        class="rank-badge absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                        class="rank-badge absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-primary"
                         :class="
                           i === 0
                             ? 'bg-linear-to-r from-yellow-400 to-orange-500'

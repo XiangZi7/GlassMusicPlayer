@@ -118,10 +118,10 @@ const handleProgressClick = (event: MouseEvent) => {
           }"
         ></div>
         <div class="flex min-w-0 flex-col justify-around">
-          <p class="text-white truncate text-sm font-medium">
+          <p class="text-primary truncate text-sm font-medium">
             {{ currentSong?.name || t('player.unknownSong') }}
           </p>
-          <p class="text-white/80 truncate text-xs">
+          <p class="text-primary/80 truncate text-xs">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
         </div>
@@ -130,13 +130,13 @@ const handleProgressClick = (event: MouseEvent) => {
           class="flex min-w-0 flex-col justify-around"
         >
           <template v-for="mode in footerLyrics.modes" :key="mode">
-            <p v-if="mode === 'original'" class="text-white/80 truncate text-sm">
+            <p v-if="mode === 'original'" class="text-primary/80 truncate text-sm">
               {{ mergedLines[currentLyricIndex]?.ori || '' }}
             </p>
-            <p v-else-if="mode === 'trans'" class="text-white/70 truncate text-xs">
+            <p v-else-if="mode === 'trans'" class="text-primary/70 truncate text-xs">
               {{ mergedLines[currentLyricIndex]?.tran || '' }}
             </p>
-            <p v-else-if="mode === 'roma'" class="text-white/70 truncate text-xs">
+            <p v-else-if="mode === 'roma'" class="text-primary/70 truncate text-xs">
               {{ mergedLines[currentLyricIndex]?.roma || '' }}
             </p>
           </template>
@@ -147,12 +147,12 @@ const handleProgressClick = (event: MouseEvent) => {
       <div class="flex items-center space-x-4">
         <button
           @click="togglePlayMode"
-          class="text-white/70 transition-colors hover:text-white"
+          class="text-primary/70 transition-colors hover:text-primary"
           :title="playModeText"
         >
           <span :class="playModeIcon" class="h-6 w-6"></span>
         </button>
-        <button @click="previous" class="text-white/70 transition-colors hover:text-white">
+        <button @click="previous" class="text-primary/70 transition-colors hover:text-primary">
           <span class="icon-[mdi--skip-previous] h-6 w-6"></span>
         </button>
         <button
@@ -160,17 +160,17 @@ const handleProgressClick = (event: MouseEvent) => {
           :title="isPlaying ? t('player.pause') : t('player.play')"
           class="glass-button flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
         >
-          <span v-if="isLoading" class="icon-[mdi--loading] h-6 w-6 animate-spin text-white"></span>
+          <span v-if="isLoading" class="icon-[mdi--loading] h-6 w-6 animate-spin text-primary"></span>
           <span
             v-else
             :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-            class="h-6 w-6 text-white"
+            class="h-6 w-6 text-primary"
           ></span>
         </button>
-        <button @click="next" class="text-white/70 transition-colors hover:text-white">
+        <button @click="next" class="text-primary/70 transition-colors hover:text-primary">
           <span class="icon-[mdi--skip-next] h-6 w-6"></span>
         </button>
-        <button class="text-white/70 transition-colors hover:text-white">
+        <button class="text-primary/70 transition-colors hover:text-primary">
           <span class="icon-[mdi--repeat] h-6 w-6"></span>
         </button>
       </div>
@@ -179,7 +179,7 @@ const handleProgressClick = (event: MouseEvent) => {
       <div class="relative flex flex-1 items-center justify-end space-x-4">
         <button
           @click="toggleMute"
-          class="flex items-center text-white/70 transition-colors hover:text-white"
+          class="flex items-center text-primary/70 transition-colors hover:text-primary"
         >
           <span :class="volumeIcon" class="h-6 w-6"></span>
         </button>
@@ -199,7 +199,7 @@ const handleProgressClick = (event: MouseEvent) => {
         </div>
         <PlaylistBubble v-model:show="showQueue" placement="top-right" :offset-y="25">
           <template #trigger>
-            <button class="flex items-center text-white/70 transition-colors hover:text-white">
+            <button class="flex items-center text-primary/70 transition-colors hover:text-primary">
               <span class="icon-[mdi--playlist-music] h-6 w-6"></span>
             </button>
           </template>
@@ -210,7 +210,7 @@ const handleProgressClick = (event: MouseEvent) => {
     <!-- 进度条 -->
 
     <div v-if="currentSong" class="mt-3 flex items-center space-x-3">
-      <span class="text-white/60 text-xs">{{
+      <span class="text-primary/60 text-xs">{{
         isLoading ? t('player.loading') : formattedCurrentTime
       }}</span>
       <div
@@ -222,7 +222,7 @@ const handleProgressClick = (event: MouseEvent) => {
           :style="{ width: `${progress}%` }"
         ></div>
       </div>
-      <span class="text-white/60 text-xs">{{ formattedDuration }}</span>
+      <span class="text-primary/60 text-xs">{{ formattedDuration }}</span>
     </div>
   </footer>
 </template>

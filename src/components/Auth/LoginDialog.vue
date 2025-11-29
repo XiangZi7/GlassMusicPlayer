@@ -286,7 +286,7 @@ watch(visible, v => {
 
               <div class="mt-4">
                 <button
-                  class="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-pink-500 to-purple-600 px-4 py-3 text-sm font-medium text-white shadow-xl transition-all duration-300 hover:scale-[1.01] hover:shadow-pink-500/25 disabled:opacity-60"
+                  class="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-pink-500 to-purple-600 px-4 py-3 text-sm font-medium text-primary shadow-xl transition-all duration-300 hover:scale-[1.01] hover:shadow-pink-500/25 disabled:opacity-60"
                   :disabled="loading || (!useEmail && !phone) || (useEmail && !email) || !password"
                   @click="doPasswordLogin"
                 >

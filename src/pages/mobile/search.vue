@@ -297,7 +297,7 @@ const tabs = computed(() => [
             <span class="icon-[mdi--close-circle] h-4 w-4"></span>
           </button>
           <button
-            class="search-btn flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium text-white transition-all active:scale-95"
+            class="search-btn flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium text-primary transition-all active:scale-95"
             @click="handleSearchClick"
           >
             <span class="icon-[mdi--magnify] h-4 w-4"></span>
@@ -353,7 +353,7 @@ const tabs = computed(() => [
               {{ t('search.result', { count: songTotal }) }}
             </p>
             <button
-              class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-all duration-200 active:scale-95"
+              class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
               @click="playAllSongs"
             >
               <span class="icon-[mdi--play] h-4 w-4" />
@@ -413,7 +413,7 @@ const tabs = computed(() => [
                 />
                 <div class="playlist-cover-overlay absolute inset-0"></div>
                 <div
-                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
                 >
                   <span class="icon-[mdi--music-note] h-3 w-3"></span>
                   {{ p.trackCount }}
@@ -421,7 +421,7 @@ const tabs = computed(() => [
                 <div
                   class="playlist-play-btn absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-300"
                 >
-                  <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+                  <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
                 </div>
               </div>
               <p class="playlist-name line-clamp-2 px-1 text-[13px] font-medium leading-snug">
@@ -472,14 +472,14 @@ const tabs = computed(() => [
                 <div
                   class="mv-play-btn absolute top-1/2 left-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-xl transition-all duration-300"
                 >
-                  <span class="icon-[mdi--play] h-7 w-7 text-white"></span>
+                  <span class="icon-[mdi--play] h-7 w-7 text-primary"></span>
                 </div>
                 <div class="absolute right-0 bottom-0 left-0 p-3">
-                  <p class="mv-title truncate text-sm font-semibold text-white">{{ m.name }}</p>
-                  <p class="mv-artist mt-0.5 truncate text-xs text-white/70">{{ m.artist }}</p>
+                  <p class="mv-title truncate text-sm font-semibold text-primary">{{ m.name }}</p>
+                  <p class="mv-artist mt-0.5 truncate text-xs text-primary/70">{{ m.artist }}</p>
                 </div>
                 <div
-                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
                 >
                   <span class="icon-[mdi--video] h-3 w-3"></span>
                   MV

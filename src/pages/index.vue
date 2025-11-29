@@ -210,18 +210,20 @@ watch(
               </div>
               <div class="relative z-10 flex h-full items-center overflow-hidden rounded-2xl p-8">
                 <div class="flex-1">
-                  <h2 class="animate-fade-in-up mb-4 text-4xl font-bold text-white drop-shadow-lg">
+                  <h2
+                    class="animate-fade-in-up text-primary mb-4 text-4xl font-bold drop-shadow-lg"
+                  >
                     {{ banner.title }}
                   </h2>
                   <p
-                    class="animate-fade-in-up mb-6 text-lg text-white/90 drop-shadow"
+                    class="animate-fade-in-up text-primary/90 mb-6 text-lg drop-shadow"
                     style="animation-delay: 0.2s"
                   >
                     {{ banner.description }}
                   </p>
                   <router-link
                     to="/mv-list"
-                    class="glass-button animate-fade-in-up inline-flex items-center gap-1 bg-white/20 px-6 py-3 text-white hover:bg-white/30"
+                    class="glass-button animate-fade-in-up text-primary inline-flex items-center gap-1 bg-white/20 px-6 py-3 hover:bg-white/30"
                     style="animation-delay: 0.4s"
                   >
                     <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
@@ -273,13 +275,13 @@ watch(
       <div class="px-4 pb-8">
         <section class="mb-12">
           <div class="mb-6 flex items-center justify-between">
-            <h2 class="flex items-center text-2xl font-bold text-white">
+            <h2 class="text-primary flex items-center text-2xl font-bold">
               <span class="icon-[mdi--playlist-music] mr-3 h-6 w-6 text-pink-400"></span>
               {{ t('home.recommendPlaylists') }}
             </h2>
             <router-link
               to="/playlist/1"
-              class="text-purple-300 transition-colors hover:text-white"
+              class="hover:text-primary text-purple-300 transition-colors"
             >
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
             </router-link>
@@ -290,19 +292,19 @@ watch(
               @click="scrollPlaylist('left')"
               class="glass-button absolute top-1/2 left-2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
             >
-              <span class="icon-[mdi--chevron-left] h-5 w-5 text-white"></span>
+              <span class="icon-[mdi--chevron-left] text-primary h-5 w-5"></span>
             </button>
             <button
               v-show="canScrollRight"
               @click="scrollPlaylist('right')"
               class="glass-button absolute top-1/2 right-2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
             >
-              <span class="icon-[mdi--chevron-right] h-5 w-5 text-white"></span>
+              <span class="icon-[mdi--chevron-right] text-primary h-5 w-5"></span>
             </button>
             <div
               ref="playlistScrollRef"
               @scroll="updatePlaylistScrollButtons"
-              class="scrollbar-hide flex items-center gap-4 overflow-x-auto"
+              class="scrollbar-hide -my-5 flex items-center gap-4 overflow-x-auto px-5"
             >
               <router-link
                 v-for="(playlist, index) in recommendPlaylists"
@@ -310,9 +312,7 @@ watch(
                 :to="`/playlist/${playlist.id}`"
                 class="playlist-card group w-64 flex-none cursor-pointer"
               >
-                <div
-                  class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-                >
+                <div class="glass-card h-full p-4 transition-all duration-300">
                   <div class="relative mb-3 w-full overflow-hidden rounded-xl">
                     <img
                       :src="playlist.coverImgUrl + '?param=500y500'"
@@ -323,11 +323,13 @@ watch(
                       class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     >
                       <button class="glass-button flex h-12 w-12 items-center justify-center">
-                        <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+                        <span class="icon-[mdi--play] text-primary h-5 w-5"></span>
                       </button>
                     </div>
                   </div>
-                  <h3 class="mb-1 truncate text-sm font-medium text-white">{{ playlist.name }}</h3>
+                  <h3 class="text-primary mb-1 truncate text-sm font-medium">
+                    {{ playlist.name }}
+                  </h3>
                   <p class="truncate text-xs text-purple-300">
                     {{ t('home.playlistCount', { count: playlist.count }) }}
                   </p>
@@ -339,7 +341,7 @@ watch(
 
         <section class="mb-12">
           <div class="mb-6 flex items-center justify-between">
-            <h2 class="flex items-center text-2xl font-bold text-white">
+            <h2 class="text-primary flex items-center text-2xl font-bold">
               <span class="icon-[mdi--fire] mr-3 h-6 w-6 text-orange-400"></span>
               {{ t('home.hotSongs') }}
             </h2>
@@ -356,11 +358,11 @@ watch(
 
         <section v-if="recentPlayed.length > 0">
           <div class="mb-6 flex items-center justify-between">
-            <h2 class="flex items-center text-2xl font-bold text-white">
+            <h2 class="text-primary flex items-center text-2xl font-bold">
               <span class="icon-[mdi--clock-outline] mr-3 h-6 w-6 text-blue-400"></span>
               {{ t('home.recentPlayed') }}
             </h2>
-            <router-link to="/mv-list" class="text-purple-300 transition-colors hover:text-white">
+            <router-link to="/mv-list" class="hover:text-primary text-purple-300 transition-colors">
               <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
             </router-link>
           </div>
@@ -379,7 +381,7 @@ watch(
                   {{ item.emoji }}
                 </div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="truncate font-medium text-white">{{ item.name }}</h3>
+                  <h3 class="text-primary truncate font-medium">{{ item.name }}</h3>
                   <p class="truncate text-sm text-purple-300">{{ item.artist }}</p>
                   <p class="text-xs text-purple-400">{{ item.playTime }}</p>
                 </div>

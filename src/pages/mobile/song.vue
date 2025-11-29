@@ -87,12 +87,12 @@ const toggleLike = () => { state.liked = !state.liked }
             <div v-else class="flex h-full w-full items-center justify-center rounded-xl bg-white/10">🎵</div>
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="truncate text-lg font-bold text-white">{{ state.name }}</h1>
+            <h1 class="truncate text-lg font-bold text-primary">{{ state.name }}</h1>
             <p class="truncate text-xs text-purple-300">{{ state.artist }}</p>
             <p class="truncate text-[11px] text-purple-400">{{ state.album }}</p>
           </div>
           <div class="flex items-center gap-2">
-            <button class="glass-button rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-3 py-2 text-sm text-white" @click="playCurrent">
+            <button class="glass-button rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-3 py-2 text-sm text-primary" @click="playCurrent">
               <span class="icon-[mdi--play] h-4 w-4"></span>
             </button>
             <button class="glass-button rounded-full px-3 py-2 text-sm text-primary" @click="toggleLike">

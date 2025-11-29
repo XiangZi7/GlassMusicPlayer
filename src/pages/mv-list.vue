@@ -8,7 +8,7 @@
         <!-- 背景模糊效果 -->
         <div class="absolute inset-0">
           <div
-            class="h-full w-full scale-110 bg-linear-to-br from-purple-500 via-pink-500 to-indigo-600 opacity-30 blur-3xl"
+            class="h-full w-full scale-110 bg-linear-to-br from-primary-500 via-pink-500 to-indigo-600 opacity-30 blur-3xl"
           ></div>
         </div>
 
@@ -23,8 +23,8 @@
 
         <div class="relative z-10 p-8">
           <div class="text-center">
-            <h1 class="animate-fade-in-up mb-4 text-5xl font-bold text-white">{{ t('mvList.title') }}</h1>
-            <p class="animate-fade-in-up mb-6 text-xl text-white/80" style="animation-delay: 0.2s">
+            <h1 class="animate-fade-in-up mb-4 text-5xl font-bold text-primary">{{ t('mvList.title') }}</h1>
+            <p class="animate-fade-in-up mb-6 text-xl text-primary/80" style="animation-delay: 0.2s">
               {{ t('mvList.subtitle') }}
             </p>
 
@@ -36,11 +36,11 @@
               <button
                 v-for="category in categories"
                 :key="category.key"
-                class="glass-button px-6 py-2 text-white transition-all duration-300"
+                class="glass-button px-6 py-2 text-primary transition-all duration-300"
                 :class="
                   selectedCategoryKey === category.key
-                    ? 'bg-white/30'
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? 'bg-primary/30'
+                    : 'bg-primary/10 hover:bg-primary/20'
                 "
                 @click="selectCategory(category.key)"
               >
@@ -67,25 +67,25 @@
 
                 <!-- 播放按钮覆盖层 -->
                 <div
-                  class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  class="absolute inset-0 flex items-center justify-center bg-primary/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 >
                   <button
-                    class="glass-button flex h-16 w-16 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+                    class="glass-button flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 hover:bg-primary/30"
                   >
-                    <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
+                    <span class="icon-[mdi--play] h-8 w-8 text-primary"></span>
                   </button>
                 </div>
 
                 <!-- 时长标签 -->
                 <div
-                  class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-sm text-white backdrop-blur-sm"
+                  class="absolute right-2 bottom-2 rounded bg-primary/60 px-2 py-1 text-sm text-primary backdrop-blur-sm"
                 >
                   {{ formatSec(mv.duration) }}
                 </div>
 
                 <!-- 播放次数 -->
                 <div
-                  class="absolute top-2 left-2 flex items-center rounded bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm"
+                  class="absolute top-2 left-2 flex items-center rounded bg-primary/60 px-2 py-1 text-xs text-primary backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] mr-1 h-3 w-3"></span>
                   {{ mv.playCount }}
@@ -96,23 +96,23 @@
             <!-- MV信息 -->
             <div class="p-4">
               <h3
-                class="mb-2 truncate text-lg font-semibold text-white transition-colors group-hover:text-pink-300"
+                class="mb-2 truncate text-lg font-semibold text-primary transition-colors group-hover:text-primary/80"
               >
                 {{ mv.title }}
               </h3>
-              <p class="mb-3 truncate text-sm text-purple-300">
+              <p class="mb-3 truncate text-sm text-primary-300">
                 {{ mv.artist }}
               </p>
 
               <!-- 标签和操作 -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                  <span class="inline-block rounded-full bg-white/10 px-2 py-1 text-xs text-white">
+                  <span class="inline-block rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
                     {{ t('mvList.categories.' + mv.categoryKey) }}
                   </span>
                   <span
                     v-if="mv.isNew"
-                    class="inline-block rounded-full bg-red-500 px-2 py-1 text-xs text-white"
+                    class="inline-block rounded-full bg-red-500 px-2 py-1 text-xs text-primary"
                   >
                     {{ t('mvList.tags.new') }}
                   </span>
@@ -122,7 +122,7 @@
                   class="flex items-center space-x-2 opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   <button
-                    class="text-purple-300 transition-colors hover:text-white"
+                    class="text-primary-300 transition-colors hover:text-primary"
                     @click.stop="toggleLike(mv)"
                   >
                     <span
@@ -133,7 +133,7 @@
                     ></span>
                   </button>
                   <button
-                    class="text-purple-300 transition-colors hover:text-white"
+                    class="text-primary-300 transition-colors hover:text-primary"
                     @click.stop="shareMV(mv)"
                   >
                     <span class="icon-[mdi--share] h-4 w-4"></span>
@@ -148,7 +148,7 @@
         <div class="mt-12 text-center">
           <button
             v-if="hasMore"
-            class="glass-button bg-linear-to-r from-purple-500 to-pink-500 px-8 py-3 font-medium text-white transition-transform hover:scale-105"
+            class="glass-button bg-linear-to-r from-primary-500 to-pink-500 px-8 py-3 font-medium text-primary transition-transform hover:scale-105"
             @click="loadMore"
           >
             <span class="icon-[mdi--refresh] mr-2 h-5 w-5"></span>

@@ -74,11 +74,12 @@ const loadPlaylist = async (id: number) => {
           : Array.isArray(t?.artists)
             ? t.artists.map((a: any) => a.name).join(' / ')
             : '',
-        artistId: Array.isArray(t?.ar) && t.ar[0]?.id
-          ? t.ar[0].id
-          : Array.isArray(t?.artists) && t.artists[0]?.id
-            ? t.artists[0].id
-            : 0,
+        artistId:
+          Array.isArray(t?.ar) && t.ar[0]?.id
+            ? t.ar[0].id
+            : Array.isArray(t?.artists) && t.artists[0]?.id
+              ? t.artists[0].id
+              : 0,
         album: t?.al?.name || t?.album?.name || '',
         albumId: t?.al?.id || t?.album?.id || 0,
         duration: t?.dt ?? t?.duration ?? 0,
@@ -88,7 +89,8 @@ const loadPlaylist = async (id: number) => {
         cover: t?.al?.picUrl || t?.album?.picUrl || '',
       }))
     }
-  } catch {} finally {
+  } catch {
+  } finally {
     state.isPageLoading = false
   }
 }
@@ -170,7 +172,6 @@ const playAll = async () => {
   try {
     if (!Array.isArray(state.songs) || state.songs.length === 0) return
     const list: StoreSong[] = state.songs.map(mapToStoreSong)
-    console.log('🚀 ~ file: playlist.vue:179 ~ state.songs:', state.songs)
     setPlaylist(list, 0)
     play(list[0], 0)
   } catch {}
@@ -197,269 +198,278 @@ const sharePlaylist = async () => {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col overflow-hidden">
-    <PageSkeleton v-if="isPageLoading" :sections="['hero','list']" :list-count="12" />
+  <div class="overflow-x-hidden">
+    <PageSkeleton v-if="isPageLoading" :sections="['hero', 'list']" :list-count="12" />
     <template v-else>
-    <!-- 歌单头部信息 -->
-    <section class="relative mb-8 flex shrink-0 overflow-hidden rounded-tl-3xl rounded-bl-3xl">
-      <!-- 背景模糊效果 -->
-      <div class="absolute inset-0">
-        <div
-          class="h-full w-full scale-110 bg-linear-to-br opacity-30 blur-3xl"
-          :class="playlistInfo.gradient"
-        ></div>
-      </div>
+      <!-- 歌单头部信息 -->
+      <section class="relative mb-8 flex shrink-0 rounded-tl-3xl rounded-bl-3xl">
+        <!-- 背景模糊效果 -->
+        <div class="absolute inset-0">
+          <div
+            class="h-full w-full scale-110 bg-linear-to-br opacity-30 blur-3xl"
+            :class="playlistInfo.gradient"
+          ></div>
+        </div>
 
-      <!-- 浮动音符背景 -->
-      <div class="absolute inset-0 overflow-hidden">
-        <div class="floating-notes">
-          <div v-for="i in 8" :key="i" class="note" :style="{ animationDelay: i * 0.8 + 's' }">
-            {{ ['🎵', '🎶', '♪', '♫', '🎼', '🎤', '🎧', '🎸'][i - 1] }}
+        <!-- 浮动音符背景 -->
+        <div class="absolute inset-0">
+          <div class="floating-notes">
+            <div v-for="i in 8" :key="i" class="note" :style="{ animationDelay: i * 0.8 + 's' }">
+              {{ ['🎵', '🎶', '♪', '♫', '🎼', '🎤', '🎧', '🎸'][i - 1] }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="relative z-10 p-8">
-        <div
-          class="flex flex-col items-start space-y-6 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-8"
-        >
-          <!-- 歌单封面 -->
-          <div class="shrink-0">
-            <div class="group relative overflow-hidden rounded-3xl">
-              <img class="h-auto w-64 object-cover" :src="playlistInfo.coverImgUrl" alt="" />
-              <!-- 播放按钮覆盖层 -->
-              <div
-                class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              >
-                <button
-                  class="glass-button flex h-20 w-20 items-center justify-center bg-white/20 hover:bg-white/30"
+        <div class="relative z-10 p-8">
+          <div
+            class="flex flex-col items-start space-y-6 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-8"
+          >
+            <!-- 歌单封面 -->
+            <div class="shrink-0">
+              <div class="group relative rounded-3xl">
+                <img class="h-auto w-64 object-cover" :src="playlistInfo.coverImgUrl" alt="" />
+                <!-- 播放按钮覆盖层 -->
+                <div
+                  class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 >
-                  <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 歌单信息 -->
-          <div class="min-w-0 flex-1">
-            <div class="mb-2">
-              <span
-                class="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm"
-              >
-                {{ playlistInfo.category }}
-              </span>
-            </div>
-
-            <h1 class="animate-fade-in-up mb-4 text-4xl font-bold text-white lg:text-5xl">
-              {{ playlistInfo.name }}
-            </h1>
-
-            <p
-              class="animate-fade-in-up mb-6 line-clamp-3 text-lg leading-relaxed text-white/80"
-              style="animation-delay: 0.2s"
-              :title="playlistInfo.description"
-            >
-              {{ playlistInfo.description }}
-            </p>
-
-            <!-- 歌单统计信息 -->
-            <div
-              class="animate-fade-in-up mb-6 flex flex-wrap items-center gap-6 text-white/70"
-              style="animation-delay: 0.4s"
-            >
-              <div class="flex items-center space-x-2">
-                <span class="icon-[mdi--account-circle] h-5 w-5"></span>
-                <span>{{ playlistInfo.creator }}</span>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="icon-[mdi--calendar] h-5 w-5"></span>
-                <span>{{ playlistInfo.createTime }}</span>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="icon-[mdi--music-note] h-5 w-5"></span>
-                <span>{{ playlistInfo.songCount }}首歌曲</span>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="icon-[mdi--heart] h-5 w-5 text-red-400"></span>
-                <span>{{ playlistInfo.likes }}</span>
-              </div>
-            </div>
-
-            <!-- 操作按钮 -->
-            <div
-              class="animate-fade-in-up flex flex-wrap items-center gap-4"
-              style="animation-delay: 0.6s"
-            >
-              <button
-                class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-8 py-3 font-medium text-white transition-transform hover:scale-105"
-                @click="playAll"
-              >
-                <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
-                播放全部
-              </button>
-              <button
-                class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20"
-                @click="toggleCollect"
-              >
-                <span class="icon-[mdi--heart-outline] mr-2 h-5 w-5"></span>
-                {{ state.isCollected ? '已收藏' : '收藏' }}
-              </button>
-              <button
-                class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20"
-                @click="sharePlaylist"
-              >
-                <span class="icon-[mdi--share] mr-2 h-5 w-5"></span>
-                分享
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <!-- Tab 导航 -->
-    <div class="mb-4 px-8">
-      <div class="flex items-center space-x-8 border-b border-white/10">
-        <button
-          class="tab-button relative px-2 pb-4 text-lg font-medium transition-all duration-300"
-          :class="activeTab === 'songs' ? 'text-white' : 'text-purple-300 hover:text-white'"
-          @click="activeTab = 'songs'"
-        >
-          <span class="icon-[mdi--format-list-numbered] mr-2 h-5 w-5"></span>
-          歌曲列表 ({{ songs.length }})
-          <div
-            v-if="activeTab === 'songs'"
-            class="absolute right-0 bottom-0 left-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
-          ></div>
-        </button>
-        <button
-          class="tab-button relative px-2 pb-4 text-lg font-medium transition-all duration-300"
-          :class="activeTab === 'comments' ? 'text-white' : 'text-purple-300 hover:text-white'"
-          @click="activeTab = 'comments'"
-        >
-          <span class="icon-[mdi--comment-multiple] mr-2 h-5 w-5"></span>
-          评论区 ({{ comments.length }})
-          <div
-            v-if="activeTab === 'comments'"
-            class="absolute right-0 bottom-0 left-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
-          ></div>
-        </button>
-      </div>
-    </div>
-    <!-- 主要内容区域 -->
-    <div class="flex flex-1 flex-col overflow-hidden px-8 pb-8">
-      <!-- 歌曲列表 Tab -->
-      <section v-show="activeTab === 'songs'" class="h-full overflow-hidden">
-        <SongList
-          :songs="songs"
-          :show-header="true"
-          :show-controls="true"
-          @sort="handleSort"
-          @filter="handleFilter"
-        />
-      </section>
-
-      <!-- 评论区 Tab -->
-      <section v-show="activeTab === 'comments'" class="animate-fade-in">
-        <div class="glass-card p-6">
-          <!-- 发表评论 -->
-          <div class="mb-8">
-            <div class="flex items-start space-x-4">
-              <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-500 font-bold text-white"
-              >
-                我
-              </div>
-              <div class="flex-1">
-                <textarea
-                  v-model="newComment"
-                  placeholder="写下你的评论..."
-                  class="w-full resize-none rounded-lg border border-white/20 bg-white/10 p-4 text-white placeholder-purple-300 transition-colors focus:border-pink-400 focus:outline-none"
-                  rows="3"
-                ></textarea>
-                <div class="mt-3 flex items-center justify-between">
-                  <div class="flex items-center space-x-4 text-purple-300">
-                    <button class="transition-colors hover:text-white">
-                      <span class="icon-[mdi--emoticon-outline] h-5 w-5"></span>
-                    </button>
-                    <button class="transition-colors hover:text-white">
-                      <span class="icon-[mdi--image-outline] h-5 w-5"></span>
-                    </button>
-                  </div>
                   <button
-                    class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-6 py-2 font-medium text-white disabled:opacity-50"
-                    :disabled="!newComment.trim()"
-                    @click="submitComment"
+                    class="glass-button flex h-20 w-20 items-center justify-center bg-white/20 hover:bg-white/30"
                   >
-                    发表评论
+                    <span class="icon-[mdi--play] text-primary h-8 w-8"></span>
                   </button>
                 </div>
               </div>
             </div>
+
+            <!-- 歌单信息 -->
+            <div class="min-w-0 flex-1">
+              <div class="mb-2">
+                <span
+                  class="text-primary inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm"
+                >
+                  {{ playlistInfo.category }}
+                </span>
+              </div>
+
+              <h1 class="animate-fade-in-up text-primary mb-4 text-4xl font-bold lg:text-5xl">
+                {{ playlistInfo.name }}
+              </h1>
+
+              <p
+                class="animate-fade-in-up text-primary/80 mb-6 line-clamp-3 text-lg leading-relaxed"
+                style="animation-delay: 0.2s"
+                :title="playlistInfo.description"
+              >
+                {{ playlistInfo.description }}
+              </p>
+
+              <!-- 歌单统计信息 -->
+              <div
+                class="animate-fade-in-up text-primary/70 mb-6 flex flex-wrap items-center gap-6"
+                style="animation-delay: 0.4s"
+              >
+                <div class="flex items-center space-x-2">
+                  <span class="icon-[mdi--account-circle] h-5 w-5"></span>
+                  <span>{{ playlistInfo.creator }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="icon-[mdi--calendar] h-5 w-5"></span>
+                  <span>{{ playlistInfo.createTime }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="icon-[mdi--music-note] h-5 w-5"></span>
+                  <span>{{ playlistInfo.songCount }}首歌曲</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="icon-[mdi--heart] h-5 w-5 text-red-400"></span>
+                  <span>{{ playlistInfo.likes }}</span>
+                </div>
+              </div>
+
+              <!-- 操作按钮 -->
+              <div
+                class="animate-fade-in-up flex flex-wrap items-center gap-4"
+                style="animation-delay: 0.6s"
+              >
+                <button
+                  class="glass-button text-primary bg-linear-to-r from-pink-500 to-purple-600 px-8 py-3 font-medium transition-transform hover:scale-105"
+                  @click="playAll"
+                >
+                  <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
+                  播放全部
+                </button>
+                <button
+                  class="glass-button text-primary bg-white/10 px-6 py-3 hover:bg-white/20"
+                  @click="toggleCollect"
+                >
+                  <span class="icon-[mdi--heart-outline] mr-2 h-5 w-5"></span>
+                  {{ state.isCollected ? '已收藏' : '收藏' }}
+                </button>
+                <button
+                  class="glass-button text-primary bg-white/10 px-6 py-3 hover:bg-white/20"
+                  @click="sharePlaylist"
+                >
+                  <span class="icon-[mdi--share] mr-2 h-5 w-5"></span>
+                  分享
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
+      <!-- Tab 导航 -->
+      <div class="mb-4 px-8">
+        <div class="flex items-center space-x-8 border-b border-white/10">
+          <button
+            class="tab-button relative px-2 pb-4 text-lg font-medium transition-all duration-300"
+            :class="activeTab === 'songs' ? 'text-primary' : 'text-primary/80 hover:text-primary'"
+            @click="activeTab = 'songs'"
+          >
+            <span class="icon-[mdi--format-list-numbered] mr-2 h-5 w-5"></span>
+            歌曲列表 ({{ songs.length }})
+            <div
+              v-if="activeTab === 'songs'"
+              class="absolute right-0 bottom-0 left-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
+            ></div>
+          </button>
+          <button
+            class="tab-button relative px-2 pb-4 text-lg font-medium transition-all duration-300"
+            :class="
+              activeTab === 'comments' ? 'text-primary' : 'text-primary/70 hover:text-primary'
+            "
+            @click="activeTab = 'comments'"
+          >
+            <span class="icon-[mdi--comment-multiple] mr-2 h-5 w-5"></span>
+            评论区 ({{ comments.length }})
+            <div
+              v-if="activeTab === 'comments'"
+              class="absolute right-0 bottom-0 left-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
+            ></div>
+          </button>
+        </div>
+      </div>
+      <!-- 主要内容区域 -->
+      <div class="flex flex-1 flex-col overflow-hidden px-8 pb-8">
+        <!-- 歌曲列表 Tab -->
+        <section v-show="activeTab === 'songs'" class="h-full overflow-hidden">
+          <SongList
+            :songs="songs"
+            :show-header="true"
+            :show-controls="true"
+            @sort="handleSort"
+            @filter="handleFilter"
+          />
+        </section>
 
-          <!-- 评论列表 -->
-          <div class="space-y-6">
-            <div v-for="(comment, index) in comments" :key="index" class="comment-item">
+        <!-- 评论区 Tab -->
+        <section v-show="activeTab === 'comments'" class="animate-fade-in">
+          <div class="glass-card p-6">
+            <!-- 发表评论 -->
+            <div class="mb-8">
               <div class="flex items-start space-x-4">
-                <!-- 用户头像 -->
-                <img :src="comment.avatarUrl" alt="" class="h-10 w-10 rounded-full" />
-
-                <!-- 评论内容 -->
-                <div class="min-w-0 flex-1">
-                  <div class="mb-2 flex items-center space-x-2">
-                    <h4 class="font-medium text-white">{{ comment.username }}</h4>
-                    <span class="text-xs text-purple-400">{{ comment.time }}</span>
-                  </div>
-
-                  <p class="mb-3 leading-relaxed text-white/90">{{ comment.content }}</p>
-
-                  <!-- 评论操作 -->
-                  <div class="flex items-center space-x-6 text-purple-300">
-                    <button class="flex items-center space-x-1 transition-colors hover:text-white">
-                      <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
-                      <span class="text-sm">{{ comment.likes }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 transition-colors hover:text-white">
-                      <span class="icon-[mdi--reply] h-4 w-4"></span>
-                      <span class="text-sm">回复</span>
-                    </button>
-                    <button class="transition-colors hover:text-white">
-                      <span class="icon-[mdi--dots-horizontal] h-4 w-4"></span>
-                    </button>
-                  </div>
-
-                  <!-- 回复列表 -->
-                  <div v-if="comment.replies && comment.replies.length > 0" class="mt-4 space-y-3">
-                    <div
-                      v-for="(reply, replyIndex) in comment.replies"
-                      :key="replyIndex"
-                      class="flex items-start space-x-3 border-l-2 border-white/10 pl-4"
+                <div
+                  class="text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-500 font-bold"
+                >
+                  我
+                </div>
+                <div class="flex-1">
+                  <textarea
+                    v-model="newComment"
+                    placeholder="写下你的评论..."
+                    class="text-primary w-full resize-none rounded-lg border border-white/20 bg-white/10 p-4 placeholder-purple-300 transition-colors focus:border-pink-400 focus:outline-none"
+                    rows="3"
+                  ></textarea>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-4 text-purple-300">
+                      <button class="hover:text-primary transition-colors">
+                        <span class="icon-[mdi--emoticon-outline] h-5 w-5"></span>
+                      </button>
+                      <button class="hover:text-primary transition-colors">
+                        <span class="icon-[mdi--image-outline] h-5 w-5"></span>
+                      </button>
+                    </div>
+                    <button
+                      class="glass-button text-primary bg-linear-to-r from-pink-500 to-purple-600 px-6 py-2 font-medium disabled:opacity-50"
+                      :disabled="!newComment.trim()"
+                      @click="submitComment"
                     >
-                      <!-- 用户头像 -->
-                      <img :src="reply.avatarUrl" alt="" class="h-8 w-8 rounded-full" />
-                      <div class="min-w-0 flex-1">
-                        <div class="mb-1 flex items-center space-x-2">
-                          <h5 class="text-sm font-medium text-white">{{ reply.username }}</h5>
-                          <span class="text-xs text-purple-400">{{ reply.time }}</span>
+                      发表评论
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 评论列表 -->
+            <div class="space-y-6">
+              <div v-for="(comment, index) in comments" :key="index" class="comment-item">
+                <div class="flex items-start space-x-4">
+                  <!-- 用户头像 -->
+                  <img :src="comment.avatarUrl" alt="" class="h-10 w-10 rounded-full" />
+
+                  <!-- 评论内容 -->
+                  <div class="min-w-0 flex-1">
+                    <div class="mb-2 flex items-center space-x-2">
+                      <h4 class="text-primary font-medium">{{ comment.username }}</h4>
+                      <span class="text-xs text-purple-400">{{ comment.time }}</span>
+                    </div>
+
+                    <p class="text-primary/90 mb-3 leading-relaxed">{{ comment.content }}</p>
+
+                    <!-- 评论操作 -->
+                    <div class="flex items-center space-x-6 text-purple-300">
+                      <button
+                        class="hover:text-primary flex items-center space-x-1 transition-colors"
+                      >
+                        <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
+                        <span class="text-sm">{{ comment.likes }}</span>
+                      </button>
+                      <button
+                        class="hover:text-primary flex items-center space-x-1 transition-colors"
+                      >
+                        <span class="icon-[mdi--reply] h-4 w-4"></span>
+                        <span class="text-sm">回复</span>
+                      </button>
+                      <button class="hover:text-primary transition-colors">
+                        <span class="icon-[mdi--dots-horizontal] h-4 w-4"></span>
+                      </button>
+                    </div>
+
+                    <!-- 回复列表 -->
+                    <div
+                      v-if="comment.replies && comment.replies.length > 0"
+                      class="mt-4 space-y-3"
+                    >
+                      <div
+                        v-for="(reply, replyIndex) in comment.replies"
+                        :key="replyIndex"
+                        class="flex items-start space-x-3 border-l-2 border-white/10 pl-4"
+                      >
+                        <!-- 用户头像 -->
+                        <img :src="reply.avatarUrl" alt="" class="h-8 w-8 rounded-full" />
+                        <div class="min-w-0 flex-1">
+                          <div class="mb-1 flex items-center space-x-2">
+                            <h5 class="text-primary text-sm font-medium">{{ reply.username }}</h5>
+                            <span class="text-xs text-purple-400">{{ reply.time }}</span>
+                          </div>
+                          <p class="text-primary/80 text-sm">{{ reply.content }}</p>
                         </div>
-                        <p class="text-sm text-white/80">{{ reply.content }}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- 加载更多评论 -->
-          <div class="mt-8 text-center">
-            <button class="glass-button bg-white/10 px-6 py-3 text-white hover:bg-white/20">
-              加载更多评论
-            </button>
+            <!-- 加载更多评论 -->
+            <div class="mt-8 text-center">
+              <button class="glass-button text-primary bg-white/10 px-6 py-3 hover:bg-white/20">
+                加载更多评论
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
     </template>
   </div>
 </template>

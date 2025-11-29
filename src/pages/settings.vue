@@ -60,15 +60,15 @@ const romaChecked = computed({
   <div class="flex w-full flex-col gap-6 overflow-auto p-6">
     <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="6" />
     <template v-else>
-      <h2 class="text-xl font-semibold text-white">{{ t('components.settings.title') }}</h2>
+      <h2 class="text-xl font-semibold text-primary">{{ t('components.settings.title') }}</h2>
       <div class="flex flex-col gap-3">
-        <label class="mb-2 block text-sm text-white/80">{{ t('components.settings.backgroundType') }}</label>
+        <label class="mb-2 block text-sm text-primary/80">{{ t('components.settings.backgroundType') }}</label>
         <GlassSelect v-model="backgroundType" :options="bgOptions" />
 
-        <label class="mt-4 mb-2 block text-sm text-white/80">{{ t('components.settings.themeMode') }}</label>
+        <label class="mt-4 mb-2 block text-sm text-primary/80">{{ t('components.settings.themeMode') }}</label>
         <GlassSelect v-model="theme" :options="themeOptions" />
 
-        <label class="mt-4 mb-2 block text-sm text-white/80">{{ t('components.settings.uiLanguage') }}</label>
+        <label class="mt-4 mb-2 block text-sm text-primary/80">{{ t('components.settings.uiLanguage') }}</label>
         <GlassSelect v-model="lang" :options="langOptions" />
 
         <!-- 参数面板 -->
@@ -82,14 +82,14 @@ const romaChecked = computed({
           "
         />
         <div class="glass-card mt-6 p-4">
-          <h3 class="mb-3 text-sm font-semibold text-white">{{ t('components.settings.footerLyricsTitle') }}</h3>
+          <h3 class="mb-3 text-sm font-semibold text-primary">{{ t('components.settings.footerLyricsTitle') }}</h3>
           <div class="mb-3 flex items-center gap-3">
-            <label class="text-xs text-nowrap text-white/80">{{ t('common.show') }}/{{ t('common.hide') }}</label>
+            <label class="text-xs text-nowrap text-primary/80">{{ t('common.show') }}/{{ t('common.hide') }}</label>
             <GlassSelect :options="getShowHideOptions(t)" v-model="footerLyrics.enabled" />
           </div>
           <div class="space-y-2">
-            <label class="text-xs text-white/80">{{ t('components.settings.footerLyricsModes') }}</label>
-            <div class="flex flex-wrap gap-3 text-white/80">
+            <label class="text-xs text-primary/80">{{ t('components.settings.footerLyricsModes') }}</label>
+            <div class="flex flex-wrap gap-3 text-primary/80">
               <GlassCheckbox v-model="originalChecked" :label="t('common.original')" />
               <GlassCheckbox v-model="transChecked" :label="t('common.trans')" />
               <GlassCheckbox v-model="romaChecked" :label="t('common.roma')" />

@@ -149,7 +149,7 @@ const doClearAll = () => {
                       v-else
                       class="flex h-full w-full items-center justify-center rounded-md bg-linear-to-br from-pink-400 to-purple-500"
                     >
-                      <span class="icon-[mdi--music] h-5 w-5 text-white"></span>
+                      <span class="icon-[mdi--music] h-5 w-5 text-primary"></span>
                     </div>
                   </div>
                   <div class="min-w-0">

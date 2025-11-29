@@ -70,7 +70,7 @@ const romaChecked = computed({
     <section class="settings-card mb-4">
       <div class="card-header">
         <div class="icon-wrapper bg-linear-to-br from-violet-500 to-purple-600">
-          <span class="icon-[mdi--palette-outline] h-4 w-4 text-white"></span>
+          <span class="icon-[mdi--palette-outline] h-4 w-4 text-primary"></span>
         </div>
         <div>
           <h2 class="card-title">{{ t('components.settings.themeMode') }}</h2>
@@ -103,7 +103,7 @@ const romaChecked = computed({
     <section class="settings-card mb-4">
       <div class="card-header">
         <div class="icon-wrapper bg-linear-to-br from-cyan-500 to-blue-600">
-          <span class="icon-[mdi--image-filter-hdr] h-4 w-4 text-white"></span>
+          <span class="icon-[mdi--image-filter-hdr] h-4 w-4 text-primary"></span>
         </div>
         <div>
           <h2 class="card-title">{{ t('components.settings.backgroundType') }}</h2>
@@ -138,7 +138,7 @@ const romaChecked = computed({
     <section class="settings-card mb-4">
       <div class="card-header">
         <div class="icon-wrapper bg-linear-to-br from-amber-500 to-orange-600">
-          <span class="icon-[mdi--translate] h-4 w-4 text-white"></span>
+          <span class="icon-[mdi--translate] h-4 w-4 text-primary"></span>
         </div>
         <div>
           <h2 class="card-title">{{ t('components.settings.uiLanguage') }}</h2>
@@ -161,7 +161,7 @@ const romaChecked = computed({
     <section class="settings-card">
       <div class="card-header">
         <div class="icon-wrapper bg-linear-to-br from-pink-500 to-rose-600">
-          <span class="icon-[mdi--music-note] h-4 w-4 text-white"></span>
+          <span class="icon-[mdi--music-note] h-4 w-4 text-primary"></span>
         </div>
         <div class="flex-1">
           <h2 class="card-title">{{ t('components.settings.footerLyricsTitle') }}</h2>

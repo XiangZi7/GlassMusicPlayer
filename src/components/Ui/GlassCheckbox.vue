@@ -13,7 +13,7 @@ const onChange = (e: Event) => emit('update:modelValue', (e.target as HTMLInputE
       :class="[
         modelValue
           ? 'border-white/40 bg-white/70 text-black'
-          : 'border-white/30 bg-transparent text-white/70',
+          : 'border-white/30 bg-transparent text-primary/70',
       ]"
       @click.prevent="onToggle"
     >

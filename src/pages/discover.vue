@@ -189,7 +189,7 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                 <div class="absolute right-6 bottom-6 left-6">
                   <span
                     v-if="item.title"
-                    class="inline-block rounded-full bg-white/20 px-3 py-1 text-xs text-white backdrop-blur-sm"
+                    class="inline-block rounded-full bg-white/20 px-3 py-1 text-xs text-primary backdrop-blur-sm"
                   >
                     {{ item.title }}
                   </span>
@@ -212,8 +212,8 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
               class="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-300"
               :class="
                 activeTab === i
-                  ? 'bg-white/20 text-white shadow-lg'
-                  : 'text-white/60 hover:bg-white/10 hover:text-white/90'
+                  ? 'bg-white/20 text-primary shadow-lg'
+                  : 'text-primary/60 hover:bg-white/10 hover:text-primary/90'
               "
               @click="activeTab = i"
             >
@@ -243,7 +243,7 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     />
                     <div
-                      class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-xs text-white backdrop-blur-sm"
+                      class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-xs text-primary backdrop-blur-sm"
                     >
                       <span class="icon-[mdi--play] h-3 w-3" />
                       {{ formatPlayCount(pl.playCount) }}
@@ -254,12 +254,12 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       <div
                         class="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110"
                       >
-                        <span class="icon-[mdi--play] h-6 w-6 text-white" />
+                        <span class="icon-[mdi--play] h-6 w-6 text-primary" />
                       </div>
                     </div>
                   </div>
                   <h3
-                    class="line-clamp-2 text-sm text-white/90 transition-colors group-hover:text-white"
+                    class="line-clamp-2 text-sm text-primary/90 transition-colors group-hover:text-primary"
                   >
                     {{ pl.name }}
                   </h3>
@@ -284,7 +284,7 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                     <div
                       class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     >
-                      <span class="icon-[mdi--play] h-6 w-6 text-white" />
+                      <span class="icon-[mdi--play] h-6 w-6 text-primary" />
                     </div>
                   </div>
                   <div class="min-w-0 flex-1">
@@ -292,11 +292,11 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       <span class="shrink-0 text-sm font-medium text-pink-400">{{
                         String(i + 1).padStart(2, '0')
                       }}</span>
-                      <h4 class="truncate text-sm font-medium text-white">{{ song.name }}</h4>
+                      <h4 class="truncate text-sm font-medium text-primary">{{ song.name }}</h4>
                     </div>
-                    <p class="mt-1 truncate text-xs text-white/50">{{ song.artist }}</p>
+                    <p class="mt-1 truncate text-xs text-primary/50">{{ song.artist }}</p>
                   </div>
-                  <span class="shrink-0 text-xs text-white/40">{{
+                  <span class="shrink-0 text-xs text-primary/40">{{
                     formatDuration(song.duration)
                   }}</span>
                 </div>
@@ -321,7 +321,7 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       class="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent"
                     />
                     <div
-                      class="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-xs text-white backdrop-blur-sm"
+                      class="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-xs text-primary backdrop-blur-sm"
                     >
                       <span class="icon-[mdi--play] h-3 w-3" />
                       {{ formatPlayCount(mv.playCount) }}
@@ -332,12 +332,12 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       <div
                         class="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
                       >
-                        <span class="icon-[mdi--play] h-8 w-8 text-white" />
+                        <span class="icon-[mdi--play] h-8 w-8 text-primary" />
                       </div>
                     </div>
                     <div class="absolute right-0 bottom-0 left-0 p-4">
-                      <h4 class="truncate font-medium text-white">{{ mv.name }}</h4>
-                      <p class="mt-1 text-sm text-white/70">{{ mv.artistName }}</p>
+                      <h4 class="truncate font-medium text-primary">{{ mv.name }}</h4>
+                      <p class="mt-1 text-sm text-primary/70">{{ mv.artistName }}</p>
                     </div>
                   </div>
                 </router-link>
@@ -364,8 +364,8 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       class="absolute inset-0 rounded-full bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     />
                   </div>
-                  <h4 class="truncate text-sm font-medium text-white">{{ artist.name }}</h4>
-                  <p v-if="artist.alias.length" class="mt-0.5 truncate text-xs text-white/50">
+                  <h4 class="truncate text-sm font-medium text-primary">{{ artist.name }}</h4>
+                  <p v-if="artist.alias.length" class="mt-0.5 truncate text-xs text-primary/50">
                     {{ artist.alias[0] }}
                   </p>
                 </router-link>
@@ -375,13 +375,13 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
 
           <section class="mt-12">
             <div class="mb-6 flex items-center justify-between">
-              <h2 class="flex items-center gap-2 text-xl font-semibold text-white">
+              <h2 class="flex items-center gap-2 text-xl font-semibold text-primary">
                 <span class="icon-[mdi--fire] h-6 w-6 text-orange-400" />
                 {{ t('components.discover.quickPicks') }}
               </h2>
               <router-link
                 to="/charts"
-                class="flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+                class="flex items-center gap-1 text-sm text-primary/60 transition-colors hover:text-primary"
               >
                 {{ t('components.discover.viewMore') }}
                 <span class="icon-[mdi--chevron-right] h-4 w-4" />
@@ -404,7 +404,7 @@ const swiperModules = [Autoplay, Pagination, EffectFade]
                       class="h-full w-full object-cover"
                     />
                   </div>
-                  <h4 class="line-clamp-1 text-xs text-white/80">{{ pl.name }}</h4>
+                  <h4 class="line-clamp-1 text-xs text-primary/80">{{ pl.name }}</h4>
                 </div>
               </router-link>
             </div>

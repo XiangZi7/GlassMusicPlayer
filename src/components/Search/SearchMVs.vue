@@ -64,9 +64,7 @@ watch(
 )
 </script>
 <template>
-  <div
-    class="grid h-full grid-cols-1 gap-6 overflow-auto md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-  >
+  <div class="grid grid-cols-1 gap-6 overflow-auto md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <router-link
       v-for="mv in results"
       :key="mv.id"
@@ -85,27 +83,27 @@ watch(
           <button
             class="glass-button flex h-16 w-16 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
           >
-            <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
+            <span class="icon-[mdi--play] text-primary h-8 w-8"></span>
           </button>
         </div>
         <div
-          class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-sm text-white backdrop-blur-sm"
+          class="text-primary absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-sm backdrop-blur-sm"
         >
           {{ formatSec(mv.duration) }}
         </div>
         <div
-          class="absolute top-2 left-2 flex items-center rounded bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm"
+          class="text-primary absolute top-2 left-2 flex items-center rounded bg-black/60 px-2 py-1 text-xs backdrop-blur-sm"
         >
           <span class="icon-[mdi--play] mr-1 h-3 w-3"></span>{{ mv.playCount }}
         </div>
       </div>
       <div class="p-4">
         <h3
-          class="mb-2 truncate text-lg font-semibold text-white transition-colors group-hover:text-pink-300"
+          class="text-primary mb-2 truncate text-lg font-semibold transition-colors group-hover:text-pink-300"
         >
           {{ mv.title }}
         </h3>
-        <p class="mb-3 truncate text-sm text-purple-300">{{ mv.artist }}</p>
+        <p class="text-primary/50 mb-3 truncate text-sm">{{ mv.artist }}</p>
       </div>
     </router-link>
   </div>

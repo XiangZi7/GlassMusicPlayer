@@ -36,10 +36,10 @@ const { userPlaylists } = toRefs(state)
 const userStore = useUserStore()
 </script>
 <template>
-  <aside class="hidden w-64 shrink-0 px-4 py-0 lg:block">
+  <aside class="hidden w-64 shrink-0 p-4 py-0 lg:block">
     <div class="glass-card h-full p-4">
       <div v-for="sec in sections" :key="sec.titleKey" class="mb-6">
-        <h3 class="mb-3 text-xs font-semibold tracking-wide text-white/70 uppercase">
+        <h3 class="text-primary mb-3 text-xs font-semibold tracking-wide uppercase">
           {{ $t(sec.titleKey) }}
         </h3>
         <nav class="space-y-2">
@@ -47,8 +47,8 @@ const userStore = useUserStore()
             v-for="item in sec.items"
             :key="item.to"
             :to="item.to"
-            class="flex items-center space-x-3 rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            :class="{ 'bg-white/10 text-white': $route.path === item.to }"
+            class="text-primary hover:text-primary flex items-center space-x-3 rounded-lg p-2 transition-colors hover:bg-white/10"
+            :class="{ 'text-primary bg-white/10': $route.path === item.to }"
           >
             <span class="h-5 w-5" :class="`icon-[${item.icon}]`"></span>
             <span>{{ $t(item.labelKey) }}</span>
@@ -60,7 +60,7 @@ const userStore = useUserStore()
       </div>
 
       <div class="mt-6" v-if="userStore.isLoggedIn">
-        <h4 class="mb-3 text-sm font-medium text-white/60">
+        <h4 class="text-primary/60 mb-3 text-sm font-medium">
           {{ $t('layout.aside.playlists.created') }}
         </h4>
         <div class="space-y-2">
@@ -74,7 +74,7 @@ const userStore = useUserStore()
             >
               {{ playlist.name.charAt(0) }}
             </div>
-            <span class="truncate text-sm text-white/80">{{ playlist.name }}</span>
+            <span class="text-primary/80 truncate text-sm">{{ playlist.name }}</span>
           </div>
         </div>
       </div>

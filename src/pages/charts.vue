@@ -43,7 +43,7 @@ onMounted(() => load())
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-white">
+  <div class="flex-1 overflow-hidden text-primary">
     <div class="h-full overflow-auto p-6">
       <div class="mb-4 flex items-center gap-2">
         <div class="glass-nav inline-flex gap-2 rounded-2xl p-2">
@@ -53,8 +53,8 @@ onMounted(() => load())
             class="glass-button px-4 py-2 text-sm"
             :class="
               activeType === type.key
-                ? 'bg-white/25 text-white ring-1 ring-pink-300/40'
-                : 'text-white/80'
+                ? 'bg-white/25 text-primary ring-1 ring-pink-300/40'
+                : 'text-primary/80'
             "
             @click="activeType = type.key as any"
           >

@@ -76,7 +76,7 @@ const handleClick = (s: Song, i: number) => {
           class="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <span
-            class="h-6 w-6 text-white"
+            class="h-6 w-6 text-primary"
             :class="isPlaying ? 'icon-[mdi--pause] animate-pulse' : 'icon-[mdi--play]'"
           />
         </div>

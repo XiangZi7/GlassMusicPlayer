@@ -22,7 +22,7 @@ const { t } = useI18n()
           <span
             class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600"
           >
-            <span class="icon-[mdi--playlist-star] h-4 w-4 text-white" />
+            <span class="icon-[mdi--playlist-star] h-4 w-4 text-primary" />
           </span>
           {{ t('home.recommendPlaylists') }}
         </h2>
@@ -47,7 +47,7 @@ const { t } = useI18n()
           <span
             class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600"
           >
-            <span class="icon-[mdi--account-music] h-4 w-4 text-white" />
+            <span class="icon-[mdi--account-music] h-4 w-4 text-primary" />
           </span>
           {{ t('components.discover.hotArtists') }}
         </h2>
@@ -69,7 +69,7 @@ const { t } = useI18n()
           <span
             class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-blue-600"
           >
-            <span class="icon-[mdi--music-note-plus] h-4 w-4 text-white" />
+            <span class="icon-[mdi--music-note-plus] h-4 w-4 text-primary" />
           </span>
           {{ t('components.discover.newSongs') }}
         </h2>
@@ -98,7 +98,7 @@ const { t } = useI18n()
           <span
             class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-rose-500 to-red-600"
           >
-            <span class="icon-[mdi--video] h-4 w-4 text-white" />
+            <span class="icon-[mdi--video] h-4 w-4 text-primary" />
           </span>
           {{ t('components.discover.recommendMv') }}
         </h2>

@@ -118,7 +118,7 @@ const tabs = computed(() => [
             {{ t('mobile.recent.recentlyPlayed') }}
           </p>
           <button
-            class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-all duration-200 active:scale-95"
+            class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
             @click="playAllRecent"
           >
             <span class="icon-[mdi--play] h-4 w-4" />

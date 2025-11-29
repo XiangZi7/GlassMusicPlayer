@@ -1,3 +1,4 @@
 @theme {
   --color-primary: var(--glass-text);
+  --color-overlay: var(--glass-overlay);
 }

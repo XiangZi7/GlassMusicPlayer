@@ -69,14 +69,14 @@ const filtered = computed(() =>
           <div class="shimmer absolute inset-0"></div>
           <div class="relative z-10 flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-white">我喜欢的</h1>
-              <p class="mt-1 text-sm text-white/70">把所有让你心动的音乐收藏在这里</p>
+              <h1 class="text-3xl font-bold text-primary">我喜欢的</h1>
+              <p class="mt-1 text-sm text-primary/70">把所有让你心动的音乐收藏在这里</p>
             </div>
             <div class="hidden gap-2 md:flex">
               <div
                 v-for="t in tabs"
                 :key="t.key"
-                class="glass-button flex items-center gap-2 px-4 py-2 text-white"
+                class="glass-button flex items-center gap-2 px-4 py-2 text-primary"
                 :class="active === t.key ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'"
                 @click="active = t.key"
               >
@@ -117,7 +117,7 @@ const filtered = computed(() =>
                 <button
                   class="glass-button flex h-10 w-10 items-center justify-center rounded-full bg-white/20 opacity-0 transition-all duration-300 group-hover:opacity-100"
                 >
-                  <span class="icon-[mdi--play] h-5 w-5 text-white"></span>
+                  <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
                 </button>
               </div>
             </div>
@@ -125,14 +125,14 @@ const filtered = computed(() =>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span
-                  class="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs text-white"
+                  class="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs text-primary"
                 >
                   {{ item.type.toUpperCase() }}
                 </span>
                 <span class="text-xs text-purple-300">{{ item.time }}</span>
               </div>
               <h3
-                class="mt-1 truncate text-base font-semibold text-white group-hover:text-pink-300"
+                class="mt-1 truncate text-base font-semibold text-primary group-hover:text-pink-300"
               >
                 {{ item.name }}
               </h3>
@@ -142,10 +142,10 @@ const filtered = computed(() =>
             <div
               class="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100"
             >
-              <button class="text-pink-400 transition-colors hover:text-white">
+              <button class="text-pink-400 transition-colors hover:text-primary">
                 <span class="icon-[mdi--heart] h-5 w-5"></span>
               </button>
-              <button class="text-purple-300 transition-colors hover:text-white">
+              <button class="text-purple-300 transition-colors hover:text-primary">
                 <span class="icon-[mdi--dots-horizontal] h-5 w-5"></span>
               </button>
             </div>

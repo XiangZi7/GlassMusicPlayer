@@ -91,7 +91,6 @@ const {
   lyricDragMoved,
   previewLyricTime,
   useCoverBg,
-  bgActive,
   bgAUrl,
   bgBUrl,
   autoScroll,
@@ -530,7 +529,7 @@ const playModeIcon = computed(() => {
   <div
     v-if="isRendered"
     ref="drawerRef"
-    class="fixed inset-0 z-9999 flex flex-col bg-black/95 backdrop-blur-xl"
+    class="fixed inset-0 z-9999 flex flex-col bg-overlay/95 backdrop-blur-xl"
   >
     <!-- 封面模糊背景（可切换启用） -->
     <div v-show="useCoverBg" class="absolute inset-0 -z-10 overflow-hidden">
@@ -544,7 +543,7 @@ const playModeIcon = computed(() => {
         class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
         :style="bgBUrl ? { backgroundImage: `url(${bgBUrl})` } : {}"
       ></div>
-      <div class="absolute inset-0 bg-black/40"></div>
+      <div class="absolute inset-0 bg-overlay/30"></div>
     </div>
 
     <!-- 顶部栏：返回、标题、副工具按钮 -->
@@ -553,18 +552,18 @@ const playModeIcon = computed(() => {
         class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
         @click="isOpen = false"
       >
-        <span class="icon-[mdi--chevron-down] h-7 w-7 text-white/90"></span>
+        <span class="icon-[mdi--chevron-down] h-7 w-7 text-primary/90"></span>
       </button>
 
       <div class="flex flex-col items-center">
-        <span class="text-xs text-white/50">{{ t('player.nowPlaying') }}</span>
+        <span class="text-xs text-primary/50">{{ t('player.nowPlaying') }}</span>
       </div>
 
       <button
         class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
         @click="showToolbar = !showToolbar"
       >
-        <span class="icon-[mdi--dots-horizontal] h-6 w-6 text-white/90"></span>
+        <span class="icon-[mdi--dots-horizontal] h-6 w-6 text-primary/90"></span>
       </button>
     </div>
 
@@ -660,10 +659,10 @@ const playModeIcon = computed(() => {
         </div>
 
         <div class="mt-4 text-center">
-          <h2 class="text-2xl font-bold text-white">
+          <h2 class="text-2xl font-bold text-primary">
             {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="mt-2 text-base text-white/60">
+          <p class="mt-2 text-base text-primary/60">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
         </div>
@@ -683,7 +682,7 @@ const playModeIcon = computed(() => {
           v-if="lyricDragMoved && previewLyricTime !== null"
           class="time-indicator absolute top-1/2 right-4 z-30 -translate-y-1/2 rounded-full bg-white/20 px-3 py-1 text-sm backdrop-blur-sm"
         >
-          <span class="text-white">{{ formattedPreviewLyricTime }}</span>
+          <span class="text-primary">{{ formattedPreviewLyricTime }}</span>
         </div>
         <div
           ref="lyricsRef"
@@ -695,8 +694,8 @@ const playModeIcon = computed(() => {
             :key="index"
             class="lyric-line mb-6 px-4 text-center transition-all duration-500"
             :class="{
-              'scale-105 transform font-semibold text-white': index === currentLyricIndex,
-              'text-white/40': index !== currentLyricIndex,
+              'scale-105 transform font-semibold text-primary': index === currentLyricIndex,
+              'text-primary/40': index !== currentLyricIndex,
             }"
           >
             <p class="leading-relaxed">{{ line.ori }}</p>
@@ -724,7 +723,7 @@ const playModeIcon = computed(() => {
             :style="{ left: `calc(${progress}% - 6px)` }"
           ></div>
         </div>
-        <div class="mt-2 flex justify-between text-xs text-white/50">
+        <div class="mt-2 flex justify-between text-xs text-primary/50">
           <span>{{ formattedCurrentTime }}</span>
           <span>{{ formattedDuration }}</span>
         </div>
@@ -735,14 +734,14 @@ const playModeIcon = computed(() => {
           class="control-btn flex h-12 w-12 items-center justify-center rounded-full"
           @click="togglePlayMode"
         >
-          <span :class="playModeIcon" class="h-5 w-5 text-white/70"></span>
+          <span :class="playModeIcon" class="h-5 w-5 text-primary/70"></span>
         </button>
 
         <button
           class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
           @click="previous"
         >
-          <span class="icon-[mdi--skip-previous] h-8 w-8 text-white"></span>
+          <span class="icon-[mdi--skip-previous] h-8 w-8 text-primary"></span>
         </button>
 
         <button
@@ -751,11 +750,11 @@ const playModeIcon = computed(() => {
           :disabled="isLoading"
           @click="handleTogglePlay"
         >
-          <span v-if="isLoading" class="icon-[mdi--loading] h-8 w-8 animate-spin text-white"></span>
+          <span v-if="isLoading" class="icon-[mdi--loading] h-8 w-8 animate-spin text-primary"></span>
           <span
             v-else
             :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-            class="h-8 w-8 text-white"
+            class="h-8 w-8 text-primary"
             :style="!isPlaying ? 'margin-left: 3px' : ''"
           ></span>
         </button>
@@ -764,7 +763,7 @@ const playModeIcon = computed(() => {
           class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
           @click="next"
         >
-          <span class="icon-[mdi--skip-next] h-8 w-8 text-white"></span>
+          <span class="icon-[mdi--skip-next] h-8 w-8 text-primary"></span>
         </button>
         <button class="toolbar-btn" @click="isCommentsOpen = true">
           <span class="icon-[mdi--comment-outline] h-4 w-4"></span>
@@ -782,7 +781,7 @@ const playModeIcon = computed(() => {
                 ? 'icon-[mdi--volume-medium]'
                 : 'icon-[mdi--volume-high]'
           "
-          class="h-5 w-5 text-white/70"
+          class="h-5 w-5 text-primary/70"
         ></span>
         <input
           type="range"

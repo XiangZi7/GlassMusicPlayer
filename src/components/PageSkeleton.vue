@@ -44,7 +44,7 @@ const listCount = computed(() => props.listCount ?? 8)
         <div class="glass-card grid grid-cols-12 gap-6 overflow-hidden p-6">
           <div class="col-span-12 lg:col-span-9">
             <div class="aspect-video w-full rounded-lg bg-white/5">
-              <div class="absolute-center flex items-center gap-2 text-white/70">
+              <div class="absolute-center flex items-center gap-2 text-primary/70">
                 <span class="icon-[mdi--loading] h-6 w-6 animate-spin"></span>
                 {{ $t('common.loading') }}
               </div>

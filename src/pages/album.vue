@@ -84,7 +84,7 @@ onMounted(() => load())
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-white">
+  <div class="flex-1 overflow-hidden text-primary">
     <div class="h-full overflow-auto">
       <div class="relative mb-6 h-56 w-full">
         <div class="absolute inset-0 overflow-hidden rounded-b-3xl">
@@ -113,7 +113,7 @@ onMounted(() => load())
             </div>
             <div>
               <h1 class="text-2xl font-bold">{{ state.info?.name || '专辑' }}</h1>
-              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/80">
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-primary/80">
                 <span class="glass-button px-2 py-1"
                   >发行
                   {{
@@ -143,10 +143,10 @@ onMounted(() => load())
       <div class="p-6">
         <div v-if="state.info?.description" class="glass-card mb-6 p-4">
           <h3 class="mb-2 text-sm font-semibold">简介</h3>
-          <p v-if="!showDesc" class="line-clamp-3 text-white/80">{{ state.info.description }}</p>
-          <p v-else class="text-white/80">{{ state.info.description }}</p>
+          <p v-if="!showDesc" class="line-clamp-3 text-primary/80">{{ state.info.description }}</p>
+          <p v-else class="text-primary/80">{{ state.info.description }}</p>
           <button
-            class="mt-2 text-xs text-purple-300 hover:text-white"
+            class="mt-2 text-xs text-purple-300 hover:text-primary"
             @click="showDesc = !showDesc"
           >
             {{ showDesc ? '收起' : '展开更多' }}
