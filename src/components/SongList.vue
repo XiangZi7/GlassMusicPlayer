@@ -48,7 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 const router = useRouter()
-const { setPlaylist, play, currentSong } = useAudio()
+const { setPlaylist, play, currentSong, isPlaying } = useAudio()
 const { t } = useI18n()
 
 const mapToStoreSong = (s: Song): StoreSong => ({
@@ -93,9 +93,9 @@ const downloadSong = (song: Song, index: number) => {
 </script>
 
 <style scoped>
-/* 歌曲项悬停效果 */
-.song-item:hover {
-  transform: translateX(4px);
+/* 歌曲项悬停效果 - 移除位移，改用更平滑的背景过渡 */
+.song-item {
+  transition: all 0.2s ease;
 }
 
 /* 响应式调整 */
@@ -103,7 +103,7 @@ const downloadSong = (song: Song, index: number) => {
   .song-item {
     flex-direction: column;
     align-items: flex-start;
-    space-y: 2;
+    gap: 0.5rem;
   }
 
   .song-item .w-12,
@@ -112,16 +112,47 @@ const downloadSong = (song: Song, index: number) => {
     width: auto;
   }
 }
+
+/* 播放动画图标 */
+.playing-icon {
+  display: flex;
+  align-items: flex-end;
+  height: 16px;
+  width: 16px;
+  gap: 2px;
+  justify-content: center;
+}
+
+.bar {
+  width: 3px;
+  background-color: #f472b6; /* text-pink-400 */
+  height: 20%;
+  border-radius: 1px;
+  transition: height 0.2s ease;
+}
+
+.bar.animate {
+  animation: bounce 1s infinite ease-in-out;
+}
+
+.bar:nth-child(1) { animation-delay: 0s; }
+.bar:nth-child(2) { animation-delay: 0.2s; }
+.bar:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
 </style>
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-    <div class="glass-card flex flex-1 flex-col overflow-hidden p-4 px-2">
+    <div class="glass-card flex flex-1 flex-col overflow-hidden p-2">
       <!-- 列表头部 -->
       <div
         v-if="showHeader"
-        class="mb-4 hidden items-center border-b border-white/10 py-2 text-sm text-primary md:flex"
+        class="text-primary/60 mb-2 hidden items-center border-b border-white/5 py-3 text-xs font-medium tracking-wider uppercase md:flex"
       >
-        <div class="w-12 text-center">#</div>
+        <div class="w-14 text-center">#</div>
         <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4 px-4">
           <div class="col-span-4">{{ t('components.songList.headers.song') }}</div>
           <div class="col-span-3 hidden md:block">
@@ -136,49 +167,64 @@ const downloadSong = (song: Song, index: number) => {
       </div>
 
       <!-- 歌曲列表 -->
-      <div v-if="songs.length > 0" class="h-full space-y-2 overflow-x-hidden overflow-y-auto">
+      <div
+        v-if="songs.length > 0"
+        class="custom-scrollbar h-full space-y-1 overflow-x-hidden overflow-y-auto pr-2"
+      >
         <div
           v-for="(song, index) in songs"
           :key="song.id || index"
-          class="song-item group flex cursor-pointer items-center rounded-lg p-2 transition-all duration-300 hover:bg-white/10"
+          class="song-item group flex cursor-pointer items-center rounded-xl p-2 hover:bg-white/10"
           :class="isCurrent(song) ? 'bg-white/10' : ''"
           @dblclick="playSong(song, index)"
         >
           <!-- 序号/播放状态 -->
-          <div class="w-12 shrink-0 text-center">
-            <span v-if="!isCurrent(song)" class="text-primary group-hover:hidden">
+          <div class="flex w-14 shrink-0 items-center justify-center text-center">
+            <span
+              v-if="!isCurrent(song)"
+              class="text-primary/60 text-sm font-medium group-hover:hidden"
+            >
               {{ index + 1 }}
             </span>
-            <span
-              v-if="isCurrent(song)"
-              class="icon-[mdi--volume-high] h-5 w-5 animate-pulse text-primary/90"
-            ></span>
+            <div v-if="isCurrent(song)" class="playing-icon">
+              <span class="bar" :class="{ 'animate': isPlaying }"></span>
+              <span class="bar" :class="{ 'animate': isPlaying }"></span>
+              <span class="bar" :class="{ 'animate': isPlaying }"></span>
+            </div>
             <button
               v-if="!isCurrent(song)"
-              class="hidden text-primary transition-colors group-hover:block hover:text-primary/90"
+              class="text-primary hidden transition-colors group-hover:block hover:text-pink-400"
               @click.stop="playSong(song, index)"
             >
-              <span class="icon-[mdi--play] h-5 w-5"></span>
+              <span class="icon-[mdi--play] h-6 w-6"></span>
             </button>
           </div>
 
           <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
-            <div class="col-span-4 flex items-center space-x-3">
-              <div class="relative shrink-0">
+            <div class="col-span-4 flex items-center space-x-4">
+              <div
+                class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-md transition-shadow group-hover:shadow-lg"
+              >
                 <LazyImage
                   :src="(song.cover || '') + '?param=90y90'"
                   :alt="t('components.songList.coverAlt')"
-                  imgClass="h-12 w-12 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
-                  wrapperClass="h-12 w-12"
+                  imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  wrapperClass="h-full w-full"
                 />
                 <div
-                  class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                >
-                  <span class="icon-[mdi--play] h-4 w-4 text-primary"></span>
-                </div>
+                  class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                ></div>
               </div>
               <div class="min-w-0 flex-1">
-                <h3 :title="song.name" class="truncate font-medium text-primary">{{ song.name }}</h3>
+                <h3
+                  :title="song.name"
+                  class="text-primary truncate text-base font-medium transition-colors group-hover:text-pink-300"
+                >
+                  {{ song.name }}
+                </h3>
+                <div class="mt-0.5 flex items-center gap-2 md:hidden">
+                  <span class="text-primary/60 truncate text-xs">{{ song.artist }}</span>
+                </div>
               </div>
             </div>
 
@@ -187,11 +233,11 @@ const downloadSong = (song: Song, index: number) => {
                 v-if="song.artistId"
                 :to="`/artist/${song.artistId}`"
                 :title="song.artist"
-                class="truncate text-left text-sm text-primary transition-colors hover:text-primary"
+                class="text-primary/80 truncate text-sm transition-colors hover:text-pink-400"
               >
                 {{ song.artist }}
               </RouterLink>
-              <span v-else :title="song.artist" class="truncate text-sm text-primary">
+              <span v-else :title="song.artist" class="text-primary/80 truncate text-sm">
                 {{ song.artist }}
               </span>
             </div>
@@ -201,46 +247,45 @@ const downloadSong = (song: Song, index: number) => {
                 v-if="song.albumId"
                 :to="`/album/${song.albumId}`"
                 :title="song.album || '-'"
-                class="truncate text-sm text-primary transition-colors hover:text-primary"
+                class="text-primary/60 hover:text-primary truncate text-sm transition-colors"
               >
                 {{ song.album || '-' }}
               </RouterLink>
-              <span v-else :title="song.album || '-'" class="truncate text-sm text-primary">
+              <span v-else :title="song.album || '-'" class="text-primary/60 truncate text-sm">
                 {{ song.album || '-' }}
               </span>
             </div>
             <div class="col-span-1 flex items-center justify-end">
-              <span class="hidden text-sm text-primary md:inline-block">{{
+              <span class="text-primary/50 hidden font-mono text-sm md:inline-block">{{
                 formatDuration(song.duration)
               }}</span>
             </div>
             <!-- 操控按钮 -->
-            <div class="col-span-2 flex items-center justify-center space-x-2">
-              <button
-                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-primary opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
-                @click.stop="playSong(song, index)"
-              >
-                <span class="icon-[mdi--play-circle] h-6 w-6"></span>
-              </button>
+            <div
+              class="col-span-2 flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            >
               <button
                 v-if="song.mvId"
-                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-primary opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
+                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+                :title="t('common.playMV')"
                 @click.stop="openMV(song, index)"
               >
-                <span class="icon-[mdi--video-youtube] h-6 w-6"></span>
+                <span class="icon-[mdi--movie-open-play] h-5 w-5"></span>
               </button>
               <button
                 v-if="song.id"
-                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-primary opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
+                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+                :title="t('common.detail')"
                 @click.stop="router.push(`/song/${song.id}`)"
               >
-                <span class="icon-[mdi--file-document-outline] h-6 w-6"></span>
+                <span class="icon-[mdi--information-outline] h-5 w-5"></span>
               </button>
               <button
-                class="pointer-events-none flex h-9 w-9 translate-y-1 transform items-center justify-center rounded-full text-primary opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white/20"
+                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+                :title="t('common.download')"
                 @click.stop="downloadSong(song, index)"
               >
-                <span class="icon-[mdi--download] h-6 w-6"></span>
+                <span class="icon-[mdi--tray-arrow-down] h-5 w-5"></span>
               </button>
             </div>
           </div>
@@ -252,8 +297,12 @@ const downloadSong = (song: Song, index: number) => {
         v-if="!songs || songs.length === 0"
         class="flex h-full flex-col items-center justify-center py-12 text-center"
       >
-        <div class="mb-4 text-6xl">🎵</div>
-        <p class="text-lg text-primary">{{ emptyMessage || t('components.songList.empty') }}</p>
+        <div class="mb-6 rounded-full bg-white/5 p-6">
+          <span class="icon-[mdi--music-note-off] text-primary/20 h-12 w-12"></span>
+        </div>
+        <p class="text-primary/60 text-lg font-medium">
+          {{ emptyMessage || t('components.songList.empty') }}
+        </p>
       </div>
     </div>
   </div>
