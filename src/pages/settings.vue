@@ -127,7 +127,7 @@ const romaChecked = computed({
         <div class="glass-card space-y-5 rounded-2xl p-5">
           <div class="flex items-center gap-3 border-b border-white/10 pb-4">
             <div
-              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600"
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-orange-600"
             >
               <span class="icon-[mdi--subtitles-outline] h-5 w-5 text-white" />
             </div>
@@ -139,8 +139,8 @@ const romaChecked = computed({
             </div>
           </div>
           <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-primary/70 text-xs"
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-primary/70 text-xs text-nowrap"
                 >{{ t('common.show') }}/{{ t('common.hide') }}</span
               >
               <GlassSelect
