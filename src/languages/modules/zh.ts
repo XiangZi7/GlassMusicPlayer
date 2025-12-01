@@ -1,62 +1,38 @@
 export default {
   home: {
-    welcome: '欢迎使用',
-    bannerTitleDefault: '精选推荐',
-    bannerDescDefault: '为你推荐的精彩内容',
-    bannerAlt: '轮播封面',
-    playNow: '立即播放',
     recommendPlaylists: '推荐歌单',
     hotSongs: '热门单曲',
-    recentPlayed: '最近播放',
     playlistFallback: '歌单',
-    playlistCount: '{count}首歌曲',
-    morePlaylists: '更多歌单',
-    quickEntry: {
-      discover: '发现音乐',
-      discoverDesc: '探索新歌单',
-      charts: '排行榜',
-      chartsDesc: '热门榜单',
-      mv: 'MV',
-      mvDesc: '精彩视频',
-      recent: '最近播放',
-      recentDesc: '继续收听',
-    },
   },
   common: {
-    settings: '设置',
     detail: '详情',
-    download:'下载',
-    theme: '主题',
-    background: '背景',
-    language: '界面语言',
+    download: '下载',
     show: '显示',
     hide: '隐藏',
     original: '原文',
     trans: '译文',
     roma: '罗马音',
-    play: '播放',
     delete: '删除',
     clear: '清除',
     loading: '加载中',
     search: { placeholder: '搜索音乐、歌手、专辑...', label: '搜索', suggest: '搜索建议' },
     viewAll: '查看全部',
-    playCount: '{count}万',
-    playCountRaw: '{count}',
-    coverAlt: '封面',
-  },
-  nav: {
-    discover: '发现音乐',
-    charts: '排行榜',
-    mv: 'MV',
-    recent: '最近播放',
+    playMV: '播放MV',
   },
   search: {
     tabs: { song: '单曲', playlist: '歌单', mv: 'MV' },
     result: '共 {count} 条结果',
     empty: '暂无搜索结果',
+    resultsFor: '搜索',
+    results: '条结果',
+    enterKeyword: '输入关键词开始搜索',
+    hint: '搜索歌曲、歌单、MV等内容',
   },
   charts: {
     types: { all: '全部', mandarin: '华语', west: '欧美', japan: '日本', korea: '韩国' },
+    songs: '首歌曲',
+    newSongs: '新歌速递',
+    official: '官方榜单',
   },
   components: {
     pagination: {
@@ -70,15 +46,10 @@ export default {
       empty: '快来添加一些音乐吧！',
     },
     discover: {
-      title: '发现音乐',
-      subtitle: '为你呈现精选歌单和新歌速递',
-      hotPlaylists: '推荐歌单',
       newSongs: '新歌速递',
       recommendMv: '推荐MV',
       hotArtists: '热门歌手',
-      quickPicks: '为你精选',
       viewMore: '查看更多',
-      playlistCount: '{count}首歌曲',
     },
     settings: {
       title: '设置',
@@ -99,9 +70,7 @@ export default {
   layout: {
     nav: {
       home: '首页',
-      discover: '发现音乐',
-      myMusic: '我的音乐',
-      recent: '我的',
+      myMusic: '我的',
       repo: '项目仓库',
       movies: '影视网站',
     },
@@ -114,8 +83,10 @@ export default {
         home: '首页',
         mv: 'MV',
         charts: '排行榜',
+        artists: '歌手',
+        newAlbums: '新碟上架',
         search: '搜索',
-        recent: '最近播放',
+        recent: '我的音乐',
         likes: '我喜欢的',
         settings: '设置',
       },
@@ -138,9 +109,6 @@ export default {
     roma: '罗马音',
     nowPlaying: '正在播放',
     bgToggle: '背景',
-    repeatOne: '单曲循环',
-    repeatAll: '列表循环',
-    shuffle: '随机播放',
   },
   auth: {
     login: '登录',
@@ -160,7 +128,6 @@ export default {
     title: '歌曲评论',
     total: '总计 {total} 条',
     user: '用户',
-    atUser: '@用户',
     empty: '暂无评论',
   },
   playlistBubble: {
@@ -172,14 +139,6 @@ export default {
   },
   actions: {
     playAll: '播放全部',
-  },
-  playlist: {
-    collect: '收藏',
-    collected: '已收藏',
-    featuredComments: '精选评论',
-  },
-  artist: {
-    searchPrefix: '搜索歌手：',
   },
   song: {
     lyrics: '歌词',
@@ -224,7 +183,6 @@ export default {
   mobile: {
     myMusic: {
       playingList: '正在播放列表',
-      totalShort: '共 {count} 首',
       clearOneClick: '一键清空',
       clear: '清空',
       emptyTitle: '当前没有播放中的歌曲',
@@ -239,5 +197,20 @@ export default {
   },
   commonUnits: {
     songsShort: '{count}首',
+  },
+  artists: {
+    type: '类型',
+    area: '地区',
+    initial: '首字母',
+    types: { all: '全部', male: '男歌手', female: '女歌手', band: '乐队' },
+    areas: { all: '全部', zh: '华语', ea: '欧美', jp: '日本', kr: '韩国', other: '其他' },
+    initials: { hot: '热门' },
+    albums: '专辑',
+    loadMore: '加载更多',
+  },
+  newAlbums: {
+    title: '新碟上架',
+    areas: { all: '全部', zh: '华语', ea: '欧美', jp: '日本', kr: '韩国' },
+    loadMore: '加载更多',
   },
 }

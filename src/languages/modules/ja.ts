@@ -1,62 +1,38 @@
 export default {
   home: {
-    welcome: 'ようこそ',
-    bannerTitleDefault: 'おすすめ',
-    bannerDescDefault: 'あなたへのおすすめコンテンツ',
-    bannerAlt: 'バナー',
-    playNow: '今すぐ再生',
     recommendPlaylists: 'おすすめプレイリスト',
     hotSongs: '人気曲',
-    recentPlayed: '最近の再生',
     playlistFallback: 'プレイリスト',
-    playlistCount: '{count} 曲',
-    morePlaylists: 'その他のプレイリスト',
-    quickEntry: {
-      discover: '音楽を発見',
-      discoverDesc: 'プレイリストを探索',
-      charts: 'ランキング',
-      chartsDesc: '人気チャート',
-      mv: 'MV',
-      mvDesc: 'ミュージックビデオ',
-      recent: '最近の再生',
-      recentDesc: '続きを聴く',
-    },
   },
   common: {
     detail: '詳細',
-    download:'ダウンロード',
-    settings: '設定',
-    theme: 'テーマ',
-    background: '背景',
-    language: '言語',
+    download: 'ダウンロード',
     show: '表示',
     hide: '非表示',
     original: '原文',
     trans: '翻訳',
     roma: 'ローマ字',
-    play: '再生',
     delete: '削除',
     clear: 'クリア',
     loading: '読み込み中',
     search: { placeholder: '楽曲・アーティスト・アルバムを検索...', label: '検索', suggest: '検索候補' },
     viewAll: 'すべて見る',
-    playCount: '{count}万',
-    playCountRaw: '{count}',
-    coverAlt: 'カバー',
-  },
-  nav: {
-    discover: '音楽を発見',
-    charts: 'ランキング',
-    mv: 'MV',
-    recent: '最近の再生',
+    playMV: 'MV再生',
   },
   search: {
     tabs: { song: '曲', playlist: 'プレイリスト', mv: 'MV' },
     result: '{count} 件の結果',
     empty: '検索結果がありません',
+    resultsFor: '検索',
+    results: '件',
+    enterKeyword: 'キーワードを入力して検索',
+    hint: '曲、プレイリスト、MVなどを検索',
   },
   charts: {
     types: { all: '全部', mandarin: '華語', west: '洋楽', japan: '日本', korea: '韓国' },
+    songs: '曲',
+    newSongs: '新曲',
+    official: '公式ランキング',
   },
   components: {
     pagination: {
@@ -70,15 +46,10 @@ export default {
       empty: '音楽を追加して始めましょう！',
     },
     discover: {
-      title: '音楽を発見',
-      subtitle: '厳選されたプレイリストと新曲',
-      hotPlaylists: 'おすすめ',
       newSongs: '新曲',
       recommendMv: 'おすすめMV',
       hotArtists: '人気アーティスト',
-      quickPicks: 'あなたへのおすすめ',
       viewMore: 'もっと見る',
-      playlistCount: '{count} 曲',
     },
     settings: {
       title: '設定',
@@ -99,9 +70,7 @@ export default {
   layout: {
     nav: {
       home: 'ホーム',
-      discover: '発見',
-      myMusic: 'マイミュージック',
-      recent: 'マイ',
+      myMusic: 'マイ',
       repo: 'リポジトリ',
       movies: 'ムービー',
     },
@@ -114,8 +83,10 @@ export default {
         home: 'ホーム',
         mv: 'MV',
         charts: 'ランキング',
+        artists: 'アーティスト',
+        newAlbums: '新着アルバム',
         search: '検索',
-        recent: '最近の再生',
+        recent: 'マイミュージック',
         likes: 'お気に入り',
         settings: '設定',
       },
@@ -138,9 +109,6 @@ export default {
     roma: 'ローマ字',
     nowPlaying: '再生中',
     bgToggle: '背景',
-    repeatOne: 'リピート',
-    repeatAll: 'リストリピート',
-    shuffle: 'シャッフル',
   },
   auth: {
     login: 'ログイン',
@@ -160,7 +128,6 @@ export default {
     title: '楽曲コメント',
     total: '合計 {total} 件',
     user: 'ユーザー',
-    atUser: '@ユーザー',
     empty: 'コメントはまだありません',
   },
   playlistBubble: {
@@ -172,14 +139,6 @@ export default {
   },
   actions: {
     playAll: 'すべて再生',
-  },
-  playlist: {
-    collect: 'お気に入りに追加',
-    collected: 'お気に入り済み',
-    featuredComments: '厳選コメント',
-  },
-  artist: {
-    searchPrefix: 'アーティスト検索：',
   },
   song: {
     lyrics: '歌詞',
@@ -224,7 +183,6 @@ export default {
   mobile: {
     myMusic: {
       playingList: '再生中リスト',
-      totalShort: '合計 {count} 曲',
       clearOneClick: '一括クリア',
       clear: 'クリア',
       emptyTitle: '再生中の曲はありません',
@@ -239,5 +197,20 @@ export default {
   },
   commonUnits: {
     songsShort: '{count} 曲',
+  },
+  artists: {
+    type: 'タイプ',
+    area: '地域',
+    initial: '頭文字',
+    types: { all: '全部', male: '男性', female: '女性', band: 'バンド' },
+    areas: { all: '全部', zh: '中華', ea: '洋楽', jp: '日本', kr: '韓国', other: 'その他' },
+    initials: { hot: '人気' },
+    albums: 'アルバム',
+    loadMore: 'もっと見る',
+  },
+  newAlbums: {
+    title: '新着アルバム',
+    areas: { all: '全部', zh: '中華', ea: '洋楽', jp: '日本', kr: '韓国' },
+    loadMore: 'もっと見る',
   },
 }

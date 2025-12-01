@@ -18,13 +18,19 @@ interface MVResult {
   artist: string
   cover: string
   duration: number
-  playCount: string
+  playCount: number
 }
 const state = reactive<{ loading: boolean; results: MVResult[] }>({ loading: false, results: [] })
-const { loading, results } = toRefs(state)
+const { results } = toRefs(state)
 
 const formatSec = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
+
+const formatCount = (count: number): string => {
+  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
+  if (count >= 10000) return (count / 10000).toFixed(0) + '万'
+  return count.toString()
+}
 
 const fetchMVs = async () => {
   const term = props.keywords?.trim()
@@ -47,7 +53,7 @@ const fetchMVs = async () => {
       artist: it?.artistName || it?.artists?.[0]?.name || '',
       cover: it?.cover || it?.coverImg || it?.picUrl || '',
       duration: Math.floor((it?.duration || 0) / 1000),
-      playCount: String(it?.playCount || ''),
+      playCount: it?.playCount || 0,
     }))
     emit('loaded', state.results.length)
     emit('total', Number(res?.result?.mvCount ?? res?.result?.songCount ?? state.results.length))
@@ -64,47 +70,42 @@ watch(
 )
 </script>
 <template>
-  <div class="grid grid-cols-1 gap-6 overflow-auto md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-    <router-link
-      v-for="mv in results"
-      :key="mv.id"
-      :to="`/mv-player/${mv.id}`"
-      class="mv-card glass-card group cursor-pointer transition-all duration-500 hover:scale-105 hover:shadow-2xl"
-    >
-      <div class="relative overflow-hidden rounded-t-2xl">
-        <img
-          :src="mv.cover + '?param=480y270'"
-          alt="mv"
-          class="h-full w-full rounded-t-2xl object-cover"
-        />
-        <div
-          class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        >
-          <button
-            class="glass-button flex h-16 w-16 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-          >
-            <span class="icon-[mdi--play] text-primary h-8 w-8"></span>
-          </button>
+  <div v-if="results.length > 0" class="custom-scrollbar h-full overflow-y-auto">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <router-link v-for="mv in results" :key="mv.id" :to="`/mv-player/${mv.id}`" class="group">
+        <div class="relative aspect-video overflow-hidden rounded-2xl shadow-xl">
+          <LazyImage
+            :src="mv.cover + '?param=400y225'"
+            :alt="mv.title"
+            img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+            <span class="icon-[mdi--play] h-3 w-3" />
+            {{ formatCount(mv.playCount) }}
+          </div>
+          <div class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm">
+            {{ formatSec(mv.duration) }}
+          </div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="flex h-14 w-14 scale-75 items-center justify-center rounded-full bg-white/20 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+              <span class="icon-[mdi--play] h-7 w-7 text-white" />
+            </div>
+          </div>
+          <div class="absolute right-0 bottom-0 left-0 p-3">
+            <p class="truncate text-sm font-medium text-white transition-colors group-hover:text-pink-300">{{ mv.title }}</p>
+            <p class="mt-0.5 truncate text-[11px] text-white/70">{{ mv.artist }}</p>
+          </div>
         </div>
-        <div
-          class="text-primary absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-sm backdrop-blur-sm"
-        >
-          {{ formatSec(mv.duration) }}
-        </div>
-        <div
-          class="text-primary absolute top-2 left-2 flex items-center rounded bg-black/60 px-2 py-1 text-xs backdrop-blur-sm"
-        >
-          <span class="icon-[mdi--play] mr-1 h-3 w-3"></span>{{ mv.playCount }}
-        </div>
+      </router-link>
+    </div>
+  </div>
+  <div v-else-if="!keywords" class="flex h-full items-center justify-center">
+    <div class="text-center">
+      <div class="mb-4 inline-block rounded-full bg-white/5 p-6">
+        <span class="icon-[mdi--movie-open-play] text-primary/20 h-12 w-12" />
       </div>
-      <div class="p-4">
-        <h3
-          class="text-primary mb-2 truncate text-lg font-semibold transition-colors group-hover:text-pink-300"
-        >
-          {{ mv.title }}
-        </h3>
-        <p class="text-primary/50 mb-3 truncate text-sm">{{ mv.artist }}</p>
-      </div>
-    </router-link>
+      <p class="text-primary/50">{{ $t('search.enterKeyword') }}</p>
+    </div>
   </div>
 </template>

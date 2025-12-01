@@ -198,7 +198,7 @@ const sharePlaylist = async () => {
 </script>
 
 <template>
-  <div class="overflow-x-hidden">
+  <div class="overflow-x-hidden w-full">
     <PageSkeleton v-if="isPageLoading" :sections="['hero', 'list']" :list-count="12" />
     <template v-else>
       <!-- 歌单头部信息 -->

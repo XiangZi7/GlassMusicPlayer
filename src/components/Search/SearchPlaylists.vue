@@ -7,16 +7,27 @@ interface Props {
   offset?: number
 }
 const props = defineProps<Props>()
-const emit = defineEmits<{ (e: 'loaded', count: number): void; (e: 'total', count: number): void }>()
+const emit = defineEmits<{
+  (e: 'loaded', count: number): void
+  (e: 'total', count: number): void
+}>()
 
 interface PLResult {
   id: number | string
   name: string
   coverImgUrl: string
   trackCount: number
+  playCount: number
+  creator: string
 }
 const state = reactive<{ loading: boolean; results: PLResult[] }>({ loading: false, results: [] })
-const {  results } = toRefs(state)
+const { results } = toRefs(state)
+
+const formatCount = (count: number): string => {
+  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
+  if (count >= 10000) return (count / 10000).toFixed(0) + '万'
+  return count.toString()
+}
 
 const fetchPlaylists = async () => {
   const term = props.keywords?.trim()
@@ -26,13 +37,20 @@ const fetchPlaylists = async () => {
   }
   try {
     state.loading = true
-    const res: any = await cloudSearch({ keywords: term, type: 1000, limit: props.limit ?? 30, offset: props.offset ?? 0 })
+    const res: any = await cloudSearch({
+      keywords: term,
+      type: 1000,
+      limit: props.limit ?? 30,
+      offset: props.offset ?? 0,
+    })
     const list: any[] = res?.result?.playlists || []
     state.results = list.map(pl => ({
       id: pl?.id,
       name: pl?.name || '',
       coverImgUrl: pl?.coverImgUrl || '',
       trackCount: pl?.trackCount || 0,
+      playCount: pl?.playCount || 0,
+      creator: pl?.creator?.nickname || '',
     }))
     emit('loaded', state.results.length)
     emit('total', Number(res?.result?.playlistCount ?? state.results.length))
@@ -40,31 +58,61 @@ const fetchPlaylists = async () => {
     state.loading = false
   }
 }
-watch([() => props.keywords, () => props.limit, () => props.offset], () => { fetchPlaylists() }, { immediate: true })
+watch(
+  [() => props.keywords, () => props.limit, () => props.offset],
+  () => {
+    fetchPlaylists()
+  },
+  { immediate: true }
+)
 </script>
 <template>
-  <div class="h-full overflow-auto grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-    <router-link v-for="pl in results" :key="pl.id" :to="`/playlist/${pl.id}`" class="group">
-      <div
-        class="glass-card h-full p-4 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-      >
-        <div class="relative mb-3 overflow-hidden rounded-xl">
-          <img
-            :src="pl.coverImgUrl + '?param=500y500'"
+  <div v-if="results.length > 0" class="custom-scrollbar h-full overflow-y-auto">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <router-link v-for="pl in results" :key="pl.id" :to="`/playlist/${pl.id}`" class="group">
+        <div class="relative aspect-square overflow-hidden rounded-2xl shadow-lg">
+          <LazyImage
+            :src="pl.coverImgUrl + '?param=300y300'"
             alt="cover"
-            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+            img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
           />
+          <div class="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
           <div
-            class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
           >
-            <button class="glass-button flex h-10 w-10 items-center justify-center">
-              <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
-            </button>
+            <span class="icon-[mdi--headphones] h-3 w-3" />
+            {{ formatCount(pl.playCount) }}
+          </div>
+          <div class="absolute right-0 bottom-0 left-0 p-2.5">
+            <p class="line-clamp-2 text-xs leading-tight font-medium text-white">{{ pl.name }}</p>
+            <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-white/70">
+              <span class="icon-[mdi--music-note] h-3 w-3" />
+              <span>{{ pl.trackCount }}首</span>
+            </div>
+          </div>
+          <div
+            class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-all duration-300 group-hover:opacity-100"
+          >
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-xl"
+            >
+              <span class="icon-[mdi--play] h-6 w-6 text-pink-500" />
+            </div>
           </div>
         </div>
-        <h3 class="mb-1 truncate text-sm font-medium text-primary">{{ pl.name }}</h3>
-        <p class="truncate text-xs text-primary/50">{{ $t('components.discover.playlistCount', { count: pl.trackCount }) }}</p>
+        <div class="mt-2 px-1">
+         
+          <p class="text-primary/50 mt-0.5 truncate text-xs">{{ pl.creator }}</p>
+        </div>
+      </router-link>
+    </div>
+  </div>
+  <div v-else-if="!keywords" class="flex h-full items-center justify-center">
+    <div class="text-center">
+      <div class="mb-4 inline-block rounded-full bg-white/5 p-6">
+        <span class="icon-[mdi--playlist-music] text-primary/20 h-12 w-12" />
       </div>
-    </router-link>
+      <p class="text-primary/50">{{ $t('search.enterKeyword') }}</p>
+    </div>
   </div>
 </template>

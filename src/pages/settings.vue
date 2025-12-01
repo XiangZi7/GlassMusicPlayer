@@ -8,7 +8,12 @@ import { useSettingsStore } from '@/stores/modules/settings'
 import { useGlobalStore } from '@/stores/modules/global'
 import I18n from '@/languages'
 import { useI18n } from 'vue-i18n'
-import { getBackgroundOptions, getThemeOptions, getLangOptions, getShowHideOptions } from '@/config/settingsOptions'
+import {
+  getBackgroundOptions,
+  getThemeOptions,
+  getLangOptions,
+  getShowHideOptions,
+} from '@/config/settingsOptions'
 const settings = useSettingsStore()
 const { backgroundType, footerLyrics } = storeToRefs(settings)
 const globalStore = useGlobalStore()
@@ -57,21 +62,108 @@ const romaChecked = computed({
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-6 overflow-auto p-6">
+  <div class="h-full overflow-auto p-6 w-full">
     <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="6" />
-    <template v-else>
-      <h2 class="text-xl font-semibold text-primary">{{ t('components.settings.title') }}</h2>
-      <div class="flex flex-col gap-3">
-        <label class="mb-2 block text-sm text-primary/80">{{ t('components.settings.backgroundType') }}</label>
-        <GlassSelect v-model="backgroundType" :options="bgOptions" />
+    <div v-else>
+      <div class="mb-8">
+        <h1 class="text-primary text-2xl font-bold">{{ t('components.settings.title') }}</h1>
+        <p class="text-primary/50 mt-1 text-sm">{{ t('components.settings.desc') }}</p>
+      </div>
 
-        <label class="mt-4 mb-2 block text-sm text-primary/80">{{ t('components.settings.themeMode') }}</label>
-        <GlassSelect v-model="theme" :options="themeOptions" />
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600"
+            >
+              <span class="icon-[mdi--palette-outline] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.themeMode') }}
+              </h3>
+              <p class="text-primary/50 text-xs">{{ t('components.settings.themeModeDesc') }}</p>
+            </div>
+          </div>
+          <GlassSelect v-model="theme" :options="themeOptions" />
+        </div>
 
-        <label class="mt-4 mb-2 block text-sm text-primary/80">{{ t('components.settings.uiLanguage') }}</label>
-        <GlassSelect v-model="lang" :options="langOptions" />
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600"
+            >
+              <span class="icon-[mdi--translate] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.uiLanguage') }}
+              </h3>
+              <p class="text-primary/50 text-xs">{{ t('components.settings.uiLanguageDesc') }}</p>
+            </div>
+          </div>
+          <GlassSelect v-model="lang" :options="langOptions" />
+        </div>
 
-        <!-- 参数面板 -->
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600"
+            >
+              <span class="icon-[mdi--image-filter-hdr] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.backgroundType') }}
+              </h3>
+              <p class="text-primary/50 text-xs">
+                {{ t('components.settings.backgroundTypeDesc') }}
+              </p>
+            </div>
+          </div>
+          <GlassSelect v-model="backgroundType" :options="bgOptions" />
+        </div>
+
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600"
+            >
+              <span class="icon-[mdi--subtitles-outline] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.footerLyricsTitle') }}
+              </h3>
+              <p class="text-primary/50 text-xs">{{ t('components.settings.footerLyricsDesc') }}</p>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-primary/70 text-xs"
+                >{{ t('common.show') }}/{{ t('common.hide') }}</span
+              >
+              <GlassSelect
+                :options="getShowHideOptions(t)"
+                v-model="footerLyrics.enabled"
+                class="w-32"
+              />
+            </div>
+            <div>
+              <span class="text-primary/70 mb-2 block text-xs">{{
+                t('components.settings.footerLyricsModes')
+              }}</span>
+              <div class="text-primary/80 flex flex-wrap gap-3">
+                <GlassCheckbox v-model="originalChecked" :label="t('common.original')" />
+                <GlassCheckbox v-model="transChecked" :label="t('common.trans')" />
+                <GlassCheckbox v-model="romaChecked" :label="t('common.roma')" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
         <component
           :is="
             backgroundType === 'colorbends'
@@ -81,22 +173,7 @@ const romaChecked = computed({
                 : UltimateSettingsPanel
           "
         />
-        <div class="glass-card mt-6 p-4">
-          <h3 class="mb-3 text-sm font-semibold text-primary">{{ t('components.settings.footerLyricsTitle') }}</h3>
-          <div class="mb-3 flex items-center gap-3">
-            <label class="text-xs text-nowrap text-primary/80">{{ t('common.show') }}/{{ t('common.hide') }}</label>
-            <GlassSelect :options="getShowHideOptions(t)" v-model="footerLyrics.enabled" />
-          </div>
-          <div class="space-y-2">
-            <label class="text-xs text-primary/80">{{ t('components.settings.footerLyricsModes') }}</label>
-            <div class="flex flex-wrap gap-3 text-primary/80">
-              <GlassCheckbox v-model="originalChecked" :label="t('common.original')" />
-              <GlassCheckbox v-model="transChecked" :label="t('common.trans')" />
-              <GlassCheckbox v-model="romaChecked" :label="t('common.roma')" />
-            </div>
-          </div>
-        </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>

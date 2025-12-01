@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { cloudSearch } from '@/api'
+import { useAudio } from '@/composables/useAudio'
+import type { Song as StoreSong } from '@/stores/interface'
 
 interface Props {
   keywords: string
@@ -30,6 +32,15 @@ interface SongsState {
 const state = reactive<SongsState>({ results: [] })
 const { results } = toRefs(state)
 
+const { setPlaylist, play } = useAudio()
+
+const playAll = () => {
+  if (state.results.length === 0) return
+  const playlist = state.results
+  setPlaylist(playlist, 0)
+  play(playlist[0], 0)
+}
+
 const fetchSongs = async () => {
   const term = props.keywords?.trim()
   if (!term) {
@@ -49,9 +60,10 @@ const fetchSongs = async () => {
     artist: Array.isArray(it?.artists || it?.ar)
       ? (it?.artists || it?.ar).map((a: any) => a.name).join(' / ')
       : '',
-    artistId: Array.isArray(it?.artists || it?.ar) && (it?.artists || it?.ar)[0]?.id
-      ? (it?.artists || it?.ar)[0].id
-      : undefined,
+    artistId:
+      Array.isArray(it?.artists || it?.ar) && (it?.artists || it?.ar)[0]?.id
+        ? (it?.artists || it?.ar)[0].id
+        : undefined,
     album: it?.album?.name || it?.al?.name || '',
     albumId: it?.album?.id || it?.al?.id,
     duration: it?.duration ?? it?.dt ?? 0,
@@ -68,7 +80,18 @@ watch(
   },
   { immediate: true }
 )
+
+defineExpose({
+  playAll,
+})
 </script>
 <template>
-  <SongList :songs="results" :showHeader="true" :showControls="false" :emptyMessage="$t('components.songList.empty')" />
+  <div class="flex h-full flex-col overflow-hidden">
+    <SongList
+      :songs="results"
+      :showHeader="true"
+      :showControls="false"
+      :emptyMessage="$t('components.songList.empty')"
+    />
+  </div>
 </template>

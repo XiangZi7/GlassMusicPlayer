@@ -103,17 +103,6 @@ watch(
     <div class="h-full overflow-auto">
       <PageSkeleton v-if="isPageLoading" :sections="['player']" />
       <template v-else>
-        <!-- 返回按钮 -->
-        <div class="p-4">
-          <router-link
-            to="/mv-list"
-            class="glass-button text-primary flex items-center space-x-2 bg-white/10 px-4 py-2 transition-all duration-300 hover:bg-white/20"
-          >
-            <span class="icon-[mdi--arrow-left] h-5 w-5"></span>
-            <span>返回</span>
-          </router-link>
-        </div>
-
         <!-- MV播放器区域 -->
         <section class="px-4 pb-8">
           <div class="glass-card grid grid-cols-12 gap-6 overflow-hidden p-6">

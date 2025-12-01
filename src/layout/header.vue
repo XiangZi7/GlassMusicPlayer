@@ -4,10 +4,7 @@ import { useUserStore } from '@/stores/modules/user'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-const navItems = [
-  { to: '/', labelKey: 'layout.nav.home', accent: true },
-  { to: '/discover', labelKey: 'layout.nav.discover' },
-]
+const navItems = [{ to: '/', labelKey: 'layout.nav.home', accent: true }]
 
 const router = useRouter()
 const { t } = useI18n()
@@ -22,7 +19,17 @@ const { searchQuery, showLogin, historyOpen } = toRefs(state)
 // 用户与全局 store，引入全局搜索历史
 const userStore = useUserStore()
 const globalStore = useGlobalStore()
-const { searchHistory } = storeToRefs(globalStore)
+const { searchHistory, theme } = storeToRefs(globalStore)
+const themeIcon = computed(() => {
+  if (theme.value === 'system') return 'icon-[mdi--theme-light-dark]'
+  if (theme.value === 'dark') return 'icon-[mdi--weather-night]'
+  return 'icon-[mdi--weather-sunny]'
+})
+const cycleTheme = () => {
+  const order: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
+  const idx = order.indexOf(theme.value)
+  globalStore.setTheme(order[(idx + 1) % 3])
+}
 // 回车搜索：写入搜索历史，关闭下拉，并跳转到搜索页
 const handleSearchEnter = () => {
   const q = state.searchQuery.trim()
@@ -83,7 +90,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- Logo -->
       <div class="flex items-center space-x-3">
         <img src="/logo.png" alt="logo" class="w-10" />
-        <h1 class="text-xl font-bold text-primary">Glass Music Player</h1>
+        <h1 class="text-primary text-xl font-bold">Glass Music Player</h1>
       </div>
 
       <!-- 导航菜单 -->
@@ -95,11 +102,25 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           :class="[
             item.accent ? 'glass-button text-primary' : 'text-primary/70 hover:text-primary',
-            $route.path === item.to ? 'bg-white/10 text-primary' : '',
+            $route.path === item.to ? 'text-primary bg-white/10' : '',
           ]"
         >
           {{ t(item.labelKey) }}
         </RouterLink>
+        <button
+          class="text-primary flex cursor-pointer items-center p-2"
+          aria-label="back"
+          @click="router.back()"
+        >
+          <span class="icon-[mdi--chevron-left] h-5 w-5"></span>
+        </button>
+        <button
+          class="text-primary flex cursor-pointer items-center p-2"
+          aria-label="forward"
+          @click="router.forward()"
+        >
+          <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
+        </button>
       </nav>
       <!-- 外链菜单 -->
       <nav class="hidden items-center space-x-2 md:flex">
@@ -107,7 +128,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://github.com/XiangZi7/GlassMusicPlayer"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-primary"
+          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           <span class="icon-[mdi--github] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.repo') }}
@@ -117,7 +138,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://miraitv.netlify.app/"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button rounded-lg px-4 py-2 text-sm font-medium text-primary"
+          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           <span class="icon-[mdi--movie-open-play] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.movies') }}
@@ -130,14 +151,14 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
     <div class="flex items-center space-x-4">
       <!-- 搜索框 -->
       <div ref="rootRef" class="glass-card relative hidden min-w-0 items-center px-4 py-2 lg:flex">
-        <span class="icon-[mdi--magnify] mr-2 h-4 w-4 text-primary/60"></span>
+        <span class="icon-[mdi--magnify] text-primary/60 mr-2 h-4 w-4"></span>
         <input
           v-model="searchQuery"
           @keyup.enter="handleSearchEnter"
           @focus="openHistoryIfAny"
           type="text"
           :placeholder="t('common.search.placeholder')"
-          class="min-w-0 flex-1 bg-transparent pr-10 text-sm text-primary placeholder-primary/50 outline-none"
+          class="text-primary placeholder-primary/50 min-w-0 flex-1 bg-transparent pr-10 text-sm outline-none"
         />
         <button
           class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
@@ -145,7 +166,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           :title="t('common.clear')"
           @click="clearSearch"
         >
-          <span class="icon-[mdi--close] h-4 w-4 text-primary/70"></span>
+          <span class="icon-[mdi--close] text-primary/70 h-4 w-4"></span>
         </button>
       </div>
       <Teleport to="body">
@@ -175,14 +196,23 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         </div>
       </Teleport>
 
+      <!-- 主题切换 -->
+      <button
+        class="glass-button text-primary flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg"
+        :title="theme === 'system' ? t('components.settings.themeOptions.system') : theme === 'dark' ? t('components.settings.themeOptions.dark') : t('components.settings.themeOptions.light')"
+        @click="cycleTheme"
+      >
+        <span :class="[themeIcon, 'h-5 w-5 transition-transform duration-300']"></span>
+      </button>
+
       <!-- 用户头像 / 登录按钮 -->
       <div v-if="userStore.isLoggedIn" class="flex items-center gap-2">
         <img :src="userStore.avatarUrl" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
-        <span class="text-sm text-primary/90">{{ userStore.nickname }}</span>
+        <span class="text-primary/90 text-sm">{{ userStore.nickname }}</span>
       </div>
       <button
         v-else
-        class="glass-button flex items-center gap-1 px-3 py-2 text-sm text-primary"
+        class="glass-button text-primary flex items-center gap-1 px-3 py-2 text-sm"
         @click="showLogin = true"
       >
         <icon-ic:baseline-person-pin />
@@ -191,7 +221,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
       <!-- 移动端菜单按钮 -->
       <button class="glass-button p-2 md:hidden">
-        <span class="icon-[mdi--menu] h-5 w-5 text-primary"></span>
+        <span class="icon-[mdi--menu] text-primary h-5 w-5"></span>
       </button>
     </div>
   </header>

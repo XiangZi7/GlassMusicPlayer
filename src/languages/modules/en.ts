@@ -1,62 +1,38 @@
 export default {
   home: {
-    welcome: 'Welcome',
-    bannerTitleDefault: 'Featured',
-    bannerDescDefault: 'Handpicked content for you',
-    bannerAlt: 'Banner cover',
-    playNow: 'Play Now',
     recommendPlaylists: 'Recommended Playlists',
     hotSongs: 'Hot Tracks',
-    recentPlayed: 'Recently Played',
     playlistFallback: 'Playlist',
-    playlistCount: '{count} songs',
-    morePlaylists: 'More Playlists',
-    quickEntry: {
-      discover: 'Discover',
-      discoverDesc: 'Explore playlists',
-      charts: 'Charts',
-      chartsDesc: 'Top rankings',
-      mv: 'MV',
-      mvDesc: 'Music videos',
-      recent: 'Recent',
-      recentDesc: 'Keep listening',
-    },
   },
   common: {
     detail: 'Detail',
-    download:'Download',
-    settings: 'Settings',
-    theme: 'Theme',
-    background: 'Background',
-    language: 'Language',
+    download: 'Download',
     show: 'Show',
     hide: 'Hide',
     original: 'Original',
     trans: 'Translation',
     roma: 'Romaji',
-    play: 'Play',
     delete: 'Delete',
     clear: 'Clear',
     loading: 'Loading',
     search: { placeholder: 'Search songs, artists, albums...', label: 'Search', suggest: 'Suggestions' },
     viewAll: 'View All',
-    playCount: '{count}k',
-    playCountRaw: '{count}',
-    coverAlt: 'Cover',
-  },
-  nav: {
-    discover: 'Discover',
-    charts: 'Charts',
-    mv: 'MV',
-    recent: 'Recent',
+    playMV: 'Play MV',
   },
   search: {
     tabs: { song: 'Songs', playlist: 'Playlists', mv: 'MV' },
     result: '{count} results',
     empty: 'No results found',
+    resultsFor: 'Search',
+    results: 'results',
+    enterKeyword: 'Enter keywords to search',
+    hint: 'Search songs, playlists, MVs and more',
   },
   charts: {
     types: { all: 'All', mandarin: 'Mandarin', west: 'Western', japan: 'Japan', korea: 'Korea' },
+    songs: 'songs',
+    newSongs: 'New Songs',
+    official: 'Official Charts',
   },
   components: {
     pagination: {
@@ -70,15 +46,10 @@ export default {
       empty: 'Add some music to get started!',
     },
     discover: {
-      title: 'Discover Music',
-      subtitle: 'Curated playlists and new tracks for you',
-      hotPlaylists: 'Recommended',
       newSongs: 'New Releases',
       recommendMv: 'Featured MVs',
       hotArtists: 'Hot Artists',
-      quickPicks: 'Quick Picks',
       viewMore: 'View More',
-      playlistCount: '{count} songs',
     },
     settings: {
       title: 'Settings',
@@ -99,9 +70,7 @@ export default {
   layout: {
     nav: {
       home: 'Home',
-      discover: 'Discover',
-      myMusic: 'My Music',
-      recent: 'My',
+      myMusic: 'My',
       repo: 'Repository',
       movies: 'Movies',
     },
@@ -114,8 +83,10 @@ export default {
         home: 'Home',
         mv: 'MV',
         charts: 'Charts',
+        artists: 'Artists',
+        newAlbums: 'New Albums',
         search: 'Search',
-        recent: 'Recent',
+        recent: 'My Music',
         likes: 'Likes',
         settings: 'Settings',
       },
@@ -138,9 +109,6 @@ export default {
     roma: 'Romaji',
     nowPlaying: 'Now Playing',
     bgToggle: 'Background',
-    repeatOne: 'Repeat One',
-    repeatAll: 'Repeat All',
-    shuffle: 'Shuffle',
   },
   auth: {
     login: 'Login',
@@ -160,7 +128,6 @@ export default {
     title: 'Song Comments',
     total: 'Total {total}',
     user: 'User',
-    atUser: '@User',
     empty: 'No comments yet',
   },
   playlistBubble: {
@@ -172,14 +139,6 @@ export default {
   },
   actions: {
     playAll: 'Play All',
-  },
-  playlist: {
-    collect: 'Collect',
-    collected: 'Collected',
-    featuredComments: 'Featured Comments',
-  },
-  artist: {
-    searchPrefix: 'Search artist: ',
   },
   song: {
     lyrics: 'Lyrics',
@@ -224,7 +183,6 @@ export default {
   mobile: {
     myMusic: {
       playingList: 'Now Playing List',
-      totalShort: 'Total {count}',
       clearOneClick: 'Clear All',
       clear: 'Clear',
       emptyTitle: 'No songs are playing',
@@ -239,5 +197,20 @@ export default {
   },
   commonUnits: {
     songsShort: '{count} songs',
+  },
+  artists: {
+    type: 'Type',
+    area: 'Region',
+    initial: 'Initial',
+    types: { all: 'All', male: 'Male', female: 'Female', band: 'Band' },
+    areas: { all: 'All', zh: 'Chinese', ea: 'Western', jp: 'Japanese', kr: 'Korean', other: 'Other' },
+    initials: { hot: 'Hot' },
+    albums: 'albums',
+    loadMore: 'Load More',
+  },
+  newAlbums: {
+    title: 'New Albums',
+    areas: { all: 'All', zh: 'Chinese', ea: 'Western', jp: 'Japanese', kr: 'Korean' },
+    loadMore: 'Load More',
   },
 }
