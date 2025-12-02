@@ -1,186 +1,20 @@
-<template>
-  <div class="flex-1 overflow-hidden">
-    <div class="h-full overflow-auto">
-      <PageSkeleton v-if="isPageLoading" :sections="['hero','grid']" :grid-count="24" />
-      <template v-else>
-      <!-- 页面头部 -->
-      <section class="relative mb-8 overflow-hidden">
-        <!-- 背景模糊效果 -->
-        <div class="absolute inset-0">
-          <div
-            class="h-full w-full scale-110 bg-linear-to-br from-primary-500 via-pink-500 to-indigo-600 opacity-30 blur-3xl"
-          ></div>
-        </div>
-
-        <!-- 浮动音符背景 -->
-        <div class="absolute inset-0 overflow-hidden">
-          <div class="floating-notes">
-            <div v-for="i in 8" :key="i" class="note" :style="{ animationDelay: i * 0.8 + 's' }">
-              {{ ['🎬', '🎥', '📹', '🎞️', '🎪', '🌟', '✨', '💫'][i - 1] }}
-            </div>
-          </div>
-        </div>
-
-        <div class="relative z-10 p-8">
-          <div class="text-center">
-            <h1 class="animate-fade-in-up mb-4 text-5xl font-bold text-primary">{{ t('mvList.title') }}</h1>
-            <p class="animate-fade-in-up mb-6 text-xl text-primary/80" style="animation-delay: 0.2s">
-              {{ t('mvList.subtitle') }}
-            </p>
-
-            <!-- 筛选标签 -->
-            <div
-              class="animate-fade-in-up flex flex-wrap justify-center gap-3"
-              style="animation-delay: 0.4s"
-            >
-              <button
-                v-for="category in categories"
-                :key="category.key"
-                class="glass-button px-6 py-2 text-primary transition-all duration-300"
-                :class="
-                  selectedCategoryKey === category.key
-                    ? 'bg-primary/30'
-                    : 'bg-primary/10 hover:bg-primary/20'
-                "
-                @click="selectCategory(category.key)"
-              >
-                {{ category.emoji }} {{ t('mvList.categories.' + category.key) }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- MV网格列表 -->
-      <section class="px-8 pb-8">
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <router-link
-            v-for="mv in filteredMVs"
-            :key="mv.id"
-            :to="`/mv-player/${mv.id}`"
-            class="mv-card glass-card group cursor-pointer transition-all duration-500 hover:scale-105 hover:shadow-2xl"
-          >
-            <!-- MV封面 -->
-            <div class="relative overflow-hidden rounded-t-2xl">
-              <div class="relative aspect-video">
-                <img :src="mv.cover + '?param=480y270'" :alt="t('mvList.alt.cover')" class="h-full w-full rounded-t-2xl object-cover" />
-
-                <!-- 播放按钮覆盖层 -->
-                <div
-                  class="absolute inset-0 flex items-center justify-center bg-primary/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                >
-                  <button
-                    class="glass-button flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 hover:bg-primary/30"
-                  >
-                    <span class="icon-[mdi--play] h-8 w-8 text-primary"></span>
-                  </button>
-                </div>
-
-                <!-- 时长标签 -->
-                <div
-                  class="absolute right-2 bottom-2 rounded bg-primary/60 px-2 py-1 text-sm text-primary backdrop-blur-sm"
-                >
-                  {{ formatSec(mv.duration) }}
-                </div>
-
-                <!-- 播放次数 -->
-                <div
-                  class="absolute top-2 left-2 flex items-center rounded bg-primary/60 px-2 py-1 text-xs text-primary backdrop-blur-sm"
-                >
-                  <span class="icon-[mdi--play] mr-1 h-3 w-3"></span>
-                  {{ mv.playCount }}
-                </div>
-              </div>
-            </div>
-
-            <!-- MV信息 -->
-            <div class="p-4">
-              <h3
-                class="mb-2 truncate text-lg font-semibold text-primary transition-colors group-hover:text-primary/80"
-              >
-                {{ mv.title }}
-              </h3>
-              <p class="mb-3 truncate text-sm text-primary-300">
-                {{ mv.artist }}
-              </p>
-
-              <!-- 标签和操作 -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <span class="inline-block rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
-                    {{ t('mvList.categories.' + mv.categoryKey) }}
-                  </span>
-                  <span
-                    v-if="mv.isNew"
-                    class="inline-block rounded-full bg-red-500 px-2 py-1 text-xs text-primary"
-                  >
-                    {{ t('mvList.tags.new') }}
-                  </span>
-                </div>
-
-                <div
-                  class="flex items-center space-x-2 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <button
-                    class="text-primary-300 transition-colors hover:text-primary"
-                    @click.stop="toggleLike(mv)"
-                  >
-                    <span
-                      class="h-4 w-4"
-                      :class="
-                        mv.liked ? 'icon-[mdi--heart] text-red-400' : 'icon-[mdi--heart-outline]'
-                      "
-                    ></span>
-                  </button>
-                  <button
-                    class="text-primary-300 transition-colors hover:text-primary"
-                    @click.stop="shareMV(mv)"
-                  >
-                    <span class="icon-[mdi--share] h-4 w-4"></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </router-link>
-        </div>
-
-        <!-- 加载更多 -->
-        <div class="mt-12 text-center">
-          <button
-            v-if="hasMore"
-            class="glass-button bg-linear-to-r from-primary-500 to-pink-500 px-8 py-3 font-medium text-primary transition-transform hover:scale-105"
-            @click="loadMore"
-          >
-            <span class="icon-[mdi--refresh] mr-2 h-5 w-5"></span>
-            {{ t('mvList.actions.loadMore') }}
-          </button>
-        </div>
-      </section>
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { mvAll } from '@/api'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 
-// 分类与数据状态
 const state = reactive({
-  // 分类列表（显示名通过 i18n 渲染，type 为 API 固定参数）
   categories: [
     { key: 'all', emoji: '🎬', type: undefined },
     { key: 'official', emoji: '🏛️', type: '官方版' },
     { key: 'live', emoji: '🎤', type: '现场版' },
     { key: 'netease', emoji: '🅽', type: '网易出品' },
   ],
-  // 当前选中的分类 key
   selectedCategoryKey: 'all',
-  // MV 数据列表
   mvList: [] as Array<{
     id: number
     title: string
@@ -188,23 +22,18 @@ const state = reactive({
     duration: number
     playCount: string
     cover: string
-  categoryKey: string
+    categoryKey: string
     liked: boolean
     isNew: boolean
   }>,
-  // 是否有更多可加载
   hasMore: true,
   page: 0,
   isPageLoading: true,
 })
 const { categories, selectedCategoryKey, mvList, hasMore, isPageLoading } = toRefs(state)
 
-// 筛选后的MV列表
-const filteredMVs = computed(() => {
-  return state.mvList
-})
+const filteredMVs = computed(() => state.mvList)
 
-// 选择分类
 const selectCategory = (key: string) => {
   state.selectedCategoryKey = key
   state.page = 0
@@ -212,25 +41,24 @@ const selectCategory = (key: string) => {
   fetchList(true)
 }
 
-// 播放MV
-const playMV = (mv: any) => {
-  router.push(`/mv-player/${mv.id}`)
-}
-
-// 切换喜欢状态
 const toggleLike = (mv: any) => {
   mv.liked = !mv.liked
-  console.log(`${mv.liked ? t('mvList.log.liked') : t('mvList.log.unliked')}: ${mv.title}`)
 }
 
-// 分享MV
 const shareMV = (mv: any) => {
   console.log(`${t('mvList.log.sharePrefix')}${mv.title}`)
-  // 这里可以实现分享功能
 }
 
-// 加载更多
-const formatSec = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
+const formatSec = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
+
+const formatCount = (count: number | string) => {
+  const num = typeof count === 'string' ? parseInt(count) : count
+  if (isNaN(num)) return count
+  if (num >= 100000000) return (num / 100000000).toFixed(1) + '亿'
+  if (num >= 10000) return (num / 10000).toFixed(1) + '万'
+  return num
+}
 
 const fetchList = async (reset = false) => {
   try {
@@ -267,101 +95,106 @@ onMounted(() => {
   state.isPageLoading = true
   fetchList(true)
 })
-
-const { t } = useI18n()
 </script>
 
-<style scoped>
-/* 浮动音符动画 */
-.floating-notes {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
+<template>
+  <div class="flex-1 overflow-hidden">
+    <div class="h-full overflow-auto">
+      <PageSkeleton v-if="isPageLoading" :sections="['hero', 'grid']" :grid-count="24" />
+      <template v-else>
+        <div class="px-6 py-6 lg:px-8">
+          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 class="text-primary text-2xl font-bold">{{ t('mvList.title') }}</h1>
+              <p class="text-primary/60 mt-1 text-sm">{{ t('mvList.subtitle') }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="category in categories"
+                :key="category.key"
+                class="rounded-full px-4 py-1.5 text-sm font-medium transition-all"
+                :class="
+                  selectedCategoryKey === category.key
+                    ? 'bg-pink-500 text-white'
+                    : 'bg-white/10 text-primary hover:bg-white/15'
+                "
+                @click="selectCategory(category.key)"
+              >
+                {{ category.emoji }} {{ t('mvList.categories.' + category.key) }}
+              </button>
+            </div>
+          </div>
 
-.note {
-  position: absolute;
-  font-size: 2rem;
-  color: rgba(255, 255, 255, 0.1);
-  animation: float-note 15s linear infinite;
-}
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <router-link
+              v-for="mv in filteredMVs"
+              :key="mv.id"
+              :to="`/mv-player/${mv.id}`"
+              class="group overflow-hidden rounded-xl transition-all hover:bg-white/5"
+            >
+              <div class="relative aspect-video overflow-hidden rounded-xl">
+                <LazyImage
+                  :src="mv.cover + '?param=480y270'"
+                  :alt="t('mvList.alt.cover')"
+                  imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  wrapperClass="h-full w-full"
+                />
+                <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div class="flex h-14 w-14 items-center justify-center rounded-full bg-pink-500/90 text-white shadow-lg">
+                    <span class="icon-[mdi--play] h-7 w-7"></span>
+                  </div>
+                </div>
+                <span class="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
+                  {{ formatSec(mv.duration) }}
+                </span>
+                <div class="absolute top-2 left-2 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
+                  <span class="icon-[mdi--play] h-3 w-3"></span>
+                  {{ formatCount(mv.playCount) }}
+                </div>
+              </div>
 
-.note:nth-child(1) {
-  left: 10%;
-  animation-delay: 0s;
-}
-.note:nth-child(2) {
-  left: 20%;
-  animation-delay: 2s;
-}
-.note:nth-child(3) {
-  left: 30%;
-  animation-delay: 4s;
-}
-.note:nth-child(4) {
-  left: 40%;
-  animation-delay: 6s;
-}
-.note:nth-child(5) {
-  left: 50%;
-  animation-delay: 8s;
-}
-.note:nth-child(6) {
-  left: 60%;
-  animation-delay: 10s;
-}
-.note:nth-child(7) {
-  left: 70%;
-  animation-delay: 12s;
-}
-.note:nth-child(8) {
-  left: 80%;
-  animation-delay: 14s;
-}
+              <div class="p-3">
+                <h3 class="text-primary mb-1 truncate text-sm font-medium group-hover:text-pink-400">
+                  {{ mv.title }}
+                </h3>
+                <p class="text-primary/50 truncate text-xs">{{ mv.artist }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="text-primary/40 rounded-full bg-white/5 px-2 py-0.5 text-xs">
+                    {{ t('mvList.categories.' + mv.categoryKey) }}
+                  </span>
+                  <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      class="text-primary/50 hover:text-primary p-1 transition-colors"
+                      @click.prevent.stop="toggleLike(mv)"
+                    >
+                      <span
+                        class="h-4 w-4"
+                        :class="mv.liked ? 'icon-[mdi--heart] text-red-400' : 'icon-[mdi--heart-outline]'"
+                      ></span>
+                    </button>
+                    <button
+                      class="text-primary/50 hover:text-primary p-1 transition-colors"
+                      @click.prevent.stop="shareMV(mv)"
+                    >
+                      <span class="icon-[mdi--share-variant] h-4 w-4"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </router-link>
+          </div>
 
-@keyframes float-note {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100px) rotate(360deg);
-    opacity: 0;
-  }
-}
-
-/* 淡入动画 */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.8s ease-out forwards;
-}
-
-/* MV卡片悬停效果 */
-.mv-card:hover {
-  transform: translateY(-8px) scale(1.02);
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .floating-notes .note {
-    font-size: 1.5rem;
-  }
-}
-</style>
+          <div v-if="hasMore" class="mt-8 text-center">
+            <button
+              class="text-primary inline-flex items-center gap-2 rounded-full bg-white/10 px-6 py-2.5 text-sm font-medium transition-all hover:bg-white/15"
+              @click="loadMore"
+            >
+              <span class="icon-[mdi--refresh] h-4 w-4"></span>
+              {{ t('mvList.actions.loadMore') }}
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>

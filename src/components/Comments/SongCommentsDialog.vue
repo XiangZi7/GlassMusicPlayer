@@ -58,83 +58,127 @@ const close = () => (show.value = false)
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-99999 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/60" @click="close"></div>
-    <div
-      class="glass-container relative z-10 w-[720px] max-w-[95vw] overflow-hidden rounded-3xl p-4"
-    >
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">{{ $t('comments.title') }}</h3>
-        <button
-          class="glass-button flex h-9 w-9 items-center justify-center rounded-full"
-          @click="close"
-        >
-          <span class="icon-[mdi--close] h-5 w-5 text-primary/80"></span>
-        </button>
-      </div>
-      <p class="mb-4 text-sm text-primary/70">{{ $t('comments.total', { total: state.total }) }}</p>
-      <div class="max-h-[60vh] overflow-auto">
-        <div v-if="state.loading" class="px-1">
-          <PageSkeleton :sections="['list']" :list-count="8" />
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="(c, idx) in state.comments"
-            :key="idx"
-            class="glass-card flex items-start gap-3 p-3"
+  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <Transition name="mask" appear>
+      <div v-if="show" class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close" />
+    </Transition>
+
+    <Transition name="dialog" appear>
+      <div v-if="show" class="relative z-10 w-full max-w-2xl">
+        <div class="glass-container-strong overflow-hidden">
+          <button
+            class="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
+            @click="close"
           >
-            <div class="h-10 w-10 overflow-hidden rounded-md">
-              <img
-                v-if="c.user?.avatarUrl"
-                :src="c.user?.avatarUrl + '?param=100y100'"
-                class="h-full w-full object-cover"
-                alt="avatar"
-              />
-              <div
-                v-else
-                class="flex h-full w-full items-center justify-center rounded-md bg-linear-to-br from-pink-400 to-purple-500"
-              >
-                <span class="icon-[mdi--account] h-5 w-5 text-primary"></span>
+            <span class="icon-[mdi--close] h-4 w-4 text-primary" />
+          </button>
+
+          <div class="relative p-6 pb-4">
+            <div class="mb-4 flex items-center gap-4">
+              <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25">
+                <span class="icon-[mdi--comment-text-multiple] h-6 w-6 text-white" />
               </div>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <p class="truncate text-sm text白">{{ c.user?.nickname || $t('comments.user') }}</p>
-                <span class="text-xs text-primary/60">{{
-                  c.ipLocation?.location || c.ipLocation?.ip || ''
-                }}</span>
-                <span class="text-xs text-primary/60">{{
-                  c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '')
-                }}</span>
+              <div>
+                <h2 class="text-xl font-bold text-primary">{{ $t('comments.title') }}</h2>
+                <p class="mt-0.5 text-sm text-primary/50">{{ $t('comments.total', { total: state.total }) }}</p>
               </div>
-              <p class="mt-1 text-sm text-primary/80">{{ c.content }}</p>
-              <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-2 space-y-2">
-                <div v-for="(r, ri) in c.beReplied" :key="ri" class="rounded-lg bg-white/5 p-2">
-                  <p class="truncate text-xs text白">@{{ r?.user?.nickname || $t('comments.user') }}</p>
-                  <p class="mt-1 text-xs text-primary/70">{{ r?.content }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex shrink-0 items-center gap-1 text-primary/60">
-              <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
-              <span class="text-xs">{{ c.likedCount || 0 }}</span>
             </div>
           </div>
-          <div v-if="state.comments.length === 0" class="text-center text白/70">{{ $t('comments.empty') }}</div>
+
+          <div class="max-h-[60vh] overflow-auto px-6">
+            <div v-if="state.loading" class="pb-4">
+              <PageSkeleton :sections="['list']" :list-count="8" />
+            </div>
+            <div v-else class="space-y-3 pb-4">
+              <div
+                v-for="(c, idx) in state.comments"
+                :key="idx"
+                class="glass-card flex gap-3 p-4"
+              >
+                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+                  <img
+                    v-if="c.user?.avatarUrl"
+                    :src="c.user?.avatarUrl + '?param=100y100'"
+                    class="h-full w-full object-cover"
+                    alt="avatar"
+                  />
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-400 to-purple-500"
+                  >
+                    <span class="icon-[mdi--account] h-5 w-5 text-white" />
+                  </div>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="truncate text-sm font-medium text-primary">{{ c.user?.nickname || $t('comments.user') }}</span>
+                    <span v-if="c.ipLocation?.location || c.ipLocation?.ip" class="text-xs text-primary/40">
+                      {{ c.ipLocation?.location || c.ipLocation?.ip }}
+                    </span>
+                    <span v-if="c.timeStr || c.time" class="text-xs text-primary/40">
+                      {{ c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '') }}
+                    </span>
+                  </div>
+
+                  <p class="mt-2 text-sm leading-relaxed text-primary/80">{{ c.content }}</p>
+
+                  <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-3 space-y-2">
+                    <div
+                      v-for="(r, ri) in c.beReplied"
+                      :key="ri"
+                      class="rounded-xl bg-white/5 p-3"
+                    >
+                      <span class="text-xs font-medium text-primary/60">@{{ r?.user?.nickname || $t('comments.user') }}</span>
+                      <p class="mt-1 text-xs leading-relaxed text-primary/50">{{ r?.content }}</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center gap-1.5 text-primary/40">
+                    <span class="icon-[mdi--thumb-up-outline] h-4 w-4" />
+                    <span class="text-xs">{{ c.likedCount || 0 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="state.comments.length === 0" class="py-12 text-center">
+                <span class="icon-[mdi--comment-off-outline] mx-auto mb-3 block h-12 w-12 text-primary/30" />
+                <p class="text-sm text-primary/50">{{ $t('comments.empty') }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-white/10 p-4">
+            <Pagination
+              v-model="state.page"
+              :total="state.total"
+              :page-size="state.limit"
+              :max-buttons="5"
+            />
+          </div>
         </div>
       </div>
-      <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
-        <Pagination
-          v-model="state.page"
-          :total="state.total"
-          :page-size="state.limit"
-          :max-buttons="3"
-        />
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-/* no-op */
+.dialog-enter-active,
+.dialog-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dialog-enter-from,
+.dialog-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+}
+
+.mask-enter-active,
+.mask-leave-active {
+  transition: opacity 0.3s ease;
+}
+.mask-enter-from,
+.mask-leave-to {
+  opacity: 0;
+}
 </style>

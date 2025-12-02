@@ -91,7 +91,7 @@ const romaChecked = computed({
         <div class="glass-card space-y-5 rounded-2xl p-5">
           <div class="flex items-center gap-3 border-b border-white/10 pb-4">
             <div
-              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600"
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-cyan-600"
             >
               <span class="icon-[mdi--translate] h-5 w-5 text-white" />
             </div>
@@ -108,7 +108,7 @@ const romaChecked = computed({
         <div class="glass-card space-y-5 rounded-2xl p-5">
           <div class="flex items-center gap-3 border-b border-white/10 pb-4">
             <div
-              class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600"
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-pink-500 to-rose-600"
             >
               <span class="icon-[mdi--image-filter-hdr] h-5 w-5 text-white" />
             </div>

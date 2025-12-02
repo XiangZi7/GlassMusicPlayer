@@ -453,7 +453,7 @@ onUnmounted(() => {
         class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
         :style="bgBUrl ? { backgroundImage: `url(${bgBUrl})` } : {}"
       ></div>
-      <div class="bg-overlay/30 absolute inset-0"></div>
+      <div class="bg-overlay/40 absolute inset-0"></div>
     </div>
 
     <div class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:p-6">
@@ -567,7 +567,7 @@ onUnmounted(() => {
     >
       <div class="mb-4 flex flex-col items-center lg:mb-6">
         <div
-          class="album-wrapper relative mb-4 h-56 w-56 sm:h-64 sm:w-64 md:h-72 md:w-72 lg:mb-6 lg:h-80 lg:w-80"
+          class="album-wrapper relative mb-6 h-96 w-96"
         >
           <div
             ref="albumCoverRef"
@@ -582,25 +582,25 @@ onUnmounted(() => {
               }"
             ></div>
             <div
-              class="spindle absolute top-1/2 left-1/2 h-4 w-4 -translate-1/2 rounded-full"
+              class="spindle absolute top-1/2 left-1/2 h-6 w-6 -translate-1/2 rounded-full"
             ></div>
           </div>
 
           <div
-            class="tonearm absolute -top-12 -right-16 z-10 origin-top-left transition-transform duration-500 ease-out lg:-top-14 lg:-right-18"
+            class="tonearm absolute -top-16 -right-20 z-10 origin-top-left transition-transform duration-500 ease-out"
             :class="isPlaying ? 'rotate-16' : 'rotate-[-28deg]'"
           >
-            <div class="arm-pivot relative h-10 w-10 rounded-full shadow-xl lg:h-12 lg:w-12"></div>
-            <div class="arm-shaft mt-[-2px] h-36 w-2.5 rounded-full lg:h-40 lg:w-3"></div>
+            <div class="arm-pivot relative h-14 w-14 rounded-full shadow-xl"></div>
+            <div class="arm-shaft mt-[-2px] h-44 w-3 rounded-full"></div>
             <div
-              class="counterweight -mt-3 ml-1.5 h-6 w-6 rounded-full shadow-md lg:h-7 lg:w-7"
+              class="counterweight -mt-3 ml-1.5 h-8 w-8 rounded-full shadow-md"
             ></div>
-            <div class="headshell relative mt-1 h-8 w-14 rounded-md shadow-md lg:h-10 lg:w-16">
+            <div class="headshell relative mt-1 h-12 w-20 rounded-md shadow-md">
               <div
-                class="cartridge absolute top-1/2 left-1/2 h-4 w-8 -translate-x-1/2 -translate-y-1/2 rounded-sm lg:h-5 lg:w-10"
+                class="cartridge absolute top-1/2 left-1/2 h-6 w-12 -translate-x-1/2 -translate-y-1/2 rounded-sm"
               ></div>
               <div
-                class="stylus absolute top-full left-1/2 h-4 w-[2px] -translate-x-1/2 lg:h-5"
+                class="stylus absolute top-full left-1/2 h-6 w-[2px] -translate-x-1/2"
               ></div>
             </div>
           </div>
@@ -619,7 +619,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div v-if="currentSong" class="mb-4 w-full max-w-md px-4">
+      <div v-if="currentSong" class="mb-4 w-full max-w-xl px-4">
         <div
           ref="progressBarRef"
           @click="handleProgressClick"

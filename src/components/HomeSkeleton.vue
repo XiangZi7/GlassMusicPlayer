@@ -53,7 +53,7 @@
       </div>
       <div class="grid grid-cols-4 gap-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
         <div v-for="i in 12" :key="i" class="flex flex-col items-center">
-          <div class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-[var(--glass-border)] bg-white/10">
+          <div class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-(--glass-border) bg-white/10">
             <div class="absolute inset-0 animate-shimmer"></div>
           </div>
           <div class="h-3.5 w-2/3 rounded bg-white/15"></div>

@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 const props = withDefaults(
   defineProps<{
     modelValue: number
     total: number
     pageSize: number
     maxButtons?: number
-    isCar?: boolean
+    showCard?: boolean
   }>(),
-  { maxButtons: 5, isCar: true }
+  { maxButtons: 5, showCard: true }
 )
 const emit = defineEmits<{ (e: 'update:modelValue', v: number): void }>()
 
@@ -39,50 +43,61 @@ const goPrev = () => {
 const goNext = () => {
   if (canNext.value) page.value = page.value + 1
 }
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
 </script>
 
 <template>
   <div
-    class="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2"
-    :class="[isCar ? 'glass-nav' : '']"
+    class="flex flex-wrap items-center justify-center gap-1.5 rounded-xl px-3 py-2 sm:gap-2"
+    :class="[showCard ? 'glass-nav' : '']"
   >
     <button
-      class="glass-button px-3 py-2 text-sm"
-      :class="canPrev ? 'text-primary' : 'cursor-not-allowed text-primary opacity-50'"
+      class="flex h-8 w-8 items-center justify-center rounded-lg transition-all sm:h-9 sm:w-auto sm:gap-1.5 sm:px-3"
+      :class="canPrev
+        ? 'bg-white/10 text-primary hover:bg-white/20'
+        : 'cursor-not-allowed text-primary/30'"
       :disabled="!canPrev"
       @click="goPrev"
     >
-      {{ t('components.pagination.prev') }}
+      <span class="icon-[mdi--chevron-left] h-5 w-5" />
+      <span class="hidden text-sm font-medium sm:inline">{{ t('components.pagination.prev') }}</span>
     </button>
-    <div class="flex items-center gap-2">
-      <button
-        v-for="p in pageNumbers"
-        :key="p"
-        class="page-btn glass-button px-2 py-1 text-sm"
-        :class="p === page ? 'selected' : 'text-primary'"
-        @click="page = p"
-      >
-        {{ p }}
-      </button>
+
+    <div class="flex items-center gap-1">
+      <template v-for="(p, idx) in pageNumbers" :key="p">
+        <span
+          v-if="idx === 0 && p > 1"
+          class="hidden px-1 text-primary/40 sm:inline"
+        >...</span>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-all"
+          :class="p === page
+            ? 'bg-linear-to-br from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/25'
+            : 'bg-white/5 text-primary/70 hover:bg-white/15 hover:text-primary'"
+          @click="page = p"
+        >
+          {{ p }}
+        </button>
+        <span
+          v-if="idx === pageNumbers.length - 1 && p < totalPages"
+          class="hidden px-1 text-primary/40 sm:inline"
+        >...</span>
+      </template>
     </div>
-    <span class="text-xs whitespace-nowrap text-primary sm:text-sm">
-      {{ t('components.pagination.status', { page, totalPages: totalPages, total: props.total }) }}
-    </span>
+
     <button
-      class="glass-button px-3 py-2 text-sm"
-      :class="canNext ? 'text-primary' : 'cursor-not-allowed text-primary opacity-50'"
+      class="flex h-8 w-8 items-center justify-center rounded-lg transition-all sm:h-9 sm:w-auto sm:gap-1.5 sm:px-3"
+      :class="canNext
+        ? 'bg-white/10 text-primary hover:bg-white/20'
+        : 'cursor-not-allowed text-primary/30'"
       :disabled="!canNext"
       @click="goNext"
     >
-      {{ t('components.pagination.next') }}
+      <span class="hidden text-sm font-medium sm:inline">{{ t('components.pagination.next') }}</span>
+      <span class="icon-[mdi--chevron-right] h-5 w-5" />
     </button>
+
+    <span class="ml-1 hidden text-xs text-primary/50 sm:inline">
+      {{ page }} / {{ totalPages }}
+    </span>
   </div>
 </template>
-
-<style scoped>
-.page-btn {
-  transition: all 0.2s ease;
-}
-</style>

@@ -975,7 +975,6 @@ const playModeIcon = computed(() => {
   gap: 0.25rem;
   padding: 0.5rem;
   border-radius: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
   font-size: 0.625rem;
   transition: all 0.2s ease;
 }

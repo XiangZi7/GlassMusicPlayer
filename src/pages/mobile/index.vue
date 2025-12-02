@@ -241,7 +241,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                   class="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent"
                 ></div>
                 <div
-                  class="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
+                  class="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-overlay/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] h-2.5 w-2.5"></span>
                   {{ formatPlayCount(pl.playCount) }}
@@ -332,7 +332,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                   class="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent"
                 ></div>
                 <div
-                  class="absolute top-2 right-2 flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
+                  class="absolute top-2 right-2 flex items-center gap-0.5 rounded-full bg-overlay/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] h-2.5 w-2.5"></span>
                   {{ formatPlayCount(mv.playCount) }}
@@ -418,8 +418,12 @@ html.dark .playlist-cover {
 }
 
 .artist-avatar {
-  ring: 2px solid;
-  ring-color: var(--glass-border);
+  box-shadow: 0 0 0 2px var(--glass-border);
+}
+
+:root.dark .artist-avatar,
+html.dark .artist-avatar {
+  box-shadow: 0 0 0 2px var(--glass-border);
 }
 
 .artist-name {

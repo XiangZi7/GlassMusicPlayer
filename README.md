@@ -18,15 +18,15 @@
 
 </div>
 
-![预览图](images/image.png)
+![预览图](images/home.png)
 
 ## ✨ 特性
 
 - 🎨 **毛玻璃设计** - 现代化 UI 设计，精致的毛玻璃视觉效果
 - 🌓 **双主题支持** - 浅色/深色主题，支持系统主题跟随
-- 📱 **响应式布局** - 完美适配 PC 与 Mobile 端
+- 📱  **响应式布局** - 完美适配 PC 与 Mobile 端
 - 🌍 **国际化** - 支持中文 / English / 日本語
-- ⚡ **高性能** - 基于 Vue 3.5 + Vite 7 构建，极致性能体验
+- ⚡  **高性能** - 基于 Vue 3.5 + Vite 7 构建，极致性能体验
 
 ## 🔨 功能特性
 
@@ -179,58 +179,73 @@ pnpm dev
 
 ### 桌面端
 
-![项目截图 0](images/image.png)
-
-![项目截图 1](images/image-1.png)
-
-![项目截图 2](images/image-2.png)
-
-![项目截图 17](images/image-18.png)
-
-![项目截图 17](images/image-19.png)
-
-![项目截图 17](images/image-20.png)
-
-![项目截图 17](images/image-21.png)
-
-![项目截图 3](images/image-3.png)
-
-![项目截图 4](images/image-4.png)
-
-![项目截图 5](images/image-5.png)
-
-![项目截图 6](images/image-6.png)
-
-![项目截图 7](images/image-7.png)
-
-![项目截图 8](images/image-8.png)
-
-![项目截图 9](images/image-9.png)
-
-![项目截图 10](images/image-10.png)
-
-![项目截图 11](images/image-11.png)
-
-![项目截图 12](images/image-12.png)
-
-![项目截图 13](images/image-13.png)
-
-![项目截图 14](images/image-14.png)
-
-![项目截图 15](images/image-15.png)
-
-![项目截图 16](images/image-16.png)
-
-![项目截图 17](images/image-17.png)
+<table>
+  <tr>
+    <td><img src="images/image-77.png" alt="桌面端截图 77" width="100%"></td>
+    <td><img src="images/image-78.png" alt="桌面端截图 78" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-79.png" alt="桌面端截图 79" width="100%"></td>
+    <td><img src="images/image.png" alt="桌面端截图 0" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-1.png" alt="桌面端截图 1" width="100%"></td>
+    <td><img src="images/image-2.png" alt="桌面端截图 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-20.png" alt="桌面端截图 20" width="100%"></td>
+    <td><img src="images/image-21.png" alt="桌面端截图 21" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-3.png" alt="桌面端截图 3" width="100%"></td>
+    <td><img src="images/image-4.png" alt="桌面端截图 4" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-5.png" alt="桌面端截图 5" width="100%"></td>
+    <td><img src="images/image-6.png" alt="桌面端截图 6" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-7.png" alt="桌面端截图 7" width="100%"></td>
+    <td><img src="images/image-8.png" alt="桌面端截图 8" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-9.png" alt="桌面端截图 9" width="100%"></td>
+    <td><img src="images/image-10.png" alt="桌面端截图 10" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-11.png" alt="桌面端截图 11" width="100%"></td>
+    <td><img src="images/image-12.png" alt="桌面端截图 12" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-13.png" alt="桌面端截图 13" width="100%"></td>
+    <td><img src="images/image-14.png" alt="桌面端截图 14" width="100%"></td>
+  </tr>
+</table>
 
 ### 移动端
 
-![移动端截图 1](images/mobile/image-1.png)
-![移动端截图 2](images/mobile/image-2.png)
-![移动端截图 3](images/mobile/image-3.png)
-![移动端截图 4](images/mobile/image-4.png)
-![移动端截图 5](images/mobile/image-5.png)
-![移动端截图 6](images/mobile/image-6.png)
+<table>
+  <tr>
+    <td><img src="images/mobile/image-1.jpg" alt="移动端截图 1" width="100%"></td>
+    <td><img src="images/mobile/image-2.jpg" alt="移动端截图 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-11.jpg" alt="移动端截图 11" width="100%"></td>
+    <td><img src="images/mobile/image-4.jpg" alt="移动端截图 4" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-5.jpg" alt="移动端截图 5" width="100%"></td>
+    <td><img src="images/mobile/image-6.jpg" alt="移动端截图 6" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-7.jpg" alt="移动端截图 7" width="100%"></td>
+    <td><img src="images/mobile/image-8.jpg" alt="移动端截图 8" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-9.jpg" alt="移动端截图 9" width="100%"></td>
+    <td><img src="images/mobile/image-10.jpg" alt="移动端截图 10" width="100%"></td>
+  </tr>
+</table>
 
 ## 🧩 API 接口
 

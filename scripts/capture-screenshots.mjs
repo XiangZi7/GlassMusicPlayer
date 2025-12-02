@@ -88,11 +88,24 @@ async function capture() {
     }
   })
 
-  for (const item of routes) {
+  const themes = ['light', 'dark']
+  for (let i = 0; i < routes.length; i++) {
+    const item = routes[i]
+    const theme = themes[i % 2]
     const url = `${baseUrl}${item.route}`
-    console.log(`Capturing: ${url}`)
+    console.log(`Capturing: ${url} (${theme} theme)`)
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 })
+      await page.evaluate((t) => {
+        const globalState = JSON.parse(localStorage.getItem('global') || '{}')
+        globalState.theme = t
+        localStorage.setItem('global', JSON.stringify(globalState))
+        if (t === 'dark') {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      }, theme)
       await waitForReady(page)
 
       const outPath = path.join(outDir, item.file)

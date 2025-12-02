@@ -36,7 +36,7 @@ const state = reactive({
   swiper: null as SwiperClass | null,
 })
 
-const { banners, recommendPlaylists, hotSongs, artists, mvs, isLoading, swiper } = toRefs(state)
+const { banners, recommendPlaylists, hotSongs, artists, mvs, isLoading } = toRefs(state)
 
 const gradients = [
   'from-rose-500 to-pink-600',
@@ -225,7 +225,7 @@ onMounted(() => {
                   img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
                 />
                 <div
-                  class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
+                  class="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent"
                 />
                 <div
                   class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
@@ -285,7 +285,7 @@ onMounted(() => {
               class="group flex flex-col items-center"
             >
               <div
-                class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-[var(--glass-border)] shadow-lg transition-all duration-300 group-hover:border-pink-500 group-hover:shadow-pink-500/20"
+                class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-(--glass-border) shadow-lg transition-all duration-300 group-hover:border-pink-500 group-hover:shadow-pink-500/20"
               >
                 <LazyImage
                   :src="artist.picUrl + '?param=150y150'"
@@ -333,7 +333,7 @@ onMounted(() => {
                 v-for="(song, idx) in hotSongs"
                 :key="song.id"
                 :to="`/song/${song.id}`"
-                class="group hover:bg-hover-glass flex items-center gap-4 border-b border-[var(--glass-border)] p-4 transition-all last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                class="group hover:bg-hover-glass flex items-center gap-4 border-b border-(--glass-border) p-4 transition-all last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
               >
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
@@ -401,7 +401,7 @@ onMounted(() => {
                   img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
                 />
                 <div
-                  class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+                  class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"
                 />
                 <div
                   class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
