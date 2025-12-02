@@ -287,7 +287,7 @@ pnpm dev
 <tr>
 <td align="center">
 <strong>QQ 交流群</strong><br/><br/>
-<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2ef2a97c45df4a6fa5c78b34a28a42fc~tplv-k3u1fbpfcp-watermark.image#?w=238&h=250&s=10821&e=png&a=1&b=f8f8f8" alt="QQ群" width="150" />
+<img src="![qrcode_1764657467074](https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329)" alt="QQ群" width="150" />
 </td>
 <td align="center">
 <strong>支付宝</strong><br/><br/>
