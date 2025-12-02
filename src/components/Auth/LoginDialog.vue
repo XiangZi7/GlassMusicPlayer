@@ -113,8 +113,6 @@ const fetchLoginStatus = async () => {
   }
 }
 
-onMounted(() => {})
-
 onUnmounted(() => {
   if (qrTimer) clearInterval(qrTimer)
 })

@@ -79,7 +79,7 @@ watch(
             :alt="mv.title"
             img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
           <div class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
             <span class="icon-[mdi--play] h-3 w-3" />
             {{ formatCount(mv.playCount) }}

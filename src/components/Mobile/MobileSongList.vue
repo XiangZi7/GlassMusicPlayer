@@ -11,7 +11,7 @@ interface Props {
   showIndex?: boolean
   context?: 'queue' | 'generic'
 }
-const { playByIndex, queueNext, removeSong, addSong, playlist } = useAudio()
+const { playByIndex, addSong, playlist } = useAudio()
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'compact',
@@ -76,7 +76,7 @@ const handleClick = (s: Song, i: number) => {
           class="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <span
-            class="h-6 w-6 text-primary"
+            class="text-primary h-6 w-6"
             :class="isPlaying ? 'icon-[mdi--pause] animate-pulse' : 'icon-[mdi--play]'"
           />
         </div>
