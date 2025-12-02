@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useSettingsStore } from '@/stores/modules/settings'
+import { useI18n } from 'vue-i18n'
 
 // 读取与更新 Store
 const settings = useSettingsStore()
+const { t } = useI18n()
 
 const state = reactive({
   // 颜色1（HEX）
@@ -89,12 +91,12 @@ const previewStyle = computed(() => {
 
 <template>
   <div class="glass-card p-4">
-    <h3 class="mb-4 text-lg font-semibold text-primary">Aurora 设置</h3>
+    <h3 class="mb-4 text-lg font-semibold text-primary">{{ t('components.background.aurora.title') }}</h3>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div class="space-y-6">
         <div>
-          <label class="mb-2 block text-sm text-primary/80">颜色（前三个生效）</label>
+          <label class="mb-2 block text-sm text-primary/80">{{ t('components.background.common.colors3') }}</label>
           <div class="grid grid-cols-3 gap-3">
             <div class="space-y-2">
               <input v-model="color1" type="color" class="h-9 w-full rounded" />
@@ -112,20 +114,20 @@ const previewStyle = computed(() => {
         </div>
 
         <div>
-          <label class="mb-2 block text-sm text-primary/80">颜色位置 (0-1)</label>
+          <label class="mb-2 block text-sm text-primary/80">{{ t('components.background.common.positions') }}</label>
           <div class="space-y-3">
             <div class="flex items-center gap-3">
-              <span class="w-14 text-xs text-primary/70">位置1</span>
+              <span class="w-14 text-xs text-primary/70">{{ t('components.background.common.position1') }}</span>
               <input v-model.number="pos1" type="range" min="0" max="1" step="0.01" class="flex-1" />
               <input v-model.number="pos1" type="number" min="0" max="1" step="0.01" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-14 text-xs text-primary/70">位置2</span>
+              <span class="w-14 text-xs text-primary/70">{{ t('components.background.common.position2') }}</span>
               <input v-model.number="pos2" type="range" min="0" max="1" step="0.01" class="flex-1" />
               <input v-model.number="pos2" type="number" min="0" max="1" step="0.01" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-14 text-xs text-primary/70">位置3</span>
+              <span class="w-14 text-xs text-primary/70">{{ t('components.background.common.position3') }}</span>
               <input v-model.number="pos3" type="range" min="0" max="1" step="0.01" class="flex-1" />
               <input v-model.number="pos3" type="number" min="0" max="1" step="0.01" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
@@ -133,25 +135,25 @@ const previewStyle = computed(() => {
         </div>
 
         <div>
-          <label class="mb-2 block text-sm text-primary/80">参数</label>
+          <label class="mb-2 block text-sm text-primary/80">{{ t('components.background.common.params') }}</label>
           <div class="space-y-3">
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-primary/70">幅度</span>
+              <span class="w-20 text-xs text-primary/70">{{ t('components.background.aurora.amplitude') }}</span>
               <input v-model.number="amplitude" type="range" min="0" max="3" step="0.1" class="flex-1" />
               <input v-model.number="amplitude" type="number" min="0" max="3" step="0.1" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-primary/70">混合</span>
+              <span class="w-20 text-xs text-primary/70">{{ t('components.background.aurora.blend') }}</span>
               <input v-model.number="blend" type="range" min="0" max="1" step="0.05" class="flex-1" />
               <input v-model.number="blend" type="number" min="0" max="1" step="0.05" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-primary/70">速度</span>
+              <span class="w-20 text-xs text-primary/70">{{ t('components.background.aurora.speed') }}</span>
               <input v-model.number="speedAurora" type="range" min="0.1" max="3" step="0.1" class="flex-1" />
               <input v-model.number="speedAurora" type="number" min="0.1" max="3" step="0.1" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-primary/70">强度</span>
+              <span class="w-20 text-xs text-primary/70">{{ t('components.background.aurora.intensity') }}</span>
               <input v-model.number="intensity" type="range" min="0" max="2" step="0.1" class="flex-1" />
               <input v-model.number="intensity" type="number" min="0" max="2" step="0.1" class="w-20 rounded bg-white/10 p-2 text-primary" />
             </div>
@@ -159,13 +161,13 @@ const previewStyle = computed(() => {
         </div>
 
         <div class="flex items-center justify-between">
-          <p class="text-xs text-primary/60">支持 3 个颜色与位置，实时预览见右侧。</p>
-          <button class="rounded bg-white/10 px-3 py-2 text-primary hover:bg-white/20" @click="reset">重置默认</button>
+          <p class="text-xs text-primary/60">{{ t('components.background.aurora.tip') }}</p>
+          <button class="rounded bg-white/10 px-3 py-2 text-primary hover:bg-white/20" @click="reset">{{ t('components.background.common.reset') }}</button>
         </div>
       </div>
 
       <div>
-        <label class="mb-2 block text-sm text-primary/80">预览</label>
+        <label class="mb-2 block text-sm text-primary/80">{{ t('components.background.common.preview') }}</label>
         <div class="relative overflow-hidden rounded-lg border border-white/10 bg-black/20">
           <div class="aspect-video w-full" :style="previewStyle"></div>
           <div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-black/30 px-3 py-2 text-xs text-primary/80">
