@@ -287,7 +287,7 @@ pnpm dev
 <tr>
 <td align="center">
 <strong>QQ 交流群</strong><br/><br/>
-<img src="![qrcode_1764657467074](https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329)" alt="QQ群" width="150" />
+<img src="https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329" alt="QQ群" width="150" />
 </td>
 <td align="center">
 <strong>支付宝</strong><br/><br/>
