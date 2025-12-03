@@ -55,8 +55,8 @@ const formatSec = (seconds: number) =>
 const formatCount = (count: number | string) => {
   const num = typeof count === 'string' ? parseInt(count) : count
   if (isNaN(num)) return count
-  if (num >= 100000000) return (num / 100000000).toFixed(1) + '亿'
-  if (num >= 10000) return (num / 10000).toFixed(1) + '万'
+  if (num >= 100000000) return (num / 100000000).toFixed(1) + t('mvList.units.billion')
+  if (num >= 10000) return (num / 10000).toFixed(1) + t('mvList.units.tenThousand')
   return num
 }
 
@@ -102,94 +102,122 @@ onMounted(() => {
     <div class="h-full overflow-auto">
       <PageSkeleton v-if="isPageLoading" :sections="['hero', 'grid']" :grid-count="24" />
       <template v-else>
-        <div class="px-6 py-6 lg:px-8">
-          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 class="text-primary text-2xl font-bold">{{ t('mvList.title') }}</h1>
-              <p class="text-primary/60 mt-1 text-sm">{{ t('mvList.subtitle') }}</p>
+        <div class="px-4 py-8">
+          <header class="mb-8">
+            <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 class="text-primary text-3xl font-bold tracking-tight">
+                  {{ t('mvList.title') }}
+                </h1>
+                <p class="text-primary/60 mt-2 text-base">{{ t('mvList.subtitle') }}</p>
+              </div>
+              <nav class="flex flex-wrap gap-2" role="tablist">
+                <button
+                  v-for="category in categories"
+                  :key="category.key"
+                  role="tab"
+                  :aria-selected="selectedCategoryKey === category.key"
+                  class="glass-button px-5 py-2 text-sm font-medium transition-all"
+                  :class="
+                    selectedCategoryKey === category.key
+                      ? 'border-pink-500/50! bg-pink-500/90! text-white!'
+                      : 'text-primary/80 hover:text-primary'
+                  "
+                  @click="selectCategory(category.key)"
+                >
+                  <span class="mr-1.5">{{ category.emoji }}</span>
+                  {{ t('mvList.categories.' + category.key) }}
+                </button>
+              </nav>
             </div>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="category in categories"
-                :key="category.key"
-                class="rounded-full px-4 py-1.5 text-sm font-medium transition-all"
-                :class="
-                  selectedCategoryKey === category.key
-                    ? 'bg-pink-500 text-white'
-                    : 'bg-white/10 text-primary hover:bg-white/15'
-                "
-                @click="selectCategory(category.key)"
-              >
-                {{ category.emoji }} {{ t('mvList.categories.' + category.key) }}
-              </button>
-            </div>
-          </div>
+          </header>
 
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <section class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <router-link
               v-for="mv in filteredMVs"
               :key="mv.id"
               :to="`/mv-player/${mv.id}`"
-              class="group overflow-hidden rounded-xl transition-all hover:bg-white/5"
+              class="glass-card group block overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-              <div class="relative aspect-video overflow-hidden rounded-xl">
+              <div class="relative aspect-video overflow-hidden">
                 <LazyImage
                   :src="mv.cover + '?param=480y270'"
                   :alt="t('mvList.alt.cover')"
-                  imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   wrapperClass="h-full w-full"
                 />
-                <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                  <div class="flex h-14 w-14 items-center justify-center rounded-full bg-pink-500/90 text-white shadow-lg">
-                    <span class="icon-[mdi--play] h-7 w-7"></span>
+                <div
+                  class="pointer-events-none absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"
+                />
+                <div
+                  class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                >
+                  <div
+                    class="flex h-14 w-14 items-center justify-center rounded-full bg-pink-500/90 text-white shadow-2xl backdrop-blur-sm"
+                  >
+                    <span class="icon-[mdi--play] h-8 w-8"></span>
                   </div>
                 </div>
-                <span class="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
+                <span
+                  class="absolute right-3 bottom-3 rounded-lg bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm"
+                >
                   {{ formatSec(mv.duration) }}
                 </span>
-                <div class="absolute top-2 left-2 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
-                  <span class="icon-[mdi--play] h-3 w-3"></span>
+                <div
+                  class="absolute top-3 left-3 flex items-center gap-1.5 rounded-lg bg-black/60 px-2 py-1 text-xs text-white/90 backdrop-blur-sm"
+                >
+                  <span class="icon-[mdi--play-circle-outline] h-3.5 w-3.5"></span>
                   {{ formatCount(mv.playCount) }}
                 </div>
               </div>
 
-              <div class="p-3">
-                <h3 class="text-primary mb-1 truncate text-sm font-medium group-hover:text-pink-400">
+              <div class="p-4">
+                <h3
+                  class="text-primary mb-2 truncate text-base font-semibold transition-colors group-hover:text-pink-400"
+                >
                   {{ mv.title }}
                 </h3>
-                <p class="text-primary/50 truncate text-xs">{{ mv.artist }}</p>
-                <div class="mt-2 flex items-center justify-between">
-                  <span class="text-primary/40 rounded-full bg-white/5 px-2 py-0.5 text-xs">
+                <p class="text-primary/50 mb-3 truncate text-sm">{{ mv.artist }}</p>
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-primary/40 rounded-full bg-white/5 px-3 py-1 text-xs font-medium"
+                  >
                     {{ t('mvList.categories.' + mv.categoryKey) }}
                   </span>
-                  <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div
+                    class="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  >
                     <button
-                      class="text-primary/50 hover:text-primary p-1 transition-colors"
+                      class="text-primary/50 rounded-full p-1.5 transition-colors hover:bg-white/10 hover:text-pink-400"
+                      :title="t('mvList.actions.like')"
                       @click.prevent.stop="toggleLike(mv)"
                     >
                       <span
-                        class="h-4 w-4"
-                        :class="mv.liked ? 'icon-[mdi--heart] text-red-400' : 'icon-[mdi--heart-outline]'"
+                        class="h-5 w-5"
+                        :class="
+                          mv.liked ? 'icon-[mdi--heart] text-pink-400' : 'icon-[mdi--heart-outline]'
+                        "
                       ></span>
                     </button>
                     <button
-                      class="text-primary/50 hover:text-primary p-1 transition-colors"
+                      class="text-primary/50 hover:text-primary rounded-full p-1.5 transition-colors hover:bg-white/10"
+                      :title="t('mvList.actions.share')"
                       @click.prevent.stop="shareMV(mv)"
                     >
-                      <span class="icon-[mdi--share-variant] h-4 w-4"></span>
+                      <span class="icon-[mdi--share-variant-outline] h-5 w-5"></span>
                     </button>
                   </div>
                 </div>
               </div>
             </router-link>
-          </div>
+          </section>
 
-          <div v-if="hasMore" class="mt-8 text-center">
+          <div v-if="hasMore" class="mt-12 flex justify-center">
             <button
-              class="text-primary inline-flex items-center gap-2 rounded-full bg-white/10 px-6 py-2.5 text-sm font-medium transition-all hover:bg-white/15"
+              class="glass-button text-primary inline-flex items-center gap-2 px-8 py-3 text-sm font-medium transition-all hover:bg-pink-500/20 hover:text-pink-400"
               @click="loadMore"
             >
-              <span class="icon-[mdi--refresh] h-4 w-4"></span>
+              <span class="icon-[mdi--refresh] h-5 w-5"></span>
               {{ t('mvList.actions.loadMore') }}
             </button>
           </div>

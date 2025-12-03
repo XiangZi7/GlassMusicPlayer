@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import Artplayer from '@/components/Artplayer.vue'
 import { mvDetail, mvUrl, simiMv, commentNew } from '@/api'
@@ -7,14 +8,16 @@ import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+
 const formatSec = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
 
 const formatCount = (count: number | string) => {
   const num = typeof count === 'string' ? parseInt(count) : count
   if (isNaN(num)) return count
-  if (num >= 100000000) return (num / 100000000).toFixed(1) + '亿'
-  if (num >= 10000) return (num / 10000).toFixed(1) + '万'
+  if (num >= 100000000) return (num / 100000000).toFixed(1) + t('mvPlayer.units.billion')
+  if (num >= 10000) return (num / 10000).toFixed(1) + t('mvPlayer.units.tenThousand')
   return num
 }
 
@@ -84,7 +87,7 @@ const loadComments = async (id: number) => {
     const res: any = await commentNew({ id, type: 1, sortType: 1, pageNo: 1, pageSize: 20 })
     const list: any[] = res?.data?.comments || res?.comments || []
     state.comments = list.map(c => ({
-      username: c?.user?.nickname || '用户',
+      username: c?.user?.nickname || t('mvPlayer.comments.user'),
       avatarUrl: c?.user?.avatarUrl || '',
       time: c?.time ? new Date(c.time).toLocaleString() : '',
       content: c?.content || '',
@@ -127,11 +130,11 @@ watch(
     <div class="h-full overflow-auto">
       <PageSkeleton v-if="isPageLoading" :sections="['player']" />
       <template v-else>
-        <div class="px-6 py-6">
-          <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="px-4">
+          <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div class="lg:col-span-2">
-              <div class="overflow-hidden rounded-2xl bg-black">
-                <div class="aspect-video w-full">
+              <div class="glass-card overflow-hidden">
+                <div class="aspect-video w-full bg-black">
                   <Artplayer
                     v-if="currentMV.url"
                     :src="currentMV.url"
@@ -142,45 +145,45 @@ watch(
                     class="aspect-video h-full!"
                   />
                   <div v-else class="flex h-full w-full items-center justify-center bg-white/5">
-                    <span class="icon-[mdi--loading] text-primary h-8 w-8 animate-spin"></span>
+                    <span class="icon-[mdi--loading] text-primary h-10 w-10 animate-spin"></span>
                   </div>
                 </div>
               </div>
 
-              <div class="mt-4">
-                <h1 class="text-primary mb-2 text-xl font-bold lg:text-2xl">
+              <div class="mt-6">
+                <h1 class="text-primary mb-3 text-2xl font-bold tracking-tight lg:text-3xl">
                   {{ currentMV.title }}
                 </h1>
 
                 <div class="mb-4 flex flex-wrap items-center gap-4">
                   <button
-                    class="text-primary/70 hover:text-primary flex items-center gap-1.5 text-sm transition-colors"
+                    class="text-primary/70 flex items-center gap-2 text-sm font-medium transition-colors hover:text-pink-400"
                     @click="router.push(`/artist/${currentMV.artistId}`)"
                   >
-                    <span class="icon-[mdi--account-music] h-4 w-4"></span>
+                    <span class="icon-[mdi--account-music] h-5 w-5"></span>
                     {{ currentMV.artist }}
                   </button>
                   <span class="text-primary/40 text-sm">{{ currentMV.publishDate }}</span>
                 </div>
 
-                <div class="text-primary/60 mb-4 flex flex-wrap items-center gap-4 text-sm">
-                  <span class="flex items-center gap-1">
-                    <span class="icon-[mdi--play] h-4 w-4"></span>
-                    {{ formatCount(currentMV.playCount) }} 次播放
+                <div class="text-primary/60 mb-6 flex flex-wrap items-center gap-6 text-sm">
+                  <span class="flex items-center gap-2">
+                    <span class="icon-[mdi--play-circle-outline] h-5 w-5"></span>
+                    {{ formatCount(currentMV.playCount) }} {{ t('mvPlayer.stats.plays') }}
                   </span>
-                  <span class="flex items-center gap-1">
-                    <span class="icon-[mdi--thumb-up] h-4 w-4"></span>
-                    {{ formatCount(currentMV.likes) }} 赞
+                  <span class="flex items-center gap-2">
+                    <span class="icon-[mdi--thumb-up-outline] h-5 w-5"></span>
+                    {{ formatCount(currentMV.likes) }} {{ t('mvPlayer.stats.likes') }}
                   </span>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-3">
                   <button
-                    class="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-all"
+                    class="glass-button flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all"
                     :class="
                       state.isLiked
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'text-primary bg-white/10 hover:bg-white/15'
+                        ? 'border-pink-500/30! bg-pink-500/20! text-pink-400!'
+                        : 'text-primary hover:text-pink-400'
                     "
                     @click="toggleLike"
                   >
@@ -188,122 +191,127 @@ watch(
                       :class="
                         state.isLiked ? 'icon-[mdi--thumb-up]' : 'icon-[mdi--thumb-up-outline]'
                       "
-                      class="h-4 w-4"
+                      class="h-5 w-5"
                     ></span>
-                    {{ state.isLiked ? '已赞' : '点赞' }}
+                    {{ state.isLiked ? t('mvPlayer.actions.liked') : t('mvPlayer.actions.like') }}
                   </button>
                   <button
-                    class="text-primary flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm transition-all hover:bg-white/15"
+                    class="glass-button text-primary flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all hover:text-pink-400"
                     @click="shareMV"
                   >
-                    <span class="icon-[mdi--share-variant] h-4 w-4"></span>
-                    分���
+                    <span class="icon-[mdi--share-variant-outline] h-5 w-5"></span>
+                    {{ t('mvPlayer.actions.share') }}
                   </button>
                 </div>
 
-                <div v-if="currentMV.description" class="mt-4 rounded-xl bg-white/5 p-4">
+                <div v-if="currentMV.description" class="glass-card mt-6 p-5">
                   <p class="text-primary/70 text-sm leading-relaxed">{{ currentMV.description }}</p>
                 </div>
               </div>
 
-              <div class="mt-6">
-                <h2 class="text-primary mb-4 font-semibold">
-                  评论 {{ comments.length ? `(${comments.length})` : '' }}
+              <section class="mt-8">
+                <h2 class="text-primary mb-5 text-lg font-semibold">
+                  {{ t('mvPlayer.comments.title') }}
+                  <span v-if="comments.length" class="text-primary/50 ml-2 text-base font-normal">
+                    ({{ comments.length }})
+                  </span>
                 </h2>
 
-                <div v-if="comments.length" class="space-y-1">
+                <div v-if="comments.length" class="space-y-2">
                   <div
                     v-for="(c, i) in comments"
                     :key="i"
-                    class="flex gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                    class="glass-card flex gap-4 p-4 transition-colors hover:bg-white/5"
                   >
                     <img
                       v-if="c.avatarUrl"
                       :src="c.avatarUrl + '?param=80y80'"
-                      class="h-9 w-9 shrink-0 rounded-full"
+                      class="h-10 w-10 shrink-0 rounded-full object-cover"
                     />
                     <div
                       v-else
-                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-500 text-xs font-medium text-white"
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-500 text-sm font-medium text-white"
                     >
                       {{ c.username.charAt(0) }}
                     </div>
                     <div class="min-w-0 flex-1">
-                      <div class="mb-1 flex items-center gap-2">
+                      <div class="mb-2 flex items-center gap-3">
                         <span class="text-primary text-sm font-medium">{{ c.username }}</span>
                         <span class="text-primary/40 text-xs">{{ c.time }}</span>
                       </div>
                       <p class="text-primary/80 text-sm leading-relaxed">{{ c.content }}</p>
-                      <div class="mt-2 flex items-center gap-3">
+                      <div class="mt-3 flex items-center gap-4">
                         <button
-                          class="text-primary/40 hover:text-primary flex items-center gap-1 text-xs transition-colors"
+                          class="text-primary/40 flex items-center gap-1.5 text-xs transition-colors hover:text-pink-400"
                         >
-                          <span class="icon-[mdi--thumb-up-outline] h-3.5 w-3.5"></span>
+                          <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
                           {{ c.likes || '' }}
                         </button>
                         <button
-                          class="text-primary/40 hover:text-primary flex items-center gap-1 text-xs transition-colors"
+                          class="text-primary/40 hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
                         >
-                          <span class="icon-[mdi--reply] h-3.5 w-3.5"></span>
-                          回复
+                          <span class="icon-[mdi--reply] h-4 w-4"></span>
+                          {{ t('mvPlayer.comments.reply') }}
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div v-else class="flex flex-col items-center justify-center py-12">
+                <div v-else class="glass-card flex flex-col items-center justify-center py-16">
                   <span
-                    class="icon-[mdi--comment-off-outline] text-primary/20 mb-2 h-10 w-10"
+                    class="icon-[mdi--comment-off-outline] text-primary/20 mb-3 h-12 w-12"
                   ></span>
-                  <p class="text-primary/40 text-sm">暂无评论</p>
+                  <p class="text-primary/40 text-sm">{{ t('mvPlayer.comments.empty') }}</p>
                 </div>
-              </div>
+              </section>
             </div>
 
-            <div class="lg:col-span-1">
-              <div class="sticky top-4">
-                <h2 class="text-primary mb-4 font-semibold">相关推荐</h2>
-                <div class="space-y-2">
+            <aside class="lg:col-span-1">
+              <div class="sticky top-6">
+                <h2 class="text-primary mb-5 text-lg font-semibold">
+                  {{ t('mvPlayer.related.title') }}
+                </h2>
+                <div class="space-y-3">
                   <div
                     v-for="mv in relatedMVs"
                     :key="mv.id"
-                    class="group flex cursor-pointer gap-3 rounded-xl p-2 transition-colors hover:bg-white/10"
+                    class="glass-card group flex cursor-pointer gap-4 p-3 transition-all hover:-translate-y-0.5 hover:bg-white/10"
                     @click="playRelatedMV(mv)"
                   >
-                    <div class="relative shrink-0 overflow-hidden rounded-lg">
+                    <div class="relative shrink-0 overflow-hidden rounded-xl">
                       <LazyImage
                         :src="mv.cover + '?param=160y90'"
                         :alt="mv.title"
                         imgClass="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        wrapperClass="h-16 w-28"
+                        wrapperClass="h-18 w-32"
                       />
                       <div
                         class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        <span class="icon-[mdi--play] h-6 w-6 text-white"></span>
+                        <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
                       </div>
                       <span
-                        class="absolute right-1 bottom-1 rounded bg-black/70 px-1 py-0.5 text-xs text-white"
+                        class="absolute right-1.5 bottom-1.5 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm"
                       >
                         {{ formatSec(mv.duration) }}
                       </span>
                     </div>
-                    <div class="min-w-0 flex-1 py-0.5">
+                    <div class="min-w-0 flex-1 py-1">
                       <h3
-                        class="text-primary mb-1 line-clamp-2 text-sm leading-tight font-medium group-hover:text-pink-400"
+                        class="text-primary mb-1.5 line-clamp-2 text-sm leading-tight font-medium transition-colors group-hover:text-pink-400"
                       >
                         {{ mv.title }}
                       </h3>
-                      <p class="text-primary/50 truncate text-xs">{{ mv.artist }}</p>
-                      <p class="text-primary/40 mt-1 text-xs">
-                        {{ formatCount(mv.playCount) }} 次播放
+                      <p class="text-primary/50 mb-1 truncate text-xs">{{ mv.artist }}</p>
+                      <p class="text-primary/40 text-xs">
+                        {{ formatCount(mv.playCount) }} {{ t('mvPlayer.stats.plays') }}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
         </div>
       </template>

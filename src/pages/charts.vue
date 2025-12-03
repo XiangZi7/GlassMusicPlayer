@@ -3,6 +3,7 @@ import SongList from '@/components/SongList.vue'
 import { topSong, toplist, playlistTrackAll } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import { useI18n } from 'vue-i18n'
+import LazyImage from '@/components/Ui/LazyImage.vue'
 
 const { t } = useI18n()
 const { setPlaylist, play } = useAudio()
@@ -37,7 +38,7 @@ const loadNewSongs = async () => {
       id: it?.id,
       name: it?.name,
       artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
-      artistId: Array.isArray(it?.artists) && it.artists[0]?.id ? it.artists[0].id : 0,
+      artists: Array.isArray(it?.artists) ? it.artists.map((a: any) => ({ id: a.id, name: a.name })) : [],
       album: it?.album?.name || '',
       albumId: it?.album?.id,
       duration: it?.duration || 0,
@@ -80,7 +81,7 @@ const selectList = async (item: any) => {
       id: it?.id,
       name: it?.name,
       artist: Array.isArray(it?.ar) ? it.ar.map((a: any) => a.name).join(' / ') : '',
-      artistId: Array.isArray(it?.ar) && it.ar[0]?.id ? it.ar[0].id : 0,
+      artists: Array.isArray(it?.ar) ? it.ar.map((a: any) => ({ id: a.id, name: a.name })) : [],
       album: it?.al?.name || '',
       albumId: it?.al?.id,
       duration: it?.dt || 0,
@@ -122,106 +123,120 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-1 overflow-hidden">
-    <div class="glass-card mx-4 mr-0 flex w-56 shrink-0 flex-col overflow-hidden">
-      <div class="flex shrink-0 gap-1 border-b border-white/10 p-3">
-        <button
-          class="glass-button flex-1 justify-center px-3 py-2 text-xs font-medium"
-          :class="activeTab === 'newSong' ? 'bg-pink-500/20 text-pink-400' : 'text-primary/60'"
-          @click="activeTab = 'newSong'"
-        >
-          <span class="icon-[mdi--music-note-plus] mr-1 h-4 w-4" />
-          {{ t('charts.newSongs') }}
-        </button>
-        <button
-          class="glass-button flex-1 justify-center px-3 py-2 text-xs font-medium"
-          :class="activeTab === 'official' ? 'bg-pink-500/20 text-pink-400' : 'text-primary/60'"
-          @click="activeTab = 'official'"
-        >
-          <span class="icon-[mdi--trophy] mr-1 h-4 w-4" />
-          {{ t('charts.official') }}
-        </button>
+  <div class="flex h-full flex-1 gap-6 overflow-hidden p-4 lg:p-6">
+    <aside class="glass-card flex w-64 shrink-0 flex-col overflow-hidden">
+      <div class="shrink-0 border-b border-white/10 p-4">
+        <div class="flex gap-2">
+          <button
+            class="glass-button flex-1 justify-center px-4 py-2.5 text-sm font-medium transition-all"
+            :class="
+              activeTab === 'newSong'
+                ? 'bg-pink-500/90! text-white! border-pink-500/50!'
+                : 'text-primary/70 hover:text-primary'
+            "
+            @click="activeTab = 'newSong'"
+          >
+            <span class="icon-[mdi--music-note-plus] mr-1.5 h-4 w-4" />
+            {{ t('charts.newSongs') }}
+          </button>
+          <button
+            class="glass-button flex-1 justify-center px-4 py-2.5 text-sm font-medium transition-all"
+            :class="
+              activeTab === 'official'
+                ? 'bg-pink-500/90! text-white! border-pink-500/50!'
+                : 'text-primary/70 hover:text-primary'
+            "
+            @click="activeTab = 'official'"
+          >
+            <span class="icon-[mdi--trophy] mr-1.5 h-4 w-4" />
+            {{ t('charts.official') }}
+          </button>
+        </div>
       </div>
 
-      <div v-if="activeTab === 'newSong'" class="space-y-1 p-3">
+      <div v-if="activeTab === 'newSong'" class="flex-1 space-y-1.5 overflow-auto p-4">
         <button
           v-for="type in newSongTypes"
           :key="type.key"
-          class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-all"
+          class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all"
           :class="
             activeType === type.key
-              ? 'bg-linear-to-r from-pink-500/20 to-rose-500/20 text-pink-400'
-              : 'text-primary/60 hover:bg-white/5'
+              ? 'bg-pink-500/15 text-pink-400 shadow-sm'
+              : 'text-primary/70 hover:bg-white/5 hover:text-primary'
           "
           @click="activeType = type.key as any"
         >
-          <span :class="[type.icon, 'h-4 w-4']"></span>
+          <span
+            :class="[type.icon, 'h-5 w-5']"
+            :style="activeType === type.key ? 'filter: drop-shadow(0 0 4px rgb(236 72 153 / 0.5))' : ''"
+          ></span>
           {{ t(type.labelKey) }}
         </button>
       </div>
 
-      <div v-else class="flex-1 space-y-1 overflow-auto p-3">
+      <div v-else class="flex-1 space-y-2 overflow-auto p-4">
         <div
           v-for="item in state.officialLists"
           :key="item.id"
-          class="group flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-all"
+          class="group flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-all"
           :class="
             state.selectedList?.id === item.id
-              ? 'bg-linear-to-r from-pink-500/15 to-rose-500/15'
+              ? 'bg-pink-500/15 shadow-sm'
               : 'hover:bg-white/5'
           "
           @click="selectList(item)"
         >
-          <div class="relative">
+          <div class="relative shrink-0">
             <LazyImage
               :src="item.cover + '?param=80y80'"
               :alt="item.name"
-              class="h-10 w-10 shrink-0 rounded-lg object-cover shadow-md transition-transform group-hover:scale-105"
+              imgClass="h-12 w-12 rounded-lg object-cover shadow-md transition-transform duration-300 group-hover:scale-105"
+              wrapperClass="h-12 w-12"
             />
             <div
               v-if="state.selectedList?.id === item.id"
-              class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30"
+              class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40"
             >
-              <span class="icon-[mdi--play] h-5 w-5 text-white" />
+              <span class="icon-[mdi--equalizer] h-5 w-5 text-pink-400" />
             </div>
           </div>
           <div class="min-w-0 flex-1">
             <p
-              class="truncate text-xs font-medium transition-colors"
+              class="truncate text-sm font-medium transition-colors"
               :class="state.selectedList?.id === item.id ? 'text-pink-400' : 'text-primary'"
             >
               {{ item.name }}
             </p>
-            <p class="text-primary/40 truncate text-xs">{{ item.updateFrequency }}</p>
+            <p class="text-primary/40 mt-0.5 truncate text-xs">{{ item.updateFrequency }}</p>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="flex flex-1 flex-col overflow-hidden px-4">
-      <div class="mb-4 flex shrink-0 items-center justify-between">
-        <div class="flex items-center gap-3">
-          <h2 class="text-primary text-lg font-bold">
+    <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <header class="mb-6 flex shrink-0 items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h1 class="text-primary text-2xl font-bold tracking-tight">
             {{ activeTab === 'newSong' ? t('charts.newSongs') : state.selectedList?.name }}
-          </h2>
-          <span class="text-primary/40 rounded-full bg-white/5 px-2 py-0.5 text-xs">
+          </h1>
+          <span class="text-primary/50 rounded-full bg-white/5 px-3 py-1 text-sm font-medium">
             {{ currentSongs.length }} {{ t('charts.songs') }}
           </span>
         </div>
         <button
           v-if="currentSongs.length > 0"
+          class="glass-button flex items-center gap-2 bg-pink-500/90! px-5 py-2.5 text-sm font-medium text-white! transition-all hover:bg-pink-600/90! hover:shadow-lg hover:shadow-pink-500/25"
           @click="playAll"
-          class="flex items-center gap-1.5 rounded-lg bg-linear-to-r from-pink-500 to-rose-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/25 transition-all hover:shadow-xl hover:shadow-pink-500/30"
         >
-          <span class="icon-[mdi--play] h-4 w-4" />
+          <span class="icon-[mdi--play] h-5 w-5" />
           {{ t('actions.playAll') }}
         </button>
-      </div>
+      </header>
 
-      <div class="relative min-h-0 flex-1 overflow-hidden">
+      <div class="glass-card relative min-h-0 flex-1 overflow-hidden p-4">
         <PageSkeleton v-if="currentLoading" :sections="['list']" :list-count="12" />
         <SongList v-else :songs="currentSongs" :show-header="true" :show-controls="true" />
       </div>
-    </div>
+    </main>
   </div>
 </template>

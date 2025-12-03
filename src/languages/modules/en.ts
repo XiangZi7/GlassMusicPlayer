@@ -191,7 +191,7 @@ export default {
     related: 'Related MVs',
   },
   mvList: {
-    title: '🎬 Featured MVs',
+    title: 'Featured MVs',
     subtitle: 'Enjoy music videos with audio and visual delight',
     categories: {
       all: 'All',
@@ -201,6 +201,8 @@ export default {
     },
     actions: {
       loadMore: 'Load More',
+      like: 'Like',
+      share: 'Share',
     },
     tags: {
       new: 'NEW',
@@ -208,10 +210,38 @@ export default {
     alt: {
       cover: 'MV cover',
     },
+    units: {
+      billion: 'B',
+      tenThousand: 'K',
+    },
     log: {
       liked: 'Liked',
       unliked: 'Unliked',
       sharePrefix: 'Share MV: ',
+    },
+  },
+  mvPlayer: {
+    stats: {
+      plays: 'plays',
+      likes: 'likes',
+    },
+    actions: {
+      like: 'Like',
+      liked: 'Liked',
+      share: 'Share',
+    },
+    comments: {
+      title: 'Comments',
+      user: 'User',
+      empty: 'No comments yet',
+      reply: 'Reply',
+    },
+    related: {
+      title: 'Related MVs',
+    },
+    units: {
+      billion: 'B',
+      tenThousand: 'K',
     },
   },
   likes: {

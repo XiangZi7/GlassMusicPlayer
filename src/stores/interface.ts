@@ -1,15 +1,24 @@
-// 歌曲信息接口
-export interface Song {
+// 歌手信息接口
+export interface Artist {
   id: string | number
   name: string
+}
+
+// 歌曲信息接口
+export interface Song {
+  id?: string | number
+  mvId?: string | number
+  name: string
   artist: string
+  artistId?: string | number
+  artists?: Artist[]
   album?: string
+  albumId?: string | number
   duration: number
-  url?: string
-  cover?: string
   emoji?: string
   gradient?: string
   liked?: boolean
+  cover?: string
 }
 
 export interface AudioStoreState {

@@ -84,12 +84,11 @@ const loadPlaylist = async (id: number) => {
           : Array.isArray(t?.artists)
             ? t.artists.map((a: any) => a.name).join(' / ')
             : '',
-        artistId:
-          Array.isArray(t?.ar) && t.ar[0]?.id
-            ? t.ar[0].id
-            : Array.isArray(t?.artists) && t.artists[0]?.id
-              ? t.artists[0].id
-              : 0,
+        artists: Array.isArray(t?.ar)
+          ? t.ar.map((a: any) => ({ id: a.id, name: a.name }))
+          : Array.isArray(t?.artists)
+            ? t.artists.map((a: any) => ({ id: a.id, name: a.name }))
+            : [],
         album: t?.al?.name || t?.album?.name || '',
         albumId: t?.al?.id || t?.album?.id || 0,
         duration: t?.dt ?? t?.duration ?? 0,

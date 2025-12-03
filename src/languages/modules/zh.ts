@@ -191,7 +191,7 @@ export default {
     related: '相似 MV',
   },
   mvList: {
-    title: '🎬 MV 精选',
+    title: 'MV 精选',
     subtitle: '精彩的音乐视频，带给你视听双重享受',
     categories: {
       all: '全部',
@@ -201,6 +201,8 @@ export default {
     },
     actions: {
       loadMore: '加载更多',
+      like: '喜欢',
+      share: '分享',
     },
     tags: {
       new: 'NEW',
@@ -208,10 +210,38 @@ export default {
     alt: {
       cover: 'MV封面',
     },
+    units: {
+      billion: '亿',
+      tenThousand: '万',
+    },
     log: {
       liked: '喜欢',
       unliked: '取消喜欢',
       sharePrefix: '分享MV: ',
+    },
+  },
+  mvPlayer: {
+    stats: {
+      plays: '次播放',
+      likes: '赞',
+    },
+    actions: {
+      like: '点赞',
+      liked: '已赞',
+      share: '分享',
+    },
+    comments: {
+      title: '评论',
+      user: '用户',
+      empty: '暂无评论',
+      reply: '回复',
+    },
+    related: {
+      title: '相关推荐',
+    },
+    units: {
+      billion: '亿',
+      tenThousand: '万',
     },
   },
   likes: {

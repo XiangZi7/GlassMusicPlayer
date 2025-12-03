@@ -191,7 +191,7 @@ export default {
     related: '関連 MV',
   },
   mvList: {
-    title: '🎬 MV特選',
+    title: 'MV特選',
     subtitle: '魅力的なMVで映像と音の楽しさを',
     categories: {
       all: '全部',
@@ -201,6 +201,8 @@ export default {
     },
     actions: {
       loadMore: 'もっと見る',
+      like: 'いいね',
+      share: 'シェア',
     },
     tags: {
       new: 'NEW',
@@ -208,10 +210,38 @@ export default {
     alt: {
       cover: 'MVカバー',
     },
+    units: {
+      billion: '億',
+      tenThousand: '万',
+    },
     log: {
       liked: 'お気に入り',
       unliked: 'お気に入り解除',
       sharePrefix: 'MVをシェア: ',
+    },
+  },
+  mvPlayer: {
+    stats: {
+      plays: '回再生',
+      likes: 'いいね',
+    },
+    actions: {
+      like: 'いいね',
+      liked: 'いいね済み',
+      share: 'シェア',
+    },
+    comments: {
+      title: 'コメント',
+      user: 'ユーザー',
+      empty: 'コメントはまだありません',
+      reply: '返信',
+    },
+    related: {
+      title: '関連MV',
+    },
+    units: {
+      billion: '億',
+      tenThousand: '万',
     },
   },
   likes: {

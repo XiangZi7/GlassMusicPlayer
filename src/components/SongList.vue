@@ -1,25 +1,10 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
+import type { Song } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
 import { RouterLink, useRouter } from 'vue-router'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import { useI18n } from 'vue-i18n'
-
-interface Song {
-  id?: string | number
-  mvId?: string | number
-  name: string
-  artist: string
-  artistId?: string | number
-  album?: string
-  albumId?: string | number
-  duration: number
-  emoji?: string
-  gradient?: string
-  liked?: boolean
-  cover?: string
-}
 
 interface Props {
   songs: Song[]
@@ -51,23 +36,10 @@ const router = useRouter()
 const { setPlaylist, play, currentSong, isPlaying } = useAudio()
 const { t } = useI18n()
 
-const mapToStoreSong = (s: Song): StoreSong => ({
-  id: s.id ?? String(Math.random()),
-  name: s.name,
-  artist: s.artist,
-  album: s.album,
-  duration: s.duration,
-  emoji: s.emoji,
-  gradient: s.gradient,
-  liked: s.liked,
-  cover: s.cover,
-})
-
 const playSong = async (song: Song, index: number) => {
   try {
-    const playlistMapped: StoreSong[] = props.songs.map(mapToStoreSong)
-    setPlaylist(playlistMapped, index)
-    play(playlistMapped[index], index)
+    setPlaylist(props.songs, index)
+    play(props.songs[index], index)
     emit('play', song, index)
   } catch {}
 }
@@ -135,13 +107,24 @@ const downloadSong = (song: Song, index: number) => {
   animation: bounce 1s infinite ease-in-out;
 }
 
-.bar:nth-child(1) { animation-delay: 0s; }
-.bar:nth-child(2) { animation-delay: 0.2s; }
-.bar:nth-child(3) { animation-delay: 0.4s; }
+.bar:nth-child(1) {
+  animation-delay: 0s;
+}
+.bar:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.bar:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes bounce {
-  0%, 100% { height: 20%; }
-  50% { height: 100%; }
+  0%,
+  100% {
+    height: 20%;
+  }
+  50% {
+    height: 100%;
+  }
 }
 </style>
 <template>
@@ -187,9 +170,9 @@ const downloadSong = (song: Song, index: number) => {
               {{ index + 1 }}
             </span>
             <div v-if="isCurrent(song)" class="playing-icon">
-              <span class="bar" :class="{ 'animate': isPlaying }"></span>
-              <span class="bar" :class="{ 'animate': isPlaying }"></span>
-              <span class="bar" :class="{ 'animate': isPlaying }"></span>
+              <span class="bar" :class="{ animate: isPlaying }"></span>
+              <span class="bar" :class="{ animate: isPlaying }"></span>
+              <span class="bar" :class="{ animate: isPlaying }"></span>
             </div>
             <button
               v-if="!isCurrent(song)"
@@ -229,14 +212,29 @@ const downloadSong = (song: Song, index: number) => {
             </div>
 
             <div class="col-span-3 hidden overflow-hidden md:block">
-              <RouterLink
-                v-if="song.artistId"
-                :to="`/artist/${song.artistId}`"
-                :title="song.artist"
-                class="text-primary/80 truncate text-sm transition-colors hover:text-pink-400"
-              >
-                {{ song.artist }}
-              </RouterLink>
+              <template v-if="song.artists && song.artists.length > 0">
+                <span class="text-primary/80 truncate text-sm">
+                  <template v-for="(ar, idx) in song.artists" :key="ar.id">
+                    <RouterLink
+                      :to="`/artist/${ar.id}`"
+                      :title="ar.name"
+                      class="transition-colors hover:text-pink-400"
+                    >
+                      {{ ar.name }}
+                    </RouterLink>
+                    <span v-if="idx < song.artists.length - 1" class="text-primary/50"> / </span>
+                  </template>
+                </span>
+              </template>
+              <template v-else-if="song.artistId">
+                <RouterLink
+                  :to="`/artist/${song.artistId}`"
+                  :title="song.artist"
+                  class="text-primary/80 truncate text-sm transition-colors hover:text-pink-400"
+                >
+                  {{ song.artist }}
+                </RouterLink>
+              </template>
               <span v-else :title="song.artist" class="text-primary/80 truncate text-sm">
                 {{ song.artist }}
               </span>

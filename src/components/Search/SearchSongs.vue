@@ -60,10 +60,9 @@ const fetchSongs = async () => {
     artist: Array.isArray(it?.artists || it?.ar)
       ? (it?.artists || it?.ar).map((a: any) => a.name).join(' / ')
       : '',
-    artistId:
-      Array.isArray(it?.artists || it?.ar) && (it?.artists || it?.ar)[0]?.id
-        ? (it?.artists || it?.ar)[0].id
-        : undefined,
+    artists: Array.isArray(it?.artists || it?.ar)
+      ? (it?.artists || it?.ar).map((a: any) => ({ id: a.id, name: a.name }))
+      : [],
     album: it?.album?.name || it?.al?.name || '',
     albumId: it?.album?.id || it?.al?.id,
     duration: it?.duration ?? it?.dt ?? 0,

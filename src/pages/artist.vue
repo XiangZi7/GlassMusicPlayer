@@ -93,7 +93,7 @@ const load = async (id: number) => {
       id: s?.id || 0,
       name: s?.name || '',
       artist: Array.isArray(s?.ar) ? s.ar.map((a: any) => a.name).join(' / ') : state.info.name,
-      artistId: state.info.id,
+      artists: Array.isArray(s?.ar) ? s.ar.map((a: any) => ({ id: a.id, name: a.name })) : [{ id: state.info.id, name: state.info.name }],
       album: s?.al?.name || '',
       albumId: s?.al?.id || 0,
       duration: s?.dt ?? s?.duration ?? 0,
