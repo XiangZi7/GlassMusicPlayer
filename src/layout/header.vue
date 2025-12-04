@@ -89,7 +89,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
     <div class="flex items-center space-x-6">
       <!-- Logo -->
       <div class="flex items-center space-x-3">
-        <img src="/logo.png" alt="logo" class="w-10" />
+        <img src="/logo.svg" alt="logo" class="w-10" />
         <h1 class="text-primary text-xl font-bold">Glass Music Player</h1>
       </div>
 

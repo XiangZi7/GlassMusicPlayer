@@ -1,0 +1,34 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <linearGradient id="noteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E0E7FF" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="90" fill="url(#logoGradient)" filter="url(#glow)" />
+  <circle cx="100" cy="100" r="80" fill="rgba(255, 255, 255, 0.1)" />
+  <g fill="url(#noteGradient)">
+    <rect x="115" y="50" width="8" height="70" rx="4" />
+    <ellipse cx="110" cy="120" rx="18" ry="14" transform="rotate(-20 110 120)" />
+    <rect x="85" y="60" width="8" height="60" rx="4" />
+    <ellipse cx="80" cy="120" rx="18" ry="14" transform="rotate(-20 80 120)" />
+    <path d="M 93 60 L 115 50 L 115 58 L 93 68 Z" fill="url(#noteGradient)" />
+  </g>
+  <g stroke="rgba(255, 255, 255, 0.4)" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M 140 75 Q 150 85 140 95" />
+    <path d="M 148 70 Q 162 85 148 100" />
+    <path d="M 155 65 Q 173 85 155 105" />
+  </g>
+</svg>
