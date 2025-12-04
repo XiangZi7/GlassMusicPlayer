@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cloudSearch } from '@/api'
-
+import { formatCount } from '@/utils/time'
 interface Props {
   keywords: string
   limit?: number
@@ -22,12 +22,6 @@ interface PLResult {
 }
 const state = reactive<{ loading: boolean; results: PLResult[] }>({ loading: false, results: [] })
 const { results } = toRefs(state)
-
-const formatCount = (count: number): string => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(0) + '万'
-  return count.toString()
-}
 
 const fetchPlaylists = async () => {
   const term = props.keywords?.trim()
@@ -87,7 +81,7 @@ watch(
             <p class="line-clamp-2 text-xs leading-tight font-medium text-white">{{ pl.name }}</p>
             <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-white/70">
               <span class="icon-[mdi--music-note] h-3 w-3" />
-              <span>{{ pl.trackCount }}首</span>
+              <span>{{ $t('commonUnits.songsShort', pl.trackCount) }}</span>
             </div>
           </div>
           <div
@@ -101,7 +95,6 @@ watch(
           </div>
         </div>
         <div class="mt-2 px-1">
-         
           <p class="text-primary/50 mt-0.5 truncate text-xs">{{ pl.creator }}</p>
         </div>
       </router-link>

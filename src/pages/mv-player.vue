@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import Artplayer from '@/components/Artplayer.vue'
 import { mvDetail, mvUrl, simiMv, commentNew } from '@/api'
 import { MVInfo, RelatedMV, MVComment } from '@/typings'
-import LazyImage from '@/components/Ui/LazyImage.vue'
-
+import { formatCount } from '@/utils/time';
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
@@ -13,13 +11,7 @@ const { t } = useI18n()
 const formatSec = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
 
-const formatCount = (count: number | string) => {
-  const num = typeof count === 'string' ? parseInt(count) : count
-  if (isNaN(num)) return count
-  if (num >= 100000000) return (num / 100000000).toFixed(1) + t('mvPlayer.units.billion')
-  if (num >= 10000) return (num / 10000).toFixed(1) + t('mvPlayer.units.tenThousand')
-  return num
-}
+
 
 const state = reactive({
   currentMV: {} as MVInfo,

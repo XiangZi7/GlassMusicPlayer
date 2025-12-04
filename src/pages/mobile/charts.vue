@@ -24,7 +24,7 @@ const load = async (t: 0 | 7 | 96 | 8 | 16) => {
       artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
       album: it?.album?.name || '',
       duration: it?.duration || 0,
-      emoji: ['🎵','🎶','♪','♫','🎼'][i % 5],
+      emoji: ['🎵', '🎶', '♪', '♫', '🎼'][i % 5],
       gradient: ['from-pink-400 to-purple-500'][0],
       liked: false,
       cover: it?.album?.picUrl || '',
@@ -39,12 +39,25 @@ onMounted(() => load(state.tab))
 
 <template>
   <div class="flex-1 overflow-auto px-3 pb-6">
-    <div class="sticky top-0 z-10 glass-nav pb-3 pt-2">
+    <div class="glass-nav sticky top-0 z-10 pt-2 pb-3">
       <div class="flex items-center gap-2">
-        <button v-for="type in types" :key="type.key" class="rounded-md px-3 py-1 text-sm" :class="state.tab===type.key ? 'text-primary' : 'text-primary/60'" @click="state.tab=type.key; load(state.tab)">{{ t(type.labelKey) }}</button>
+        <button
+          v-for="type in types"
+          :key="type.key"
+          class="rounded-md px-3 py-1 text-sm"
+          :class="state.tab === type.key ? 'text-primary' : 'text-primary/60'"
+          @click="
+            state.tab = type.key
+            load(state.tab)
+          "
+        >
+          {{ t(type.labelKey) }}
+        </button>
       </div>
     </div>
-    <div v-if="state.loading" class="py-6"><PageSkeleton :sections="['list']" :list-count="10" /></div>
+    <div v-if="state.loading" class="py-6">
+      <PageSkeleton :sections="['list']" :list-count="10" />
+    </div>
     <div v-else>
       <HotSongsMobile :songs="state.songs" />
     </div>

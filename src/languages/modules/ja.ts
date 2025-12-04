@@ -15,9 +15,32 @@ export default {
     delete: '削除',
     clear: 'クリア',
     loading: '読み込み中',
-    search: { placeholder: '楽曲・アーティスト・アルバムを検索...', label: '検索', suggest: '検索候補' },
+    search: {
+      placeholder: '楽曲・アーティスト・アルバムを検索...',
+      label: '検索',
+      suggest: '検索候補',
+    },
     viewAll: 'すべて見る',
     playMV: 'MV再生',
+    sort: '並べ替え',
+    share: 'シェア',
+    collect: 'お気に入り',
+    uncollect: 'お気に入り解除',
+    me: '私',
+    justNow: 'たった今',
+    expand: '展開',
+    collapse: '折りたたむ',
+    follow: 'フォロー',
+    followed: 'フォロー中',
+    units: {
+      billion: '億',
+      tenThousand: '万',
+    },
+    stats: {
+      plays: '回再生',
+      favorites: 'お気に入り',
+      fans: 'ファン',
+    },
   },
   search: {
     tabs: { song: '曲', playlist: 'プレイリスト', mv: 'MV' },
@@ -41,7 +64,13 @@ export default {
       status: '{page} / {totalPages} ページ · 全 {total} 件',
     },
     songList: {
-      headers: { song: '曲名', artist: 'アーティスト', album: 'アルバム', duration: '時間', actions: '操作' },
+      headers: {
+        song: '曲名',
+        artist: 'アーティスト',
+        album: 'アルバム',
+        duration: '時間',
+        actions: '操作',
+      },
       coverAlt: 'カバー',
       empty: '音楽を追加して始めましょう！',
     },
@@ -56,7 +85,11 @@ export default {
       desc: '音楽体験をカスタマイズ',
       backgroundType: '背景タイプ',
       backgroundTypeDesc: '背景効果を選択',
-      backgroundNames: { aurora: 'オーロラ', colorbends: 'グラデーション波', ultimate: 'アドバンス' },
+      backgroundNames: {
+        aurora: 'オーロラ',
+        colorbends: 'グラデーション波',
+        ultimate: 'アドバンス',
+      },
       themeMode: 'テーマモード',
       themeModeDesc: 'テーマを選択',
       uiLanguage: '言語',
@@ -171,6 +204,10 @@ export default {
     total: '合計 {total} 件',
     user: 'ユーザー',
     empty: 'コメントはまだありません',
+    publish: '投稿',
+    placeholder: 'コメントを書いてください...',
+    reply: '返信',
+    loadMore: 'さらにコメントを読み込む',
   },
   playlistBubble: {
     title: 'プレイリスト',
@@ -181,6 +218,7 @@ export default {
   },
   actions: {
     playAll: 'すべて再生',
+    shufflePlay: 'シャッフル再生',
   },
   song: {
     lyrics: '歌詞',
@@ -210,10 +248,7 @@ export default {
     alt: {
       cover: 'MVカバー',
     },
-    units: {
-      billion: '億',
-      tenThousand: '万',
-    },
+
     log: {
       liked: 'お気に入り',
       unliked: 'お気に入り解除',
@@ -238,10 +273,6 @@ export default {
     },
     related: {
       title: '関連MV',
-    },
-    units: {
-      billion: '億',
-      tenThousand: '万',
     },
   },
   likes: {
@@ -284,5 +315,26 @@ export default {
     title: '新着アルバム',
     areas: { all: '全部', zh: '中華', ea: '洋楽', jp: '日本', kr: '韓国' },
     loadMore: 'もっと見る',
+  },
+  playlist: {
+    tabs: { songs: '曲', comments: 'コメント', similar: '類似' },
+    similarEmpty: '類似のプレイリストはありません',
+  },
+  artistPage: {
+    bioTitle: 'アーティスト紹介',
+    playTop: '人気曲を再生',
+    tabs: { hotSongs: '人気曲', albums: 'アルバム' },
+    stats: { songs: '曲', albums: 'アルバム', mvs: 'MV', fans: 'ファン' },
+    albumsEmpty: 'アルバムはありません',
+  },
+  albumPage: {
+    alt: { cover: 'アルバムカバー' },
+    fallbackTitle: 'アルバム',
+    published: '発売',
+    descTitle: '紹介',
+    expandMore: 'もっと見る',
+    collapse: '折りたたむ',
+    trackList: 'トラックリスト',
+    tracks: 'トラック',
   },
 }

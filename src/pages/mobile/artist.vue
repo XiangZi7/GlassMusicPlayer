@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { artistDetail, artistTopSong, artistAlbum } from '@/api'
 import { useAudio } from '@/composables/useAudio'
-import LazyImage from '@/components/Ui/LazyImage.vue'
-import MobileSongList from '@/components/Mobile/MobileSongList.vue'
 import { useI18n } from 'vue-i18n'
-
+import { formatCount } from '@/utils/time'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -52,12 +50,6 @@ const state = reactive({
 })
 
 const { setPlaylist, play } = useAudio()
-
-const formatCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return String(count)
-}
 
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
@@ -143,7 +135,7 @@ const goToAlbum = (id: number) => {
   router.push(`/album/${id}`)
 }
 
-const tabs = ['热门歌曲', '专辑']
+const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
 </script>
 
 <template>
@@ -157,7 +149,7 @@ const tabs = ['热门歌曲', '专辑']
           <LazyImage
             v-if="state.info.picUrl"
             :src="state.info.picUrl + '?param=400y400'"
-            alt="bg"
+            :alt="$t('components.songList.coverAlt')"
             imgClass="h-full w-full object-cover scale-110"
           />
           <div class="header-overlay absolute inset-0"></div>
@@ -169,40 +161,40 @@ const tabs = ['热门歌曲', '专辑']
               <LazyImage
                 v-if="state.info.picUrl"
                 :src="state.info.picUrl + '?param=300y300'"
-                alt="avatar"
+                :alt="$t('layout.aside.menu.artists')"
                 imgClass="artist-avatar h-28 w-28 rounded-full object-cover"
               />
             </div>
 
-            <h1 class="mb-1 text-xl font-bold text-primary">{{ state.info.name }}</h1>
-            <p v-if="state.info.alias?.length" class="mb-3 text-xs text-primary/50">
+            <h1 class="text-primary mb-1 text-xl font-bold">{{ state.info.name }}</h1>
+            <p v-if="state.info.alias?.length" class="text-primary/50 mb-3 text-xs">
               {{ state.info.alias.join(' / ') }}
             </p>
 
-            <div class="mb-4 flex items-center gap-6 text-center text-xs text-primary/70">
+            <div class="text-primary/70 mb-4 flex items-center gap-6 text-center text-xs">
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-primary">{{ state.info.musicSize }}</span>
-                <span>歌曲</span>
+                <span class="text-primary text-base font-semibold">{{ state.info.musicSize }}</span>
+                <span>{{ $t('artistPage.stats.songs') }}</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-primary">{{ state.info.albumSize }}</span>
-                <span>专辑</span>
+                <span class="text-primary text-base font-semibold">{{ state.info.albumSize }}</span>
+                <span>{{ $t('artistPage.stats.albums') }}</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-base font-semibold text-primary">{{ state.info.mvSize }}</span>
-                <span>MV</span>
+                <span class="text-primary text-base font-semibold">{{ state.info.mvSize }}</span>
+                <span>{{ $t('artistPage.stats.mvs') }}</span>
               </div>
               <div v-if="state.info.fansCount" class="flex flex-col items-center">
-                <span class="text-base font-semibold text-primary">{{
+                <span class="text-primary text-base font-semibold">{{
                   formatCount(state.info.fansCount)
                 }}</span>
-                <span>粉丝</span>
+                <span>{{ $t('artistPage.stats.fans') }}</span>
               </div>
             </div>
 
             <p
               v-if="state.info.briefDesc"
-              class="mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed text-primary/60"
+              class="text-primary/60 mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed"
             >
               {{ state.info.briefDesc }}
             </p>
@@ -212,7 +204,7 @@ const tabs = ['热门歌曲', '专辑']
 
       <div class="action-bar flex items-center gap-3 px-4 py-3">
         <button
-          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-primary"
+          class="play-all-btn text-primary flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium"
           @click="playAll"
         >
           <span class="icon-[mdi--play-circle] h-5 w-5"></span>
@@ -223,7 +215,7 @@ const tabs = ['热门歌曲', '专辑']
           @click="shufflePlay"
         >
           <span class="icon-[mdi--shuffle-variant] h-5 w-5"></span>
-          随机播放
+          {{ t('actions.shufflePlay') }}
         </button>
         <button
           class="follow-btn flex h-10 w-10 items-center justify-center rounded-full"
@@ -245,7 +237,7 @@ const tabs = ['热门歌曲', '专辑']
           :class="state.activeTab === i ? 'active' : ''"
           @click="state.activeTab = i"
         >
-          {{ tab }}
+          {{ $t(tab) }}
         </button>
       </div>
 
@@ -268,17 +260,17 @@ const tabs = ['热门歌曲', '专辑']
                   :alt="album.name"
                   imgClass="h-full w-full object-cover"
                 />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
                 <div class="absolute right-2 bottom-2 left-2">
-                  <p class="truncate text-xs font-medium text-primary">{{ album.name }}</p>
-                  <p class="text-[10px] text-primary/60">
-                    {{ album.publishTime }} · {{ album.size }}首
+                  <p class="text-primary truncate text-xs font-medium">{{ album.name }}</p>
+                  <p class="text-primary/60 text-[10px]">
+                    {{ album.publishTime }} · {{ $t('commonUnits.songsShort', album.size) }}
                   </p>
                 </div>
               </div>
             </div>
           </div>
-          <div v-if="!state.albums.length" class="empty-text py-12 text-center">暂无专辑</div>
+          <div v-if="!state.albums.length" class="empty-text py-12 text-center">{{ $t('artistPage.albumsEmpty') }}</div>
         </section>
       </div>
     </template>

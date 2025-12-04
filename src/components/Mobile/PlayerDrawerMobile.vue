@@ -4,7 +4,6 @@ import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
-import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
 import { useI18n } from 'vue-i18n'
 
 // 国际化文本函数

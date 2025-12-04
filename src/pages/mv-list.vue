@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { mvAll } from '@/api'
-import LazyImage from '@/components/Ui/LazyImage.vue'
-
-const router = useRouter()
+import { formatCount } from '@/utils/time'
 const { t } = useI18n()
 
 const state = reactive({
@@ -32,8 +29,6 @@ const state = reactive({
 })
 const { categories, selectedCategoryKey, mvList, hasMore, isPageLoading } = toRefs(state)
 
-const filteredMVs = computed(() => state.mvList)
-
 const selectCategory = (key: string) => {
   state.selectedCategoryKey = key
   state.page = 0
@@ -51,14 +46,6 @@ const shareMV = (mv: any) => {
 
 const formatSec = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
-
-const formatCount = (count: number | string) => {
-  const num = typeof count === 'string' ? parseInt(count) : count
-  if (isNaN(num)) return count
-  if (num >= 100000000) return (num / 100000000).toFixed(1) + t('mvList.units.billion')
-  if (num >= 10000) return (num / 10000).toFixed(1) + t('mvList.units.tenThousand')
-  return num
-}
 
 const fetchList = async (reset = false) => {
   try {
@@ -134,7 +121,7 @@ onMounted(() => {
 
           <section class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <router-link
-              v-for="mv in filteredMVs"
+              v-for="mv in mvList"
               :key="mv.id"
               :to="`/mv-player/${mv.id}`"
               class="glass-card group block overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"

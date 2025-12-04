@@ -134,7 +134,7 @@ const goToArtist = () => {
           <LazyImage
             v-if="state.info.coverImgUrl"
             :src="state.info.coverImgUrl + '?param=400y400'"
-            alt="bg"
+            :alt="$t('components.songList.coverAlt')"
             imgClass="h-full w-full object-cover scale-110"
           />
           <div class="header-overlay absolute inset-0"></div>
@@ -146,7 +146,7 @@ const goToArtist = () => {
               <LazyImage
                 v-if="state.info.coverImgUrl"
                 :src="state.info.coverImgUrl + '?param=300y300'"
-                alt="cover"
+                :alt="$t('components.songList.coverAlt')"
                 imgClass="cover-image h-32 w-32 rounded-2xl object-cover"
               />
             </div>
@@ -154,7 +154,7 @@ const goToArtist = () => {
             <div class="flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
                 <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-primary">
-                  {{ state.info.name }}
+                  {{ state.info.name || t('albumPage.fallbackTitle') }}
                 </h1>
                 <div class="artist-info flex items-center gap-2" @click="goToArtist">
                   <span class="text-xs text-primary/70">{{ state.info.artist }}</span>
@@ -164,7 +164,7 @@ const goToArtist = () => {
               <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-primary/60">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--music-note] h-3.5 w-3.5"></span>
-                  {{ state.info.songCount }}首
+                  {{ $t('commonUnits.songsShort', state.info.songCount) }}
                 </span>
                 <span v-if="state.info.publishTime" class="flex items-center gap-1">
                   <span class="icon-[mdi--calendar] h-3.5 w-3.5"></span>
@@ -190,7 +190,7 @@ const goToArtist = () => {
               {{ state.info.description }}
             </p>
             <span class="mt-1 inline-flex items-center text-[10px] text-primary/40">
-              {{ state.showFullDesc ? '收起' : '展开' }}
+              {{ state.showFullDesc ? t('common.collapse') : t('common.expand') }}
               <span
                 :class="state.showFullDesc ? 'icon-[mdi--chevron-up]' : 'icon-[mdi--chevron-down]'"
                 class="h-3 w-3"
@@ -213,7 +213,7 @@ const goToArtist = () => {
           @click="shufflePlay"
         >
           <span class="icon-[mdi--shuffle-variant] h-5 w-5"></span>
-          随机播放
+          {{ t('actions.shufflePlay') }}
         </button>
         <button
           class="collect-btn flex h-10 w-10 items-center justify-center rounded-full"

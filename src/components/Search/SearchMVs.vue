@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cloudSearch } from '@/api'
-
+import { formatCount } from '@/utils/time'
 interface Props {
   keywords: string
   limit?: number
@@ -25,12 +25,6 @@ const { results } = toRefs(state)
 
 const formatSec = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
-
-const formatCount = (count: number): string => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(0) + '万'
-  return count.toString()
-}
 
 const fetchMVs = async () => {
   const term = props.keywords?.trim()
@@ -80,20 +74,30 @@ watch(
             img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
           />
           <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
-          <div class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+          <div
+            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
+          >
             <span class="icon-[mdi--play] h-3 w-3" />
             {{ formatCount(mv.playCount) }}
           </div>
-          <div class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm">
+          <div
+            class="absolute right-2 bottom-2 rounded bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm"
+          >
             {{ formatSec(mv.duration) }}
           </div>
           <div class="absolute inset-0 flex items-center justify-center">
-            <div class="flex h-14 w-14 scale-75 items-center justify-center rounded-full bg-white/20 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+            <div
+              class="flex h-14 w-14 scale-75 items-center justify-center rounded-full bg-white/20 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:scale-100 group-hover:opacity-100"
+            >
               <span class="icon-[mdi--play] h-7 w-7 text-white" />
             </div>
           </div>
           <div class="absolute right-0 bottom-0 left-0 p-3">
-            <p class="truncate text-sm font-medium text-white transition-colors group-hover:text-pink-300">{{ mv.title }}</p>
+            <p
+              class="truncate text-sm font-medium text-white transition-colors group-hover:text-pink-300"
+            >
+              {{ mv.title }}
+            </p>
             <p class="mt-0.5 truncate text-[11px] text-white/70">{{ mv.artist }}</p>
           </div>
         </div>

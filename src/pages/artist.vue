@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { artistDetail, artistTopSong, artistAlbum } from '@/api'
-import SongList from '@/components/SongList.vue'
-import PageSkeleton from '@/components/PageSkeleton.vue'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
-
+import { formatCount } from '@/utils/time';
+import { useI18n } from 'vue-i18n'
 const route = useRoute()
 const router = useRouter()
 const artistId = computed(() => Number(route.params.id))
@@ -54,11 +53,6 @@ const state = reactive({
 
 const { setPlaylist, play } = useAudio()
 
-const formatCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return String(count)
-}
 
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
@@ -197,7 +191,7 @@ const toggleFollow = () => {
                       v-if="state.info.picUrl"
                       :src="state.info.picUrl + '?param=400y400'"
                       class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      alt="artist"
+                      :alt="$t('layout.aside.menu.artists')"
                     />
                     <div
                       v-else
@@ -235,19 +229,19 @@ const toggleFollow = () => {
                 >
                   <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
                     <span class="icon-[mdi--music-note] h-5 w-5 text-pink-400"></span>
-                    <span class="text-sm">{{ state.info.musicSize }} 歌曲</span>
+                    <span class="text-sm">{{ state.info.musicSize }} {{ $t('artistPage.stats.songs') }}</span>
                   </div>
                   <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
                     <span class="icon-[mdi--album] h-5 w-5 text-purple-400"></span>
-                    <span class="text-sm">{{ state.info.albumSize }} 专辑</span>
+                    <span class="text-sm">{{ state.info.albumSize }} {{ $t('artistPage.stats.albums') }}</span>
                   </div>
                   <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
                     <span class="icon-[mdi--video] h-5 w-5 text-blue-400"></span>
-                    <span class="text-sm">{{ state.info.mvSize }} MV</span>
+                    <span class="text-sm">{{ state.info.mvSize }} {{ $t('artistPage.stats.mvs') }}</span>
                   </div>
                   <div v-if="state.info.fansCount" class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
                     <span class="icon-[mdi--account-group] h-5 w-5 text-rose-400"></span>
-                    <span class="text-sm">{{ formatCount(state.info.fansCount) }} 粉丝</span>
+                    <span class="text-sm">{{ formatCount(state.info.fansCount) }} {{ $t('artistPage.stats.fans') }}</span>
                   </div>
                 </div>
 
@@ -260,14 +254,14 @@ const toggleFollow = () => {
                     @click="playAll"
                   >
                     <span class="icon-[mdi--play] h-5 w-5"></span>
-                    播放热门
+                    {{ $t('artistPage.playTop') }}
                   </button>
                   <button
                     class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
                     @click="shufflePlay"
                   >
                     <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span>
-                    随机播放
+                    {{ $t('actions.shufflePlay') }}
                   </button>
                   <button
                     class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
@@ -278,7 +272,7 @@ const toggleFollow = () => {
                       :class="state.followed ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
                       class="mr-2 h-4 w-4"
                     ></span>
-                    {{ state.followed ? '已关注' : '关注' }}
+                    {{ state.followed ? $t('common.followed') : $t('common.follow') }}
                   </button>
                 </div>
               </div>
@@ -290,7 +284,7 @@ const toggleFollow = () => {
           <div v-if="state.info.briefDesc" class="glass-card mb-6 p-5">
             <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold">
               <span class="icon-[mdi--information-outline] h-4 w-4 text-pink-400"></span>
-              艺人简介
+              {{ $t('artistPage.bioTitle') }}
             </h3>
             <p class="line-clamp-3 text-sm leading-relaxed text-primary/70">{{ state.info.briefDesc }}</p>
           </div>
@@ -302,7 +296,7 @@ const toggleFollow = () => {
               @click="state.activeTab = 'songs'"
             >
               <span class="icon-[mdi--music-note] mr-2 h-4 w-4"></span>
-              热门歌曲
+              {{ $t('artistPage.tabs.hotSongs') }}
               <span class="ml-1 text-xs text-primary/40">({{ state.songs.length }})</span>
               <div
                 v-if="state.activeTab === 'songs'"
@@ -315,7 +309,7 @@ const toggleFollow = () => {
               @click="state.activeTab = 'albums'"
             >
               <span class="icon-[mdi--album] mr-2 h-4 w-4"></span>
-              专辑
+              {{ $t('artistPage.tabs.albums') }}
               <span class="ml-1 text-xs text-primary/40">({{ state.albums.length }})</span>
               <div
                 v-if="state.activeTab === 'albums'"
@@ -351,7 +345,7 @@ const toggleFollow = () => {
                   </div>
                 </div>
                 <p class="truncate text-sm font-medium">{{ al.name }}</p>
-                <p class="mt-1 truncate text-xs text-primary/50">{{ al.publishTime }} · {{ al.size }}首</p>
+                <p class="mt-1 truncate text-xs text-primary/50">{{ al.publishTime }} · {{ $t('commonUnits.songsShort', al.size) }}</p>
               </div>
             </div>
           </div>

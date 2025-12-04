@@ -18,6 +18,25 @@ export default {
     search: { placeholder: '搜索音乐、歌手、专辑...', label: '搜索', suggest: '搜索建议' },
     viewAll: '查看全部',
     playMV: '播放MV',
+    sort: '排序',
+    share: '分享',
+    collect: '收藏',
+    uncollect: '取消收藏',
+    me: '我',
+    justNow: '刚刚',
+    expand: '展开',
+    collapse: '收起',
+    follow: '关注',
+    followed: '已关注',
+    units: {
+      billion: '亿',
+      tenThousand: '万',
+    },
+    stats: {
+      plays: '次播放',
+      favorites: '收藏',
+      fans: '粉丝',
+    },
   },
   search: {
     tabs: { song: '单曲', playlist: '歌单', mv: 'MV' },
@@ -171,6 +190,10 @@ export default {
     total: '总计 {total} 条',
     user: '用户',
     empty: '暂无评论',
+    publish: '发布',
+    placeholder: '写下你的评论...',
+    reply: '回复',
+    loadMore: '加载更多评论',
   },
   playlistBubble: {
     title: '播放列表',
@@ -181,6 +204,7 @@ export default {
   },
   actions: {
     playAll: '播放全部',
+    shufflePlay: '随机播放',
   },
   song: {
     lyrics: '歌词',
@@ -210,10 +234,6 @@ export default {
     alt: {
       cover: 'MV封面',
     },
-    units: {
-      billion: '亿',
-      tenThousand: '万',
-    },
     log: {
       liked: '喜欢',
       unliked: '取消喜欢',
@@ -238,10 +258,6 @@ export default {
     },
     related: {
       title: '相关推荐',
-    },
-    units: {
-      billion: '亿',
-      tenThousand: '万',
     },
   },
   likes: {
@@ -284,5 +300,26 @@ export default {
     title: '新碟上架',
     areas: { all: '全部', zh: '华语', ea: '欧美', jp: '日本', kr: '韩国' },
     loadMore: '加载更多',
+  },
+  playlist: {
+    tabs: { songs: '歌曲', comments: '评论', similar: '相似' },
+    similarEmpty: '暂无相似歌单',
+  },
+  artistPage: {
+    bioTitle: '艺人简介',
+    playTop: '播放热门',
+    tabs: { hotSongs: '热门歌曲', albums: '专辑' },
+    stats: { songs: '歌曲', albums: '专辑', mvs: 'MV', fans: '粉丝' },
+    albumsEmpty: '暂无专辑',
+  },
+  albumPage: {
+    alt: { cover: '专辑封面' },
+    fallbackTitle: '专辑',
+    published: '发行',
+    descTitle: '简介',
+    expandMore: '展开更多',
+    collapse: '收起',
+    trackList: '曲目列表',
+    tracks: '曲目',
   },
 }

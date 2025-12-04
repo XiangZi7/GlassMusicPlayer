@@ -9,7 +9,7 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-coverflow'
-
+import { formatCount } from '@/utils/time'
 const { t } = useI18n()
 
 interface ArtistData {
@@ -46,12 +46,6 @@ const gradients = [
   'from-amber-500 to-orange-600',
   'from-fuchsia-500 to-pink-600',
 ]
-
-const formatCount = (count: number): string => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(0) + '万'
-  return count.toString()
-}
 
 const formatDuration = (ms: number) => {
   const m = Math.floor(ms / 60000)

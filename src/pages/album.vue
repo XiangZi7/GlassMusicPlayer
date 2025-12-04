@@ -84,7 +84,7 @@ onMounted(() => load())
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-primary">
+  <div class="text-primary flex-1 overflow-hidden">
     <div class="h-full overflow-auto">
       <div class="relative mb-6 h-56 w-full">
         <div class="absolute inset-0 overflow-hidden rounded-b-3xl">
@@ -102,7 +102,7 @@ onMounted(() => load())
                 v-if="state.info?.picUrl"
                 :src="state.info.picUrl + '?param=300y300'"
                 class="h-full w-full object-cover"
-                alt="album"
+                :alt="$t('albumPage.alt.cover')"
               />
               <div
                 v-else
@@ -112,10 +112,12 @@ onMounted(() => load())
               </div>
             </div>
             <div>
-              <h1 class="text-2xl font-bold">{{ state.info?.name || '专辑' }}</h1>
-              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-primary/80">
+              <h1 class="text-2xl font-bold">
+                {{ state.info?.name || $t('albumPage.fallbackTitle') }}
+              </h1>
+              <div class="text-primary/80 mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span class="glass-button px-2 py-1"
-                  >发行
+                  >{{ $t('albumPage.published') }}
                   {{
                     state.info?.publishTime
                       ? new Date(state.info.publishTime).toLocaleDateString()
@@ -125,16 +127,19 @@ onMounted(() => load())
                 <span v-if="state.info?.artist?.name" class="glass-button px-2 py-1">{{
                   state.info.artist.name
                 }}</span>
-                <span class="glass-button px-2 py-1">曲目 {{ state.songs.length }}</span>
+                <span class="glass-button px-2 py-1"
+                  >{{ $t('albumPage.tracks') }}
+                  {{ $t('commonUnits.songsShort', state.songs.length) }}</span
+                >
               </div>
             </div>
           </div>
           <div class="ml-auto flex items-center gap-3">
             <button class="glass-button px-4 py-2 text-sm" @click="playAll">
-              <span class="icon-[mdi--play] mr-2 h-4 w-4"></span> 播放专辑
+              <span class="icon-[mdi--play] mr-2 h-4 w-4"></span> {{ $t('actions.playAll') }}
             </button>
             <button class="glass-button px-4 py-2 text-sm" @click="shufflePlay">
-              <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span> 随机播放
+              <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span> {{ $t('actions.shufflePlay') }}
             </button>
           </div>
         </div>
@@ -142,18 +147,18 @@ onMounted(() => load())
 
       <div class="p-6">
         <div v-if="state.info?.description" class="glass-card mb-6 p-4">
-          <h3 class="mb-2 text-sm font-semibold">简介</h3>
-          <p v-if="!showDesc" class="line-clamp-3 text-primary/80">{{ state.info.description }}</p>
+          <h3 class="mb-2 text-sm font-semibold">{{ $t('albumPage.descTitle') }}</h3>
+          <p v-if="!showDesc" class="text-primary/80 line-clamp-3">{{ state.info.description }}</p>
           <p v-else class="text-primary/80">{{ state.info.description }}</p>
           <button
-            class="mt-2 text-xs text-purple-300 hover:text-primary"
+            class="hover:text-primary mt-2 text-xs text-purple-300"
             @click="showDesc = !showDesc"
           >
-            {{ showDesc ? '收起' : '展开更多' }}
+            {{ showDesc ? $t('albumPage.collapse') : $t('albumPage.expandMore') }}
           </button>
         </div>
 
-        <h2 class="mb-3 text-lg font-semibold">曲目列表</h2>
+        <h2 class="mb-3 text-lg font-semibold">{{ $t('albumPage.trackList') }}</h2>
         <PageSkeleton v-if="state.loading" :sections="['list']" :list-count="12" />
         <SongList
           class="h-[50vh]!"

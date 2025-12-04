@@ -4,6 +4,7 @@ import { useAudio } from '@/composables/useAudio'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
 import { useI18n } from 'vue-i18n'
+import { formatCount } from '@/utils/time'
 const { t } = useI18n()
 
 type PlaylistInfo = {
@@ -13,8 +14,8 @@ type PlaylistInfo = {
   creatorAvatar: string
   createTime: string
   songCount: number
-  playCount: string
-  likes: string
+  playCount: number | string
+  likes: number | string
   category: string
   coverImgUrl: string
 }
@@ -30,7 +31,6 @@ type PlaylistSong = {
   cover: string
 }
 
-
 const route = useRoute()
 const playlistId = computed(() => Number(route.params.id))
 
@@ -43,12 +43,6 @@ const state = reactive({
 })
 
 const { setPlaylist, play } = useAudio()
-
-const formatPlayCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return String(count)
-}
 
 const load = async (id: number) => {
   try {
@@ -66,8 +60,8 @@ const load = async (id: number) => {
         creatorAvatar: detail?.creator?.avatarUrl || '',
         createTime: detail?.createTime ? new Date(detail.createTime).toLocaleDateString() : '',
         songCount: detail?.trackCount || 0,
-        playCount: formatPlayCount(detail?.playCount || 0),
-        likes: formatPlayCount(detail?.subscribedCount || detail?.bookedCount || 0),
+        playCount: formatCount(detail?.playCount || 0),
+        likes: formatCount(detail?.subscribedCount || detail?.bookedCount || 0),
         category: detail?.tags?.[0] || t('home.playlistFallback'),
         coverImgUrl: detail?.coverImgUrl || '',
       }
@@ -136,7 +130,7 @@ const toggleCollect = () => {
           <LazyImage
             v-if="state.info.coverImgUrl"
             :src="state.info.coverImgUrl + '?param=400y400'"
-            alt="bg"
+            :alt="$t('components.songList.coverAlt')"
             imgClass="h-full w-full object-cover scale-110"
           />
           <div class="header-overlay absolute inset-0"></div>
@@ -148,11 +142,11 @@ const toggleCollect = () => {
               <LazyImage
                 v-if="state.info.coverImgUrl"
                 :src="state.info.coverImgUrl + '?param=300y300'"
-                alt="cover"
+                :alt="$t('components.songList.coverAlt')"
                 imgClass="cover-image h-32 w-32 rounded-2xl object-cover"
               />
               <div
-                class="play-count-badge absolute -right-1 -bottom-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-primary"
+                class="play-count-badge text-primary absolute -right-1 -bottom-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
               >
                 <span class="icon-[mdi--play] h-3 w-3"></span>
                 {{ state.info.playCount }}
@@ -161,7 +155,7 @@ const toggleCollect = () => {
 
             <div class="flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
-                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-primary">
+                <h1 class="text-primary mb-2 line-clamp-2 text-lg leading-tight font-bold">
                   {{ state.info.name }}
                 </h1>
                 <div class="creator-info flex items-center gap-2">
@@ -171,13 +165,13 @@ const toggleCollect = () => {
                     alt=""
                     class="h-5 w-5 rounded-full"
                   />
-                  <span class="text-xs text-primary/70">{{ state.info.creator }}</span>
+                  <span class="text-primary/70 text-xs">{{ state.info.creator }}</span>
                 </div>
               </div>
-              <div class="mt-2 flex items-center gap-3 text-[11px] text-primary/60">
+              <div class="text-primary/60 mt-2 flex items-center gap-3 text-[11px]">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--music-note] h-3.5 w-3.5"></span>
-                  {{ state.info.songCount }}首
+                  {{ $t('commonUnits.songsShort', state.info.songCount) }}
                 </span>
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--heart] h-3.5 w-3.5"></span>
@@ -193,13 +187,13 @@ const toggleCollect = () => {
             @click="state.showFullDesc = !state.showFullDesc"
           >
             <p
-              class="text-xs leading-relaxed text-primary/60"
+              class="text-primary/60 text-xs leading-relaxed"
               :class="state.showFullDesc ? '' : 'line-clamp-2'"
             >
               {{ state.info.description }}
             </p>
-            <span class="mt-1 inline-flex items-center text-[10px] text-primary/40">
-              {{ state.showFullDesc ? '收起' : '展开' }}
+            <span class="text-primary/40 mt-1 inline-flex items-center text-[10px]">
+              {{ state.showFullDesc ? $t('common.collapse') : $t('common.expand') }}
               <span
                 :class="state.showFullDesc ? 'icon-[mdi--chevron-up]' : 'icon-[mdi--chevron-down]'"
                 class="h-3 w-3"
@@ -211,7 +205,7 @@ const toggleCollect = () => {
 
       <div class="action-bar flex items-center gap-3 px-4 py-3">
         <button
-          class="play-all-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium text-primary"
+          class="play-all-btn text-primary flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium"
           @click="playAll"
         >
           <span class="icon-[mdi--play-circle] h-5 w-5"></span>
@@ -222,7 +216,7 @@ const toggleCollect = () => {
           @click="shufflePlay"
         >
           <span class="icon-[mdi--shuffle-variant] h-5 w-5"></span>
-          随机播放
+          {{ t('actions.shufflePlay') }}
         </button>
         <button
           class="collect-btn flex h-10 w-10 items-center justify-center rounded-full"
@@ -241,8 +235,7 @@ const toggleCollect = () => {
         <section>
           <MobileSongList :songs="state.songs" :show-index="true" />
         </section>
-
-              </div>
+      </div>
     </template>
   </div>
 </template>

@@ -15,9 +15,32 @@ export default {
     delete: 'Delete',
     clear: 'Clear',
     loading: 'Loading',
-    search: { placeholder: 'Search songs, artists, albums...', label: 'Search', suggest: 'Suggestions' },
+    search: {
+      placeholder: 'Search songs, artists, albums...',
+      label: 'Search',
+      suggest: 'Suggestions',
+    },
     viewAll: 'View All',
     playMV: 'Play MV',
+    sort: 'Sort',
+    share: 'Share',
+    collect: 'Favorite',
+    uncollect: 'Unfavorite',
+    me: 'Me',
+    justNow: 'Just now',
+    expand: 'Expand',
+    collapse: 'Collapse',
+    follow: 'Follow',
+    followed: 'Following',
+    units: {
+      billion: 'B',
+      tenThousand: 'K',
+    },
+    stats: {
+      plays: 'plays',
+      favorites: 'favorites',
+      fans: 'fans',
+    },
   },
   search: {
     tabs: { song: 'Songs', playlist: 'Playlists', mv: 'MV' },
@@ -41,7 +64,13 @@ export default {
       status: 'Page {page} / {totalPages} · Total {total}',
     },
     songList: {
-      headers: { song: 'Song', artist: 'Artist', album: 'Album', duration: 'Duration', actions: 'Actions' },
+      headers: {
+        song: 'Song',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 'Duration',
+        actions: 'Actions',
+      },
       coverAlt: 'Cover',
       empty: 'Add some music to get started!',
     },
@@ -171,6 +200,10 @@ export default {
     total: 'Total {total}',
     user: 'User',
     empty: 'No comments yet',
+    publish: 'Post',
+    placeholder: 'Write a comment...',
+    reply: 'Reply',
+    loadMore: 'Load more comments',
   },
   playlistBubble: {
     title: 'Playlist',
@@ -181,6 +214,7 @@ export default {
   },
   actions: {
     playAll: 'Play All',
+    shufflePlay: 'Shuffle Play',
   },
   song: {
     lyrics: 'Lyrics',
@@ -210,10 +244,7 @@ export default {
     alt: {
       cover: 'MV cover',
     },
-    units: {
-      billion: 'B',
-      tenThousand: 'K',
-    },
+
     log: {
       liked: 'Liked',
       unliked: 'Unliked',
@@ -238,10 +269,6 @@ export default {
     },
     related: {
       title: 'Related MVs',
-    },
-    units: {
-      billion: 'B',
-      tenThousand: 'K',
     },
   },
   likes: {
@@ -275,7 +302,14 @@ export default {
     area: 'Region',
     initial: 'Initial',
     types: { all: 'All', male: 'Male', female: 'Female', band: 'Band' },
-    areas: { all: 'All', zh: 'Chinese', ea: 'Western', jp: 'Japanese', kr: 'Korean', other: 'Other' },
+    areas: {
+      all: 'All',
+      zh: 'Chinese',
+      ea: 'Western',
+      jp: 'Japanese',
+      kr: 'Korean',
+      other: 'Other',
+    },
     initials: { hot: 'Hot' },
     albums: 'albums',
     loadMore: 'Load More',
@@ -284,5 +318,26 @@ export default {
     title: 'New Albums',
     areas: { all: 'All', zh: 'Chinese', ea: 'Western', jp: 'Japanese', kr: 'Korean' },
     loadMore: 'Load More',
+  },
+  playlist: {
+    tabs: { songs: 'Songs', comments: 'Comments', similar: 'Similar' },
+    similarEmpty: 'No similar playlists',
+  },
+  artistPage: {
+    bioTitle: 'Artist Bio',
+    playTop: 'Play Top Songs',
+    tabs: { hotSongs: 'Top Songs', albums: 'Albums' },
+    stats: { songs: 'songs', albums: 'albums', mvs: 'MVs', fans: 'fans' },
+    albumsEmpty: 'No albums',
+  },
+  albumPage: {
+    alt: { cover: 'Album cover' },
+    fallbackTitle: 'Album',
+    published: 'Released',
+    descTitle: 'Description',
+    expandMore: 'Show more',
+    collapse: 'Collapse',
+    trackList: 'Tracklist',
+    tracks: 'Tracks',
   },
 }

@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { banner, personalized, personalizedNewsong, personalizedMv, topArtists } from '@/api'
-import LazyImage from '@/components/Ui/LazyImage.vue'
-import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
 import { useI18n } from 'vue-i18n'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay, Pagination, EffectCards } from 'swiper/modules'
@@ -10,8 +7,9 @@ import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-cards'
 
+import { formatCount } from '@/utils/time'
+
 const { t } = useI18n()
-const { setPlaylist, play, currentSong, isPlaying } = useAudio()
 
 interface BannerData {
   coverImgUrl: string
@@ -68,19 +66,6 @@ const state = reactive<HomeState>({
 })
 
 const { banners, playlists, newSongs, mvs, artists, isLoading } = toRefs(state)
-
-const formatPlayCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return count.toString()
-}
-
-const formatDuration = (ms: number) => {
-  const total = Math.floor(ms / 1000)
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
 
 const loadHomeData = async () => {
   state.isLoading = true
@@ -142,27 +127,6 @@ const loadHomeData = async () => {
 
 onMounted(loadHomeData)
 
-const mapToStoreSong = (s: SongData): StoreSong => ({
-  id: s.id,
-  name: s.name,
-  artist: s.artist,
-  album: s.album,
-  duration: s.duration,
-  cover: s.cover,
-})
-
-const playSong = (s: SongData, index: number) => {
-  const list: StoreSong[] = state.newSongs.map(mapToStoreSong)
-  setPlaylist(list, index)
-  play(list[index], index)
-}
-
-const isCurrent = (s: SongData) => {
-  const cur = currentSong.value
-  if (!cur) return false
-  return String(s.id) === String(cur.id)
-}
-
 const swiperModules = [Autoplay, Pagination, EffectCards]
 </script>
 
@@ -198,7 +162,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                 ></div>
                 <div v-if="item.title" class="absolute right-3 bottom-3 left-3">
                   <span
-                    class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-primary backdrop-blur-md"
+                    class="text-primary inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium backdrop-blur-md"
                   >
                     <span class="icon-[mdi--fire] h-3.5 w-3.5 text-orange-300"></span>
                     {{ item.title }}
@@ -215,7 +179,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
               <span
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600"
               >
-                <span class="icon-[mdi--playlist-star] h-4 w-4 text-primary"></span>
+                <span class="icon-[mdi--playlist-star] text-primary h-4 w-4"></span>
               </span>
               {{ t('home.recommendPlaylists') }}
             </h2>
@@ -241,10 +205,10 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                   class="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent"
                 ></div>
                 <div
-                  class="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-overlay/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
+                  class="bg-overlay/50 text-primary absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] h-2.5 w-2.5"></span>
-                  {{ formatPlayCount(pl.playCount) }}
+                  {{ formatCount(pl.playCount) }}
                 </div>
                 <div class="absolute right-1.5 bottom-1.5 left-1.5">
                   <div
@@ -265,7 +229,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
               <span
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600"
               >
-                <span class="icon-[mdi--account-music] h-4 w-4 text-primary"></span>
+                <span class="icon-[mdi--account-music] text-primary h-4 w-4"></span>
               </span>
               {{ t('components.discover.hotArtists') }}
             </h2>
@@ -297,7 +261,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
               <span
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-blue-600"
               >
-                <span class="icon-[mdi--music-note-plus] h-4 w-4 text-primary"></span>
+                <span class="icon-[mdi--music-note-plus] text-primary h-4 w-4"></span>
               </span>
               {{ t('components.discover.newSongs') }}
             </h2>
@@ -311,7 +275,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
               <span
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-rose-500 to-red-600"
               >
-                <span class="icon-[mdi--video] h-4 w-4 text-primary"></span>
+                <span class="icon-[mdi--video] text-primary h-4 w-4"></span>
               </span>
               {{ t('components.discover.recommendMv') }}
             </h2>
@@ -332,21 +296,21 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                   class="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent"
                 ></div>
                 <div
-                  class="absolute top-2 right-2 flex items-center gap-0.5 rounded-full bg-overlay/50 px-1.5 py-0.5 text-[10px] text-primary backdrop-blur-sm"
+                  class="bg-overlay/50 text-primary absolute top-2 right-2 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] h-2.5 w-2.5"></span>
-                  {{ formatPlayCount(mv.playCount) }}
+                  {{ formatCount(mv.playCount) }}
                 </div>
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div
                     class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
                   >
-                    <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
+                    <span class="icon-[mdi--play] text-primary h-5 w-5"></span>
                   </div>
                 </div>
                 <div class="absolute right-0 bottom-0 left-0 p-2">
-                  <p class="truncate text-xs font-medium text-primary">{{ mv.name }}</p>
-                  <p class="truncate text-[10px] text-primary/60">{{ mv.artistName }}</p>
+                  <p class="text-primary truncate text-xs font-medium">{{ mv.name }}</p>
+                  <p class="text-primary/60 truncate text-[10px]">{{ mv.artistName }}</p>
                 </div>
               </div>
             </router-link>

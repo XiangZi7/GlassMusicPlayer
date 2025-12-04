@@ -4,7 +4,8 @@ import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import { PlaylistInfo, PlaylistSong, CommentItem } from '@/typings'
 import LazyImage from '@/components/Ui/LazyImage.vue'
-
+import { formatCount } from '@/utils/time'
+import { useI18n } from 'vue-i18n'
 const route = useRoute()
 const playlistId = route.params.id
 
@@ -41,6 +42,7 @@ const state = reactive<PlaylistState>({
 const { activeTab, playlistInfo, songs, newComment, comments, isPageLoading, similarPlaylists } =
   toRefs(state)
 const { setPlaylist, play } = useAudio()
+const { t } = useI18n()
 
 const gradients: string[] = ['from-purple-500 to-pink-500']
 const emojis: string[] = ['🎵', '🎶', '♪', '♫', '🎼']
@@ -65,7 +67,7 @@ const loadPlaylist = async (id: number) => {
         songCount: detail?.trackCount || 0,
         playCount: detail?.playCount || 0,
         likes: String(detail?.subscribedCount || detail?.bookedCount || 0),
-        category: detail?.tags?.[0] || '歌单',
+        category: detail?.tags?.[0] || t('home.playlistFallback'),
         emoji: state.playlistInfo.emoji,
         gradient: pickGradient(),
         coverImgUrl: detail?.coverImgUrl || '',
@@ -110,14 +112,14 @@ const loadComments = async (id: number) => {
     const list = (res as any)?.data?.comments || (res as any)?.comments || []
     if (Array.isArray(list)) {
       state.comments = list.map((c: any, i: number) => ({
-        username: c?.user?.nickname || '用户',
+        username: c?.user?.nickname || t('comments.user'),
         avatarGradient: gradients[i % gradients.length],
         time: c?.time ? new Date(c.time).toLocaleString() : '',
         content: c?.content || '',
         likes: c?.likedCount || 0,
         avatarUrl: c?.user?.avatarUrl || '',
         replies: (c?.beReplied || []).map((r: any) => ({
-          username: r?.user?.nickname || '用户',
+          username: r?.user?.nickname || t('comments.user'),
           avatarUrl: r?.user?.avatarUrl || '',
           avatarGradient: gradients[(i + 1) % gradients.length],
           time: '',
@@ -170,10 +172,10 @@ const handleFilter = () => {
 const submitComment = () => {
   if (!state.newComment.trim()) return
   const comment = {
-    username: '我',
-    avatar: '我',
+    username: t('common.me'),
+    avatar: t('common.me'),
     avatarGradient: 'from-pink-400 to-purple-500',
-    time: '刚刚',
+    time: t('common.justNow'),
     content: state.newComment,
     likes: 0,
     avatarUrl: '',
@@ -220,7 +222,7 @@ const toggleCollect = () => {
 
 const sharePlaylist = async () => {
   const url = location.origin + location.pathname + `#/playlist/${playlistId}`
-  const title = String((state.playlistInfo as any)?.name || '歌单')
+  const title = String((state.playlistInfo as any)?.name || t('home.playlistFallback'))
   const text = String((state.playlistInfo as any)?.description || '')
   try {
     if (navigator.share) {
@@ -231,16 +233,10 @@ const sharePlaylist = async () => {
   } catch {}
 }
 
-const formatCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return count
-}
-
 const tabs = [
-  { key: 'songs', label: '歌曲', icon: 'icon-[mdi--music-note]' },
-  { key: 'comments', label: '评论', icon: 'icon-[mdi--comment-text]' },
-  { key: 'similar', label: '相似', icon: 'icon-[mdi--playlist-music]' },
+  { key: 'songs', labelKey: 'playlist.tabs.songs', icon: 'icon-[mdi--music-note]' },
+  { key: 'comments', labelKey: 'playlist.tabs.comments', icon: 'icon-[mdi--comment-text]' },
+  { key: 'similar', labelKey: 'playlist.tabs.similar', icon: 'icon-[mdi--playlist-music]' },
 ] as const
 </script>
 
@@ -265,12 +261,12 @@ const tabs = [
               <div
                 class="aspect-square overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10"
               >
-                <LazyImage
-                  :src="playlistInfo.coverImgUrl + '?param=300y300'"
-                  alt="封面"
-                  imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  wrapperClass="h-full w-full"
-                />
+              <LazyImage
+                :src="playlistInfo.coverImgUrl + '?param=300y300'"
+                :alt="$t('components.songList.coverAlt')"
+                imgClass="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                wrapperClass="h-full w-full"
+              />
               </div>
               <button
                 class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition-all duration-300 group-hover:opacity-100"
@@ -319,20 +315,22 @@ const tabs = [
               <div class="mb-5 flex flex-wrap items-center justify-center gap-6 lg:justify-start">
                 <div class="flex items-center gap-1.5">
                   <span class="icon-[mdi--music-note] text-primary/50 h-4 w-4"></span>
-                  <span class="text-primary/70 text-sm">{{ playlistInfo.songCount }} 首</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="icon-[mdi--play-circle-outline] text-primary/50 h-4 w-4"></span>
-                  <span class="text-primary/70 text-sm"
-                    >{{ formatCount(playlistInfo.playCount || 0) }} 次播放</span
+                <span class="text-primary/70 text-sm"
+                  >{{ $t('commonUnits.songsShort', playlistInfo.songCount) }}
+                  </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="icon-[mdi--play-circle-outline] text-primary/50 h-4 w-4"></span>
+                <span class="text-primary/70 text-sm"
+                  >{{ formatCount(playlistInfo.playCount || 0) }} {{ $t('common.stats.plays') }}</span
                   >
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="icon-[mdi--heart] h-4 w-4 text-red-400/70"></span>
-                  <span class="text-primary/70 text-sm"
-                    >{{ formatCount(Number(playlistInfo.likes) || 0) }} 收藏</span
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="icon-[mdi--heart] h-4 w-4 text-red-400/70"></span>
+                <span class="text-primary/70 text-sm"
+                  >{{ formatCount(Number(playlistInfo.likes) || 0) }} {{ $t('common.stats.favorites') }}</span
                   >
-                </div>
+              </div>
               </div>
 
               <div class="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
@@ -341,21 +339,21 @@ const tabs = [
                   @click="playAll"
                 >
                   <span class="icon-[mdi--play] h-5 w-5"></span>
-                  播放全部
+                  {{ $t('actions.playAll') }}
                 </button>
                 <button
                   class="text-primary inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 font-medium backdrop-blur-sm transition-all hover:bg-white/20"
                   @click="shufflePlay"
                 >
                   <span class="icon-[mdi--shuffle] h-5 w-5"></span>
-                  随机播放
+                  {{ $t('actions.shufflePlay') }}
                 </button>
                 <div class="flex items-center gap-1">
                   <button
                     class="text-primary flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
                     :class="{ 'bg-red-500/20 text-red-400 hover:bg-red-500/30': state.isCollected }"
                     @click="toggleCollect"
-                    :title="state.isCollected ? '取消收藏' : '收藏'"
+                    :title="state.isCollected ? $t('common.uncollect') : $t('common.collect')"
                   >
                     <span
                       :class="state.isCollected ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
@@ -365,7 +363,7 @@ const tabs = [
                   <button
                     class="text-primary flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
                     @click="sharePlaylist"
-                    title="分享"
+                    :title="$t('common.share')"
                   >
                     <span class="icon-[mdi--share-variant] h-5 w-5"></span>
                   </button>
@@ -390,7 +388,7 @@ const tabs = [
             >
               <span class="relative z-10 flex items-center gap-1.5">
                 <span :class="tab.icon" class="h-4 w-4"></span>
-                {{ tab.label }}
+                {{ $t(tab.labelKey) }}
                 <span class="text-xs opacity-60">
                   {{
                     tab.key === 'songs'
@@ -412,7 +410,7 @@ const tabs = [
               class="text-primary/50 hover:text-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs transition-colors hover:bg-white/5"
             >
               <span class="icon-[mdi--sort] h-4 w-4"></span>
-              排序
+              {{ $t('common.sort') }}
             </button>
           </div>
         </div>
@@ -433,12 +431,12 @@ const tabs = [
                 <div
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-500 font-bold text-white"
                 >
-                  我
+                  {{ $t('common.me') }}
                 </div>
                 <div class="flex-1">
                   <textarea
                     v-model="newComment"
-                    placeholder="写下你的评论..."
+                    :placeholder="$t('comments.placeholder')"
                     class="text-primary w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-sm placeholder-white/30 transition-colors focus:border-pink-400/50 focus:bg-white/10 focus:outline-none"
                     rows="2"
                   ></textarea>
@@ -448,7 +446,7 @@ const tabs = [
                       :disabled="!newComment.trim()"
                       @click="submitComment"
                     >
-                      发布
+                      {{ $t('comments.publish') }}
                     </button>
                   </div>
                 </div>
@@ -496,7 +494,7 @@ const tabs = [
                         class="text-primary/50 hover:text-primary flex items-center gap-1 transition-colors"
                       >
                         <span class="icon-[mdi--reply] h-4 w-4"></span>
-                        <span>回复</span>
+                        <span>{{ $t('comments.reply') }}</span>
                       </button>
                     </div>
 
@@ -525,12 +523,12 @@ const tabs = [
 
             <div v-else class="flex flex-col items-center justify-center py-16">
               <span class="icon-[mdi--comment-off-outline] text-primary/20 mb-3 h-12 w-12"></span>
-              <p class="text-primary/40 text-sm">暂无评论，快来抢沙发吧</p>
+              <p class="text-primary/40 text-sm">{{ $t('comments.empty') }}</p>
             </div>
 
             <div v-if="comments.length >= 10" class="border-t border-white/5 p-4 text-center">
               <button class="text-primary/60 hover:text-primary text-sm transition-colors">
-                加载更多评论
+                {{ $t('comments.loadMore') }}
               </button>
             </div>
           </div>
@@ -579,14 +577,14 @@ const tabs = [
                 {{ pl.name }}
               </p>
               <p class="text-primary/50 text-xs">
-                {{ pl.trackCount }} 首
+                {{ $t('commonUnits.songsShort', pl.trackCount) }}
                 <span v-if="pl.creator">· {{ pl.creator.nickname }}</span>
               </p>
             </router-link>
           </div>
           <div v-else class="flex flex-col items-center justify-center py-16 text-center">
             <span class="icon-[mdi--playlist-remove] text-primary/20 mb-4 h-16 w-16"></span>
-            <p class="text-primary/40">暂无相似歌单</p>
+            <p class="text-primary/40">{{ $t('playlist.similarEmpty') }}</p>
           </div>
         </section>
       </div>

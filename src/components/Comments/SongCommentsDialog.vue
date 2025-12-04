@@ -58,7 +58,7 @@ const close = () => (show.value = false)
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div v-if="show" class="fixed inset-0 z-50000 flex items-center justify-center p-4">
     <Transition name="mask" appear>
       <div v-if="show" class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close" />
     </Transition>
