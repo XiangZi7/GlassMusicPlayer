@@ -69,65 +69,72 @@
 
 ## 🎬 功能一览
 
-<table>
-<tr>
-<td width="33%" align="center">
-<h3>🏠</h3>
-<strong>首页与发现</strong>
-<br/><br/>
-卡片化首页布局<br/>
-推荐歌单轮播<br/>
-排行榜多类型切换<br/>
-艺术家/新碟筛选
-</td>
-<td width="33%" align="center">
-<h3>🎵</h3>
-<strong>播放器</strong>
-<br/><br/>
-黑胶唱片 + 唱臂动画<br/>
-丝滑进度条拖拽<br/>
-双层封面背景切换<br/>
-电池/网络状态显示
-</td>
-<td width="33%" align="center">
-<h3>🎤</h3>
-<strong>歌词体验</strong>
-<br/><br/>
-原文/译文/罗马音<br/>
-字体大小调节<br/>
-自动滚动跟随<br/>
-拖动定位 + 时间预览
-</td>
-</tr>
-<tr>
-<td width="33%" align="center">
-<h3>🔍</h3>
-<strong>搜索功能</strong>
-<br/><br/>
-实时搜索联想<br/>
-历史记录管理<br/>
-分页结果浏览<br/>
-歌曲/歌单/MV
-</td>
-<td width="33%" align="center">
-<h3>📄</h3>
-<strong>详情页面</strong>
-<br/><br/>
-歌曲详情 + 评论<br/>
-艺术家热门/专辑<br/>
-专辑曲目列表<br/>
-MV 高清播放
-</td>
-<td width="33%" align="center">
-<h3>📱</h3>
-<strong>移动端</strong>
-<br/><br/>
-底部标签栏导航<br/>
-全屏播放器抽屉<br/>
-最近播放记录<br/>
-触控手势优化
-</td>
-</tr>
+<table width="100%" style="table-layout: fixed;">
+  <tr>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>🏠</h3>
+      <strong>首页与发现</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>卡片化首页布局</li>
+        <li>推荐歌单轮播</li>
+        <li>排行榜多类型切换</li>
+        <li>艺术家/新碟筛选</li>
+      </ul>
+    </td>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>🎵</h3>
+      <strong>播放器</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>黑胶唱片 + 唱臂动画</li>
+        <li>丝滑进度条拖拽</li>
+        <li>双层封面背景切换</li>
+        <li>电池/网络状态显示</li>
+      </ul>
+    </td>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>🎤</h3>
+      <strong>歌词体验</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>原文/译文/罗马音</li>
+        <li>字体大小调节</li>
+        <li>自动滚动跟随</li>
+        <li>拖动定位 + 时间预览</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>🔍</h3>
+      <strong>搜索功能</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>实时搜索联想</li>
+        <li>历史记录管理</li>
+        <li>分页结果浏览</li>
+        <li>歌曲/歌单/MV</li>
+      </ul>
+    </td>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>📄</h3>
+      <strong>详情页面</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>歌曲详情 + 评论</li>
+        <li>艺术家热门/专辑</li>
+        <li>专辑曲目列表</li>
+        <li>MV 高清播放</li>
+      </ul>
+    </td>
+    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
+      <h3>📱</h3>
+      <strong>移动端</strong>
+      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
+        <li>底部标签栏导航</li>
+        <li>全屏播放器抽屉</li>
+        <li>最近播放记录</li>
+        <li>触控手势优化</li>
+      </ul>
+    </td>
+  </tr>
+  
 </table>
 
 <br/>
