@@ -7,13 +7,15 @@ const sections = [
       { to: '/', labelKey: 'layout.aside.menu.home', icon: 'mdi--home' },
       { to: '/mv-list', labelKey: 'layout.aside.menu.mv', icon: 'mdi--video' },
       { to: '/charts', labelKey: 'layout.aside.menu.charts', icon: 'mdi--chart-line' },
+      { to: '/artists', labelKey: 'layout.aside.menu.artists', icon: 'mdi--account-music' },
+      { to: '/new-albums', labelKey: 'layout.aside.menu.newAlbums', icon: 'mdi--album' },
       { to: '/search', labelKey: 'layout.aside.menu.search', icon: 'ic--round-search' },
     ],
   },
   {
     titleKey: 'layout.aside.myMusic',
     items: [
-      { to: '/recent', labelKey: 'layout.aside.menu.recent', icon: 'mdi--clock-outline' },
+      { to: '/my-music', labelKey: 'layout.aside.menu.recent', icon: 'mdi--music-box-multiple' },
       { to: '/likes', labelKey: 'layout.aside.menu.likes', icon: 'mdi--heart-outline' },
     ],
   },
@@ -83,10 +85,12 @@ const userStore = useUserStore()
         <span class="icon-[mdi--video] h-5 w-5"></span>
         <span class="icon-[mdi--chart-line] h-5 w-5"></span>
         <span class="icon-[ic--round-search] h-5 w-5"></span>
-        <span class="icon-[mdi--clock-outline] h-5 w-5"></span>
+        <span class="icon-[mdi--music-box-multiple] h-5 w-5"></span>
         <span class="icon-[mdi--heart-outline] h-5 w-5"></span>
         <span class="icon-[mdi--cog] h-5 w-5"></span>
         <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
+        <span class="icon-[mdi--account-music] h-5 w-5"></span>
+        <span class="icon-[mdi--album] h-5 w-5"></span>
       </div>
     </div>
   </aside>

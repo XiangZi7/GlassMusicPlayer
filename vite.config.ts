@@ -9,8 +9,6 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, root)
   const viteEnv = wrapperEnv(env)
 
-  // let outDir = `D:/code/static-web/hkfeiliang/${mode == 'test' ? 'test/refund' : 'refund'}`
-
   return {
     plugins: createVitePlugins(viteEnv),
     server: {

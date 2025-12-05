@@ -4,7 +4,6 @@ import SearchSongs from '@/components/Search/SearchSongs.vue'
 import SearchPlaylists from '@/components/Search/SearchPlaylists.vue'
 import SearchMVs from '@/components/Search/SearchMVs.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
-import Pagination from '@/components/Ui/Pagination.vue'
 // 路由实例：读取/更新查询参数
 const route = useRoute()
 
@@ -21,9 +20,12 @@ const state = reactive({
 })
 // 将状态转换为响应式引用，便于模板使用
 const { activeType, page, total, isLoading } = toRefs(state)
-// 已移除输入历史功能
 
-// Tab 配置：类型、标签、组件与图标
+const songsRef = ref<InstanceType<typeof SearchSongs> | null>(null)
+
+const playAllSongs = () => {
+  songsRef.value?.playAll()
+}
 
 const tabs = [
   {
@@ -77,50 +79,113 @@ watch(page, () => {
 </script>
 
 <template>
-  <!-- 页面主容器 -->
-  <div class="flex flex-1 flex-col overflow-hidden">
-    <div class="flex h-full flex-col overflow-x-hidden px-4">
-      <!-- 主内容：Tab + 结果 + 分页 -->
-      <div class="flex flex-1 flex-col overflow-hidden">
-        <!-- Tab 导航 -->
-        <div class="glass-nav mb-5 flex items-center justify-between gap-2 rounded-xl p-2">
-          <div class="flex items-center gap-2">
+  <div class="flex h-full flex-1 flex-col overflow-hidden px-4">
+    <!-- 顶部操作栏：搜索标题 + Tab + 分页 -->
+    <div v-if="q" class="mb-5 shrink-0">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- 左侧：搜索关键词 + Tab -->
+        <div class="flex flex-wrap items-center gap-4">
+          <!-- Tab 导航 -->
+          <div class="flex items-center gap-1 rounded-xl bg-white/5 p-1 backdrop-blur-sm">
             <button
               v-for="tab in tabs"
               :key="tab.key"
-              class="glass-button flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition-all"
+              class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200"
               :class="
                 activeType === tab.key
-                  ? 'bg-white/25 text-pink-300 ring-1 ring-pink-300/40'
-                  : 'text-primary/80'
+                  ? 'bg-linear-to-r from-pink-500/80 to-rose-500/80 text-white shadow-sm'
+                  : 'text-primary/60 hover:text-primary hover:bg-white/10'
               "
               @click="activeType = tab.key"
             >
-              <span :class="[tab.icon, 'h-5 w-5']"></span>
+              <span :class="[tab.icon, 'h-4 w-4']"></span>
               {{ $t(tab.labelKey) }}
             </button>
           </div>
-
-          <Pagination :is-car="false" v-model="page" :total="total" :page-size="pageSize" />
         </div>
-        <!-- 结果区（动态组件） -->
-        <div class="relative h-full overflow-hidden">
-          <component
-            :is="activeComp"
-            :keywords="q"
-            :limit="pageSize"
-            :offset="(page - 1) * pageSize"
-            @loaded="onLoaded"
-            @total="onTotal"
-          />
-          <div v-if="isLoading && activeType !== 1" class="absolute inset-0 z-10">
-            <PageSkeleton
-              :sections="activeType === 1000 ? ['grid'] : ['list']"
-              :grid-count="12"
-              :list-count="8"
-            />
+
+        <!-- 右侧：播放全部 + 分页 -->
+        <div class="flex items-center gap-6">
+          <!-- 播放全部按钮（仅歌曲 Tab 显示） -->
+          <button
+            v-if="activeType === 1 && total > 0"
+            @click="playAllSongs"
+            class="flex items-center gap-1.5 rounded-lg bg-linear-to-r from-pink-500 to-rose-500 px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-pink-500/20 transition-all hover:shadow-lg hover:shadow-pink-500/30"
+          >
+            <span class="icon-[mdi--play] h-4 w-4" />
+            {{ $t('actions.playAll') }}
+          </button>
+          <h1 class="text-primary text-xl font-bold">
+            <span class="text-primary/60">{{ $t('search.resultsFor') }}</span>
+            <span class="ml-1 text-pink-400">"{{ q }}"</span>
+          </h1>
+          <!-- 分页 -->
+          <div v-if="total > 0" class="flex items-center gap-2">
+            <span class="text-primary/40 hidden text-xs sm:inline">
+              {{ total }} {{ $t('search.results') }}
+            </span>
+            <div class="flex items-center gap-0.5 rounded-lg bg-white/5 p-0.5">
+              <button
+                class="flex h-7 w-7 items-center justify-center rounded-md transition-all"
+                :class="
+                  page > 1 ? 'text-primary hover:bg-white/10' : 'text-primary/30 cursor-not-allowed'
+                "
+                :disabled="page <= 1"
+                @click="page > 1 && page--"
+              >
+                <span class="icon-[mdi--chevron-left] h-4 w-4" />
+              </button>
+              <span class="text-primary/80 min-w-[50px] text-center text-xs font-medium">
+                {{ page }} / {{ Math.ceil(total / pageSize) || 1 }}
+              </span>
+              <button
+                class="flex h-7 w-7 items-center justify-center rounded-md transition-all"
+                :class="
+                  page < Math.ceil(total / pageSize)
+                    ? 'text-primary hover:bg-white/10'
+                    : 'text-primary/30 cursor-not-allowed'
+                "
+                :disabled="page >= Math.ceil(total / pageSize)"
+                @click="page < Math.ceil(total / pageSize) && page++"
+              >
+                <span class="icon-[mdi--chevron-right] h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="relative min-h-0 flex-1 overflow-hidden">
+      <component
+        :is="activeComp"
+        :ref="
+          (el: any) => {
+            if (activeType === 1) songsRef = el
+          }
+        "
+        :keywords="q"
+        :limit="pageSize"
+        :offset="(page - 1) * pageSize"
+        @loaded="onLoaded"
+        @total="onTotal"
+      />
+      <div v-if="isLoading && activeType !== 1" class="absolute inset-0 z-10">
+        <PageSkeleton
+          :sections="activeType === 1000 ? ['grid'] : ['list']"
+          :grid-count="12"
+          :list-count="8"
+        />
+      </div>
+
+      <!-- 空状态 -->
+      <div v-if="!q" class="flex h-96 flex-col items-center justify-center">
+        <div class="mb-6 rounded-full bg-white/5 p-8">
+          <span class="icon-[mdi--magnify] text-primary/20 h-16 w-16" />
+        </div>
+        <p class="text-primary/60 text-lg font-medium">{{ $t('search.enterKeyword') }}</p>
+        <p class="text-primary/40 mt-2 text-sm">{{ $t('search.hint') }}</p>
       </div>
     </div>
   </div>

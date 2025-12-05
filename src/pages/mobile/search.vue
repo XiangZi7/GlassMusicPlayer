@@ -413,7 +413,7 @@ const tabs = computed(() => [
                 />
                 <div class="playlist-cover-overlay absolute inset-0"></div>
                 <div
-                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
                 >
                   <span class="icon-[mdi--music-note] h-3 w-3"></span>
                   {{ p.trackCount }}
@@ -479,7 +479,7 @@ const tabs = computed(() => [
                   <p class="mv-artist mt-0.5 truncate text-xs text-primary/70">{{ m.artist }}</p>
                 </div>
                 <div
-                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
                 >
                   <span class="icon-[mdi--video] h-3 w-3"></span>
                   MV

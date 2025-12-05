@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { artistDetail, artistTopSong, artistAlbum } from '@/api'
-import SongList from '@/components/SongList.vue'
-import PageSkeleton from '@/components/PageSkeleton.vue'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
-
+import { formatCount } from '@/utils/time';
+import { useI18n } from 'vue-i18n'
 const route = useRoute()
 const router = useRouter()
 const artistId = computed(() => Number(route.params.id))
@@ -49,15 +48,11 @@ const state = reactive({
   albums: [] as AlbumItem[],
   loading: true,
   followed: false,
+  activeTab: 'songs' as 'songs' | 'albums',
 })
 
 const { setPlaylist, play } = useAudio()
 
-const formatCount = (count: number) => {
-  if (count >= 100000000) return (count / 100000000).toFixed(1) + '亿'
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return String(count)
-}
 
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
@@ -92,7 +87,7 @@ const load = async (id: number) => {
       id: s?.id || 0,
       name: s?.name || '',
       artist: Array.isArray(s?.ar) ? s.ar.map((a: any) => a.name).join(' / ') : state.info.name,
-      artistId: state.info.id,
+      artists: Array.isArray(s?.ar) ? s.ar.map((a: any) => ({ id: a.id, name: a.name })) : [{ id: state.info.id, name: state.info.name }],
       album: s?.al?.name || '',
       albumId: s?.al?.id || 0,
       duration: s?.dt ?? s?.duration ?? 0,
@@ -165,118 +160,256 @@ const toggleFollow = () => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-primary">
+  <div class="flex-1 overflow-hidden text-primary px-4">
     <div class="h-full overflow-auto">
-      <div class="relative mb-6 h-56 w-full">
-        <div class="absolute inset-0 overflow-hidden rounded-b-3xl">
-          <img
-            v-if="state.info.picUrl"
-            :src="state.info.picUrl + '?param=800y800'"
-            class="h-full w-full object-cover opacity-30"
-          />
-          <div v-else class="h-full w-full bg-linear-to-br from-pink-500/40 to-purple-600/40"></div>
-        </div>
-        <div class="absolute inset-0 flex items-end p-6">
-          <div class="flex items-center gap-6">
-            <div class="h-28 w-28 overflow-hidden rounded-full ring-4 ring-white/20">
-              <img
-                v-if="state.info.picUrl"
-                :src="state.info.picUrl + '?param=300y300'"
-                class="h-full w-full object-cover"
-                alt="artist"
-              />
+      <PageSkeleton v-if="state.loading" :sections="['hero', 'list']" :list-count="12" />
+      <template v-else>
+        <section class="relative mb-8 flex shrink-0">
+          <div class="absolute inset-0 overflow-hidden">
+            <img
+              v-if="state.info.picUrl"
+              :src="state.info.picUrl + '?param=800y800'"
+              class="h-full w-full scale-110 object-cover opacity-20 blur-2xl"
+            />
+            <div v-else class="h-full w-full bg-linear-to-br from-pink-500/30 to-purple-600/30"></div>
+          </div>
+
+          <div class="absolute inset-0">
+            <div class="floating-notes">
+              <div v-for="i in 6" :key="i" class="note" :style="{ animationDelay: i * 1.2 + 's' }">
+                {{ ['🎵', '🎶', '♪', '♫', '🎼', '🎤'][i - 1] }}
+              </div>
+            </div>
+          </div>
+
+          <div class="relative z-10 w-full p-8">
+            <div class="flex flex-col items-start gap-8 lg:flex-row lg:items-center">
+              <div class="shrink-0">
+                <div class="group relative">
+                  <div class="h-48 w-48 overflow-hidden rounded-full ring-4 ring-white/20 transition-all group-hover:ring-pink-500/40">
+                    <img
+                      v-if="state.info.picUrl"
+                      :src="state.info.picUrl + '?param=400y400'"
+                      class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      :alt="$t('layout.aside.menu.artists')"
+                    />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-400 to-purple-500"
+                    >
+                      <span class="icon-[mdi--account-music] h-20 w-20"></span>
+                    </div>
+                  </div>
+                  <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+                    <button
+                      @click="playAll"
+                      class="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110"
+                    >
+                      <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <h1 class="animate-fade-in-up mb-2 text-4xl font-bold lg:text-5xl">
+                  {{ state.info.name }}
+                </h1>
+                <p
+                  v-if="state.info.alias?.length"
+                  class="animate-fade-in-up mb-4 text-lg text-primary/60"
+                  style="animation-delay: 0.1s"
+                >
+                  {{ state.info.alias.join(' / ') }}
+                </p>
+
+                <div
+                  class="animate-fade-in-up mb-6 flex flex-wrap items-center gap-4"
+                  style="animation-delay: 0.2s"
+                >
+                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                    <span class="icon-[mdi--music-note] h-5 w-5 text-pink-400"></span>
+                    <span class="text-sm">{{ state.info.musicSize }} {{ $t('artistPage.stats.songs') }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                    <span class="icon-[mdi--album] h-5 w-5 text-purple-400"></span>
+                    <span class="text-sm">{{ state.info.albumSize }} {{ $t('artistPage.stats.albums') }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                    <span class="icon-[mdi--video] h-5 w-5 text-blue-400"></span>
+                    <span class="text-sm">{{ state.info.mvSize }} {{ $t('artistPage.stats.mvs') }}</span>
+                  </div>
+                  <div v-if="state.info.fansCount" class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                    <span class="icon-[mdi--account-group] h-5 w-5 text-rose-400"></span>
+                    <span class="text-sm">{{ formatCount(state.info.fansCount) }} {{ $t('artistPage.stats.fans') }}</span>
+                  </div>
+                </div>
+
+                <div
+                  class="animate-fade-in-up flex flex-wrap items-center gap-3"
+                  style="animation-delay: 0.3s"
+                >
+                  <button
+                    class="flex items-center gap-2 rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-6 py-2.5 font-medium text-white shadow-lg shadow-pink-500/25 transition-all hover:scale-105 hover:shadow-xl hover:shadow-pink-500/30"
+                    @click="playAll"
+                  >
+                    <span class="icon-[mdi--play] h-5 w-5"></span>
+                    {{ $t('artistPage.playTop') }}
+                  </button>
+                  <button
+                    class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
+                    @click="shufflePlay"
+                  >
+                    <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span>
+                    {{ $t('actions.shufflePlay') }}
+                  </button>
+                  <button
+                    class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
+                    :class="state.followed ? 'bg-pink-500/20 text-pink-400' : ''"
+                    @click="toggleFollow"
+                  >
+                    <span
+                      :class="state.followed ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
+                      class="mr-2 h-4 w-4"
+                    ></span>
+                    {{ state.followed ? $t('common.followed') : $t('common.follow') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="pb-8">
+          <div v-if="state.info.briefDesc" class="glass-card mb-6 p-5">
+            <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold">
+              <span class="icon-[mdi--information-outline] h-4 w-4 text-pink-400"></span>
+              {{ $t('artistPage.bioTitle') }}
+            </h3>
+            <p class="line-clamp-3 text-sm leading-relaxed text-primary/70">{{ state.info.briefDesc }}</p>
+          </div>
+
+          <div class="mb-6 flex items-center gap-6 border-b border-white/10">
+            <button
+              class="relative px-2 pb-4 text-base font-medium transition-all"
+              :class="state.activeTab === 'songs' ? 'text-primary' : 'text-primary/50 hover:text-primary/80'"
+              @click="state.activeTab = 'songs'"
+            >
+              <span class="icon-[mdi--music-note] mr-2 h-4 w-4"></span>
+              {{ $t('artistPage.tabs.hotSongs') }}
+              <span class="ml-1 text-xs text-primary/40">({{ state.songs.length }})</span>
               <div
-                v-else
-                class="flex h-full w-full items-center justify-center rounded-full bg-linear-to-br from-pink-400 to-purple-500"
+                v-if="state.activeTab === 'songs'"
+                class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
+              ></div>
+            </button>
+            <button
+              class="relative px-2 pb-4 text-base font-medium transition-all"
+              :class="state.activeTab === 'albums' ? 'text-primary' : 'text-primary/50 hover:text-primary/80'"
+              @click="state.activeTab = 'albums'"
+            >
+              <span class="icon-[mdi--album] mr-2 h-4 w-4"></span>
+              {{ $t('artistPage.tabs.albums') }}
+              <span class="ml-1 text-xs text-primary/40">({{ state.albums.length }})</span>
+              <div
+                v-if="state.activeTab === 'albums'"
+                class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
+              ></div>
+            </button>
+          </div>
+
+          <div v-show="state.activeTab === 'songs'" class="animate-fade-in">
+            <SongList
+              class="max-h-[50vh]"
+              :songs="state.songs"
+              :current-playing-index="-1"
+              :show-header="true"
+            />
+          </div>
+
+          <div v-show="state.activeTab === 'albums'" class="animate-fade-in">
+            <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              <div
+                v-for="al in state.albums"
+                :key="al.id"
+                class="glass-card group cursor-pointer overflow-hidden p-3 transition-all hover:bg-white/10"
+                @click="router.push(`/album/${al.id}`)"
               >
-                <span class="icon-[mdi--account-music] h-12 w-12"></span>
-              </div>
-            </div>
-            <div>
-              <h1 class="text-3xl font-bold">{{ state.info.name }}</h1>
-              <p v-if="state.info.alias?.length" class="mt-1 text-sm text-primary/60">
-                {{ state.info.alias.join(' / ') }}
-              </p>
-              <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-primary/80">
-                <span class="glass-button px-3 py-1">
-                  <span class="icon-[mdi--music-note] mr-1 h-4 w-4"></span>
-                  {{ state.info.musicSize }} 歌曲
-                </span>
-                <span class="glass-button px-3 py-1">
-                  <span class="icon-[mdi--album] mr-1 h-4 w-4"></span>
-                  {{ state.info.albumSize }} 专辑
-                </span>
-                <span class="glass-button px-3 py-1">
-                  <span class="icon-[mdi--video] mr-1 h-4 w-4"></span>
-                  {{ state.info.mvSize }} MV
-                </span>
-                <span v-if="state.info.fansCount" class="glass-button px-3 py-1">
-                  <span class="icon-[mdi--account-group] mr-1 h-4 w-4"></span>
-                  {{ formatCount(state.info.fansCount) }} 粉丝
-                </span>
+                <div class="relative mb-3 aspect-square w-full overflow-hidden rounded-xl">
+                  <img
+                    :src="al.picUrl + '?param=400y400'"
+                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
+                    <span class="icon-[mdi--play-circle] h-12 w-12 text-white"></span>
+                  </div>
+                </div>
+                <p class="truncate text-sm font-medium">{{ al.name }}</p>
+                <p class="mt-1 truncate text-xs text-primary/50">{{ al.publishTime }} · {{ $t('commonUnits.songsShort', al.size) }}</p>
               </div>
             </div>
           </div>
-          <div class="ml-auto flex items-center gap-3">
-            <button
-              class="glass-button bg-linear-to-r from-pink-500 to-purple-600 px-6 py-2.5 text-sm font-medium"
-              @click="playAll"
-            >
-              <span class="icon-[mdi--play] mr-2 h-5 w-5"></span> 播放热门
-            </button>
-            <button class="glass-button px-5 py-2.5 text-sm" @click="shufflePlay">
-              <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span> 随机播放
-            </button>
-            <button
-              class="glass-button px-5 py-2.5 text-sm"
-              :class="state.followed ? 'from-pink-500/20 to-purple-600/20' : ''"
-              @click="toggleFollow"
-            >
-              <span
-                :class="state.followed ? 'icon-[mdi--account-check]' : 'icon-[mdi--account-plus]'"
-                class="mr-2 h-4 w-4"
-              ></span>
-              {{ state.followed ? '已关注' : '关注' }}
-            </button>
-          </div>
         </div>
-      </div>
-
-      <div class="p-6">
-        <div v-if="state.info.briefDesc" class="glass-card mb-6 p-4">
-          <h3 class="mb-2 text-sm font-semibold">艺人简介</h3>
-          <p class="line-clamp-3 text-sm text-primary/80">{{ state.info.briefDesc }}</p>
-        </div>
-
-        <h2 class="mb-3 text-lg font-semibold">热门歌曲</h2>
-        <PageSkeleton v-if="state.loading" :sections="['list']" :list-count="12" />
-        <SongList
-          v-else
-          class="h-[50vh]!"
-          :songs="state.songs"
-          :current-playing-index="-1"
-          :show-header="true"
-        />
-
-        <h2 class="mt-8 mb-3 text-lg font-semibold">专辑</h2>
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-          <div
-            v-for="al in state.albums"
-            :key="al.id"
-            class="glass-card group cursor-pointer p-3"
-            @click="router.push(`/album/${al.id}`)"
-          >
-            <div class="mb-2 aspect-square w-full overflow-hidden rounded-xl">
-              <img
-                :src="al.picUrl + '?param=400y400'"
-                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-            </div>
-            <p class="truncate text-sm font-medium">{{ al.name }}</p>
-            <p class="truncate text-xs text-primary/60">{{ al.publishTime }} · {{ al.size }}首</p>
-          </div>
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes noteFloat {
+  0% {
+    transform: translateY(100%) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.floating-notes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.note {
+  position: absolute;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.15);
+  animation: noteFloat 15s linear infinite;
+}
+
+.note:nth-child(1) { left: 5%; animation-duration: 14s; }
+.note:nth-child(2) { left: 20%; animation-duration: 16s; }
+.note:nth-child(3) { left: 40%; animation-duration: 12s; }
+.note:nth-child(4) { left: 60%; animation-duration: 18s; }
+.note:nth-child(5) { left: 75%; animation-duration: 13s; }
+.note:nth-child(6) { left: 90%; animation-duration: 15s; }
+</style>

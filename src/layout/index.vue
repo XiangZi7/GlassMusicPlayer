@@ -8,6 +8,7 @@ import ColorBends from '@/components/Background/ColorBends.vue'
 import Ultimate from '@/components/Background/Ultimate.vue'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
+import type { Component } from 'vue'
 import { useSettingsStore } from '@/stores/modules/settings'
 
 const settings = useSettingsStore()
@@ -33,30 +34,41 @@ const positions = computed(() => {
 const openPlayerDrawer = () => {
   state.isDrawerOpen = true
 }
+
+type BackgroundType = 'colorbends' | 'ultimate' | 'aurora'
+
+const backgroundComponents: Record<BackgroundType, Component> = {
+  colorbends: ColorBends,
+  ultimate: Ultimate,
+  aurora: Aurora,
+}
+
+const backgroundPropsMap = computed<Record<BackgroundType, any>>(() => ({
+  colorbends: colorBends.value,
+  ultimate: ultimate.value,
+  aurora: {
+    ...aurora.value,
+    colorPositions: positions.value,
+    colorStops: colorStops.value,
+  },
+}))
+
+const currentBackgroundType = computed<BackgroundType>(() => backgroundType.value as BackgroundType)
+
+const currentBackgroundComponent = computed<Component>(
+  () => backgroundComponents[currentBackgroundType.value]
+)
+const currentBackgroundProps = computed(
+  () => backgroundPropsMap.value[currentBackgroundType.value]
+)
 </script>
 
 <template>
   <div class="relative flex h-full w-full overflow-hidden">
     <div class="custom-theme absolute inset-0 h-full w-full">
       <component
-        :is="
-          backgroundType === 'colorbends'
-            ? ColorBends
-            : backgroundType === 'ultimate'
-              ? Ultimate
-              : Aurora
-        "
-        v-bind="
-          backgroundType === 'colorbends'
-            ? colorBends
-            : backgroundType === 'ultimate'
-              ? ultimate
-              : {
-                  ...aurora,
-                  colorPositions: positions,
-                  colorStops: colorStops,
-                }
-        "
+        :is="currentBackgroundComponent"
+        v-bind="currentBackgroundProps"
         class="h-full w-full"
       />
     </div>

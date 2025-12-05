@@ -25,14 +25,20 @@ export interface PlaylistItem {
   id: number | string
   // 歌单名称
   name: string
-  // 曲目数量
+  // 播放量
   count: number
+  // 曲目数量
+  trackCount?: number
   // 表情图标
   emoji: string
   // Tailwind 渐变类名
   gradient: string
   // 封面地址
   coverImgUrl: string
+  // 创建者名称
+  creatorName?: string
+  // 描述
+  description?: string
 }
 
 export interface SongItem {

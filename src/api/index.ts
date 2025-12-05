@@ -138,6 +138,10 @@ export const topPlaylist = (params: {
 
 export const topSong = (params: { type: 0 | 7 | 96 | 8 | 16 }) => httpGet('/top/song', params)
 
+export const toplist = () => httpGet('/toplist')
+
+export const toplistDetail = () => httpGet('/toplist/detail')
+
 export const recordRecentSong = (params?: { limit?: number }) =>
   httpGet('/record/recent/song', params)
 
@@ -181,3 +185,14 @@ export const artistAlbum = (params: { id: number; limit?: number; offset?: numbe
 export const artistDesc = (params: { id: number }) => httpGet('/artist/desc', params)
 export const artistMv = (params: { id: number; limit?: number; offset?: number }) =>
   httpGet('/artist/mv', params)
+
+export const albumNew = (params?: { area?: 'ALL' | 'ZH' | 'EA' | 'KR' | 'JP'; limit?: number; offset?: number }) =>
+  httpGet('/album/new', params)
+
+export const albumNewest = () => httpGet('/album/newest')
+
+export const recommendSongs = () => httpGet('/recommend/songs')
+
+export const recommendResource = () => httpGet('/recommend/resource')
+
+export const personalFm = () => httpGet('/personal_fm')

@@ -11,10 +11,7 @@ const routerMode = {
 
 // 响应式组件工厂：根据窗口宽度在桌面端与移动端组件之间切换
 // desktopLoader 与 mobileLoader 为对应组件的动态导入函数
-const responsive = (
-  desktopLoader: () => Promise<any>,
-  mobileLoader: () => Promise<any>,
-) =>
+const responsive = (desktopLoader: () => Promise<any>, mobileLoader: () => Promise<any>) =>
   defineComponent({
     name: 'ResponsiveRouteComponent',
     setup() {
@@ -37,7 +34,7 @@ const router = createRouter({
       // 布局层：根据尺寸切换桌面与移动端布局
       component: responsive(
         () => import('@/layout/index.vue'),
-        () => import('@/layout/mobile/index.vue'),
+        () => import('@/layout/mobile/index.vue')
       ),
       children: [
         {
@@ -45,7 +42,7 @@ const router = createRouter({
           name: 'home',
           component: responsive(
             () => import('@/pages/index.vue'),
-            () => import('@/pages/mobile/index.vue'),
+            () => import('@/pages/mobile/index.vue')
           ),
         },
         {
@@ -53,7 +50,7 @@ const router = createRouter({
           name: 'playlist',
           component: responsive(
             () => import('@/pages/playlist.vue'),
-            () => import('@/pages/mobile/playlist.vue'),
+            () => import('@/pages/mobile/playlist.vue')
           ),
         },
         {
@@ -61,7 +58,7 @@ const router = createRouter({
           name: 'mv-list',
           component: responsive(
             () => import('@/pages/mv-list.vue'),
-            () => import('@/pages/mobile/mv-list.vue'),
+            () => import('@/pages/mobile/mv-list.vue')
           ),
         },
         {
@@ -69,7 +66,7 @@ const router = createRouter({
           name: 'mv-player',
           component: responsive(
             () => import('@/pages/mv-player.vue'),
-            () => import('@/pages/mobile/mv-player.vue'),
+            () => import('@/pages/mobile/mv-player.vue')
           ),
         },
         {
@@ -77,7 +74,15 @@ const router = createRouter({
           name: 'recent',
           component: responsive(
             () => import('@/pages/recent.vue'),
-            () => import('@/pages/mobile/recent.vue'),
+            () => import('@/pages/mobile/recent.vue')
+          ),
+        },
+        {
+          path: '/my-music',
+          name: 'my-music',
+          component: responsive(
+            () => import('@/pages/my-music.vue'),
+            () => import('@/pages/mobile/recent.vue')
           ),
         },
         {
@@ -85,20 +90,15 @@ const router = createRouter({
           name: 'likes',
           component: responsive(
             () => import('@/pages/likes.vue'),
-            () => import('@/pages/mobile/likes.vue'),
+            () => import('@/pages/mobile/likes.vue')
           ),
-        },
-        {
-          path: '/discover',
-          name: 'discover',
-          component: () => import('@/pages/discover.vue'),
         },
         {
           path: '/search',
           name: 'search',
           component: responsive(
             () => import('@/pages/search.vue'),
-            () => import('@/pages/mobile/search.vue'),
+            () => import('@/pages/mobile/search.vue')
           ),
         },
         {
@@ -106,7 +106,23 @@ const router = createRouter({
           name: 'charts',
           component: responsive(
             () => import('@/pages/charts.vue'),
-            () => import('@/pages/mobile/charts.vue'),
+            () => import('@/pages/mobile/charts.vue')
+          ),
+        },
+        {
+          path: '/artists',
+          name: 'artists',
+          component: responsive(
+            () => import('@/pages/artists.vue'),
+            () => import('@/pages/artists.vue')
+          ),
+        },
+        {
+          path: '/new-albums',
+          name: 'new-albums',
+          component: responsive(
+            () => import('@/pages/new-albums.vue'),
+            () => import('@/pages/new-albums.vue')
           ),
         },
         {
@@ -114,7 +130,7 @@ const router = createRouter({
           name: 'artist',
           component: responsive(
             () => import('@/pages/artist.vue'),
-            () => import('@/pages/mobile/artist.vue'),
+            () => import('@/pages/mobile/artist.vue')
           ),
         },
         {
@@ -122,7 +138,7 @@ const router = createRouter({
           name: 'song',
           component: responsive(
             () => import('@/pages/song.vue'),
-            () => import('@/pages/mobile/song.vue'),
+            () => import('@/pages/mobile/song.vue')
           ),
         },
         {
@@ -130,7 +146,7 @@ const router = createRouter({
           name: 'album',
           component: responsive(
             () => import('@/pages/album.vue'),
-            () => import('@/pages/mobile/album.vue'),
+            () => import('@/pages/mobile/album.vue')
           ),
         },
         {
@@ -138,7 +154,7 @@ const router = createRouter({
           name: 'settings',
           component: responsive(
             () => import('@/pages/settings.vue'),
-            () => import('@/pages/mobile/settings.vue'),
+            () => import('@/pages/mobile/settings.vue')
           ),
         },
       ],

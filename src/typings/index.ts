@@ -3,8 +3,10 @@ export interface PlaylistInfo {
   name: string
   description: string
   creator: string
+  creatorAvatar?: string
   createTime: string
   songCount: number
+  playCount?: number
   likes: string
   category: string
   emoji?: string
@@ -49,6 +51,7 @@ export interface MVInfo {
   id: number
   title: string
   artist: string
+  artistId?: number
   duration: number
   cover: string
   playCount: string

@@ -1,97 +1,107 @@
 <script setup lang="ts"></script>
 <template>
-  <!-- 顶部区域骨架 -->
-  <div class="grid grid-cols-12 gap-5 p-6">
-    <!-- 主轮播图骨架 -->
-    <section class="col-span-12 lg:col-span-8">
-      <div class="relative h-72 overflow-hidden rounded-2xl xl:h-80">
-        <div class="absolute inset-0 animate-shimmer bg-white/10"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-6">
-          <div class="mb-2 h-6 w-20 rounded-full bg-white/20"></div>
-          <div class="mb-3 h-7 w-64 rounded bg-white/20 lg:w-80"></div>
-          <div class="h-9 w-24 rounded-full bg-white/20"></div>
+  <div class="space-y-8 p-6 lg:p-8">
+    <section>
+      <div class="overflow-hidden rounded-3xl bg-white/5">
+        <div class="aspect-[2.1/0.5] relative">
+          <div class="absolute inset-0 animate-shimmer"></div>
+          <div class="absolute right-0 bottom-0 left-0 p-6">
+            <div class="mb-3 h-6 w-24 rounded-full bg-white/10"></div>
+            <div class="h-8 w-80 rounded-lg bg-white/15"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-5 flex justify-center gap-2">
+        <span class="h-2.5 w-6 rounded-full bg-white/20"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-white/30"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+      </div>
+    </section>
+
+    <section>
+      <div class="mb-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-[10px] bg-white/10"></div>
+          <div class="h-6 w-32 rounded bg-white/15"></div>
+        </div>
+        <div class="h-4 w-16 rounded bg-white/10"></div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
+        <div v-for="i in 10" :key="i" class="group">
+          <div class="relative aspect-square overflow-hidden rounded-2xl shadow-lg bg-white/10">
+            <div class="absolute inset-0 animate-shimmer"></div>
+            <div class="absolute right-0 bottom-0 left-0 p-2.5">
+              <div class="mb-2 h-3.5 w-3/4 rounded bg-white/15"></div>
+              <div class="flex items-center gap-1.5">
+                <div class="h-3 w-12 rounded bg-white/10"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 快捷入口骨架 -->
-    <section class="col-span-12 grid grid-cols-2 gap-3 lg:col-span-4 lg:grid-cols-1">
-      <div v-for="i in 4" :key="i" class="glass-card flex h-full items-center gap-4 p-4">
-        <div class="h-12 w-12 shrink-0 rounded-xl bg-white/10 animate-shimmer"></div>
-        <div class="flex-1">
-          <div class="mb-2 h-4 w-20 rounded bg-white/15"></div>
-          <div class="h-3 w-16 rounded bg-white/10"></div>
+    <section>
+      <div class="mb-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-[10px] bg-white/10"></div>
+          <div class="h-6 w-32 rounded bg-white/15"></div>
+        </div>
+        <div class="h-4 w-16 rounded bg-white/10"></div>
+      </div>
+      <div class="grid grid-cols-4 gap-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
+        <div v-for="i in 12" :key="i" class="flex flex-col items-center">
+          <div class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-(--glass-border) bg-white/10">
+            <div class="absolute inset-0 animate-shimmer"></div>
+          </div>
+          <div class="h-3.5 w-2/3 rounded bg-white/15"></div>
         </div>
       </div>
     </section>
-  </div>
 
-  <!-- 推荐歌单骨架 -->
-  <section class="px-6 pb-6">
-    <div class="mb-4 flex items-center justify-between">
-      <div class="flex items-center gap-3 text-lg font-bold text-primary">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/20 to-rose-500/20">
-          <span class="icon-[mdi--playlist-music] h-5 w-5 text-pink-400"></span>
-        </span>
-        {{ $t('home.recommendPlaylists') }}
-      </div>
-      <div class="h-4 w-16 rounded bg-white/10"></div>
-    </div>
-    <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-      <div v-for="i in 7" :key="i" class="group">
-        <div class="relative mb-2 aspect-square overflow-hidden rounded-xl bg-white/10 animate-shimmer shadow-lg"></div>
-        <div class="mb-1.5 h-4 w-full rounded bg-white/15"></div>
-        <div class="h-4 w-2/3 rounded bg-white/10"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 热门歌曲 + 更多歌单 双栏骨架 -->
-  <div class="grid grid-cols-12 gap-5 px-6 pb-8">
-    <!-- 热门歌曲骨架 -->
-    <section class="col-span-12 lg:col-span-7">
-      <div class="mb-4 flex items-center justify-between">
-        <div class="flex items-center gap-3 text-lg font-bold text-primary">
-          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500/20 to-amber-500/20">
-            <span class="icon-[mdi--fire] h-5 w-5 text-orange-400"></span>
-          </span>
-          {{ $t('home.hotSongs') }}
+    <section>
+      <div class="mb-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-[10px] bg-white/10"></div>
+          <div class="h-6 w-32 rounded bg-white/15"></div>
         </div>
         <div class="h-4 w-16 rounded bg-white/10"></div>
       </div>
       <div class="glass-card overflow-hidden">
-        <div class="space-y-1 p-2">
-          <div v-for="i in 8" :key="i" class="flex items-center gap-4 rounded-xl p-2">
-            <div class="h-5 w-8 rounded bg-white/10"></div>
-            <div class="h-12 w-12 rounded-lg bg-white/10 animate-shimmer"></div>
-            <div class="flex-1">
-              <div class="mb-2 h-4 w-1/3 rounded bg-white/15"></div>
-              <div class="h-3 w-1/4 rounded bg-white/10"></div>
+        <div class="grid md:grid-cols-2">
+          <div v-for="i in 12" :key="i" class="flex items-center gap-4 border-b border-white/10 p-4">
+            <div class="h-7 w-7 rounded-lg bg-white/10"></div>
+            <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white/10">
+              <div class="absolute inset-0 animate-shimmer"></div>
             </div>
-            <div class="hidden h-3 w-20 rounded bg-white/10 md:block"></div>
-            <div class="hidden h-3 w-16 rounded bg-white/10 md:block"></div>
+            <div class="min-w-0 flex-1">
+              <div class="mb-1.5 h-4 w-2/3 rounded bg-white/15"></div>
+              <div class="h-3 w-1/3 rounded bg-white/10"></div>
+            </div>
+            <div class="h-3 w-10 rounded bg-white/10"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 更多歌单骨架 -->
-    <section class="col-span-12 lg:col-span-5">
-      <div class="mb-4 flex items-center gap-3 text-lg font-bold text-primary">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20">
-          <span class="icon-[mdi--music-box-multiple] h-5 w-5 text-violet-400"></span>
-        </span>
-        {{ $t('home.morePlaylists') || '更多歌单' }}
+    <section>
+      <div class="mb-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-[10px] bg-white/10"></div>
+          <div class="h-6 w-32 rounded bg-white/15"></div>
+        </div>
+        <div class="h-4 w-16 rounded bg-white/10"></div>
       </div>
-      <div class="space-y-3">
-        <div v-for="i in 5" :key="i" class="glass-card flex items-center gap-4 p-3">
-          <div class="h-14 w-14 shrink-0 rounded-lg bg-white/10 animate-shimmer"></div>
-          <div class="flex-1">
-            <div class="mb-2 h-4 w-3/4 rounded bg-white/15"></div>
-            <div class="h-3 w-16 rounded bg-white/10"></div>
+      <div class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div v-for="i in 6" :key="i" class="relative aspect-video overflow-hidden rounded-2xl bg-white/10">
+          <div class="absolute inset-0 animate-shimmer"></div>
+          <div class="absolute top-2 right-2 h-5 w-16 rounded-full bg-black/30"></div>
+          <div class="absolute right-0 bottom-0 left-0 p-3">
+            <div class="mb-1 h-4 w-1/2 rounded bg-white/15"></div>
+            <div class="h-3 w-1/3 rounded bg-white/10"></div>
           </div>
-          <div class="h-8 w-8 rounded-full bg-white/10"></div>
         </div>
       </div>
     </section>
