@@ -85,47 +85,7 @@ const downloadSong = (song: Song, index: number) => {
   }
 }
 
-/* 播放动画图标 */
-.playing-icon {
-  display: flex;
-  align-items: flex-end;
-  height: 16px;
-  width: 16px;
-  gap: 2px;
-  justify-content: center;
-}
 
-.bar {
-  width: 3px;
-  background-color: #f472b6; /* text-pink-400 */
-  height: 20%;
-  border-radius: 1px;
-  transition: height 0.2s ease;
-}
-
-.bar.animate {
-  animation: bounce 1s infinite ease-in-out;
-}
-
-.bar:nth-child(1) {
-  animation-delay: 0s;
-}
-.bar:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.bar:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    height: 20%;
-  }
-  50% {
-    height: 100%;
-  }
-}
 </style>
 <template>
   <div class="flex h-full flex-col overflow-hidden">

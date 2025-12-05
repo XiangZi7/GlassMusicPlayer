@@ -94,10 +94,11 @@ const handleClick = (s: Song, i: number) => {
       </div>
       <div class="flex shrink-0 items-center gap-2">
         <span class="song-duration text-xs">{{ formatDuration(song.duration) }}</span>
-        <span
-          v-if="isCurrent(song) && isPlaying"
-          class="icon-[mdi--equalizer] h-5 w-5 animate-pulse text-pink-400"
-        />
+        <div v-if="isCurrent(song)" class="playing-icon">
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -111,11 +112,11 @@ const handleClick = (s: Song, i: number) => {
       @click="handleClick(song, index)"
     >
       <div v-if="showIndex" class="w-6 shrink-0 text-center">
-        <span
-          v-if="isCurrent(song)"
-          class="icon-[mdi--equalizer] h-4 w-4 text-pink-400"
-          :class="isPlaying ? 'animate-pulse' : ''"
-        />
+        <div v-if="isCurrent(song)" class="playing-icon">
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+          <span class="bar" :class="{ animate: isPlaying }"></span>
+        </div>
         <span
           v-else
           class="song-index text-xs font-bold"
