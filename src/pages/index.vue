@@ -432,17 +432,4 @@ onMounted(() => {
   border-radius: 9999px;
   transition: all 0.3s ease;
 }
-
-.home-pagination :deep(.swiper-pagination-bullet-active) {
-  width: 24px;
-  background: linear-gradient(to right, var(--accent-from), var(--accent-to));
-}
-
-:global(html.dark) .home-pagination :deep(.swiper-pagination-bullet) {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-:global(html.dark) .home-pagination :deep(.swiper-pagination-bullet-active) {
-  background: linear-gradient(to right, var(--accent-from), var(--accent-to));
-}
 </style>
