@@ -134,6 +134,7 @@ export default {
       myMusic: '我的',
       repo: '项目仓库',
       movies: '影视网站',
+      projectDocs: '项目文档',
     },
     aside: {
       explore: '探索',

@@ -148,6 +148,7 @@ export default {
       myMusic: 'マイ',
       repo: 'リポジトリ',
       movies: 'ムービー',
+      projectDocs: 'ドキュメント',
     },
     aside: {
       explore: '探索',

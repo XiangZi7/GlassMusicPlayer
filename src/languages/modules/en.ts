@@ -144,6 +144,7 @@ export default {
       myMusic: 'My',
       repo: 'Repository',
       movies: 'Movies',
+      projectDocs: 'Documentation',
     },
     aside: {
       explore: 'Explore',

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { cloudSearch } from '@/api'
 import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
-
 interface Props {
   keywords: string
   limit?: number

@@ -145,6 +145,16 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           {{ t('layout.nav.movies') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </a>
+        <a
+          href="https://gmpd.netlify.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
+        >
+          <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
+          {{ t('layout.nav.projectDocs') }}
+          <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
+        </a>
       </nav>
     </div>
 
