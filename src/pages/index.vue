@@ -9,7 +9,8 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-coverflow'
-import { formatCount } from '@/utils/time'
+
+import { formatCount, formatDuration } from '@/utils/time'
 const { t } = useI18n()
 
 interface ArtistData {
@@ -38,21 +39,6 @@ const state = reactive({
 
 const { banners, recommendPlaylists, hotSongs, artists, mvs, isLoading } = toRefs(state)
 
-const gradients = [
-  'from-rose-500 to-pink-600',
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-emerald-500 to-teal-600',
-  'from-amber-500 to-orange-600',
-  'from-fuchsia-500 to-pink-600',
-]
-
-const formatDuration = (ms: number) => {
-  const m = Math.floor(ms / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
 const loadData = async () => {
   state.isLoading = true
   try {
@@ -68,7 +54,6 @@ const loadData = async () => {
     state.banners = bannerList.slice(0, 6).map((item: any, i: number) => ({
       title: item?.typeTitle || '',
       description: item?.title || '',
-      gradient: gradients[i % gradients.length],
       coverImgUrl: item?.imageUrl || '',
       url: item?.url || '',
     }))
@@ -79,8 +64,6 @@ const loadData = async () => {
       name: pl?.name || '',
       count: pl?.playCount || 0,
       trackCount: pl?.trackCount || 0,
-      emoji: '',
-      gradient: gradients[i % gradients.length],
       coverImgUrl: pl?.coverImgUrl || '',
       creatorName: pl?.creator?.nickname || '',
       description: pl?.description || '',
@@ -95,8 +78,6 @@ const loadData = async () => {
       album: it?.album?.name || '',
       albumId: it?.album?.id || 0,
       duration: it?.duration || 0,
-      emoji: '',
-      gradient: gradients[i % gradients.length],
       liked: false,
       cover: it?.album?.picUrl || '',
     }))
@@ -197,13 +178,13 @@ onMounted(() => {
               </span>
               {{ t('home.recommendPlaylists') }}
             </h2>
-            <router-link
+            <!-- <router-link
               to="/discover"
               class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
             >
               {{ t('common.viewAll') }}
               <span class="icon-[mdi--arrow-right] h-4 w-4" />
-            </router-link>
+            </router-link> -->
           </div>
           <div class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
             <router-link
@@ -424,6 +405,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 轮播图指示点样式 */
 .home-pagination :deep(.swiper-pagination-bullet) {
   width: 8px;
   height: 8px;
@@ -431,5 +413,12 @@ onMounted(() => {
   opacity: 1;
   border-radius: 9999px;
   transition: all 0.3s ease;
+}
+
+/* 轮播图激活指示点样式 */
+.home-pagination :deep(.swiper-pagination-bullet-active) {
+  width: 24px;
+  background: #ec4899; /* pink-500 */
+  border-radius: 4px;
 }
 </style>

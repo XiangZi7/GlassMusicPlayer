@@ -4,7 +4,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
-import { useNow, useOnline, useBattery } from '@vueuse/core'
+import { useNow, useOnline, useBattery, useEventListener } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useGlobalStore } from '@/stores/modules/global'
 
@@ -45,6 +45,10 @@ const state = reactive({
   lyricsScale: 1,
   isDragging: false,
   dragProgress: null as number | null,
+  showTimePreview: false,
+  previewTime: 0,
+  previewPosition: 0,
+  showMobileLyrics: false,
 })
 
 const {
@@ -56,6 +60,7 @@ const {
   isRecentOpen,
   isCommentsOpen,
   commentCount,
+  showMobileLyrics,
 } = toRefs(state)
 
 const {
@@ -64,6 +69,7 @@ const {
   isLoading,
   volume,
   currentTime,
+  duration,
   progress,
   playMode,
   togglePlay,
@@ -140,6 +146,12 @@ const toggleAutoScroll = () => {
   if (state.autoScroll) updateCurrentLyric(true)
 }
 
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 const handleTogglePlay = () => {
   togglePlay()
 }
@@ -159,6 +171,28 @@ const handleProgressClick = (event: MouseEvent) => {
   updateCurrentLyric()
 }
 
+const handleProgressHover = (event: MouseEvent) => {
+  if (!progressBarRef.value || !currentSong.value) return
+  const rect = progressBarRef.value.getBoundingClientRect()
+  const hoverX = event.clientX - rect.left
+  const hoverProgress = Math.max(0, Math.min(1, hoverX / rect.width))
+
+  let d = duration.value
+  if (!d && currentSong.value.duration) {
+    d = currentSong.value.duration
+    // 如果数值较大（大于10000），大概率是毫秒，转换为秒
+    if (d > 10000) d = d / 1000
+  }
+
+  state.previewTime = hoverProgress * d
+  state.previewPosition = hoverX
+  state.showTimePreview = true
+}
+
+const handleProgressLeave = () => {
+  state.showTimePreview = false
+}
+
 const handleProgressDrag = (event: MouseEvent) => {
   if (!state.isDragging || !progressBarRef.value) return
   event.preventDefault()
@@ -166,14 +200,24 @@ const handleProgressDrag = (event: MouseEvent) => {
   const clickX = event.clientX - rect.left
   const newProgress = (clickX / rect.width) * 100
   state.dragProgress = Math.max(0, Math.min(100, newProgress))
+
+  // 更新预览时间
+  if (currentSong.value) {
+    let d = duration.value
+    if (!d && currentSong.value.duration) {
+      d = currentSong.value.duration
+      // 如果数值较大（大于10000），大概率是毫秒，转换为秒
+      if (d > 10000) d = d / 1000
+    }
+    state.previewTime = (state.dragProgress / 100) * d
+    state.previewPosition = clickX
+  }
 }
 
 const startDrag = (event: MouseEvent) => {
   event.preventDefault()
   state.isDragging = true
   state.dragProgress = progress.value
-  document.addEventListener('mousemove', handleProgressDrag)
-  document.addEventListener('mouseup', stopDrag)
   document.body.style.userSelect = 'none'
 }
 
@@ -184,14 +228,30 @@ const stopDrag = () => {
   }
   state.isDragging = false
   state.dragProgress = null
-  document.removeEventListener('mousemove', handleProgressDrag)
-  document.removeEventListener('mouseup', stopDrag)
   document.body.style.userSelect = ''
 }
+
+useEventListener(document, 'mousemove', handleProgressDrag)
+useEventListener(document, 'mouseup', stopDrag)
 
 const displayProgress = computed(() => {
   return state.isDragging && state.dragProgress !== null ? state.dragProgress : progress.value
 })
+
+const previewPositionPercent = computed(() => {
+  if (state.isDragging) {
+    return displayProgress.value
+  }
+  if (!progressBarRef.value) return 0
+  const width = progressBarRef.value.getBoundingClientRect().width
+  return width > 0 ? (state.previewPosition / width) * 100 : 0
+})
+
+const handleAlbumCoverClick = () => {
+  if (!isLoading.value) {
+    togglePlay()
+  }
+}
 
 const seekToLyric = (index: number) => {
   const targetTime = timeForIndex(index) ?? 0
@@ -201,6 +261,7 @@ const seekToLyric = (index: number) => {
 }
 
 let albumRotationTween: gsap.core.Tween | null = null
+let bgBreathingTweens: gsap.core.Tween[] = []
 
 const startAlbumRotation = () => {
   if (albumCoverRef.value) {
@@ -218,6 +279,39 @@ const stopAlbumRotation = () => {
     albumRotationTween.kill()
     albumRotationTween = null
   }
+}
+
+const startBackgroundBreathing = () => {
+  stopBackgroundBreathing()
+
+  if (bgARef.value && parseFloat(getComputedStyle(bgARef.value).opacity) > 0) {
+    const tween = gsap.to(bgARef.value, {
+      scale: '+=0.05',
+      opacity: '+=0.05',
+      duration: 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+    })
+    bgBreathingTweens.push(tween)
+  }
+
+  if (bgBRef.value && parseFloat(getComputedStyle(bgBRef.value).opacity) > 0) {
+    const tween = gsap.to(bgBRef.value, {
+      scale: '+=0.05',
+      opacity: '+=0.05',
+      duration: 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+    })
+    bgBreathingTweens.push(tween)
+  }
+}
+
+const stopBackgroundBreathing = () => {
+  bgBreathingTweens.forEach(tween => tween.kill())
+  bgBreathingTweens = []
 }
 
 const loadCommentCount = async (songId?: number | string) => {
@@ -296,6 +390,11 @@ const setBackground = (url?: string) => {
         scale: 1.5,
         duration: 1.2,
         ease: 'power2.out',
+        onComplete: () => {
+          if (isPlaying.value && isOpen.value) {
+            startBackgroundBreathing()
+          }
+        },
       })
     }
     state.bgActive = 'A'
@@ -318,6 +417,11 @@ const setBackground = (url?: string) => {
       scale: 1.5,
       duration: 1.4,
       ease: 'power2.inOut',
+      onComplete: () => {
+        if (isPlaying.value && isOpen.value) {
+          startBackgroundBreathing()
+        }
+      },
     })
   }
   if (outgoingRef.value) {
@@ -392,10 +496,16 @@ watch(
       state.lyricsPositioned = false
       updateCurrentLyric(true)
       setBackground(currentSong.value?.cover)
-      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
+      if (isPlaying.value) {
+        startAlbumRotation()
+        startBackgroundBreathing()
+      } else {
+        stopAlbumRotation()
+        stopBackgroundBreathing()
+      }
     } else {
       closeDrawer()
-      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
+      stopBackgroundBreathing()
     }
   }
 )
@@ -403,7 +513,15 @@ watch(
 watch(
   isPlaying,
   playing => {
-    playing ? startAlbumRotation() : stopAlbumRotation()
+    if (playing) {
+      startAlbumRotation()
+      if (isOpen.value) {
+        startBackgroundBreathing()
+      }
+    } else {
+      stopAlbumRotation()
+      stopBackgroundBreathing()
+    }
   },
   { immediate: true }
 )
@@ -433,6 +551,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopAlbumRotation()
+  stopBackgroundBreathing()
 })
 </script>
 
@@ -512,6 +631,16 @@ onUnmounted(() => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          class="glass-toolbar flex items-center justify-center rounded-xl p-2 lg:hidden"
+          @click="state.showMobileLyrics = !state.showMobileLyrics"
+        >
+          <span
+            :class="state.showMobileLyrics ? 'icon-[mdi--album]' : 'icon-[mdi--text-box-outline]'"
+            class="h-5 w-5 text-white/80"
+          ></span>
+        </button>
+
         <div
           v-if="lyricsTrans.length || lyricsRoma.length"
           class="glass-toolbar hidden items-center gap-2 rounded-2xl p-1.5 lg:flex"
@@ -564,10 +693,12 @@ onUnmounted(() => {
 
     <div
       class="player-left-panel flex w-full flex-col items-center justify-center px-4 pt-20 pb-8 lg:w-1/2 lg:px-8 lg:pt-24 lg:pb-12"
+      :class="{ 'hidden lg:flex': state.showMobileLyrics }"
     >
       <div class="mb-4 flex flex-col items-center lg:mb-6">
         <div
-          class="album-wrapper relative mb-6 h-96 w-96"
+          class="album-wrapper relative mb-6 h-96 w-96 cursor-pointer"
+          @click="handleAlbumCoverClick"
         >
           <div
             ref="albumCoverRef"
@@ -592,16 +723,12 @@ onUnmounted(() => {
           >
             <div class="arm-pivot relative h-14 w-14 rounded-full shadow-xl"></div>
             <div class="arm-shaft mt-[-2px] h-44 w-3 rounded-full"></div>
-            <div
-              class="counterweight -mt-3 ml-1.5 h-8 w-8 rounded-full shadow-md"
-            ></div>
+            <div class="counterweight -mt-3 ml-1.5 h-8 w-8 rounded-full shadow-md"></div>
             <div class="headshell relative mt-1 h-12 w-20 rounded-md shadow-md">
               <div
                 class="cartridge absolute top-1/2 left-1/2 h-6 w-12 -translate-x-1/2 -translate-y-1/2 rounded-sm"
               ></div>
-              <div
-                class="stylus absolute top-full left-1/2 h-6 w-[2px] -translate-x-1/2"
-              ></div>
+              <div class="stylus absolute top-full left-1/2 h-6 w-[2px] -translate-x-1/2"></div>
             </div>
           </div>
         </div>
@@ -623,9 +750,25 @@ onUnmounted(() => {
         <div
           ref="progressBarRef"
           @click="handleProgressClick"
+          @mousemove="handleProgressHover"
+          @mouseleave="handleProgressLeave"
           class="progress-wrapper group relative h-6 cursor-pointer"
           @mousedown="startDrag"
         >
+          <!-- 时间预览提示 -->
+          <Transition name="fade">
+            <div
+              v-if="state.showTimePreview || state.isDragging"
+              class="time-preview absolute bottom-full mb-2 -translate-x-1/2 rounded-lg bg-black/80 px-3 py-1.5 text-xs whitespace-nowrap text-white shadow-lg backdrop-blur-sm"
+              :style="{ left: `${previewPositionPercent}%` }"
+            >
+              {{ formatTime(state.previewTime) }}
+              <div
+                class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black/80"
+              ></div>
+            </div>
+          </Transition>
+
           <div
             class="progress-track absolute top-1/2 right-0 left-0 h-1 -translate-y-1/2 rounded-full transition-all group-hover:h-1.5"
             :class="state.isDragging ? 'h-1.5' : ''"
@@ -719,6 +862,7 @@ onUnmounted(() => {
 
     <div
       class="player-right-panel hidden w-1/2 flex-col px-6 pt-20 pb-8 lg:flex lg:px-8 lg:pt-24 lg:pb-12"
+      :class="{ '!flex w-full': state.showMobileLyrics }"
     >
       <div class="lyrics-container relative h-full flex-1 overflow-hidden">
         <div
@@ -1068,5 +1212,20 @@ onUnmounted(() => {
   .player-left-panel {
     width: 100%;
   }
+}
+
+.time-preview {
+  pointer-events: none;
+  z-index: 100;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

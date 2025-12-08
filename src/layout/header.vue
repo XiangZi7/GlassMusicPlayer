@@ -95,7 +95,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
       <!-- 导航菜单 -->
       <nav class="hidden items-center space-x-2 md:flex">
-        <RouterLink
+        <!-- <RouterLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
@@ -106,16 +106,17 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           ]"
         >
           {{ t(item.labelKey) }}
-        </RouterLink>
+        </RouterLink> -->
         <button
-          class="text-primary flex cursor-pointer items-center p-2"
+          class="text-primary glass-button flex cursor-pointer items-center p-2"
           aria-label="back"
           @click="router.back()"
         >
           <span class="icon-[mdi--chevron-left] h-5 w-5"></span>
         </button>
+
         <button
-          class="text-primary flex cursor-pointer items-center p-2"
+          class="text-primary glass-button flex cursor-pointer items-center p-2"
           aria-label="forward"
           @click="router.forward()"
         >
@@ -199,7 +200,13 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- 主题切换 -->
       <button
         class="glass-button text-primary flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg"
-        :title="theme === 'system' ? t('components.settings.themeOptions.system') : theme === 'dark' ? t('components.settings.themeOptions.dark') : t('components.settings.themeOptions.light')"
+        :title="
+          theme === 'system'
+            ? t('components.settings.themeOptions.system')
+            : theme === 'dark'
+              ? t('components.settings.themeOptions.dark')
+              : t('components.settings.themeOptions.light')
+        "
         @click="cycleTheme"
       >
         <span :class="[themeIcon, 'h-5 w-5 transition-transform duration-300']"></span>

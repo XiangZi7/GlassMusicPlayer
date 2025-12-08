@@ -12,8 +12,6 @@ export interface BannerItem {
   title: string
   // 描述文案
   description: string
-  // Tailwind 渐变类名
-  gradient: string
   // 封面地址
   coverImgUrl: string
   // 跳转链接
@@ -29,10 +27,6 @@ export interface PlaylistItem {
   count: number
   // 曲目数量
   trackCount?: number
-  // 表情图标
-  emoji: string
-  // Tailwind 渐变类名
-  gradient: string
   // 封面地址
   coverImgUrl: string
   // 创建者名称
