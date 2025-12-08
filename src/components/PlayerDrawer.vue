@@ -60,7 +60,6 @@ const {
   isRecentOpen,
   isCommentsOpen,
   commentCount,
-  showMobileLyrics,
 } = toRefs(state)
 
 const {
@@ -862,7 +861,7 @@ onUnmounted(() => {
 
     <div
       class="player-right-panel hidden w-1/2 flex-col px-6 pt-20 pb-8 lg:flex lg:px-8 lg:pt-24 lg:pb-12"
-      :class="{ '!flex w-full': state.showMobileLyrics }"
+      :class="{ 'flex! w-full': state.showMobileLyrics }"
     >
       <div class="lyrics-container relative h-full flex-1 overflow-hidden">
         <div
