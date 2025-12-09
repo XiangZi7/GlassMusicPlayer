@@ -5,6 +5,9 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import { useI18n } from 'vue-i18n'
+import MusicProgress from '@/components/Ui/MusicProgress.vue'
+import VolumeControlMobile from '@/components/Mobile/VolumeControlMobile.vue'
+import PlaylistDrawerMobile from '@/components/Mobile/PlaylistDrawerMobile.vue'
 
 // 国际化文本函数
 const { t } = useI18n()
@@ -103,16 +106,11 @@ const {
   currentSong,
   isPlaying,
   isLoading,
-  volume,
   currentTime,
-  progress,
   playMode,
   togglePlay,
   next,
   previous,
-  setVolume,
-  toggleMute,
-  setProgress,
   setCurrentTime,
   formattedCurrentTime,
   formattedDuration,
@@ -260,16 +258,6 @@ const handleLyricsTouchEnd = () => {
   lyricDragMoved.value = false
 }
 
-// 点击进度条跳转：根据点击位置换算进度百分比
-const handleProgressClick = (event: MouseEvent) => {
-  const progressBar = event.currentTarget as HTMLElement
-  const rect = progressBar.getBoundingClientRect()
-  const clickX = event.clientX - rect.left
-  const newProgress = (clickX / rect.width) * 100
-  setProgress(Math.max(0, Math.min(100, newProgress)))
-  updateCurrentLyric()
-}
-
 // 动画相关
 // 专辑封面旋转动画实例（用于启动/停止控制）
 let albumRotationTween: gsap.core.Tween | null = null
@@ -277,8 +265,9 @@ let albumRotationTween: gsap.core.Tween | null = null
 // 开始封面旋转动画（无限匀速旋转）
 const startAlbumRotation = () => {
   if (albumCoverRef.value) {
+    if (albumRotationTween) albumRotationTween.kill()
     albumRotationTween = gsap.to(albumCoverRef.value, {
-      rotation: 360,
+      rotation: '+=360',
       duration: 10,
       repeat: -1,
       ease: 'none',
@@ -528,7 +517,7 @@ const playModeIcon = computed(() => {
   <div
     v-if="isRendered"
     ref="drawerRef"
-    class="fixed inset-0 z-9999 flex flex-col bg-overlay/95 backdrop-blur-xl"
+    class="bg-overlay/95 fixed inset-0 z-9999 flex flex-col backdrop-blur-xl"
   >
     <!-- 封面模糊背景（可切换启用） -->
     <div v-show="useCoverBg" class="absolute inset-0 -z-10 overflow-hidden">
@@ -542,7 +531,7 @@ const playModeIcon = computed(() => {
         class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
         :style="bgBUrl ? { backgroundImage: `url(${bgBUrl})` } : {}"
       ></div>
-      <div class="absolute inset-0 bg-overlay/30"></div>
+      <div class="bg-overlay/30 absolute inset-0"></div>
     </div>
 
     <!-- 顶部栏：返回、标题、副工具按钮 -->
@@ -551,18 +540,18 @@ const playModeIcon = computed(() => {
         class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
         @click="isOpen = false"
       >
-        <span class="icon-[mdi--chevron-down] h-7 w-7 text-primary/90"></span>
+        <span class="icon-[mdi--chevron-down] text-primary/90 h-7 w-7"></span>
       </button>
 
       <div class="flex flex-col items-center">
-        <span class="text-xs text-primary/50">{{ t('player.nowPlaying') }}</span>
+        <span class="text-primary/50 text-xs">{{ t('player.nowPlaying') }}</span>
       </div>
 
       <button
         class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
         @click="showToolbar = !showToolbar"
       >
-        <span class="icon-[mdi--dots-horizontal] h-6 w-6 text-primary/90"></span>
+        <span class="icon-[mdi--dots-horizontal] text-primary/90 h-6 w-6"></span>
       </button>
     </div>
 
@@ -576,24 +565,7 @@ const playModeIcon = computed(() => {
           <span class="icon-[mdi--autorenew] h-5 w-5"></span>
           <span>{{ t('player.autoCenter') }}</span>
         </button>
-        <button
-          v-if="lyricsTrans.length"
-          class="toolbar-btn"
-          :class="{ active: showTrans }"
-          @click="toggleTransBtn"
-        >
-          <span class="icon-[mdi--translate] h-5 w-5"></span>
-          <span>{{ t('player.translate') }}</span>
-        </button>
-        <button
-          v-if="lyricsRoma.length"
-          class="toolbar-btn"
-          :class="{ active: showRoma }"
-          @click="toggleRomaBtn"
-        >
-          <span class="icon-[mdi--alphabetical] h-5 w-5"></span>
-          <span>{{ t('player.roma') }}</span>
-        </button>
+
         <button class="toolbar-btn" @click="useCoverBg = !useCoverBg">
           <span
             :class="useCoverBg ? 'icon-[mdi--image]' : 'icon-[mdi--image-off]'"
@@ -614,22 +586,22 @@ const playModeIcon = computed(() => {
 
     <!-- 中心展示区：封面或歌词 -->
     <div
-      class="flex flex-1 items-center justify-center overflow-hidden px-6"
+      class="flex flex-1 flex-col items-center justify-center overflow-hidden px-6"
       @touchstart="handleCenterTouchStart"
       @touchend="handleCenterTouchEnd"
     >
       <div
         v-show="!showLyrics"
-        class="album-area flex flex-col items-center"
+        class="album-area flex h-full w-full flex-col items-center justify-center"
         @click.stop="handleShowLyricsClick"
       >
-        <div class="album-wrapper relative mb-6">
+        <div class="album-wrapper relative mb-8">
           <div
             ref="albumCoverRef"
-            class="vinyl-disc relative aspect-square w-80 overflow-hidden rounded-full shadow-2xl"
+            class="vinyl-disc relative aspect-square w-[65vw] max-w-[280px] overflow-hidden rounded-full shadow-2xl"
           >
             <div
-              class="vinyl-label absolute top-1/2 left-1/2 h-56 w-56 -translate-1/2 rounded-full bg-cover bg-center"
+              class="vinyl-label absolute top-1/2 left-1/2 h-[65%] w-[65%] -translate-1/2 rounded-full bg-cover bg-center"
               :style="{
                 backgroundImage: currentSong?.cover
                   ? `url(${currentSong.cover})`
@@ -645,33 +617,69 @@ const playModeIcon = computed(() => {
             class="tonearm absolute -top-8 -right-4 z-10 origin-top-left transition-transform duration-500 ease-out"
             :class="isPlaying ? 'rotate-6' : 'rotate-[-18deg]'"
           >
-            <div class="arm-pivot relative h-10 w-10 rounded-full"></div>
-            <div class="arm-shaft -mt-px h-36 w-2 rounded-full"></div>
-            <div class="counterweight -mt-2 ml-2 h-6 w-6 rounded-full"></div>
-            <div class="headshell relative mt-0.5 h-8 w-12 rounded-md">
+            <div class="arm-pivot relative h-8 w-8 rounded-full"></div>
+            <div class="arm-shaft -mt-px h-28 w-2 rounded-full"></div>
+            <div class="counterweight -mt-2 ml-2 h-5 w-5 rounded-full"></div>
+            <div class="headshell relative mt-0.5 h-6 w-9 rounded-md">
               <div
-                class="cartridge absolute top-1/2 left-1/2 h-4 w-8 -translate-x-1/2 -translate-y-1/2 rounded-sm"
+                class="cartridge absolute top-1/2 left-1/2 h-3 w-6 -translate-x-1/2 -translate-y-1/2 rounded-sm"
               ></div>
-              <div class="stylus absolute top-full left-1/2 h-4 w-[2px] -translate-x-1/2"></div>
+              <div class="stylus absolute top-full left-1/2 h-3 w-[2px] -translate-x-1/2"></div>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 text-center">
-          <h2 class="text-2xl font-bold text-primary">
+        <div class="w-full px-6 text-center">
+          <h2 class="text-primary line-clamp-1 text-xl font-bold">
             {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="mt-2 text-base text-primary/60">
+          <p class="text-primary/60 mt-2 line-clamp-1 text-base">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
         </div>
+
+        <!-- 迷你歌词展示 -->
+        <div class="mt-5 flex min-h-12 w-full flex-col items-center justify-center px-4">
+          <p
+            class="text-primary/80 text-center text-base font-medium transition-all duration-300"
+            :class="{ 'opacity-0': !activeSingleLyrics[currentLyricIndex]?.ori }"
+          >
+            {{ activeSingleLyrics[currentLyricIndex]?.ori || '...' }}
+          </p>
+          <p
+            v-if="showTrans && activeSingleLyrics[currentLyricIndex]?.tran"
+            class="text-primary/60 mt-1 text-center text-sm"
+          >
+            {{ activeSingleLyrics[currentLyricIndex]?.tran }}
+          </p>
+          <p
+            v-if="showRoma && activeSingleLyrics[currentLyricIndex]?.roma"
+            class="text-primary/60 mt-1 text-center text-sm"
+          >
+            {{ activeSingleLyrics[currentLyricIndex]?.roma }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 歌词页顶部信息：歌名与歌手 -->
+      <div
+        v-show="showLyrics"
+        class="z-10 w-full shrink-0 py-4 text-center"
+        @click="showLyrics = false"
+      >
+        <h2 class="text-primary truncate px-4 text-xl font-bold">
+          {{ currentSong?.name || t('player.unknownSong') }}
+        </h2>
+        <p class="text-primary/60 mt-1 truncate px-4 text-sm">
+          {{ currentSong?.artist || t('player.unknownArtist') }}
+        </p>
       </div>
 
       <!-- 歌词区域：拖动预览时间、滚动居中、高亮当前句 -->
       <div
         v-show="showLyrics"
         ref="lyricsContainerRef"
-        class="lyrics-container relative flex h-full w-full flex-col overflow-hidden"
+        class="lyrics-container relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
         @touchstart="handleLyricsTouchStart"
         @touchmove.prevent="handleLyricsTouchMove"
         @touchend="handleLyricsTouchEnd"
@@ -693,7 +701,7 @@ const playModeIcon = computed(() => {
             :key="index"
             class="lyric-line mb-6 px-4 text-center transition-all duration-500"
             :class="{
-              'scale-105 transform font-semibold text-primary': index === currentLyricIndex,
+              'text-primary scale-105 transform font-semibold': index === currentLyricIndex,
               'text-primary/40': index !== currentLyricIndex,
             }"
           >
@@ -708,21 +716,48 @@ const playModeIcon = computed(() => {
 
     <!-- 底部控制区：进度、播放控制、音量滑块 -->
     <div class="controls-area safe-area-bottom px-6">
-      <div v-if="currentSong" class="mb-4">
-        <div
-          @click="handleProgressClick"
-          class="progress-track relative h-1 w-full cursor-pointer overflow-hidden rounded-full bg-white/20"
+      <!-- 快捷操作栏 -->
+      <div class="mx-auto flex w-full max-w-xs items-center justify-between px-4">
+        <!-- 播放列表和历史播放 -->
+        <PlaylistDrawerMobile />
+        <!-- 评论 -->
+        <button
+          class="group relative p-2 transition-transform active:scale-90"
+          @click.stop="isCommentsOpen = true"
         >
-          <div
-            class="progress-fill h-full rounded-full bg-linear-to-r from-pink-500 to-purple-500"
-            :style="{ width: `${progress}%` }"
-          ></div>
-          <div
-            class="progress-thumb absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white shadow-lg transition-transform"
-            :style="{ left: `calc(${progress}% - 6px)` }"
-          ></div>
-        </div>
-        <div class="mt-2 flex justify-between text-xs text-primary/50">
+          <span
+            class="icon-[mdi--comment-outline] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
+          ></span>
+          <span
+            v-if="commentCount > 0"
+            class="absolute top-2 right-2 flex h-4 min-w-4 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-pink-500 px-1 text-[0.6rem] font-bold text-white shadow-sm"
+          >
+            {{ commentCount > 999 ? '999+' : commentCount }}
+          </span>
+        </button>
+        <!-- 翻译 -->
+        <button
+          v-if="lyricsTrans.length"
+          class="p-2 transition-transform active:scale-90"
+          @click.stop="toggleTransBtn"
+        >
+          <span class="icon-[mdi--translate] h-6 w-6" :class="{ 'text-primary': showTrans }"></span>
+        </button>
+        <!-- 罗马音 -->
+        <button
+          v-if="lyricsRoma.length"
+          class="group p-2 transition-transform active:scale-90"
+          @click.stop="toggleRomaBtn"
+        >
+          <span
+            class="icon-[mdi--alphabetical] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
+            :class="{ 'text-primary': showRoma }"
+          ></span>
+        </button>
+      </div>
+      <div v-if="currentSong" class="mb-4">
+        <MusicProgress />
+        <div class="text-primary/50 mt-2 flex justify-between text-xs">
           <span>{{ formattedCurrentTime }}</span>
           <span>{{ formattedDuration }}</span>
         </div>
@@ -730,17 +765,17 @@ const playModeIcon = computed(() => {
 
       <div class="mb-4 flex items-center justify-center gap-6">
         <button
-          class="control-btn flex h-12 w-12 items-center justify-center rounded-full"
+          class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
           @click="togglePlayMode"
         >
-          <span :class="playModeIcon" class="h-5 w-5 text-primary/70"></span>
+          <span :class="playModeIcon" class="text-primary/70 h-7 w-7"></span>
         </button>
 
         <button
           class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
           @click="previous"
         >
-          <span class="icon-[mdi--skip-previous] h-8 w-8 text-primary"></span>
+          <span class="icon-[mdi--skip-previous] text-primary h-8 w-8"></span>
         </button>
 
         <button
@@ -749,11 +784,14 @@ const playModeIcon = computed(() => {
           :disabled="isLoading"
           @click="handleTogglePlay"
         >
-          <span v-if="isLoading" class="icon-[mdi--loading] h-8 w-8 animate-spin text-primary"></span>
+          <span
+            v-if="isLoading"
+            class="icon-[mdi--loading] text-primary h-8 w-8 animate-spin"
+          ></span>
           <span
             v-else
             :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-            class="h-8 w-8 text-primary"
+            class="text-primary h-8 w-8"
             :style="!isPlaying ? 'margin-left: 3px' : ''"
           ></span>
         </button>
@@ -762,34 +800,9 @@ const playModeIcon = computed(() => {
           class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
           @click="next"
         >
-          <span class="icon-[mdi--skip-next] h-8 w-8 text-primary"></span>
+          <span class="icon-[mdi--skip-next] text-primary h-8 w-8"></span>
         </button>
-        <button class="toolbar-btn" @click="isCommentsOpen = true">
-          <span class="icon-[mdi--comment-outline] h-4 w-4"></span>
-          <span>{{ commentCount }}</span>
-        </button>
-      </div>
-
-      <div class="flex items-center justify-center gap-2">
-        <span
-          @click="toggleMute"
-          :class="
-            volume === 0
-              ? 'icon-[mdi--volume-off]'
-              : volume < 0.5
-                ? 'icon-[mdi--volume-medium]'
-                : 'icon-[mdi--volume-high]'
-          "
-          class="h-5 w-5 text-primary/70"
-        ></span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          :value="volume * 100"
-          @input="(e: any) => setVolume(parseInt(e.target.value) / 100)"
-          class="volume-slider h-1 w-32 appearance-none rounded-full bg-white/20 outline-none"
-        />
+        <VolumeControlMobile />
       </div>
     </div>
   </div>
@@ -930,25 +943,6 @@ const playModeIcon = computed(() => {
 
 .play-btn:active {
   transform: scale(0.95);
-}
-
-.volume-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  border: none;
 }
 
 .toolbar-panel {

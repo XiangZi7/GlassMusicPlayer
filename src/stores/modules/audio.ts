@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { songUrl } from '@/api'
 import { Song, PlayMode, AudioStoreState } from '../interface'
 import piniaPersistConfig from '../persist'
-import { trackListData } from '@/mock'
 let globalAudio: HTMLAudioElement | null = null
 let eventsBound = false
 // 链接过期自动重试节流：记录上次重试的歌曲ID与时间戳，避免短时间重复刷新
@@ -42,7 +41,7 @@ export const useAudioStore = defineStore('audio', {
       // 当前歌曲在播放列表中的索引
       currentIndex: -1,
       // 当前播放列表
-      playlist: trackListData as unknown as Song[],
+      playlist: [] as Song[],
       // 原始播放列表（用于随机模式恢复）
       originalPlaylist: [],
       // 播放模式（列表循环/单曲循环/随机播放）
@@ -73,6 +72,8 @@ export const useAudioStore = defineStore('audio', {
     getPlayMode: (state): PlayMode => state.audio.playMode,
     // 获取音量
     getVolume: (state): number => state.audio.volume,
+    // 获取是否静音
+    getIsMuted: (state): boolean => state.audio.isMuted,
     // 获取当前播放时间
     getCurrentTime: (state): number => state.audio.currentTime,
     // 获取歌曲总时长

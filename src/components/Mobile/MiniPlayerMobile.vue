@@ -3,6 +3,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
+import MusicProgress from '@/components/Ui/MusicProgress.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -13,19 +14,10 @@ const {
   isLoading,
   togglePlay,
   next,
-  progress,
   formattedCurrentTime,
   formattedDuration,
-  setProgress,
   currentTime,
 } = useAudio()
-
-const onProgressClick = (event: MouseEvent) => {
-  const el = event.currentTarget as HTMLElement
-  const rect = el.getBoundingClientRect()
-  const percent = ((event.clientX - rect.left) / rect.width) * 100
-  setProgress(Math.max(0, Math.min(100, percent)))
-}
 
 const { mergedLines, activeTimeline, fetchLyrics } = useLyrics()
 
@@ -119,12 +111,7 @@ onUnmounted(() => {
         </div>
         <div class="mt-2 flex items-center gap-2">
           <span class="text-primary/60 text-[11px]">{{ formattedCurrentTime }}</span>
-          <div
-            @click="onProgressClick"
-            class="progress-track relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full"
-          >
-            <div class="progress-fill h-full rounded-full" :style="{ width: `${progress}%` }"></div>
-          </div>
+          <MusicProgress class="flex-1" />
           <span class="text-primary/60 text-[11px]">{{ formattedDuration }}</span>
         </div>
       </div>

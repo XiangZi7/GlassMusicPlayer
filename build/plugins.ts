@@ -15,7 +15,7 @@ import Icons from 'unplugin-icons/vite'
 export const createVitePlugins = (viteEnv: ViteEnv): (PluginOption | PluginOption[])[] => {
   return [
     vue(),
-    vueDevTools(),
+    // vueDevTools(),
     // 打包去除console
     removeConsole(),
     // basicSsl() 模拟https的配置,

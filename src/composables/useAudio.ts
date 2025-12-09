@@ -15,8 +15,10 @@ export const useAudio = () => {
   const isPlaying = computed(() => audioStore.getIsPlaying)
   const isLoading = computed(() => audioStore.audio.isLoading)
   const playlist = computed(() => audioStore.getPlaylist)
+  const playHistory = computed(() => audioStore.audio.playHistory)
   const playMode = computed(() => audioStore.getPlayMode)
   const volume = computed(() => audioStore.getVolume)
+  const isMuted = computed(() => audioStore.getIsMuted)
   const currentTime = computed(() => audioStore.getCurrentTime)
   const duration = computed(() => audioStore.getDuration)
   const progress = computed(() => audioStore.getProgress)
@@ -253,8 +255,10 @@ export const useAudio = () => {
     isPlaying,
     isLoading,
     playlist,
+    playHistory,
     playMode,
     volume,
+    isMuted,
     currentTime,
     duration,
     progress,

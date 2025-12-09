@@ -6,7 +6,7 @@ export interface Artist {
 
 // 歌曲信息接口
 export interface Song {
-  id?: string | number
+  id: string | number
   mvId?: string | number
   name: string
   artist: string
