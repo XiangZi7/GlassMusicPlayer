@@ -5,6 +5,22 @@ import Pagination from '@/components/Ui/Pagination.vue'
 import { Song } from '@/stores/interface'
 import { useAudio } from '@/composables/useAudio'
 import { useI18n } from 'vue-i18n'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { EffectCreative } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/effect-creative'
+
+const creativeEffect = {
+  prev: {
+    shadow: false,
+    translate: ['-20px', 0, 0],
+    opacity: 0,
+  },
+  next: {
+    translate: ['20px', 0, 0],
+    opacity: 0,
+  },
+}
 
 type SearchTab = 'song' | 'playlist' | 'mv'
 type PlaylistItem = {
@@ -271,6 +287,24 @@ const tabs = computed(() => [
   },
   { key: 'mv' as const, icon: 'icon-[mdi--video]', label: 'MV' },
 ])
+
+const swiperInstance = ref<any>(null)
+const onSwiper = (swiper: any) => {
+  swiperInstance.value = swiper
+}
+const onSlideChange = (swiper: any) => {
+  const tabKey = tabs.value[swiper.activeIndex]?.key
+  if (tabKey) state.tab = tabKey
+}
+watch(
+  () => state.tab,
+  val => {
+    const index = tabs.value.findIndex(t => t.key === val)
+    if (index >= 0 && swiperInstance.value) {
+      swiperInstance.value.slideTo(index)
+    }
+  }
+)
 </script>
 
 <template>
@@ -341,181 +375,185 @@ const tabs = computed(() => [
       </div>
     </div>
 
-    <div class="flex-1 overflow-auto px-4 pb-6">
-      <div v-if="loading" class="py-6">
+    <div class="flex-1 overflow-hidden">
+      <div v-if="loading" class="h-full overflow-auto px-4 py-6">
         <PageSkeleton :sections="['list']" :list-count="10" />
       </div>
 
-      <Transition name="slide-fade" mode="out-in">
-        <div v-if="!loading && tab === 'song'" key="song" class="space-y-3">
-          <div v-if="songs.length > 0" class="flex items-center justify-between py-2">
-            <p class="info-text text-xs">
-              {{ t('search.result', { count: songTotal }) }}
-            </p>
-            <button
-              class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
-              @click="playAllSongs"
-            >
-              <span class="icon-[mdi--play] h-4 w-4" />
-              {{ t('actions.playAll') }}
-            </button>
-          </div>
-
-          <div
-            v-if="songs.length === 0 && !loading"
-            class="empty-state flex flex-col items-center py-16"
-          >
-            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
-              <span class="icon-[mdi--music-note-off] h-10 w-10 opacity-40" />
-            </div>
-            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
-          </div>
-
-          <MobileSongList v-else :songs="songs" variant="compact" :show-index="true" />
-
-          <Pagination
-            v-if="songTotal > songPageSize"
-            v-model="songPage"
-            :total="songTotal"
-            :page-size="songPageSize"
-          />
-        </div>
-
-        <div v-else-if="!loading && tab === 'playlist'" key="playlist" class="space-y-3">
-          <div v-if="playlists.length > 0" class="py-2">
-            <p class="info-text text-xs">
-              {{ t('search.result', { count: playlistTotal }) }}
-            </p>
-          </div>
-
-          <div
-            v-if="playlists.length === 0 && !loading"
-            class="empty-state flex flex-col items-center py-16"
-          >
-            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
-              <span class="icon-[mdi--playlist-remove] h-10 w-10 opacity-40" />
-            </div>
-            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
-          </div>
-
-          <div v-else class="grid grid-cols-2 gap-4">
-            <router-link
-              v-for="p in playlists"
-              :key="p.id"
-              :to="`/playlist/${p.id}`"
-              class="playlist-card group"
-            >
-              <div class="playlist-cover relative mb-3 aspect-square overflow-hidden rounded-2xl">
-                <LazyImage
-                  :src="p.coverImgUrl + '?param=300y300'"
-                  :alt="p.name"
-                  imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-110"
-                />
-                <div class="playlist-cover-overlay absolute inset-0"></div>
-                <div
-                  class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
-                >
-                  <span class="icon-[mdi--music-note] h-3 w-3"></span>
-                  {{ p.trackCount }}
-                </div>
-                <div
-                  class="playlist-play-btn absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-300"
-                >
-                  <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
-                </div>
-              </div>
-              <p class="playlist-name line-clamp-2 px-1 text-[13px] font-medium leading-snug">
-                {{ p.name }}
+      <swiper
+        v-else
+        class="h-full w-full"
+        :initial-slide="0"
+        :modules="[EffectCreative]"
+        effect="creative"
+        :creative-effect="creativeEffect"
+        :speed="500"
+        @swiper="onSwiper"
+        @slideChange="onSlideChange"
+      >
+        <!-- Songs Slide -->
+        <swiper-slide>
+          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+            <div v-if="songs.length > 0" class="flex items-center justify-between py-2">
+              <p class="info-text text-xs">
+                {{ t('search.result', { count: songTotal }) }}
               </p>
-            </router-link>
-          </div>
-
-          <Pagination
-            v-if="playlistTotal > playlistPageSize"
-            v-model="playlistPage"
-            :total="playlistTotal"
-            :page-size="playlistPageSize"
-          />
-        </div>
-
-        <div v-else-if="!loading && tab === 'mv'" key="mv" class="space-y-3">
-          <div v-if="mvs.length > 0" class="py-2">
-            <p class="info-text text-xs">
-              {{ t('search.result', { count: mvTotal }) }}
-            </p>
-          </div>
-
-          <div
-            v-if="mvs.length === 0 && !loading"
-            class="empty-state flex flex-col items-center py-16"
-          >
-            <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
-              <span class="icon-[mdi--video-off] h-10 w-10 opacity-40" />
+              <button
+                class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
+                @click="playAllSongs"
+              >
+                <span class="icon-[mdi--play] h-4 w-4" />
+                {{ t('actions.playAll') }}
+              </button>
             </div>
-            <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
-          </div>
 
-          <div v-else class="grid grid-cols-1 gap-4">
-            <router-link
-              v-for="m in mvs"
-              :key="m.id"
-              :to="`/mv-player/${m.id}`"
-              class="mv-card group"
+            <div
+              v-if="songs.length === 0"
+              class="empty-state flex flex-col items-center py-16"
             >
-              <div class="mv-cover relative aspect-video overflow-hidden rounded-2xl">
-                <LazyImage
-                  :src="m.cover + '?param=480y270'"
-                  :alt="m.name"
-                  imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-105"
-                />
-                <div class="mv-cover-overlay absolute inset-0"></div>
-                <div
-                  class="mv-play-btn absolute top-1/2 left-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-xl transition-all duration-300"
-                >
-                  <span class="icon-[mdi--play] h-7 w-7 text-primary"></span>
-                </div>
-                <div class="absolute right-0 bottom-0 left-0 p-3">
-                  <p class="mv-title truncate text-sm font-semibold text-primary">{{ m.name }}</p>
-                  <p class="mv-artist mt-0.5 truncate text-xs text-primary/70">{{ m.artist }}</p>
-                </div>
-                <div
-                  class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
-                >
-                  <span class="icon-[mdi--video] h-3 w-3"></span>
-                  MV
-                </div>
+              <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+                <span class="icon-[mdi--music-note-off] h-10 w-10 opacity-40" />
               </div>
-            </router-link>
-          </div>
+              <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
+            </div>
 
-          <Pagination
-            v-if="mvTotal > mvPageSize"
-            v-model="mvPage"
-            :total="mvTotal"
-            :page-size="mvPageSize"
-          />
-        </div>
-      </Transition>
+            <MobileSongList v-else :songs="songs" variant="compact" :show-index="true" />
+
+            <Pagination
+              v-if="songTotal > songPageSize"
+              v-model="songPage"
+              :total="songTotal"
+              :page-size="songPageSize"
+            />
+          </div>
+        </swiper-slide>
+
+        <!-- Playlists Slide -->
+        <swiper-slide>
+          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+            <div v-if="playlists.length > 0" class="py-2">
+              <p class="info-text text-xs">
+                {{ t('search.result', { count: playlistTotal }) }}
+              </p>
+            </div>
+
+            <div
+              v-if="playlists.length === 0"
+              class="empty-state flex flex-col items-center py-16"
+            >
+              <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+                <span class="icon-[mdi--playlist-remove] h-10 w-10 opacity-40" />
+              </div>
+              <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
+            </div>
+
+            <div v-else class="grid grid-cols-2 gap-4">
+              <router-link
+                v-for="p in playlists"
+                :key="p.id"
+                :to="`/playlist/${p.id}`"
+                class="playlist-card group"
+              >
+                <div class="playlist-cover relative mb-3 aspect-square overflow-hidden rounded-2xl">
+                  <LazyImage
+                    :src="p.coverImgUrl + '?param=300y300'"
+                    :alt="p.name"
+                    imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-110"
+                  />
+                  <div class="playlist-cover-overlay absolute inset-0"></div>
+                  <div
+                    class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                  >
+                    <span class="icon-[mdi--music-note] h-3 w-3"></span>
+                    {{ p.trackCount }}
+                  </div>
+                  <div
+                    class="playlist-play-btn absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-300"
+                  >
+                    <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
+                  </div>
+                </div>
+                <p class="playlist-name line-clamp-2 px-1 text-[13px] font-medium leading-snug">
+                  {{ p.name }}
+                </p>
+              </router-link>
+            </div>
+
+            <Pagination
+              v-if="playlistTotal > playlistPageSize"
+              v-model="playlistPage"
+              :total="playlistTotal"
+              :page-size="playlistPageSize"
+            />
+          </div>
+        </swiper-slide>
+
+        <!-- MVs Slide -->
+        <swiper-slide>
+          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+            <div v-if="mvs.length > 0" class="py-2">
+              <p class="info-text text-xs">
+                {{ t('search.result', { count: mvTotal }) }}
+              </p>
+            </div>
+
+            <div
+              v-if="mvs.length === 0"
+              class="empty-state flex flex-col items-center py-16"
+            >
+              <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+                <span class="icon-[mdi--video-off] h-10 w-10 opacity-40" />
+              </div>
+              <p class="empty-title text-sm font-medium">{{ t('search.empty') }}</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 gap-4">
+              <router-link
+                v-for="m in mvs"
+                :key="m.id"
+                :to="`/mv-player/${m.id}`"
+                class="mv-card group"
+              >
+                <div class="mv-cover relative aspect-video overflow-hidden rounded-2xl">
+                  <LazyImage
+                    :src="m.cover + '?param=480y270'"
+                    :alt="m.name"
+                    imgClass="h-full w-full object-cover transition-all duration-500 group-active:scale-105"
+                  />
+                  <div class="mv-cover-overlay absolute inset-0"></div>
+                  <div
+                    class="mv-play-btn absolute top-1/2 left-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-xl transition-all duration-300"
+                  >
+                    <span class="icon-[mdi--play] h-7 w-7 text-primary"></span>
+                  </div>
+                  <div class="absolute right-0 bottom-0 left-0 p-3">
+                    <p class="mv-title truncate text-sm font-semibold text-primary">{{ m.name }}</p>
+                    <p class="mv-artist mt-0.5 truncate text-xs text-primary/70">{{ m.artist }}</p>
+                  </div>
+                  <div
+                    class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                  >
+                    <span class="icon-[mdi--video] h-3 w-3"></span>
+                    MV
+                  </div>
+                </div>
+              </router-link>
+            </div>
+
+            <Pagination
+              v-if="mvTotal > mvPageSize"
+              v-model="mvPage"
+              :total="mvTotal"
+              :page-size="mvPageSize"
+            />
+          </div>
+        </swiper-slide>
+      </swiper>
     </div>
   </div>
 </template>
 
 <style scoped>
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 0.2s ease;
-}
-
-.slide-fade-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
-}
-
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: all 0.2s ease;

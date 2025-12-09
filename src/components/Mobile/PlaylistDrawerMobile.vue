@@ -1,18 +1,23 @@
 <script setup lang="ts">
-/**
- * 移动端播放列表抽屉组件
- *
- * 功能：
- * 1. 显示当前播放列表和播放历史
- * 2. 支持标签页之间的滑动切换（使用 Swiper）
- * 3. 播放控制（播放、删除、清空）
- * 4. 播放模式切换
- */
 import { useAudio } from '@/composables/useAudio'
 import { useI18n } from 'vue-i18n'
 import { onClickOutside } from '@vueuse/core'
 import { Swiper, SwiperSlide } from 'swiper/vue'
+import { EffectCreative } from 'swiper/modules'
 import 'swiper/css'
+import 'swiper/css/effect-creative'
+
+const creativeEffect = {
+  prev: {
+    shadow: false,
+    translate: ['-20px', 0, 0],
+    opacity: 0,
+  },
+  next: {
+    translate: ['20px', 0, 0],
+    opacity: 0,
+  },
+}
 
 const { t } = useI18n()
 const {
@@ -119,7 +124,7 @@ const handleClear = () => {
       >
         <div
           ref="drawerRef"
-          class="flex h-[70vh] w-full flex-col rounded-t-3xl border-t border-white/10 bg-white/10 shadow-2xl backdrop-blur-xl"
+          class="PlaylistDrawerMobile-container flex h-[70vh] w-full flex-col rounded-t-3xl border-t border-white/10 shadow-2xl backdrop-blur-xl"
           @click.stop
         >
           <!-- 头部 -->
@@ -165,6 +170,10 @@ const handleClear = () => {
             <swiper
               class="h-full w-full"
               :initial-slide="0"
+              :modules="[EffectCreative]"
+              effect="creative"
+              :creative-effect="creativeEffect"
+              :speed="300"
               @swiper="onSwiper"
               @slideChange="onSlideChange"
             >
@@ -274,6 +283,12 @@ const handleClear = () => {
 </template>
 
 <style scoped>
+.PlaylistDrawerMobile-container {
+  background: var(--glass-dropdown-bg);
+  backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(1.5);
+}
+
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);

@@ -5,6 +5,22 @@ import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import MobileSongList from '@/components/Mobile/MobileSongList.vue'
 import { useI18n } from 'vue-i18n'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { EffectCreative } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/effect-creative'
+
+const creativeEffect = {
+  prev: {
+    shadow: false,
+    translate: ['-20px', 0, 0],
+    opacity: 0,
+  },
+  next: {
+    translate: ['20px', 0, 0],
+    opacity: 0,
+  },
+}
 
 const { t } = useI18n()
 const { setPlaylist, play, playlist, clearPlaylist } = useAudio()
@@ -14,6 +30,21 @@ const state = reactive({
 })
 
 const { activeTab } = toRefs(state)
+const swiperInstance = ref<any>(null)
+
+const onSwiper = (swiper: any) => {
+  swiperInstance.value = swiper
+}
+
+const onSlideChange = (swiper: any) => {
+  activeTab.value = swiper.activeIndex
+}
+
+watch(activeTab, val => {
+  if (swiperInstance.value) {
+    swiperInstance.value.slideTo(val)
+  }
+})
 
 const audioStore = useAudioStore()
 const { audio } = storeToRefs(audioStore)
@@ -68,103 +99,105 @@ const tabs = computed(() => [
       </div>
     </div>
 
-    <Transition name="slide-fade" mode="out-in">
-      <div v-if="activeTab === 0" key="playlist" class="flex flex-1 flex-col overflow-hidden">
-        <div
-          v-if="playlist.length > 0"
-          class="flex shrink-0 items-center justify-between px-4 py-3"
-        >
-          <p class="info-text text-xs">
-            {{ t('mobile.recent.nowPlaying') }}
-          </p>
-          <button
-            class="clear-button flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all duration-200"
-            @click="handleClearQueue"
-          >
-            <span class="icon-[mdi--delete-outline] h-4 w-4" />
-            {{ t('mobile.myMusic.clear') }}
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-auto px-4 pb-6">
-          <div
-            v-if="playlist.length === 0"
-            class="flex h-full flex-col items-center justify-center py-16 text-center"
-          >
-            <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
-              <span class="icon-[mdi--playlist-music] empty-icon-inner h-12 w-12" />
+    <div class="flex-1 overflow-hidden">
+      <swiper
+        class="h-full w-full"
+        :initial-slide="0"
+        :modules="[EffectCreative]"
+        effect="creative"
+        :creative-effect="creativeEffect"
+        :speed="300"
+        @swiper="onSwiper"
+        @slideChange="onSlideChange"
+      >
+        <!-- Playlist Slide -->
+        <swiper-slide>
+          <div class="flex h-full w-full flex-col overflow-hidden">
+            <div
+              v-if="playlist.length > 0"
+              class="flex shrink-0 items-center justify-between px-4 py-3"
+            >
+              <p class="info-text text-xs">
+                {{ t('mobile.recent.nowPlaying') }}
+              </p>
+              <button
+                class="clear-button flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all duration-200"
+                @click="handleClearQueue"
+              >
+                <span class="icon-[mdi--delete-outline] h-4 w-4" />
+                {{ t('mobile.myMusic.clear') }}
+              </button>
             </div>
-            <p class="empty-title mb-2 text-sm font-medium">
-              {{ t('mobile.myMusic.emptyTitle') }}
-            </p>
-            <p class="empty-hint text-xs">{{ t('mobile.myMusic.emptyHint') }}</p>
-          </div>
-          <MobileSongList
-            v-else
-            :songs="playlist"
-            variant="card"
-            :show-index="false"
-            context="queue"
-          />
-        </div>
-      </div>
 
-      <div v-else key="recent" class="flex flex-1 flex-col overflow-hidden">
-        <div
-          v-if="recentSongs.length > 0"
-          class="flex shrink-0 items-center justify-between px-4 py-3"
-        >
-          <p class="info-text text-xs">
-            {{ t('mobile.recent.recentlyPlayed') }}
-          </p>
-          <button
-            class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
-            @click="playAllRecent"
-          >
-            <span class="icon-[mdi--play] h-4 w-4" />
-            {{ t('actions.playAll') }}
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-auto px-4 pb-6">
-          <div
-            v-if="!recentSongs.length"
-            class="flex h-full flex-col items-center justify-center py-16 text-center"
-          >
-            <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
-              <span class="icon-[mdi--history] empty-icon-inner h-12 w-12" />
+            <div class="flex-1 overflow-auto px-4 pb-6">
+              <div
+                v-if="playlist.length === 0"
+                class="flex h-full flex-col items-center justify-center py-16 text-center"
+              >
+                <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                  <span class="icon-[mdi--playlist-music] empty-icon-inner h-12 w-12" />
+                </div>
+                <p class="empty-title mb-2 text-sm font-medium">
+                  {{ t('mobile.myMusic.emptyTitle') }}
+                </p>
+                <p class="empty-hint text-xs">{{ t('mobile.myMusic.emptyHint') }}</p>
+              </div>
+              <MobileSongList
+                v-else
+                :songs="playlist"
+                variant="card"
+                :show-index="false"
+                context="queue"
+              />
             </div>
-            <p class="empty-title mb-2 text-sm font-medium">{{ t('recent.empty') }}</p>
           </div>
-          <MobileSongList
-            v-else
-            :songs="recentSongs"
-            variant="compact"
-            :show-index="true"
-            context="queue"
-          />
-        </div>
-      </div>
-    </Transition>
+        </swiper-slide>
+
+        <!-- History Slide -->
+        <swiper-slide>
+          <div class="flex h-full w-full flex-col overflow-hidden">
+            <div
+              v-if="recentSongs.length > 0"
+              class="flex shrink-0 items-center justify-between px-4 py-3"
+            >
+              <p class="info-text text-xs">
+                {{ t('mobile.recent.recentlyPlayed') }}
+              </p>
+              <button
+                class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
+                @click="playAllRecent"
+              >
+                <span class="icon-[mdi--play] h-4 w-4" />
+                {{ t('actions.playAll') }}
+              </button>
+            </div>
+
+            <div class="flex-1 overflow-auto px-4 pb-6">
+              <div
+                v-if="!recentSongs.length"
+                class="flex h-full flex-col items-center justify-center py-16 text-center"
+              >
+                <div class="empty-icon mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                  <span class="icon-[mdi--history] empty-icon-inner h-12 w-12" />
+                </div>
+                <p class="empty-title mb-2 text-sm font-medium">{{ t('recent.empty') }}</p>
+              </div>
+              <MobileSongList
+                v-else
+                :songs="recentSongs"
+                variant="compact"
+                :show-index="true"
+                context="queue"
+              />
+            </div>
+          </div>
+        </swiper-slide>
+      </swiper>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 0.2s ease;
-}
-
-.slide-fade-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
-}
-
 .tab-button {
   color: var(--glass-text);
   opacity: 0.6;
