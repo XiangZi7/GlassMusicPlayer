@@ -32,7 +32,7 @@ type PlaylistItem = {
 type MVItem = { id: number | string; name: string; cover: string; artist: string }
 
 const { t } = useI18n()
-const { setPlaylist, play, currentSong, isPlaying } = useAudio()
+const { setPlaylist, play, currentSong } = useAudio()
 
 interface MobileSearchState {
   q: string
@@ -243,13 +243,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleDocClick)
 })
 
-const formatDuration = (ms: number) => {
-  const total = Math.floor(ms / 1000)
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
 const mapToStoreSong = (s: Song): Song => ({
   id: s.id,
   name: s.name,
@@ -331,7 +324,7 @@ watch(
             <span class="icon-[mdi--close-circle] h-4 w-4"></span>
           </button>
           <button
-            class="search-btn flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium text-primary transition-all active:scale-95"
+            class="search-btn text-white flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium transition-all active:scale-95"
             @click="handleSearchClick"
           >
             <span class="icon-[mdi--magnify] h-4 w-4"></span>
@@ -393,13 +386,13 @@ watch(
       >
         <!-- Songs Slide -->
         <swiper-slide>
-          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+          <div class="h-full w-full space-y-3 overflow-auto px-4 pb-6">
             <div v-if="songs.length > 0" class="flex items-center justify-between py-2">
               <p class="info-text text-xs">
                 {{ t('search.result', { count: songTotal }) }}
               </p>
               <button
-                class="play-all-button flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-primary shadow-lg transition-all duration-200 active:scale-95"
+                class="play-all-button text-primary flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all duration-200 active:scale-95"
                 @click="playAllSongs"
               >
                 <span class="icon-[mdi--play] h-4 w-4" />
@@ -407,10 +400,7 @@ watch(
               </button>
             </div>
 
-            <div
-              v-if="songs.length === 0"
-              class="empty-state flex flex-col items-center py-16"
-            >
+            <div v-if="songs.length === 0" class="empty-state flex flex-col items-center py-16">
               <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
                 <span class="icon-[mdi--music-note-off] h-10 w-10 opacity-40" />
               </div>
@@ -430,17 +420,14 @@ watch(
 
         <!-- Playlists Slide -->
         <swiper-slide>
-          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+          <div class="h-full w-full space-y-3 overflow-auto px-4 pb-6">
             <div v-if="playlists.length > 0" class="py-2">
               <p class="info-text text-xs">
                 {{ t('search.result', { count: playlistTotal }) }}
               </p>
             </div>
 
-            <div
-              v-if="playlists.length === 0"
-              class="empty-state flex flex-col items-center py-16"
-            >
+            <div v-if="playlists.length === 0" class="empty-state flex flex-col items-center py-16">
               <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
                 <span class="icon-[mdi--playlist-remove] h-10 w-10 opacity-40" />
               </div>
@@ -462,7 +449,7 @@ watch(
                   />
                   <div class="playlist-cover-overlay absolute inset-0"></div>
                   <div
-                    class="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                    class="bg-overlay/50 text-primary absolute top-2 right-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
                   >
                     <span class="icon-[mdi--music-note] h-3 w-3"></span>
                     {{ p.trackCount }}
@@ -470,10 +457,10 @@ watch(
                   <div
                     class="playlist-play-btn absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-300"
                   >
-                    <span class="icon-[mdi--play] h-5 w-5 text-primary"></span>
+                    <span class="icon-[mdi--play] text-primary h-5 w-5"></span>
                   </div>
                 </div>
-                <p class="playlist-name line-clamp-2 px-1 text-[13px] font-medium leading-snug">
+                <p class="playlist-name line-clamp-2 px-1 text-[13px] leading-snug font-medium">
                   {{ p.name }}
                 </p>
               </router-link>
@@ -490,17 +477,14 @@ watch(
 
         <!-- MVs Slide -->
         <swiper-slide>
-          <div class="h-full w-full overflow-auto px-4 pb-6 space-y-3">
+          <div class="h-full w-full space-y-3 overflow-auto px-4 pb-6">
             <div v-if="mvs.length > 0" class="py-2">
               <p class="info-text text-xs">
                 {{ t('search.result', { count: mvTotal }) }}
               </p>
             </div>
 
-            <div
-              v-if="mvs.length === 0"
-              class="empty-state flex flex-col items-center py-16"
-            >
+            <div v-if="mvs.length === 0" class="empty-state flex flex-col items-center py-16">
               <div class="empty-icon mb-4 flex h-20 w-20 items-center justify-center rounded-full">
                 <span class="icon-[mdi--video-off] h-10 w-10 opacity-40" />
               </div>
@@ -524,14 +508,14 @@ watch(
                   <div
                     class="mv-play-btn absolute top-1/2 left-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-xl transition-all duration-300"
                   >
-                    <span class="icon-[mdi--play] h-7 w-7 text-primary"></span>
+                    <span class="icon-[mdi--play] text-primary h-7 w-7"></span>
                   </div>
                   <div class="absolute right-0 bottom-0 left-0 p-3">
-                    <p class="mv-title truncate text-sm font-semibold text-primary">{{ m.name }}</p>
-                    <p class="mv-artist mt-0.5 truncate text-xs text-primary/70">{{ m.artist }}</p>
+                    <p class="mv-title text-primary truncate text-sm font-semibold">{{ m.name }}</p>
+                    <p class="mv-artist text-primary/70 mt-0.5 truncate text-xs">{{ m.artist }}</p>
                   </div>
                   <div
-                    class="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-overlay/50 px-2 py-1 text-[11px] font-medium text-primary backdrop-blur-md"
+                    class="bg-overlay/50 text-primary absolute top-2 left-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
                   >
                     <span class="icon-[mdi--video] h-3 w-3"></span>
                     MV
@@ -721,12 +705,7 @@ html.dark .playlist-cover {
 }
 
 .playlist-cover-overlay {
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.4) 0%,
-    transparent 40%,
-    transparent 100%
-  );
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 40%, transparent 100%);
 }
 
 .playlist-play-btn {

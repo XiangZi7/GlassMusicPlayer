@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MobileDrawer from './MobileDrawer.vue'
-import { commentMusic } from '@/api'
+import { commentMusic, commentPlaylist } from '@/api'
 import { useI18n } from 'vue-i18n'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import LazyImage from '@/components/Ui/LazyImage.vue'
@@ -8,9 +8,12 @@ import { formatDate } from '@/utils/time'
 import Pagination from '@/components/Ui/Pagination.vue'
 
 const { t } = useI18n()
-const props = defineProps<{
-  songId: number | string | null | undefined
-}>()
+const props = withDefaults(defineProps<{
+  id: number | string | null | undefined
+  type?: 'music' | 'playlist'
+}>(), {
+  type: 'music'
+})
 
 const isOpen = defineModel<boolean>('show', { default: false })
 
@@ -23,11 +26,12 @@ const state = reactive({
 })
 
 const loadComments = async () => {
-  if (!props.songId) return
+  if (!props.id) return
   try {
     state.loading = true
-    const res: any = await commentMusic({
-      id: Number(props.songId),
+    const api = props.type === 'playlist' ? commentPlaylist : commentMusic
+    const res: any = await api({
+      id: Number(props.id),
       limit: state.limit,
       offset: (state.page - 1) * state.limit,
     })
@@ -49,7 +53,7 @@ watch(
 )
 
 watch(
-  () => props.songId,
+  () => props.id,
   () => {
     if (isOpen.value) {
       state.page = 1

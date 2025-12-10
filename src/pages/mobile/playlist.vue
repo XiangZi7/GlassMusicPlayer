@@ -40,6 +40,7 @@ const state = reactive({
   loading: true,
   collected: false,
   showFullDesc: false,
+  showComments: false,
 })
 
 const { setPlaylist, play } = useAudio()
@@ -228,7 +229,17 @@ const toggleCollect = () => {
             class="h-5 w-5"
           ></span>
         </button>
-        <PlaylistCommentsPopup :id="playlistId" />
+        <button
+          class="comment-btn flex h-10 w-10 items-center justify-center rounded-full"
+          @click="state.showComments = true"
+        >
+          <span class="icon-[mdi--message-processing-outline] h-5 w-5"></span>
+        </button>
+        <PlaylistCommentsPopup
+          v-model:show="state.showComments"
+          :id="playlistId"
+          type="playlist"
+        />
       </div>
 
       <div class="flex-1 overflow-auto px-4 pb-6">
@@ -310,6 +321,17 @@ const toggleCollect = () => {
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
   border-color: rgba(236, 72, 153, 0.3);
   color: #ec4899;
+}
+
+.comment-btn {
+  background: var(--glass-card-bg);
+  color: var(--glass-text);
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
+}
+
+.comment-btn:active {
+  transform: scale(0.95);
 }
 
 .desc-section {

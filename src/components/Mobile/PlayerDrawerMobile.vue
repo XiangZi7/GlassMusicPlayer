@@ -808,7 +808,7 @@ const playModeIcon = computed(() => {
     </div>
   </div>
   <!-- 评论弹窗 -->
-  <PlaylistCommentsPopup v-model:show="isCommentsOpen" :song-id="currentSong?.id ?? null" />
+  <PlaylistCommentsPopup v-model:show="isCommentsOpen" :id="currentSong?.id ?? null" />
 </template>
 
 <style scoped>

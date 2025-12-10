@@ -80,6 +80,13 @@ export const commentMusic = (params: {
   before?: number
 }) => httpGet('/comment/music', params)
 
+export const commentPlaylist = (params: {
+  id: number
+  limit?: number
+  offset?: number
+  before?: number
+}) => httpGet('/comment/playlist', params)
+
 export const commentHot = (params: {
   id: number
   type: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
