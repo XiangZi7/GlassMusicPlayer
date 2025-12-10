@@ -29,6 +29,8 @@ export default {
     uncollect: 'Unfavorite',
     me: 'Me',
     justNow: 'Just now',
+    minutesAgo: 'm ago',
+    hoursAgo: 'h ago',
     expand: 'Expand',
     collapse: 'Collapse',
     follow: 'Follow',

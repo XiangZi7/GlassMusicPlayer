@@ -98,10 +98,7 @@ onUnmounted(() => {
             >
               {{ mergedLines[lyric.idx]?.ori || '' }}
             </p>
-            <p
-              v-if="footerLyrics.modes.includes('trans')"
-              class="text-primary/70 truncate text-xs"
-            >
+            <p v-if="footerLyrics.modes.includes('trans')" class="text-primary/70 truncate text-xs">
               {{ mergedLines[lyric.idx]?.tran || '' }}
             </p>
             <p v-if="footerLyrics.modes.includes('roma')" class="text-primary/70 truncate text-xs">
@@ -137,8 +134,3 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
-const settings = useSettingsStore() const { footerLyrics } = storeToRefs(settings) const showOri =
-computed(() => footerLyrics.value.enabled && footerLyrics.value.modes.includes('original')) const
-showTran = computed(() => footerLyrics.value.enabled && footerLyrics.value.modes.includes('trans'))
-const showRoma = computed(() => footerLyrics.value.enabled &&
-footerLyrics.value.modes.includes('roma'))

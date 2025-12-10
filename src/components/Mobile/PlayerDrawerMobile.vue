@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControlMobile from '@/components/Mobile/VolumeControlMobile.vue'
 import PlaylistDrawerMobile from '@/components/Mobile/PlaylistDrawerMobile.vue'
+import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
 
 // 国际化文本函数
 const { t } = useI18n()
@@ -726,7 +727,7 @@ const playModeIcon = computed(() => {
           @click.stop="isCommentsOpen = true"
         >
           <span
-            class="icon-[mdi--comment-outline] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
+            class="icon-[mdi--message-processing-outline] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
           ></span>
           <span
             v-if="commentCount > 0"
@@ -807,7 +808,7 @@ const playModeIcon = computed(() => {
     </div>
   </div>
   <!-- 评论弹窗 -->
-  <SongCommentsDialog v-model:show="isCommentsOpen" :song-id="currentSong?.id ?? null" />
+  <PlaylistCommentsPopup v-model:show="isCommentsOpen" :song-id="currentSong?.id ?? null" />
 </template>
 
 <style scoped>

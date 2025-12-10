@@ -54,7 +54,7 @@ const handleClick = (s: Song, i: number) => {
     <div
       v-for="(song, index) in songs"
       :key="song.id + '-' + index"
-      class="song-item group flex items-center gap-3 rounded-2xl p-3 transition-all duration-300"
+      class="group flex items-center gap-3 rounded-2xl p-3 transition-all duration-300"
       :class="isCurrent(song) ? 'song-item-active' : ''"
       @click="handleClick(song, index)"
     >
@@ -103,7 +103,7 @@ const handleClick = (s: Song, i: number) => {
     </div>
   </div>
 
-  <div v-else class="glass-card overflow-hidden p-2">
+  <div v-else class="overflow-hidden py-2">
     <div
       v-for="(song, index) in songs"
       :key="song.id"

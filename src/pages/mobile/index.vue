@@ -183,10 +183,6 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
               </span>
               {{ t('home.recommendPlaylists') }}
             </h2>
-            <router-link to="/discover" class="view-more-link">
-              {{ t('components.discover.viewMore') }}
-              <span class="icon-[mdi--chevron-right] h-4 w-4"></span>
-            </router-link>
           </div>
           <div class="grid grid-cols-3 gap-3">
             <router-link

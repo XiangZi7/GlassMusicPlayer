@@ -25,6 +25,8 @@ export default {
     uncollect: '取消收藏',
     me: '我',
     justNow: '刚刚',
+    minutesAgo: '分钟前',
+    hoursAgo: '小时前',
     expand: '展开',
     collapse: '收起',
     follow: '关注',

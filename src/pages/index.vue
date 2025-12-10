@@ -178,13 +178,6 @@ onMounted(() => {
               </span>
               {{ t('home.recommendPlaylists') }}
             </h2>
-            <!-- <router-link
-              to="/discover"
-              class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
-            >
-              {{ t('common.viewAll') }}
-              <span class="icon-[mdi--arrow-right] h-4 w-4" />
-            </router-link> -->
           </div>
           <div class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
             <router-link

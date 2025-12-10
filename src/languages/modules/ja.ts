@@ -29,6 +29,8 @@ export default {
     uncollect: 'お気に入り解除',
     me: '私',
     justNow: 'たった今',
+    minutesAgo: '分前',
+    hoursAgo: '時間前',
     expand: '展開',
     collapse: '折りたたむ',
     follow: 'フォロー',
