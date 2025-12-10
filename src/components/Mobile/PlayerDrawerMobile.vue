@@ -262,6 +262,7 @@ const handleLyricsTouchEnd = () => {
 // 动画相关
 // 专辑封面旋转动画实例（用于启动/停止控制）
 let albumRotationTween: gsap.core.Tween | null = null
+let bgBreathingTweens: gsap.core.Tween[] = []
 
 // 开始封面旋转动画（无限匀速旋转）
 const startAlbumRotation = () => {
@@ -282,6 +283,39 @@ const stopAlbumRotation = () => {
     albumRotationTween.kill()
     albumRotationTween = null
   }
+}
+
+const startBackgroundBreathing = () => {
+  stopBackgroundBreathing()
+
+  if (bgARef.value && parseFloat(getComputedStyle(bgARef.value).opacity) > 0) {
+    const tween = gsap.to(bgARef.value, {
+      scale: '+=0.05',
+      opacity: '+=0.05',
+      duration: 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+    })
+    bgBreathingTweens.push(tween)
+  }
+
+  if (bgBRef.value && parseFloat(getComputedStyle(bgBRef.value).opacity) > 0) {
+    const tween = gsap.to(bgBRef.value, {
+      scale: '+=0.05',
+      opacity: '+=0.05',
+      duration: 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+    })
+    bgBreathingTweens.push(tween)
+  }
+}
+
+const stopBackgroundBreathing = () => {
+  bgBreathingTweens.forEach(tween => tween.kill())
+  bgBreathingTweens = []
 }
 
 // 加载歌曲评论数量方法：根据歌曲ID获取评论总数
@@ -366,6 +400,11 @@ const setBackground = (url?: string) => {
         scale: 1.5,
         duration: 1.2,
         ease: 'power2.out',
+        onComplete: () => {
+          if (isPlaying.value && isOpen.value) {
+            startBackgroundBreathing()
+          }
+        },
       })
     }
     state.bgActive = 'A'
@@ -388,6 +427,11 @@ const setBackground = (url?: string) => {
       scale: 1.5,
       duration: 1.4,
       ease: 'power2.inOut',
+      onComplete: () => {
+        if (isPlaying.value && isOpen.value) {
+          startBackgroundBreathing()
+        }
+      },
     })
   }
   if (outgoingRef.value) {
@@ -453,9 +497,11 @@ watch(
       updateCurrentLyric(true)
       setBackground(currentSong.value?.cover)
       isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
+      isPlaying.value ? startBackgroundBreathing() : stopBackgroundBreathing()
     } else {
       closeDrawer()
       isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
+      stopBackgroundBreathing()
     }
   }
 )
@@ -465,6 +511,7 @@ watch(
   isPlaying,
   playing => {
     playing ? startAlbumRotation() : stopAlbumRotation()
+    playing ? startBackgroundBreathing() : stopBackgroundBreathing()
   },
   { immediate: true }
 )
@@ -498,6 +545,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopAlbumRotation()
+  stopBackgroundBreathing()
 })
 
 // 播放模式图标计算属性（变量：playModeIcon）

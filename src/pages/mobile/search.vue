@@ -392,7 +392,7 @@ watch(
                 {{ t('search.result', { count: songTotal }) }}
               </p>
               <button
-                class="play-all-button text-primary flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all duration-200 active:scale-95"
+                class="play-all-button text-white flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all duration-200 active:scale-95"
                 @click="playAllSongs"
               >
                 <span class="icon-[mdi--play] h-4 w-4" />
@@ -449,7 +449,7 @@ watch(
                   />
                   <div class="playlist-cover-overlay absolute inset-0"></div>
                   <div
-                    class="bg-overlay/50 text-primary absolute top-2 right-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
+                    class="bg-overlay/50 text-primary/90 absolute top-2 right-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
                   >
                     <span class="icon-[mdi--music-note] h-3 w-3"></span>
                     {{ p.trackCount }}
@@ -515,7 +515,7 @@ watch(
                     <p class="mv-artist text-primary/70 mt-0.5 truncate text-xs">{{ m.artist }}</p>
                   </div>
                   <div
-                    class="bg-overlay/50 text-primary absolute top-2 left-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
+                    class="bg-overlay/50 text-primary/90 absolute top-2 left-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium backdrop-blur-md"
                   >
                     <span class="icon-[mdi--video] h-3 w-3"></span>
                     MV

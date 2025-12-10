@@ -155,17 +155,18 @@ const seekToLyric = (index: number) => {
 let albumRotationTween: gsap.core.Tween | null = null
 let bgBreathingTweens: gsap.core.Tween[] = []
 
+// 开始封面旋转动画（无限匀速旋转）
 const startAlbumRotation = () => {
   if (albumCoverRef.value) {
+    if (albumRotationTween) albumRotationTween.kill()
     albumRotationTween = gsap.to(albumCoverRef.value, {
-      rotation: 360,
+      rotation: '+=360',
       duration: 10,
       repeat: -1,
       ease: 'none',
     })
   }
 }
-
 const stopAlbumRotation = () => {
   if (albumRotationTween) {
     albumRotationTween.kill()
