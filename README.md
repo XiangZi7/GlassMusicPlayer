@@ -297,6 +297,10 @@ pnpm dev
 <table>
 <tr>
 <td align="center">
+<strong>QQ 交流2群</strong><br/><br/>
+<img src="https://github.com/user-attachments/assets/d74218a8-8731-4f2a-9925-feb96ca46929" alt="QQ2群" width="150" />
+</td>
+<td align="center">
 <strong>QQ 交流群</strong><br/><br/>
 <img src="https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329" alt="QQ群" width="150" />
 </td>
