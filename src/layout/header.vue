@@ -135,7 +135,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </a>
         <a
-          href="https://miraitv.netlify.app/"
+          href="https://miraitv.pages.dev"
           target="_blank"
           rel="noopener noreferrer"
           class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
@@ -145,7 +145,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </a>
         <a
-          href="https://gmpd.netlify.app/"
+          href="https://gm-doc.pages.dev/"
           target="_blank"
           rel="noopener noreferrer"
           class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
