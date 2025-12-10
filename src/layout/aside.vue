@@ -16,7 +16,7 @@ const sections = [
     titleKey: 'layout.aside.myMusic',
     items: [
       { to: '/my-music', labelKey: 'layout.aside.menu.recent', icon: 'mdi--music-box-multiple' },
-      { to: '/likes', labelKey: 'layout.aside.menu.likes', icon: 'mdi--heart-outline' },
+      { to: '/local-music', labelKey: 'layout.aside.menu.localMusic', icon: 'mdi--folder-music-outline' },
     ],
   },
   {

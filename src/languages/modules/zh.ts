@@ -87,6 +87,8 @@ export default {
       footerLyricsDesc: '底部歌词显示设置',
       footerLyricsModes: '显示语言（最多选择两种）',
       themeOptions: { light: '浅色模式', dark: '暗黑模式', system: '跟随系统' },
+      localMusic: '本地音乐',
+      localMusicDesc: '管理已上传的本地歌曲',
     },
     background: {
       common: {
@@ -151,9 +153,10 @@ export default {
         artists: '歌手',
         newAlbums: '新碟上架',
         search: '搜索',
-        recent: '我的音乐',
+        recent: '最近播放',
         likes: '我喜欢的',
         settings: '设置',
+        localMusic: '本地音乐',
       },
     },
   },
@@ -214,6 +217,7 @@ export default {
   actions: {
     playAll: '播放全部',
     shufflePlay: '随机播放',
+    upload: '上传歌曲',
   },
   song: {
     lyrics: '歌词',

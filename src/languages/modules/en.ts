@@ -97,6 +97,8 @@ export default {
       footerLyricsDesc: 'Footer lyrics display settings',
       footerLyricsModes: 'Display languages (choose up to two)',
       themeOptions: { light: 'Light', dark: 'Dark', system: 'Follow System' },
+      localMusic: 'Local Music',
+      localMusicDesc: 'Manage uploaded local songs',
     },
     background: {
       common: {
@@ -161,9 +163,10 @@ export default {
         artists: 'Artists',
         newAlbums: 'New Albums',
         search: 'Search',
-        recent: 'My Music',
-        likes: 'Likes',
+        recent: 'Recent',
+        likes: 'Favorites',
         settings: 'Settings',
+        localMusic: 'Local Music',
       },
     },
   },
@@ -224,6 +227,7 @@ export default {
   actions: {
     playAll: 'Play All',
     shufflePlay: 'Shuffle Play',
+    upload: 'Upload Songs',
   },
   song: {
     lyrics: 'Lyrics',

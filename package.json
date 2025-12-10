@@ -30,6 +30,7 @@
     "gsap": "^3.13.0",
     "hls.js": "^1.6.15",
     "lottie-web": "^5.13.0",
+    "music-metadata-browser": "^2.5.11",
     "nprogress": "^0.2.0",
     "ogl": "^1.0.11",
     "pinia": "^3.0.3",

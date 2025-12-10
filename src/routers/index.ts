@@ -150,6 +150,14 @@ const router = createRouter({
           ),
         },
         {
+          path: '/local-music',
+          name: 'local-music',
+          component: responsive(
+            () => import('@/pages/local-music.vue'),
+            () => import('@/pages/mobile/local-music.vue')
+          ),
+        },
+        {
           path: '/settings',
           name: 'settings',
           component: responsive(

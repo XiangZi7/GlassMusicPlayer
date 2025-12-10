@@ -197,8 +197,8 @@ export const useAudioStore = defineStore('audio', {
       try {
         this.audio.error = null
 
-        // 若无URL则拉取
-        if (!this.audio.currentSong.url) {
+        // 若无URL则拉取（本地音乐除外）
+        if (!this.audio.currentSong.url && !this.audio.currentSong.isLocal) {
           this.audio.isLoading = true
           try {
             const res: any = await songUrl({ id: String(this.audio.currentSong.id) })
@@ -241,6 +241,9 @@ export const useAudioStore = defineStore('audio', {
     // 3) 重设 audio.src 并 load()；4) 调用 play()
     async refreshAndReplay() {
       if (!this.audio.currentSong || !this.audio.audio) return
+      // 本地音乐不进行刷新
+      if (this.audio.currentSong.isLocal) return
+      
       this.audio.isLoading = true
       try {
         const res: any = await songUrl({ id: String(this.audio.currentSong.id) })

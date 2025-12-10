@@ -19,6 +19,8 @@ export interface Song {
   gradient?: string
   liked?: boolean
   cover?: string
+  url?: string
+  isLocal?: boolean
 }
 
 export interface AudioStoreState {

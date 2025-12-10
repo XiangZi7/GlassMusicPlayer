@@ -101,6 +101,8 @@ export default {
       footerLyricsDesc: 'フッター歌詞の表示設定',
       footerLyricsModes: '表示言語（最大2つ）',
       themeOptions: { light: 'ライト', dark: 'ダーク', system: 'システムに従う' },
+      localMusic: 'ローカル音楽',
+      localMusicDesc: 'アップロードされたローカル曲を管理',
     },
     background: {
       common: {
@@ -165,9 +167,10 @@ export default {
         artists: 'アーティスト',
         newAlbums: '新着アルバム',
         search: '検索',
-        recent: 'マイミュージック',
+        recent: '最近の再生',
         likes: 'お気に入り',
         settings: '設定',
+        localMusic: 'ローカル音楽',
       },
     },
   },
@@ -228,6 +231,7 @@ export default {
   actions: {
     playAll: 'すべて再生',
     shufflePlay: 'シャッフル再生',
+    upload: '曲をアップロード',
   },
   song: {
     lyrics: '歌詞',
