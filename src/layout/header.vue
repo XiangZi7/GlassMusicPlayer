@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import LoginDialog from '@/components/Auth/LoginDialog.vue'
+import Button from '@/components/Ui/Button.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
@@ -106,54 +107,64 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         >
           {{ t(item.labelKey) }}
         </RouterLink> -->
-        <button
-          class="text-primary glass-button flex cursor-pointer items-center p-2"
+        <Button
+          
+          size="none"
+          class="p-2"
           aria-label="back"
           @click="router.back()"
         >
           <span class="icon-[mdi--chevron-left] h-5 w-5"></span>
-        </button>
+        </Button>
 
-        <button
-          class="text-primary glass-button flex cursor-pointer items-center p-2"
+        <Button
+          
+          size="none"
+          class="p-2"
           aria-label="forward"
           @click="router.forward()"
         >
           <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
-        </button>
+        </Button>
       </nav>
       <!-- 外链菜单 -->
       <nav class="hidden items-center space-x-2 md:flex">
-        <a
+        <Button
           href="https://github.com/XiangZi7/GlassMusicPlayer"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
+          
+          size="sm"
+          class="rounded-lg font-medium"
         >
           <span class="icon-[mdi--github] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.repo') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
-        </a>
-        <a
+        </Button>
+        <Button
           href="https://miraitv.pages.dev"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
+          
+          size="sm"
+          class="rounded-lg font-medium"
         >
           <span class="icon-[mdi--movie-open-play] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.movies') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
-        </a>
-        <a
+        </Button>
+        <Button
           href="https://gm-doc.pages.dev/"
           target="_blank"
           rel="noopener noreferrer"
-          class="glass-button text-primary rounded-lg px-4 py-2 text-sm font-medium"
+          
+          size="sm"
+          class="rounded-lg font-medium"
         >
           <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.projectDocs') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
-        </a>
+        </Button>
       </nav>
     </div>
 
@@ -207,8 +218,10 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       </Teleport>
 
       <!-- 主题切换 -->
-      <button
-        class="glass-button text-primary flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg"
+      <Button
+        
+        size="icon-md"
+        rounded="lg"
         :title="
           theme === 'system'
             ? t('components.settings.themeOptions.system')
@@ -219,26 +232,28 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         @click="cycleTheme"
       >
         <span :class="[themeIcon, 'h-5 w-5 transition-transform duration-300']"></span>
-      </button>
+      </Button>
 
       <!-- 用户头像 / 登录按钮 -->
       <div v-if="userStore.isLoggedIn" class="flex items-center gap-2">
         <img :src="userStore.avatarUrl" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
         <span class="text-primary/90 text-sm">{{ userStore.nickname }}</span>
       </div>
-      <button
+      <Button
         v-else
-        class="glass-button text-primary flex items-center gap-1 px-3 py-2 text-sm"
+        
+        size="sm"
+        class="gap-1 px-3 py-2"
         @click="showLogin = true"
       >
         <icon-ic:baseline-person-pin />
         {{ t('auth.login') }}
-      </button>
+      </Button>
 
       <!-- 移动端菜单按钮 -->
-      <button class="glass-button p-2 md:hidden">
+      <Button  size="none" class="p-2 md:hidden">
         <span class="icon-[mdi--menu] text-primary h-5 w-5"></span>
-      </button>
+      </Button>
     </div>
   </header>
   <LoginDialog v-if="showLogin" @close="showLogin = false" />

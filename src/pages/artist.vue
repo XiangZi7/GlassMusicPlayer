@@ -2,8 +2,10 @@
 import { artistDetail, artistTopSong, artistAlbum } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
-import { formatCount } from '@/utils/time';
+import { formatCount } from '@/utils/time'
 import { useI18n } from 'vue-i18n'
+import TabGroup from '@/components/Ui/TabGroup.vue'
+import Button from '@/components/Ui/Button.vue'
 const route = useRoute()
 const router = useRouter()
 const artistId = computed(() => Number(route.params.id))
@@ -51,8 +53,9 @@ const state = reactive({
   activeTab: 'songs' as 'songs' | 'albums',
 })
 
-const { setPlaylist, play } = useAudio()
+const { activeTab } = toRefs(state)
 
+const { setPlaylist, play } = useAudio()
 
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
@@ -87,7 +90,9 @@ const load = async (id: number) => {
       id: s?.id || 0,
       name: s?.name || '',
       artist: Array.isArray(s?.ar) ? s.ar.map((a: any) => a.name).join(' / ') : state.info.name,
-      artists: Array.isArray(s?.ar) ? s.ar.map((a: any) => ({ id: a.id, name: a.name })) : [{ id: state.info.id, name: state.info.name }],
+      artists: Array.isArray(s?.ar)
+        ? s.ar.map((a: any) => ({ id: a.id, name: a.name }))
+        : [{ id: state.info.id, name: state.info.name }],
       album: s?.al?.name || '',
       albumId: s?.al?.id || 0,
       duration: s?.dt ?? s?.duration ?? 0,
@@ -157,10 +162,25 @@ const shufflePlay = () => {
 const toggleFollow = () => {
   state.followed = !state.followed
 }
+
+const tabs = computed(() => [
+  {
+    key: 'songs',
+    labelKey: 'artistPage.tabs.hotSongs',
+    icon: 'icon-[mdi--music-note]',
+    count: state.songs.length,
+  },
+  {
+    key: 'albums',
+    labelKey: 'artistPage.tabs.albums',
+    icon: 'icon-[mdi--album]',
+    count: state.albums.length,
+  },
+])
 </script>
 
 <template>
-  <div class="flex-1 overflow-hidden text-primary px-4">
+  <div class="text-primary flex-1 overflow-hidden px-4">
     <div class="h-full overflow-auto">
       <PageSkeleton v-if="state.loading" :sections="['hero', 'list']" :list-count="12" />
       <template v-else>
@@ -171,7 +191,10 @@ const toggleFollow = () => {
               :src="state.info.picUrl + '?param=800y800'"
               class="h-full w-full scale-110 object-cover opacity-20 blur-2xl"
             />
-            <div v-else class="h-full w-full bg-linear-to-br from-pink-500/30 to-purple-600/30"></div>
+            <div
+              v-else
+              class="h-full w-full bg-linear-to-br from-pink-500/30 to-purple-600/30"
+            ></div>
           </div>
 
           <div class="absolute inset-0">
@@ -186,7 +209,9 @@ const toggleFollow = () => {
             <div class="flex flex-col items-start gap-8 lg:flex-row lg:items-center">
               <div class="shrink-0">
                 <div class="group relative">
-                  <div class="h-48 w-48 overflow-hidden rounded-full ring-4 ring-white/20 transition-all group-hover:ring-pink-500/40">
+                  <div
+                    class="h-48 w-48 overflow-hidden rounded-full ring-4 ring-white/20 transition-all group-hover:ring-pink-500/40"
+                  >
                     <img
                       v-if="state.info.picUrl"
                       :src="state.info.picUrl + '?param=400y400'"
@@ -200,7 +225,9 @@ const toggleFollow = () => {
                       <span class="icon-[mdi--account-music] h-20 w-20"></span>
                     </div>
                   </div>
-                  <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+                  <div
+                    class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
+                  >
                     <button
                       @click="playAll"
                       class="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110"
@@ -217,7 +244,7 @@ const toggleFollow = () => {
                 </h1>
                 <p
                   v-if="state.info.alias?.length"
-                  class="animate-fade-in-up mb-4 text-lg text-primary/60"
+                  class="animate-fade-in-up text-primary/60 mb-4 text-lg"
                   style="animation-delay: 0.1s"
                 >
                   {{ state.info.alias.join(' / ') }}
@@ -227,21 +254,39 @@ const toggleFollow = () => {
                   class="animate-fade-in-up mb-6 flex flex-wrap items-center gap-4"
                   style="animation-delay: 0.2s"
                 >
-                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <div
+                    class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm"
+                  >
                     <span class="icon-[mdi--music-note] h-5 w-5 text-pink-400"></span>
-                    <span class="text-sm">{{ state.info.musicSize }} {{ $t('artistPage.stats.songs') }}</span>
+                    <span class="text-sm"
+                      >{{ state.info.musicSize }} {{ $t('artistPage.stats.songs') }}</span
+                    >
                   </div>
-                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <div
+                    class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm"
+                  >
                     <span class="icon-[mdi--album] h-5 w-5 text-purple-400"></span>
-                    <span class="text-sm">{{ state.info.albumSize }} {{ $t('artistPage.stats.albums') }}</span>
+                    <span class="text-sm"
+                      >{{ state.info.albumSize }} {{ $t('artistPage.stats.albums') }}</span
+                    >
                   </div>
-                  <div class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <div
+                    class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm"
+                  >
                     <span class="icon-[mdi--video] h-5 w-5 text-blue-400"></span>
-                    <span class="text-sm">{{ state.info.mvSize }} {{ $t('artistPage.stats.mvs') }}</span>
+                    <span class="text-sm"
+                      >{{ state.info.mvSize }} {{ $t('artistPage.stats.mvs') }}</span
+                    >
                   </div>
-                  <div v-if="state.info.fansCount" class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <div
+                    v-if="state.info.fansCount"
+                    class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm"
+                  >
                     <span class="icon-[mdi--account-group] h-5 w-5 text-rose-400"></span>
-                    <span class="text-sm">{{ formatCount(state.info.fansCount) }} {{ $t('artistPage.stats.fans') }}</span>
+                    <span class="text-sm"
+                      >{{ formatCount(state.info.fansCount) }}
+                      {{ $t('artistPage.stats.fans') }}</span
+                    >
                   </div>
                 </div>
 
@@ -249,31 +294,40 @@ const toggleFollow = () => {
                   class="animate-fade-in-up flex flex-wrap items-center gap-3"
                   style="animation-delay: 0.3s"
                 >
-                  <button
-                    class="flex items-center gap-2 rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-6 py-2.5 font-medium text-white shadow-lg shadow-pink-500/25 transition-all hover:scale-105 hover:shadow-xl hover:shadow-pink-500/30"
+                  <Button
+                    variant="solid"
+                    size="md"
+                    rounded="full"
+                    class="gap-2 px-6 shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30"
                     @click="playAll"
                   >
                     <span class="icon-[mdi--play] h-5 w-5"></span>
                     {{ $t('artistPage.playTop') }}
-                  </button>
-                  <button
-                    class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
+                  </Button>
+                  <Button
+                    variant="soft"
+                    size="md"
+                    rounded="full"
+                    class="gap-2"
                     @click="shufflePlay"
                   >
-                    <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span>
+                    <span class="icon-[mdi--shuffle] h-4 w-4"></span>
                     {{ $t('actions.shufflePlay') }}
-                  </button>
-                  <button
-                    class="glass-button px-5 py-2.5 text-sm transition-all hover:bg-white/15"
-                    :class="state.followed ? 'bg-pink-500/20 text-pink-400' : ''"
+                  </Button>
+                  <Button
+                    variant="soft"
+                    size="md"
+                    rounded="full"
+                    class="gap-2"
+                    :class="state.followed ? 'bg-pink-500/20! text-pink-400!' : ''"
                     @click="toggleFollow"
                   >
                     <span
                       :class="state.followed ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
-                      class="mr-2 h-4 w-4"
+                      class="h-4 w-4"
                     ></span>
                     {{ state.followed ? $t('common.followed') : $t('common.follow') }}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -286,41 +340,23 @@ const toggleFollow = () => {
               <span class="icon-[mdi--information-outline] h-4 w-4 text-pink-400"></span>
               {{ $t('artistPage.bioTitle') }}
             </h3>
-            <p class="line-clamp-3 text-sm leading-relaxed text-primary/70">{{ state.info.briefDesc }}</p>
+            <p class="text-primary/70 line-clamp-3 text-sm leading-relaxed">
+              {{ state.info.briefDesc }}
+            </p>
           </div>
 
-          <div class="mb-6 flex items-center gap-6 border-b border-white/10">
-            <button
-              class="relative px-2 pb-4 text-base font-medium transition-all"
-              :class="state.activeTab === 'songs' ? 'text-primary' : 'text-primary/50 hover:text-primary/80'"
-              @click="state.activeTab = 'songs'"
-            >
-              <span class="icon-[mdi--music-note] mr-2 h-4 w-4"></span>
-              {{ $t('artistPage.tabs.hotSongs') }}
-              <span class="ml-1 text-xs text-primary/40">({{ state.songs.length }})</span>
-              <div
-                v-if="state.activeTab === 'songs'"
-                class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
-              ></div>
-            </button>
-            <button
-              class="relative px-2 pb-4 text-base font-medium transition-all"
-              :class="state.activeTab === 'albums' ? 'text-primary' : 'text-primary/50 hover:text-primary/80'"
-              @click="state.activeTab = 'albums'"
-            >
-              <span class="icon-[mdi--album] mr-2 h-4 w-4"></span>
-              {{ $t('artistPage.tabs.albums') }}
-              <span class="ml-1 text-xs text-primary/40">({{ state.albums.length }})</span>
-              <div
-                v-if="state.activeTab === 'albums'"
-                class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600"
-              ></div>
-            </button>
+          <div class="mb-6">
+            <TabGroup
+              v-model="state.activeTab"
+              :tabs="tabs"
+              variant="glass"
+              size="md"
+              @click="val => (activeTab = val as 'songs' | 'albums')"
+            />
           </div>
 
           <div v-show="state.activeTab === 'songs'" class="animate-fade-in">
             <SongList
-              class="max-h-[50vh]"
               :songs="state.songs"
               :current-playing-index="-1"
               :show-header="true"
@@ -340,12 +376,16 @@ const toggleFollow = () => {
                     :src="al.picUrl + '?param=400y400'"
                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
+                  <div
+                    class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100"
+                  >
                     <span class="icon-[mdi--play-circle] h-12 w-12 text-white"></span>
                   </div>
                 </div>
                 <p class="truncate text-sm font-medium">{{ al.name }}</p>
-                <p class="mt-1 truncate text-xs text-primary/50">{{ al.publishTime }} · {{ $t('commonUnits.songsShort', al.size) }}</p>
+                <p class="text-primary/50 mt-1 truncate text-xs">
+                  {{ al.publishTime }} · {{ $t('commonUnits.songsShort', al.size) }}
+                </p>
               </div>
             </div>
           </div>
@@ -406,10 +446,28 @@ const toggleFollow = () => {
   animation: noteFloat 15s linear infinite;
 }
 
-.note:nth-child(1) { left: 5%; animation-duration: 14s; }
-.note:nth-child(2) { left: 20%; animation-duration: 16s; }
-.note:nth-child(3) { left: 40%; animation-duration: 12s; }
-.note:nth-child(4) { left: 60%; animation-duration: 18s; }
-.note:nth-child(5) { left: 75%; animation-duration: 13s; }
-.note:nth-child(6) { left: 90%; animation-duration: 15s; }
+.note:nth-child(1) {
+  left: 5%;
+  animation-duration: 14s;
+}
+.note:nth-child(2) {
+  left: 20%;
+  animation-duration: 16s;
+}
+.note:nth-child(3) {
+  left: 40%;
+  animation-duration: 12s;
+}
+.note:nth-child(4) {
+  left: 60%;
+  animation-duration: 18s;
+}
+.note:nth-child(5) {
+  left: 75%;
+  animation-duration: 13s;
+}
+.note:nth-child(6) {
+  left: 90%;
+  animation-duration: 15s;
+}
 </style>

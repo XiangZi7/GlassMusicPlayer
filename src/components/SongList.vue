@@ -4,6 +4,7 @@ import type { Song } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
 import { RouterLink, useRouter } from 'vue-router'
 import LazyImage from '@/components/Ui/LazyImage.vue'
+import Button from '@/components/Ui/Button.vue'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
@@ -84,8 +85,6 @@ const downloadSong = (song: Song, index: number) => {
     width: auto;
   }
 }
-
-
 </style>
 <template>
   <div class="flex h-full flex-col overflow-hidden">
@@ -134,13 +133,15 @@ const downloadSong = (song: Song, index: number) => {
               <span class="bar" :class="{ animate: isPlaying }"></span>
               <span class="bar" :class="{ animate: isPlaying }"></span>
             </div>
-            <button
+            <Button
               v-if="!isCurrent(song)"
-              class="text-primary hidden transition-colors group-hover:block hover:text-pink-400"
+              variant="text"
+              size="none"
+              class="hidden! transition-colors group-hover:block! hover:text-pink-400"
               @click.stop="playSong(song, index)"
             >
               <span class="icon-[mdi--play] h-6 w-6"></span>
-            </button>
+            </Button>
           </div>
 
           <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
@@ -222,29 +223,38 @@ const downloadSong = (song: Song, index: number) => {
             <div
               class="col-span-2 flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             >
-              <button
+              <Button
                 v-if="song.mvId"
-                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+                variant="ghost"
+                size="icon-md"
+                rounded="full"
+                class="h-9 w-9"
+                icon="mdi--movie-open-play"
+                iconClass="h-5 w-5"
                 :title="t('common.playMV')"
                 @click.stop="openMV(song, index)"
-              >
-                <span class="icon-[mdi--movie-open-play] h-5 w-5"></span>
-              </button>
-              <button
+              />
+              <Button
                 v-if="song.id"
-                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+                variant="ghost"
+                size="icon-md"
+                rounded="full"
+                class="h-9 w-9"
+                icon="mdi--information-outline"
+                iconClass="h-5 w-5"
                 :title="t('common.detail')"
                 @click.stop="router.push(`/song/${song.id}`)"
-              >
-                <span class="icon-[mdi--information-outline] h-5 w-5"></span>
-              </button>
-              <button
-                class="text-primary/70 hover:text-primary rounded-full p-2 transition-all hover:bg-white/10"
+              />
+              <Button
+                variant="ghost"
+                size="icon-md"
+                rounded="full"
+                class="h-9 w-9"
+                icon="mdi--tray-arrow-down"
+                iconClass="h-5 w-5"
                 :title="t('common.download')"
                 @click.stop="downloadSong(song, index)"
-              >
-                <span class="icon-[mdi--tray-arrow-down] h-5 w-5"></span>
-              </button>
+              />
             </div>
           </div>
         </div>

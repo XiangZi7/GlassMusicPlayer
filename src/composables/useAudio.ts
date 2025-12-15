@@ -47,13 +47,13 @@ export const useAudio = () => {
   const playModeIcon = computed(() => {
     switch (playMode.value) {
       case PlayMode.LIST:
-        return 'i-mdi-repeat'
+        return 'icon-[mdi--repeat]'
       case PlayMode.SINGLE:
-        return 'i-mdi-repeat-once'
+        return 'icon-[mdi--repeat-once]'
       case PlayMode.RANDOM:
-        return 'i-mdi-shuffle'
+        return 'icon-[mdi--shuffle]'
       default:
-        return 'i-mdi-repeat'
+        return 'icon-[mdi--repeat]'
     }
   })
 

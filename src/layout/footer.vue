@@ -4,6 +4,7 @@ import { useLyrics } from '@/composables/useLyrics'
 import { useSettingsStore } from '@/stores/modules/settings'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControl from '@/components/Ui/VolumeControl.vue'
+import Button from '@/components/Ui/Button.vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -15,7 +16,6 @@ const {
   currentSong,
   isPlaying,
   isLoading,
-  volume,
   currentTime,
   formattedCurrentTime,
   formattedDuration,
@@ -29,9 +29,6 @@ const {
 
   // 播放模式控制
   togglePlayMode,
-
-  // 音量控制
-  setVolume,
 } = useAudio()
 
 const state = reactive({
@@ -75,7 +72,6 @@ watch(
 )
 
 const emit = defineEmits(['show'])
-
 </script>
 <template>
   <footer class="glass-nav m-4 p-4">
@@ -119,37 +115,42 @@ const emit = defineEmits(['show'])
 
       <!-- 中间：播放控制 -->
       <div class="flex items-center space-x-4">
-        <button
-          @click="togglePlayMode"
-          class="text-primary/70 hover:text-primary transition-colors"
-          :title="playModeText"
-        >
-          <span :class="playModeIcon" class="h-6 w-6"></span>
-        </button>
-        <button @click="previous" class="text-primary/70 hover:text-primary transition-colors">
-          <span class="icon-[mdi--skip-previous] h-6 w-6"></span>
-        </button>
-        <button
+        <Button
+          variant="text"
+          size="none"
+          @click="previous"
+          icon="mdi--skip-previous"
+          icon-class="size-6"
+        />
+        <Button
+          variant="gradient"
+          size="icon-lg"
+          rounded="full"
           @click="togglePlay"
           :title="isPlaying ? t('player.pause') : t('player.play')"
-          class="glass-button flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 shadow-sm transition-transform hover:scale-105"
+          :loading="isLoading"
         >
           <span
-            v-if="isLoading"
-            class="icon-[mdi--loading] text-primary h-6 w-6 animate-spin"
-          ></span>
-          <span
-            v-else
+            v-if="!isLoading"
             :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
             class="text-primary h-6 w-6"
           ></span>
-        </button>
-        <button @click="next" class="text-primary/70 hover:text-primary transition-colors">
-          <span class="icon-[mdi--skip-next] h-6 w-6"></span>
-        </button>
-        <button class="text-primary/70 hover:text-primary transition-colors">
-          <span class="icon-[mdi--repeat] h-6 w-6"></span>
-        </button>
+        </Button>
+        <Button
+          variant="text"
+          size="none"
+          @click="next"
+          icon="mdi--skip-next"
+          icon-class="size-6"
+        />
+        <Button
+          variant="text"
+          :icon="playModeIcon"
+          icon-class="size-6"
+          size="none"
+          @click="togglePlayMode"
+          :title="playModeText"
+        />
       </div>
 
       <!-- 右侧：音量和其他控制 -->

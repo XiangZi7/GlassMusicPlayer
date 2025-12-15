@@ -41,6 +41,7 @@ export interface AudioStoreState {
     duration: number
     playHistory: Song[]
     error: string | null
+    previousVolume?: number
   }
 }
 

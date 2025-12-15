@@ -3,6 +3,7 @@ import { useAudioStore } from '@/stores/modules/audio'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 import SongList from '@/components/SongList.vue'
+import Button from '@/components/Ui/Button.vue'
 
 const audioStore = useAudioStore()
 const { audio } = storeToRefs(audioStore)
@@ -20,12 +21,12 @@ const playAll = () => {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col overflow-hidden">
-    <section class="relative mb-6 shrink-0 overflow-hidden rounded-2xl">
-      <div class="absolute inset-0">
-        <div
-          class="h-full w-full scale-110 bg-linear-to-br from-purple-500/30 to-pink-500/30 blur-3xl"
-        ></div>
+  <div class="flex flex-1 flex-col overflow-hidden p-4">
+    <!-- 头部卡片 -->
+    <section class="relative mb-6 shrink-0 overflow-hidden">
+      <!-- 背景装饰 -->
+      <div class="absolute inset-0 overflow-hidden rounded-3xl">
+        <div class="h-full w-full scale-110 accent-gradient opacity-20 blur-3xl"></div>
       </div>
       <div class="absolute inset-0 overflow-hidden">
         <div class="floating-notes">
@@ -34,37 +35,49 @@ const playAll = () => {
           </div>
         </div>
       </div>
-      <div class="relative z-10 p-6 md:p-8">
-        <div class="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 class="mb-2 text-3xl font-bold text-primary md:text-4xl">
-              {{ $t('recent.title') }}
-            </h1>
-            <p class="text-sm text-primary/70 md:text-base">{{ $t('recent.subtitle') }}</p>
-            <div class="mt-3 flex items-center gap-4 text-primary/60">
-              <div class="flex items-center gap-1">
-                <span class="icon-[mdi--music-note] h-4 w-4"></span>
-                <span class="text-sm">{{
-                  $t('commonUnits.songsShort', { count: recentList.length })
-                }}</span>
+
+      <!-- 内容 -->
+      <div class="relative z-10 overflow-hidden rounded-3xl">
+        <div class="glass-container p-6 md:p-8">
+          <div class="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 class="mb-2 text-3xl font-bold text-primary md:text-4xl">
+                {{ $t('recent.title') }}
+              </h1>
+              <p class="text-sm text-primary/70 md:text-base">{{ $t('recent.subtitle') }}</p>
+              <div class="mt-4 flex items-center gap-4 text-primary/60">
+                <div class="flex items-center gap-2">
+                  <span class="icon-[mdi--music-note] h-5 w-5"></span>
+                  <span class="text-sm font-medium">
+                    {{ $t('commonUnits.songsShort', { count: recentList.length }) }}
+                  </span>
+                </div>
+                <div v-if="recentList.length > 0" class="flex items-center gap-2">
+                  <span class="icon-[mdi--history] h-5 w-5"></span>
+                  <span class="text-sm font-medium">{{ $t('recent.playHistory') }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              class="glass-button flex items-center gap-2 bg-linear-to-r from-pink-500 to-purple-600 px-6 py-3 font-medium text-primary transition-transform hover:scale-105"
-              :disabled="!recentList.length"
-              @click="playAll"
-            >
-              <span class="icon-[mdi--play] h-5 w-5"></span>
-              {{ $t('actions.playAll') }}
-            </button>
+            <div class="flex items-center gap-3">
+              <Button
+                variant="solid"
+                size="md"
+                rounded="full"
+                class="px-6 py-3 shadow-lg shadow-pink-500/30 hover:shadow-xl hover:shadow-pink-500/40"
+                :disabled="!recentList.length"
+                @click="playAll"
+              >
+                <span class="icon-[mdi--play] mr-2 h-5 w-5"></span>
+                {{ $t('actions.playAll') }}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <div class="flex-1 overflow-hidden px-2">
+    <!-- 歌曲列表 -->
+    <div class="flex-1 overflow-hidden">
       <SongList
         :songs="recentList"
         :show-header="true"

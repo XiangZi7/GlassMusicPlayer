@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { albumDetail } from '@/api'
 import SongList from '@/components/SongList.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
+import Button from '@/components/Ui/Button.vue'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
 
@@ -135,12 +136,26 @@ onMounted(() => load())
             </div>
           </div>
           <div class="ml-auto flex items-center gap-3">
-            <button class="glass-button px-4 py-2 text-sm" @click="playAll">
-              <span class="icon-[mdi--play] mr-2 h-4 w-4"></span> {{ $t('actions.playAll') }}
-            </button>
-            <button class="glass-button px-4 py-2 text-sm" @click="shufflePlay">
-              <span class="icon-[mdi--shuffle] mr-2 h-4 w-4"></span> {{ $t('actions.shufflePlay') }}
-            </button>
+            <Button
+              variant="solid"
+              size="md"
+              rounded="lg"
+              class="gap-2"
+              @click="playAll"
+            >
+              <span class="icon-[mdi--play] h-4 w-4"></span>
+              {{ $t('actions.playAll') }}
+            </Button>
+            <Button
+              variant="soft"
+              size="md"
+              rounded="lg"
+              class="gap-2"
+              @click="shufflePlay"
+            >
+              <span class="icon-[mdi--shuffle] h-4 w-4"></span>
+              {{ $t('actions.shufflePlay') }}
+            </Button>
           </div>
         </div>
       </div>

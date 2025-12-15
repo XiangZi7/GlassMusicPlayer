@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import TabGroup from '@/components/Ui/TabGroup.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 const tabs = [
-  { key: 'all', label: '全部', emoji: '❤️' },
-  { key: 'song', label: '歌曲', emoji: '🎵' },
-  { key: 'playlist', label: '歌单', emoji: '📜' },
-  { key: 'mv', label: 'MV', emoji: '🎬' },
+  { key: 'all', labelKey: 'likes.tabs.all', icon: 'icon-[mdi--heart]' },
+  { key: 'song', labelKey: 'likes.tabs.song', icon: 'icon-[mdi--music]' },
+  { key: 'playlist', labelKey: 'likes.tabs.playlist', icon: 'icon-[mdi--playlist-music]' },
+  { key: 'mv', labelKey: 'likes.tabs.mv', icon: 'icon-[mdi--video]' },
 ]
 
 const state = reactive({
@@ -65,25 +70,20 @@ const filtered = computed(() =>
       <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="12" />
       <template v-else>
       <div class="mb-8">
-        <div class="relative overflow-hidden rounded-2xl bg-black/30 p-6 backdrop-blur">
+        <div class="glass-container relative overflow-hidden rounded-3xl p-6">
           <div class="shimmer absolute inset-0"></div>
-          <div class="relative z-10 flex items-center justify-between">
+          <div class="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-primary">我喜欢的</h1>
-              <p class="mt-1 text-sm text-primary/70">把所有让你心动的音乐收藏在这里</p>
+              <h1 class="text-3xl font-bold text-primary">{{ t('likes.title') }}</h1>
+              <p class="mt-1 text-sm text-primary/70">{{ t('likes.subtitle') }}</p>
             </div>
-            <div class="hidden gap-2 md:flex">
-              <div
-                v-for="t in tabs"
-                :key="t.key"
-                class="glass-button flex items-center gap-2 px-4 py-2 text-primary"
-                :class="active === t.key ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'"
-                @click="active = t.key"
-              >
-                <span>{{ t.emoji }}</span>
-                <span class="text-sm">{{ t.label }}</span>
-              </div>
-            </div>
+            <TabGroup
+              v-model="active"
+              :tabs="tabs"
+              variant="gradient"
+              size="sm"
+              :show-count="false"
+            />
           </div>
         </div>
       </div>

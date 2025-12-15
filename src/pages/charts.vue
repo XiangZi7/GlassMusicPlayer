@@ -4,6 +4,8 @@ import { topSong, toplist, playlistTrackAll } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import { useI18n } from 'vue-i18n'
 import LazyImage from '@/components/Ui/LazyImage.vue'
+import TabGroup from '@/components/Ui/TabGroup.vue'
+import Button from '@/components/Ui/Button.vue'
 
 const { t } = useI18n()
 const { setPlaylist, play } = useAudio()
@@ -20,6 +22,11 @@ const state = reactive({
 })
 
 const { activeTab, activeType } = toRefs(state)
+
+const mainTabs = computed(() => [
+  { key: 'newSong', labelKey: 'charts.newSongs', icon: 'icon-[mdi--music-note-plus]' },
+  { key: 'official', labelKey: 'charts.official', icon: 'icon-[mdi--trophy]' },
+])
 
 const newSongTypes = [
   { key: 0, labelKey: 'charts.types.all', icon: 'icon-[mdi--fire]' },
@@ -124,46 +131,23 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full flex-1 gap-6 overflow-hidden p-4 lg:p-6">
-    <aside class="glass-card flex w-64 shrink-0 flex-col overflow-hidden">
-      <div class="shrink-0 border-b border-white/10 p-4">
-        <div class="flex gap-2">
-          <button
-            class="glass-button flex-1 justify-center px-4 py-2.5 text-sm font-medium transition-all"
-            :class="
-              activeTab === 'newSong'
-                ? 'bg-pink-500/90! text-white! border-pink-500/50!'
-                : 'text-primary/70 hover:text-primary'
-            "
-            @click="activeTab = 'newSong'"
-          >
-            <span class="icon-[mdi--music-note-plus] mr-1.5 h-4 w-4" />
-            {{ t('charts.newSongs') }}
-          </button>
-          <button
-            class="glass-button flex-1 justify-center px-4 py-2.5 text-sm font-medium transition-all"
-            :class="
-              activeTab === 'official'
-                ? 'bg-pink-500/90! text-white! border-pink-500/50!'
-                : 'text-primary/70 hover:text-primary'
-            "
-            @click="activeTab = 'official'"
-          >
-            <span class="icon-[mdi--trophy] mr-1.5 h-4 w-4" />
-            {{ t('charts.official') }}
-          </button>
-        </div>
+    <!-- 侧边栏 -->
+    <aside class="glass-card flex w-64 shrink-0 flex-col overflow-hidden rounded-3xl">
+      <!-- Tab 切换 -->
+      <div class="shrink-0 border-b border-(--glass-border) p-4">
+        <TabGroup v-model="state.activeTab" :tabs="mainTabs" variant="gradient" size="sm" :show-count="false" />
       </div>
 
+      <!-- 新歌榜类型 -->
       <div v-if="activeTab === 'newSong'" class="flex-1 space-y-1.5 overflow-auto p-4">
-        <button
+        <Button
           v-for="type in newSongTypes"
           :key="type.key"
-          class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all"
-          :class="
-            activeType === type.key
-              ? 'bg-pink-500/15 text-pink-400 shadow-sm'
-              : 'text-primary/70 hover:bg-white/5 hover:text-primary'
-          "
+          variant="ghost"
+          size="sm"
+          rounded="xl"
+          class="w-full justify-start gap-3"
+          :class="activeType === type.key ? 'bg-hover-glass text-pink-400! shadow-sm' : ''"
           @click="activeType = type.key as any"
         >
           <span
@@ -171,9 +155,10 @@ onMounted(() => {
             :style="activeType === type.key ? 'filter: drop-shadow(0 0 4px rgb(236 72 153 / 0.5))' : ''"
           ></span>
           {{ t(type.labelKey) }}
-        </button>
+        </Button>
       </div>
 
+      <!-- 官方榜单列表 -->
       <div v-else class="flex-1 space-y-2 overflow-auto p-4">
         <div
           v-for="item in state.officialLists"
@@ -181,14 +166,14 @@ onMounted(() => {
           class="group flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-all"
           :class="
             state.selectedList?.id === item.id
-              ? 'bg-pink-500/15 shadow-sm'
-              : 'hover:bg-white/5'
+              ? 'bg-hover-glass shadow-sm'
+              : 'hover:bg-hover-glass/50'
           "
           @click="selectList(item)"
         >
           <div class="relative shrink-0">
             <LazyImage
-              :src="item.cover + '?param=80y80'"
+              :src="item.cover + '?param=100y100'"
               :alt="item.name"
               imgClass="h-12 w-12 rounded-lg object-cover shadow-md transition-transform duration-300 group-hover:scale-105"
               wrapperClass="h-12 w-12"
@@ -213,27 +198,33 @@ onMounted(() => {
       </div>
     </aside>
 
+    <!-- 主内容区 -->
     <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <!-- 头部 -->
       <header class="mb-6 flex shrink-0 items-center justify-between">
         <div class="flex items-center gap-4">
-          <h1 class="text-primary text-2xl font-bold tracking-tight">
+          <h1 class="text-primary text-2xl font-bold tracking-tight lg:text-3xl">
             {{ activeTab === 'newSong' ? t('charts.newSongs') : state.selectedList?.name }}
           </h1>
-          <span class="text-primary/50 rounded-full bg-white/5 px-3 py-1 text-sm font-medium">
+          <span class="text-primary/50 glass-card rounded-full px-3 py-1.5 text-sm font-medium">
             {{ currentSongs.length }} {{ t('charts.songs') }}
           </span>
         </div>
-        <button
+        <Button
           v-if="currentSongs.length > 0"
-          class="glass-button flex items-center gap-2 bg-pink-500/90! px-5 py-2.5 text-sm font-medium text-white! transition-all hover:bg-pink-600/90! hover:shadow-lg hover:shadow-pink-500/25"
+          variant="solid"
+          size="md"
+          rounded="lg"
+          class="gap-2 shadow-md shadow-pink-500/20"
           @click="playAll"
         >
           <span class="icon-[mdi--play] h-5 w-5" />
           {{ t('actions.playAll') }}
-        </button>
+        </Button>
       </header>
 
-      <div class="glass-card relative min-h-0 flex-1 overflow-hidden p-4">
+      <!-- 歌曲列表 -->
+      <div class="glass-card relative min-h-0 flex-1 overflow-hidden rounded-3xl p-4">
         <PageSkeleton v-if="currentLoading" :sections="['list']" :list-count="12" />
         <SongList v-else :songs="currentSongs" :show-header="true" :show-controls="true" />
       </div>

@@ -4,6 +4,7 @@ import SearchSongs from '@/components/Search/SearchSongs.vue'
 import SearchPlaylists from '@/components/Search/SearchPlaylists.vue'
 import SearchMVs from '@/components/Search/SearchMVs.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
+import TabGroup from '@/components/Ui/TabGroup.vue'
 // 路由实例：读取/更新查询参数
 const route = useRoute()
 
@@ -86,22 +87,13 @@ watch(page, () => {
         <!-- 左侧：搜索关键词 + Tab -->
         <div class="flex flex-wrap items-center gap-4">
           <!-- Tab 导航 -->
-          <div class="flex items-center gap-1 rounded-xl bg-white/5 p-1 backdrop-blur-sm">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200"
-              :class="
-                activeType === tab.key
-                  ? 'bg-linear-to-r from-pink-500/80 to-rose-500/80 text-white shadow-sm'
-                  : 'text-primary/60 hover:text-primary hover:bg-white/10'
-              "
-              @click="activeType = tab.key"
-            >
-              <span :class="[tab.icon, 'h-4 w-4']"></span>
-              {{ $t(tab.labelKey) }}
-            </button>
-          </div>
+          <TabGroup
+            v-model="activeType"
+            :tabs="tabs"
+            variant="gradient"
+            size="sm"
+            :show-count="false"
+          />
         </div>
 
         <!-- 右侧：播放全部 + 分页 -->

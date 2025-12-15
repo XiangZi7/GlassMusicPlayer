@@ -58,6 +58,8 @@ export const useAudioStore = defineStore('audio', {
       playHistory: [],
       // 错误信息
       error: null,
+      // 记录静音前的音量
+      previousVolume: 1,
     },
   }),
 
@@ -463,8 +465,18 @@ export const useAudioStore = defineStore('audio', {
     // 静音切换
     toggleMute() {
       if (this.audio.audio) {
-        this.audio.audio.muted = !this.audio.audio.muted
-        this.audio.isMuted = this.audio.audio.muted
+        if (this.audio.audio.muted) {
+          // 恢复静音前的音量
+          this.audio.audio.muted = false
+          this.audio.isMuted = false
+          this.setVolume(this.audio.previousVolume || 1)
+        } else {
+          // 开启静音，记录当前音量
+          this.audio.previousVolume = this.audio.volume
+          this.audio.audio.muted = true
+          this.audio.isMuted = true
+          this.setVolume(0)
+        }
       }
     },
 
