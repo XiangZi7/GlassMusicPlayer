@@ -154,15 +154,15 @@ const goToArtist = () => {
 
             <div class="flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
-                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-primary">
+                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-accent">
                   {{ state.info.name || t('albumPage.fallbackTitle') }}
                 </h1>
                 <div class="artist-info flex items-center gap-2" @click="goToArtist">
-                  <span class="text-xs text-primary/70">{{ state.info.artist }}</span>
-                  <span class="icon-[mdi--chevron-right] h-4 w-4 text-primary/50"></span>
+                  <span class="text-xs text-accent/70">{{ state.info.artist }}</span>
+                  <span class="icon-[mdi--chevron-right] h-4 w-4 text-accent/60"></span>
                 </div>
               </div>
-              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-primary/60">
+              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-accent/60">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--music-note] h-3.5 w-3.5"></span>
                   {{ $t('commonUnits.songsShort', state.info.songCount) }}
@@ -185,12 +185,12 @@ const goToArtist = () => {
             @click="state.showFullDesc = !state.showFullDesc"
           >
             <p
-              class="text-xs leading-relaxed text-primary/60"
+              class="text-xs leading-relaxed text-accent/60"
               :class="state.showFullDesc ? '' : 'line-clamp-2'"
             >
               {{ state.info.description }}
             </p>
-            <span class="mt-1 inline-flex items-center text-[10px] text-primary/40">
+            <span class="mt-1 inline-flex items-center text-[10px] text-accent/60">
               {{ state.showFullDesc ? t('common.collapse') : t('common.expand') }}
               <span
                 :class="state.showFullDesc ? 'icon-[mdi--chevron-up]' : 'icon-[mdi--chevron-down]'"

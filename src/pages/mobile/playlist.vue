@@ -148,7 +148,7 @@ const toggleCollect = () => {
                 imgClass="cover-image h-32 w-32 rounded-2xl object-cover"
               />
               <div
-                class="play-count-badge text-primary absolute -right-1 -bottom-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                class="play-count-badge absolute -right-1 -bottom-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent"
               >
                 <span class="icon-[mdi--play] h-3 w-3"></span>
                 {{ state.info.playCount }}
@@ -157,7 +157,7 @@ const toggleCollect = () => {
 
             <div class="flex min-w-0 flex-1 flex-col justify-between py-1">
               <div>
-                <h1 class="text-primary mb-2 line-clamp-2 text-lg leading-tight font-bold">
+                <h1 class="mb-2 line-clamp-2 text-lg leading-tight font-bold text-accent">
                   {{ state.info.name }}
                 </h1>
                 <div class="creator-info flex items-center gap-2">
@@ -167,10 +167,10 @@ const toggleCollect = () => {
                     alt=""
                     class="h-5 w-5 rounded-full"
                   />
-                  <span class="text-primary/70 text-xs">{{ state.info.creator }}</span>
+                  <span class="text-xs text-accent/70">{{ state.info.creator }}</span>
                 </div>
               </div>
-              <div class="text-primary/60 mt-2 flex items-center gap-3 text-[11px]">
+              <div class="mt-2 flex items-center gap-3 text-[11px] text-accent/60">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--music-note] h-3.5 w-3.5"></span>
                   {{ $t('commonUnits.songsShort', state.info.songCount) }}
@@ -189,12 +189,12 @@ const toggleCollect = () => {
             @click="state.showFullDesc = !state.showFullDesc"
           >
             <p
-              class="text-primary/60 text-xs leading-relaxed"
+              class="text-xs leading-relaxed text-accent/60"
               :class="state.showFullDesc ? '' : 'line-clamp-2'"
             >
               {{ state.info.description }}
             </p>
-            <span class="text-primary/40 mt-1 inline-flex items-center text-[10px]">
+            <span class="mt-1 inline-flex items-center text-[10px] text-accent/60">
               {{ state.showFullDesc ? $t('common.collapse') : $t('common.expand') }}
               <span
                 :class="state.showFullDesc ? 'icon-[mdi--chevron-up]' : 'icon-[mdi--chevron-down]'"

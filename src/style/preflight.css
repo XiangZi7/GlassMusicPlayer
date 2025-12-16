@@ -8,6 +8,7 @@
     --glass-bg-button: rgba(255, 255, 255, 0.15);
     --glass-hover-button-bg: rgba(255, 255, 255, 0.2);
     --glass-text: rgba(60, 58, 58, 1);
+    --glass-accent: rgba(255, 255, 255, 0.95);
     --glass-hover-item-bg: rgba(17, 24, 39, 0.06);
     --glass-hover-text: #111827;
     --glass-bg: rgba(255, 255, 255);
@@ -18,9 +19,6 @@
     --playlist-bubble-bg: rgba(255, 255, 255, 0.9);
     --glass-container-strong-bg: rgba(255, 255, 255, 0.92);
     --mask-bg: rgba(255, 255, 255, 0.06);
-    --accent-from: #ec4899;
-    --accent-to: #8b5cf6;
-    --accent: #8b5cf6;
     --progress-track-bg: rgba(17, 24, 39, 0.16);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
     --skeleton-bg: #d9dadb;
@@ -37,6 +35,7 @@
     --glass-bg-button: rgba(255, 255, 255, 0.08);
     --glass-hover-button-bg: rgba(255, 255, 255, 0.12);
     --glass-text: rgba(255, 255, 255, 0.85);
+    --glass-accent: rgba(255, 255, 255, 0.95);
     --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
     --glass-hover-text: #ffffff;
     --glass-bg: rgba(0, 0, 0);
@@ -47,9 +46,6 @@
     --playlist-bubble-bg: rgba(0, 0, 0, 0.9);
     --glass-container-strong-bg: rgba(0, 0, 0, 0.9);
     --mask-bg: rgba(0, 0, 0, 0.3);
-    --accent-from: #db2777;
-    --accent-to: #7c3aed;
-    --accent: #a78bfa;
     --progress-track-bg: rgba(255, 255, 255, 0.22);
     --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
     --skeleton-bg: rgba(255, 255, 255, 0.08);

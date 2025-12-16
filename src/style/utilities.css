@@ -2,11 +2,6 @@
   .bottom-mask-gradient {
     background: linear-gradient(to top, var(--mask-bg), var(--mask-bg), transparent);
   }
-
-  .accent-gradient {
-    background: linear-gradient(90deg, var(--accent-from), var(--accent-to));
-  }
-
   .progress-track {
     background: var(--progress-track-bg);
   }

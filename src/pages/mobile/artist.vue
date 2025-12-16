@@ -167,26 +167,26 @@ const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
               />
             </div>
 
-            <h1 class="text-primary mb-1 text-xl font-bold">{{ state.info.name }}</h1>
-            <p v-if="state.info.alias?.length" class="text-primary/50 mb-3 text-xs">
+            <h1 class="mb-1 text-xl font-bold text-accent">{{ state.info.name }}</h1>
+            <p v-if="state.info.alias?.length" class="mb-3 text-xs text-accent/60">
               {{ state.info.alias.join(' / ') }}
             </p>
 
-            <div class="text-primary/70 mb-4 flex items-center gap-6 text-center text-xs">
+            <div class="mb-4 flex items-center gap-6 text-center text-xs text-accent/70">
               <div class="flex flex-col items-center">
-                <span class="text-primary text-base font-semibold">{{ state.info.musicSize }}</span>
+                <span class="text-base font-semibold text-accent">{{ state.info.musicSize }}</span>
                 <span>{{ $t('artistPage.stats.songs') }}</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-primary text-base font-semibold">{{ state.info.albumSize }}</span>
+                <span class="text-base font-semibold text-accent">{{ state.info.albumSize }}</span>
                 <span>{{ $t('artistPage.stats.albums') }}</span>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-primary text-base font-semibold">{{ state.info.mvSize }}</span>
+                <span class="text-base font-semibold text-accent">{{ state.info.mvSize }}</span>
                 <span>{{ $t('artistPage.stats.mvs') }}</span>
               </div>
               <div v-if="state.info.fansCount" class="flex flex-col items-center">
-                <span class="text-primary text-base font-semibold">{{
+                <span class="text-base font-semibold text-accent">{{
                   formatCount(state.info.fansCount)
                 }}</span>
                 <span>{{ $t('artistPage.stats.fans') }}</span>
@@ -195,7 +195,7 @@ const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
 
             <p
               v-if="state.info.briefDesc"
-              class="text-primary/60 mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed"
+              class="mb-4 line-clamp-2 max-w-xs text-center text-xs leading-relaxed text-accent/60"
             >
               {{ state.info.briefDesc }}
             </p>
