@@ -260,7 +260,7 @@ const tabsWithCount = computed(() =>
 </script>
 
 <template>
-  <div class="w-full p-4">
+  <div class="w-full p-4 overflow-x-hidden">
     <PageSkeleton v-if="isPageLoading" :sections="['hero', 'list']" :list-count="12" />
     <template v-else>
       <div class="flex flex-col gap-3">
