@@ -3,11 +3,12 @@ import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '@/stores/modules/global'
 import { useI18n } from 'vue-i18n'
-import { getBackgroundOptions, getThemeOptions, getLangOptions } from '@/config/settingsOptions'
+import { getBackgroundOptions, getThemeOptions, getLangOptions, getAudioQualityOptions } from '@/config/settingsOptions'
 import I18n from '@/languages'
+import Button from '@/components/Ui/Button.vue'
 
 const settings = useSettingsStore()
-const { footerLyrics, backgroundType } = storeToRefs(settings)
+const { footerLyrics, backgroundType, audioQuality } = storeToRefs(settings)
 const globalStore = useGlobalStore()
 const { theme, lang } = storeToRefs(globalStore)
 const { t } = useI18n()
@@ -20,6 +21,7 @@ const footerEnabled = computed({
 const bgOptions = computed(() => getBackgroundOptions(t))
 const themeOptions = computed(() => getThemeOptions(t))
 const langOptions = computed(() => getLangOptions(t))
+const qualityOptions = computed(() => getAudioQualityOptions(t))
 const initialLocale = (() => {
   const cur = I18n.global.locale
   return typeof cur === 'object' && 'value' in cur ? (cur as any).value : (cur as any)
@@ -78,9 +80,11 @@ const romaChecked = computed({
         </div>
       </div>
       <div class="mt-3 grid grid-cols-3 gap-2">
-        <button
+        <Button
           v-for="opt in themeOptions"
           :key="String(opt.value)"
+          variant="ghost"
+          size="none"
           class="theme-option"
           :class="{ active: theme === opt.value }"
           @click="theme = opt.value"
@@ -96,7 +100,7 @@ const romaChecked = computed({
             "
           ></span>
           <span class="option-label">{{ opt.label }}</span>
-        </button>
+        </Button>
       </div>
     </section>
 
@@ -113,9 +117,11 @@ const romaChecked = computed({
         </div>
       </div>
       <div class="mt-3 grid grid-cols-3 gap-2">
-        <button
+        <Button
           v-for="opt in bgOptions"
           :key="String(opt.value)"
+          variant="ghost"
+          size="none"
           class="theme-option"
           :class="{ active: backgroundType === opt.value }"
           @click="backgroundType = opt.value"
@@ -131,7 +137,7 @@ const romaChecked = computed({
             "
           ></span>
           <span class="option-label">{{ opt.label }}</span>
-        </button>
+        </Button>
       </div>
     </section>
 
@@ -146,15 +152,42 @@ const romaChecked = computed({
         </div>
       </div>
       <div class="mt-3 grid grid-cols-3 gap-2">
-        <button
+        <Button
           v-for="opt in langOptions"
           :key="String(opt.value)"
+          variant="ghost"
+          size="none"
           class="theme-option"
           :class="{ active: lang === opt.value }"
           @click="lang = opt.value"
         >
           <span class="option-label text-sm font-medium">{{ opt.label }}</span>
-        </button>
+        </Button>
+      </div>
+    </section>
+
+    <section class="settings-card mb-4">
+      <div class="card-header">
+        <div class="icon-wrapper bg-linear-to-br from-emerald-500 to-teal-600">
+          <span class="icon-[mdi--music-circle] h-4 w-4 text-primary"></span>
+        </div>
+        <div>
+          <h2 class="card-title">{{ t('components.settings.audioQuality.title') }}</h2>
+          <p class="card-desc">{{ t('components.settings.audioQuality.desc') }}</p>
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <Button
+          v-for="opt in qualityOptions"
+          :key="String(opt.value)"
+          variant="ghost"
+          size="none"
+          class="theme-option"
+          :class="{ active: audioQuality === opt.value }"
+          @click="audioQuality = opt.value"
+        >
+          <span class="option-label text-xs font-medium">{{ opt.label }}</span>
+        </Button>
       </div>
     </section>
 
@@ -169,42 +202,53 @@ const romaChecked = computed({
             {{ t('components.settings.footerLyricsDesc') }}
           </p>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="none"
           class="toggle-switch"
           :class="{ active: footerEnabled }"
           @click="footerEnabled = !footerEnabled"
         >
           <span class="toggle-dot"></span>
-        </button>
+        </Button>
       </div>
 
       <div v-if="footerEnabled" class="mt-4 border-t border-white/10 pt-4">
         <p class="text-primary/60 mb-3 text-xs">{{ t('components.settings.footerLyricsModes') }}</p>
         <div class="flex flex-wrap gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="none"
             class="mode-chip"
             :class="{ active: originalChecked }"
+            icon="mdi--format-text"
+            icon-class="h-3.5 w-3.5"
             @click="originalChecked = !originalChecked"
           >
-            <span class="icon-[mdi--format-text] h-3.5 w-3.5"></span>
             {{ t('common.original') }}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="none"
             class="mode-chip"
             :class="{ active: transChecked }"
+            icon="mdi--translate"
+            icon-class="h-3.5 w-3.5"
             @click="transChecked = !transChecked"
           >
-            <span class="icon-[mdi--translate] h-3.5 w-3.5"></span>
             {{ t('common.trans') }}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="none"
             class="mode-chip"
             :class="{ active: romaChecked }"
+            icon="mdi--alphabetical"
+            icon-class="h-3.5 w-3.5"
             @click="romaChecked = !romaChecked"
           >
-            <span class="icon-[mdi--alphabetical] h-3.5 w-3.5"></span>
             {{ t('common.roma') }}
-          </button>
+          </Button>
         </div>
       </div>
     </section>

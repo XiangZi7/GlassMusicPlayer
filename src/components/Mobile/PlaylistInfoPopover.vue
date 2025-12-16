@@ -26,12 +26,15 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
 <template>
   <div ref="triggerRef" class="relative inline-block">
-    <button
+    <Button
+      variant="ghost"
+      size="icon-lg"
+      rounded="full"
       class="info-trigger flex h-7 w-7 items-center justify-center rounded-full"
+      icon="mdi--information-outline"
+      icon-class="h-4 w-4 text-primary/60"
       @click.stop="toggle"
-    >
-      <span class="icon-[mdi--information-outline] h-4 w-4 text-primary/60"></span>
-    </button>
+    />
     <Transition name="popover">
       <div
         v-if="open"

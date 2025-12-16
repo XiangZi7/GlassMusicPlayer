@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 播放抽屉（移动端）：展示当前歌曲信息与歌词，支持滚动高亮与点击跳转
+// 播放抽屉(移动端)：展示当前歌曲信息与歌词，支持滚动高亮与点击跳转
 import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
@@ -9,6 +9,7 @@ import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControlMobile from '@/components/Mobile/VolumeControlMobile.vue'
 import PlaylistDrawerMobile from '@/components/Mobile/PlaylistDrawerMobile.vue'
 import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
+import Button from '@/components/Ui/Button.vue'
 
 // 国际化文本函数
 const { t } = useI18n()
@@ -585,23 +586,27 @@ const playModeIcon = computed(() => {
 
     <!-- 顶部栏：返回、标题、副工具按钮 -->
     <div class="safe-area-top flex items-center justify-between px-4 py-3">
-      <button
-        class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        rounded="full"
+        icon="mdi--chevron-down"
+        icon-class="h-7 w-7 text-primary/90"
         @click="isOpen = false"
-      >
-        <span class="icon-[mdi--chevron-down] text-primary/90 h-7 w-7"></span>
-      </button>
+      />
 
       <div class="flex flex-col items-center">
         <span class="text-primary/50 text-xs">{{ t('player.nowPlaying') }}</span>
       </div>
 
-      <button
-        class="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        rounded="full"
+        icon="mdi--dots-horizontal"
+        icon-class="h-6 w-6 text-primary/90"
         @click="showToolbar = !showToolbar"
-      >
-        <span class="icon-[mdi--dots-horizontal] text-primary/90 h-6 w-6"></span>
-      </button>
+      />
     </div>
 
     <!-- 工具栏：自动居中、翻译、罗马音、背景、字号、评论 -->
@@ -610,26 +615,50 @@ const playModeIcon = computed(() => {
       class="toolbar-panel fixed top-16 right-4 left-4 z-50 overflow-hidden rounded-2xl bg-white/10 backdrop-blur-md"
     >
       <div class="grid grid-cols-4 gap-1 p-2">
-        <button class="toolbar-btn" :class="{ active: autoScroll }" @click="toggleAutoScroll">
-          <span class="icon-[mdi--autorenew] h-5 w-5"></span>
+        <Button
+          variant="text"
+          size="none"
+          class="toolbar-btn"
+          :class="{ active: autoScroll }"
+          icon="mdi--autorenew"
+          icon-class="h-5 w-5"
+          @click="toggleAutoScroll"
+        >
           <span>{{ t('player.autoCenter') }}</span>
-        </button>
+        </Button>
 
-        <button class="toolbar-btn" @click="useCoverBg = !useCoverBg">
-          <span
-            :class="useCoverBg ? 'icon-[mdi--image]' : 'icon-[mdi--image-off]'"
-            class="h-5 w-5"
-          ></span>
+        <Button
+          variant="text"
+          size="none"
+          class="toolbar-btn"
+          :icon="useCoverBg ? 'mdi--image' : 'mdi--image-off'"
+          icon-class="h-5 w-5"
+          @click="useCoverBg = !useCoverBg"
+        >
           <span>{{ t('player.bgToggle') }}</span>
-        </button>
-        <button class="toolbar-btn" @click="lyricsScale = Math.max(0.75, lyricsScale - 0.05)">
-          <span class="icon-[mdi--format-font-size-decrease] h-5 w-5"></span>
+        </Button>
+
+        <Button
+          variant="text"
+          size="none"
+          class="toolbar-btn"
+          icon="mdi--format-font-size-decrease"
+          icon-class="h-5 w-5"
+          @click="lyricsScale = Math.max(0.75, lyricsScale - 0.05)"
+        >
           <span>{{ t('player.fontDec') }}</span>
-        </button>
-        <button class="toolbar-btn" @click="lyricsScale = Math.min(1.5, lyricsScale + 0.05)">
-          <span class="icon-[mdi--format-font-size-increase] h-5 w-5"></span>
+        </Button>
+
+        <Button
+          variant="text"
+          size="none"
+          class="toolbar-btn"
+          icon="mdi--format-font-size-increase"
+          icon-class="h-5 w-5"
+          @click="lyricsScale = Math.min(1.5, lyricsScale + 0.05)"
+        >
           <span>{{ t('player.fontInc') }}</span>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -770,39 +799,45 @@ const playModeIcon = computed(() => {
         <!-- 播放列表和历史播放 -->
         <PlaylistDrawerMobile />
         <!-- 评论 -->
-        <button
-          class="group relative p-2 transition-transform active:scale-90"
-          @click.stop="isCommentsOpen = true"
-        >
-          <span
-            class="icon-[mdi--message-processing-outline] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
-          ></span>
+        <div class="relative">
+          <Button
+            variant="ghost"
+            size="none"
+            class="group p-2"
+            icon="mdi--message-processing-outline"
+            icon-class="h-6 w-6 text-primary/70 group-hover:text-primary transition-colors"
+            @click.stop="isCommentsOpen = true"
+          />
           <span
             v-if="commentCount > 0"
-            class="absolute top-2 right-2 flex h-4 min-w-4 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-pink-500 px-1 text-[0.6rem] font-bold text-white shadow-sm"
+            class="pointer-events-none absolute top-2 right-2 flex h-4 min-w-4 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-pink-500 px-1 text-[0.6rem] font-bold text-white shadow-sm"
           >
             {{ commentCount > 999 ? '999+' : commentCount }}
           </span>
-        </button>
+        </div>
         <!-- 翻译 -->
-        <button
+        <Button
           v-if="lyricsTrans.length"
-          class="p-2 transition-transform active:scale-90"
+          variant="ghost"
+          size="none"
+          class="p-2"
+          icon="mdi--translate"
+          :icon-class="['h-6 w-6', { 'text-primary': showTrans }]"
           @click.stop="toggleTransBtn"
-        >
-          <span class="icon-[mdi--translate] h-6 w-6" :class="{ 'text-primary': showTrans }"></span>
-        </button>
+        />
         <!-- 罗马音 -->
-        <button
+        <Button
           v-if="lyricsRoma.length"
-          class="group p-2 transition-transform active:scale-90"
+          variant="ghost"
+          size="none"
+          class="group p-2"
+          icon="mdi--alphabetical"
+          :icon-class="[
+            'h-6 w-6 text-primary/70 group-hover:text-primary transition-colors',
+            { 'text-primary': showRoma },
+          ]"
           @click.stop="toggleRomaBtn"
-        >
-          <span
-            class="icon-[mdi--alphabetical] text-primary/70 group-hover:text-primary h-6 w-6 transition-colors"
-            :class="{ 'text-primary': showRoma }"
-          ></span>
-        </button>
+        />
       </div>
       <div v-if="currentSong" class="mb-4">
         <MusicProgress />
@@ -813,44 +848,48 @@ const playModeIcon = computed(() => {
       </div>
 
       <div class="mb-4 flex items-center justify-center gap-6">
-        <button
-          class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          rounded="full"
+          class="control-btn"
+          :icon="playModeIcon"
+          icon-class="text-primary/70 h-7 w-7"
           @click="togglePlayMode"
-        >
-          <span :class="playModeIcon" class="text-primary/70 h-7 w-7"></span>
-        </button>
+        />
 
-        <button
-          class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          rounded="full"
+          class="control-btn"
+          icon="mdi--skip-previous"
+          icon-class="text-primary h-8 w-8"
           @click="previous"
-        >
-          <span class="icon-[mdi--skip-previous] text-primary h-8 w-8"></span>
-        </button>
+        />
 
-        <button
-          class="play-btn flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/30"
+        <Button
+          variant="gradient"
+          size="icon-lg"
+          rounded="full"
+          class="play-btn !h-16 !w-16"
           :class="isLoading ? 'opacity-60' : ''"
+          :loading="isLoading"
           :disabled="isLoading"
+          :icon="isPlaying ? 'mdi--pause' : 'mdi--play'"
+          icon-class="h-8 w-8"
           @click="handleTogglePlay"
-        >
-          <span
-            v-if="isLoading"
-            class="icon-[mdi--loading] text-primary h-8 w-8 animate-spin"
-          ></span>
-          <span
-            v-else
-            :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-            class="text-primary h-8 w-8"
-            :style="!isPlaying ? 'margin-left: 3px' : ''"
-          ></span>
-        </button>
+        />
 
-        <button
-          class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          rounded="full"
+          class="control-btn"
+          icon="mdi--skip-next"
+          icon-class="text-primary h-8 w-8"
           @click="next"
-        >
-          <span class="icon-[mdi--skip-next] text-primary h-8 w-8"></span>
-        </button>
+        />
         <VolumeControlMobile />
       </div>
     </div>

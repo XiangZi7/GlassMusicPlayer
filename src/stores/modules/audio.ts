@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { songUrl } from '@/api'
+import { songUrlV1 } from '@/api'
 import { Song, PlayMode, AudioStoreState } from '../interface'
+import { useSettingsStore } from './settings'
 import piniaPersistConfig from '../persist'
 let globalAudio: HTMLAudioElement | null = null
 let eventsBound = false
@@ -203,7 +204,11 @@ export const useAudioStore = defineStore('audio', {
         if (!this.audio.currentSong.url && !this.audio.currentSong.isLocal) {
           this.audio.isLoading = true
           try {
-            const res: any = await songUrl({ id: String(this.audio.currentSong.id) })
+            const settingsStore = useSettingsStore()
+            const res: any = await songUrlV1({
+              id: String(this.audio.currentSong.id),
+              level: settingsStore.audioQuality
+            })
             const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
             this.audio.currentSong.url = url
             // 同步到播放列表项
@@ -248,7 +253,11 @@ export const useAudioStore = defineStore('audio', {
       
       this.audio.isLoading = true
       try {
-        const res: any = await songUrl({ id: String(this.audio.currentSong.id) })
+        const settingsStore = useSettingsStore()
+        const res: any = await songUrlV1({
+          id: String(this.audio.currentSong.id),
+          level: settingsStore.audioQuality
+        })
         const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
         this.audio.currentSong.url = url
         const idx = this.audio.currentIndex

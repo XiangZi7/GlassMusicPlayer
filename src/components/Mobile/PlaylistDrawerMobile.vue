@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { EffectCreative } from 'swiper/modules'
 import MobileDrawer from './MobileDrawer.vue'
+import Button from '@/components/Ui/Button.vue'
 import 'swiper/css'
 import 'swiper/css/effect-creative'
 
@@ -100,14 +101,14 @@ const handleClear = () => {
 <template>
   <div class="relative flex items-center justify-center">
     <!-- 切换按钮 -->
-    <button
-      class="group p-2 transition-transform active:scale-90"
+    <Button
+      variant="ghost"
+      size="none"
+      class="group p-2"
+      icon="mdi--playlist-music-outline"
+      icon-class="text-primary/70 group-hover:text-primary h-7 w-7 transition-colors"
       @click.stop="isDrawerOpen = true"
-    >
-      <span
-        class="icon-[mdi--playlist-music-outline] text-primary/70 group-hover:text-primary h-7 w-7 transition-colors"
-      ></span>
-    </button>
+    />
 
     <!-- 播放列表抽屉 -->
     <MobileDrawer v-model:show="isDrawerOpen">
@@ -140,12 +141,14 @@ const handleClear = () => {
             >
               <span :class="playModeIcon" class="text-primary/60 h-5 w-5"></span>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="none"
               class="text-primary/60 hover:text-primary flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/5"
+              icon="mdi--trash-can-outline"
+              icon-class="h-4 w-4"
               @click="handleClear"
-            >
-              <span class="icon-[mdi--trash-can-outline] h-4 w-4"></span>
-            </button>
+            />
           </div>
         </div>
       </template>
@@ -199,14 +202,14 @@ const handleClear = () => {
                   </div>
                 </div>
 
-                <button
+                <Button
+                  variant="ghost"
+                  size="none"
                   class="ml-2 p-2 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 active:opacity-100"
+                  icon="mdi--close"
+                  icon-class="text-primary/40 hover:text-primary h-4 w-4"
                   @click.stop="removeSong(song.id)"
-                >
-                  <span
-                    class="icon-[mdi--close] text-primary/40 hover:text-primary h-4 w-4"
-                  ></span>
-                </button>
+                />
               </div>
             </div>
             <div

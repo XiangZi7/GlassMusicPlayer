@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
+type ClassBinding = string | Record<string, boolean> | (string | Record<string, boolean>)[]
+
 interface Props {
   variant?: 'glass' | 'solid' | 'soft' | 'ghost' | 'gradient' | 'text'
   size?: 'sm' | 'md' | 'lg' | 'icon-sm' | 'icon-md' | 'icon-lg' | 'none'
@@ -12,7 +14,7 @@ interface Props {
   to?: string | object
   href?: string
   icon?: string
-  iconClass?: string
+  iconClass?: ClassBinding
   type?: 'button' | 'submit' | 'reset'
 }
 

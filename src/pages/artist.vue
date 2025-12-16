@@ -228,12 +228,16 @@ const tabs = computed(() => [
                   <div
                     class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
                   >
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-md"
+                      rounded="full"
+                      icon="icon-[mdi--play]"
+                      icon-class="h-8 w-8 text-white"
                       @click="playAll"
                       class="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110"
                     >
-                      <span class="icon-[mdi--play] h-8 w-8 text-white"></span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -349,18 +353,13 @@ const tabs = computed(() => [
             <TabGroup
               v-model="state.activeTab"
               :tabs="tabs"
-              variant="glass"
               size="md"
               @click="val => (activeTab = val as 'songs' | 'albums')"
             />
           </div>
 
           <div v-show="state.activeTab === 'songs'" class="animate-fade-in">
-            <SongList
-              :songs="state.songs"
-              :current-playing-index="-1"
-              :show-header="true"
-            />
+            <SongList :songs="state.songs" :current-playing-index="-1" :show-header="true" />
           </div>
 
           <div v-show="state.activeTab === 'albums'" class="animate-fade-in">

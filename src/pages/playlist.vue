@@ -293,8 +293,10 @@ const tabsWithCount = computed(() =>
                       wrapperClass="h-full w-full"
                     />
                   </div>
-                  <button
-                    class="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/40 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100"
+                  <Button
+                    variant="ghost"
+                    size="none"
+                    class="absolute inset-0 rounded-3xl opacity-0 transition-all duration-300 group-hover:opacity-100"
                     @click="playAll"
                   >
                     <div
@@ -302,23 +304,14 @@ const tabsWithCount = computed(() =>
                     >
                       <span class="icon-[mdi--play] h-10 w-10"></span>
                     </div>
-                  </button>
+                  </Button>
                 </div>
 
                 <!-- 信息区域 -->
                 <div class="flex min-w-0 flex-1 flex-col justify-center text-center lg:text-left">
-                  <!-- 分类标签 -->
-                  <div class="mb-4 flex items-center justify-center gap-2 lg:justify-start">
-                    <span
-                      class="glass-button accent-gradient px-4 py-1.5 text-xs font-medium text-white"
-                    >
-                      {{ playlistInfo.category }}
-                    </span>
-                  </div>
-
                   <!-- 标题 -->
                   <h1
-                    class="text-primary mb-4 line-clamp-2 text-2xl leading-tight font-bold lg:text-4xl xl:text-5xl"
+                    class="text-primary mb-4 line-clamp-2 text-xl leading-tight font-bold lg:text-4xl xl:text-5xl"
                   >
                     {{ playlistInfo.name }}
                   </h1>
@@ -333,6 +326,13 @@ const tabsWithCount = computed(() =>
                     <span class="text-primary font-medium">{{ playlistInfo.creator }}</span>
                     <span class="text-primary/40">•</span>
                     <span class="text-primary/60 text-sm">{{ playlistInfo.createTime }}</span>
+                    <span class="text-primary/40">•</span>
+                    <!-- 分类标签 -->
+                    <span
+                      class="glass-button accent-gradient px-4 py-1.5 text-xs font-medium text-white"
+                    >
+                      {{ playlistInfo.category }}
+                    </span>
                   </div>
 
                   <!-- 描述 -->
@@ -432,12 +432,7 @@ const tabsWithCount = computed(() =>
         <!-- 主内容区域 -->
         <!-- Tabs 工具栏 -->
         <div class="flex items-center justify-between">
-          <TabGroup
-            v-model="activeTab"
-            :tabs="tabsWithCount"
-            class="w-full"
-            size="md"
-          />
+          <TabGroup v-model="activeTab" :tabs="tabsWithCount" class="w-full" size="md" />
         </div>
 
         <!-- 歌曲列表 -->
@@ -464,13 +459,16 @@ const tabsWithCount = computed(() =>
                     rows="3"
                   ></textarea>
                   <div class="mt-3 flex items-center justify-end">
-                    <button
-                      class="accent-gradient rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+                    <Button
+                      variant="gradient"
+                      size="md"
+                      rounded="full"
+                      class="px-6 py-2.5 shadow-lg transition-all hover:shadow-xl"
                       :disabled="!newComment.trim()"
                       @click="submitComment"
                     >
                       {{ $t('comments.publish') }}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -508,18 +506,24 @@ const tabsWithCount = computed(() =>
                     </p>
 
                     <div class="flex items-center gap-5 text-xs">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="none"
                         class="text-primary/60 hover:text-primary flex items-center gap-1.5 transition-colors"
+                        icon="mdi--thumb-up-outline"
+                        icon-class="h-4 w-4"
                       >
-                        <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
                         <span class="font-medium">{{ comment.likes || '' }}</span>
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="none"
                         class="text-primary/60 hover:text-primary flex items-center gap-1.5 transition-colors"
+                        icon="mdi--reply"
+                        icon-class="h-4 w-4"
                       >
-                        <span class="icon-[mdi--reply] h-4 w-4"></span>
                         <span class="font-medium">{{ $t('comments.reply') }}</span>
-                      </button>
+                      </Button>
                     </div>
 
                     <!-- 回复列表 -->
@@ -559,11 +563,13 @@ const tabsWithCount = computed(() =>
               v-if="comments.length >= 10"
               class="border-t border-(--glass-border) p-5 text-center"
             >
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 class="text-primary/60 hover:text-primary text-sm font-medium transition-colors"
               >
                 {{ $t('comments.loadMore') }}
-              </button>
+              </Button>
             </div>
           </div>
         </section>

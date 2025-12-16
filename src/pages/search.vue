@@ -93,6 +93,7 @@ watch(page, () => {
             variant="gradient"
             size="sm"
             :show-count="false"
+            @click="(val) => activeType = val"
           />
         </div>
 

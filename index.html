@@ -1,29 +1,40 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="stylesheet" href="/src/style/tailwind.css" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0"
+    />
+    <meta property="og:image" content="/logo.svg" />
+    <meta name="description" content="Glass Music Player" />
+    <meta name="author" content="yxcr" />
+    <meta name="keywords" content="Glass Music Player" />
+    <title>Glass Music Player</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2GMSLM2MS1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || []
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      gtag('js', new Date())
+      gtag('config', 'G-2GMSLM2MS1')
+    </script>
+    <script>
+      var _hmt = _hmt || []
+      ;(function () {
+        var hm = document.createElement('script')
+        hm.src = 'https://hm.baidu.com/hm.js?5e7e5a99690d5877df4b244a2295231d'
+        var s = document.getElementsByTagName('script')[0]
+        s.parentNode.insertBefore(hm, s)
+      })()
+    </script>
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-  <link rel="stylesheet" href="/src/style/tailwind.css" />
-  <meta name="viewport"
-    content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0" />
-  <meta property="og:image" content="/logo.svg" />
-  <meta name="description" content="Glass Music Player" />
-  <meta name="author" content="yxcr" />
-  <meta name="keywords" content="Glass Music Player" />
-  <title>Glass Music Player</title>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2GMSLM2MS1"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-2GMSLM2MS1');
-  </script>
-</head>
-
-<body>
-  <div id="app"></div>
-  <script type="module" src="/src/main.ts"></script>
-</body>
-
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
 import { formatDuration } from '@/utils/time'
+import Button from '@/components/Ui/Button.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -136,8 +137,9 @@ const totalDuration = computed(() => {
 </script>
 
 <template>
+  <!-- 播放列表气泡 -->
   <div ref="triggerRef" class="relative inline-block">
-    <div @click.stop="toggle">
+    <div @click.stop="toggle" class="flex items-center justify-center">
       <slot name="trigger"></slot>
     </div>
     <Transition name="bubble">
@@ -163,53 +165,71 @@ const totalDuration = computed(() => {
                   </p>
                 </div>
               </div>
-              <button
-                class="bubble-close-btn rounded-lg p-2 transition-colors"
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                rounded="lg"
+                icon="mdi--close"
+                icon-class="h-5 w-5"
+                class="bubble-close-btn"
                 @click="open = false"
-              >
-                <span class="icon-[mdi--close] h-5 w-5"></span>
-              </button>
+              />
             </div>
 
             <div class="bubble-toolbar flex items-center gap-2 px-4 py-2">
-              <button
-                class="toolbar-btn flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              <Button
+                variant="ghost"
+                size="sm"
+                rounded="lg"
+                icon="mdi--checkbox-multiple-outline"
+                icon-class="h-4 w-4"
+                class="toolbar-btn"
                 @click="selectAll"
               >
-                <span class="icon-[mdi--checkbox-multiple-outline] h-4 w-4"></span>
                 全选
-              </button>
-              <button
-                class="toolbar-btn flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                rounded="lg"
+                icon="mdi--playlist-plus"
+                icon-class="h-4 w-4"
+                class="toolbar-btn"
                 :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
                 :disabled="selectedCount === 0"
                 :title="$t('playlistBubble.queueNextSelected')"
                 @click="doQueueNextSelected"
               >
-                <span class="icon-[mdi--playlist-plus] h-4 w-4"></span>
                 下一首播放
-              </button>
-              <button
-                class="toolbar-btn toolbar-btn-delete flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                rounded="lg"
+                icon="mdi--delete-outline"
+                icon-class="h-4 w-4"
+                class="toolbar-btn toolbar-btn-delete"
                 :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
                 :disabled="selectedCount === 0"
                 :title="$t('playlistBubble.deleteSelected')"
                 @click="doDeleteSelected"
               >
-                <span class="icon-[mdi--delete-outline] h-4 w-4"></span>
                 删除
                 <span v-if="selectedCount > 0" class="selected-badge rounded px-1.5 text-[10px]">{{
                   selectedCount
                 }}</span>
-              </button>
+              </Button>
               <div class="flex-1"></div>
-              <button
-                class="toolbar-btn-clear rounded-lg p-1.5 transition-colors"
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                rounded="lg"
+                icon="mdi--delete-sweep"
+                icon-class="h-4 w-4"
+                class="toolbar-btn-clear"
                 :title="$t('playlistBubble.clearAll')"
                 @click="doClearAll"
-              >
-                <span class="icon-[mdi--delete-sweep] h-4 w-4"></span>
-              </button>
+              />
             </div>
 
             <div
@@ -285,20 +305,26 @@ const totalDuration = computed(() => {
                   <div
                     class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
                   >
-                    <button
-                      class="action-btn rounded-lg p-1.5 transition-colors"
+                    <Button
+                      variant="ghost"
+                      size="none"
+                      rounded="lg"
+                      icon="mdi--playlist-plus"
+                      icon-class="h-4 w-4"
+                      class="action-btn p-1.5"
                       :title="$t('playlistBubble.actions.queueNext')"
                       @click.stop="queueNext(s.id as any)"
-                    >
-                      <span class="icon-[mdi--playlist-plus] h-4 w-4"></span>
-                    </button>
-                    <button
-                      class="action-btn action-btn-delete rounded-lg p-1.5 transition-colors"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="none"
+                      rounded="lg"
+                      icon="mdi--delete-outline"
+                      icon-class="h-4 w-4"
+                      class="action-btn action-btn-delete p-1.5"
                       :title="$t('playlistBubble.actions.delete')"
                       @click.stop="removeSong(s.id as any)"
-                    >
-                      <span class="icon-[mdi--delete-outline] h-4 w-4"></span>
-                    </button>
+                    />
                   </div>
                 </div>
 

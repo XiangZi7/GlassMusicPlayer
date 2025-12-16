@@ -3,7 +3,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { mvDetail, mvUrl, simiMv, commentNew } from '@/api'
 import { MVInfo, RelatedMV, MVComment } from '@/typings'
-import { formatCount } from '@/utils/time';
+import { formatCount } from '@/utils/time'
+import Button from '@/components/Ui/Button.vue'
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
@@ -148,13 +149,16 @@ watch(
                 </h1>
 
                 <div class="mb-4 flex flex-wrap items-center gap-4">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     class="text-primary/70 flex items-center gap-2 text-sm font-medium transition-colors hover:text-pink-400"
+                    icon="mdi--account-music"
+                    icon-class="h-5 w-5"
                     @click="router.push(`/artist/${currentMV.artistId}`)"
                   >
-                    <span class="icon-[mdi--account-music] h-5 w-5"></span>
                     {{ currentMV.artist }}
-                  </button>
+                  </Button>
                   <span class="text-primary/40 text-sm">{{ currentMV.publishDate }}</span>
                 </div>
 
@@ -170,30 +174,31 @@ watch(
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3">
-                  <button
-                    class="glass-button flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all"
+                  <Button
+                    variant="glass"
+                    size="md"
+                    class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all"
                     :class="
                       state.isLiked
                         ? 'border-pink-500/30! bg-pink-500/20! text-pink-400!'
                         : 'text-primary hover:text-pink-400'
                     "
+                    :icon="state.isLiked ? 'mdi--thumb-up' : 'mdi--thumb-up-outline'"
+                    icon-class="h-5 w-5"
                     @click="toggleLike"
                   >
-                    <span
-                      :class="
-                        state.isLiked ? 'icon-[mdi--thumb-up]' : 'icon-[mdi--thumb-up-outline]'
-                      "
-                      class="h-5 w-5"
-                    ></span>
                     {{ state.isLiked ? t('mvPlayer.actions.liked') : t('mvPlayer.actions.like') }}
-                  </button>
-                  <button
-                    class="glass-button text-primary flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all hover:text-pink-400"
+                  </Button>
+                  <Button
+                    variant="glass"
+                    size="md"
+                    class="text-primary flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all hover:text-pink-400"
+                    icon="mdi--share-variant-outline"
+                    icon-class="h-5 w-5"
                     @click="shareMV"
                   >
-                    <span class="icon-[mdi--share-variant-outline] h-5 w-5"></span>
                     {{ t('mvPlayer.actions.share') }}
-                  </button>
+                  </Button>
                 </div>
 
                 <div v-if="currentMV.description" class="glass-card mt-6 p-5">
@@ -233,18 +238,24 @@ watch(
                       </div>
                       <p class="text-primary/80 text-sm leading-relaxed">{{ c.content }}</p>
                       <div class="mt-3 flex items-center gap-4">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="none"
                           class="text-primary/40 flex items-center gap-1.5 text-xs transition-colors hover:text-pink-400"
+                          icon="mdi--thumb-up-outline"
+                          icon-class="h-4 w-4"
                         >
-                          <span class="icon-[mdi--thumb-up-outline] h-4 w-4"></span>
                           {{ c.likes || '' }}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="none"
                           class="text-primary/40 hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
+                          icon="mdi--reply"
+                          icon-class="h-4 w-4"
                         >
-                          <span class="icon-[mdi--reply] h-4 w-4"></span>
                           {{ t('mvPlayer.comments.reply') }}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

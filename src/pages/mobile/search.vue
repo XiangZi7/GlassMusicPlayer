@@ -7,6 +7,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useI18n } from 'vue-i18n'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { EffectCreative } from 'swiper/modules'
+import Button from '@/components/Ui/Button.vue'
 import 'swiper/css'
 import 'swiper/css/effect-creative'
 
@@ -315,21 +316,26 @@ watch(
             :placeholder="placeholder || $t('common.search.placeholder')"
             class="search-input min-w-0 flex-1 bg-transparent text-sm outline-none"
           />
-          <button
+          <Button
             v-if="q"
+            variant="ghost"
+            size="none"
             class="clear-btn flex h-7 w-7 items-center justify-center rounded-full transition-all"
+            icon="mdi--close-circle"
+            icon-class="h-4 w-4"
             :title="$t('common.clear')"
             @click="clearQuery"
-          >
-            <span class="icon-[mdi--close-circle] h-4 w-4"></span>
-          </button>
-          <button
+          />
+          <Button
+            variant="gradient"
+            size="none"
             class="search-btn text-white flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium transition-all active:scale-95"
+            icon="mdi--magnify"
+            icon-class="h-4 w-4"
             @click="handleSearchClick"
           >
-            <span class="icon-[mdi--magnify] h-4 w-4"></span>
             {{ $t('common.search.label') }}
-          </button>
+          </Button>
         </div>
 
         <Transition name="dropdown">
@@ -341,30 +347,35 @@ watch(
               {{ $t('common.search.suggest') }}
             </p>
             <div class="flex flex-wrap gap-2">
-              <button
+              <Button
                 v-for="s in suggest"
                 :key="s"
+                variant="ghost"
+                size="none"
                 class="suggest-tag rounded-full px-3 py-1.5 text-xs transition-all active:scale-95"
                 @click="handleSuggestClick(s)"
               >
                 {{ s }}
-              </button>
+              </Button>
             </div>
           </div>
         </Transition>
       </div>
 
       <div class="glass-card mt-3 inline-flex w-full gap-1.5 p-1.5">
-        <button
+        <Button
           v-for="tabItem in tabs"
           :key="tabItem.key"
+          variant="ghost"
+          size="none"
           class="tab-button flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-300"
           :class="tab === tabItem.key ? 'tab-button-active' : ''"
+          :icon="tabItem.icon"
+          icon-class="h-4 w-4"
           @click="state.tab = tabItem.key"
         >
-          <span :class="tabItem.icon" class="h-4 w-4" />
           <span>{{ tabItem.label }}</span>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -391,13 +402,16 @@ watch(
               <p class="info-text text-xs">
                 {{ t('search.result', { count: songTotal }) }}
               </p>
-              <button
+              <Button
+                variant="gradient"
+                size="none"
                 class="play-all-button text-white flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all duration-200 active:scale-95"
+                icon="mdi--play"
+                icon-class="h-4 w-4"
                 @click="playAllSongs"
               >
-                <span class="icon-[mdi--play] h-4 w-4" />
                 {{ t('actions.playAll') }}
-              </button>
+              </Button>
             </div>
 
             <div v-if="songs.length === 0" class="empty-state flex flex-col items-center py-16">

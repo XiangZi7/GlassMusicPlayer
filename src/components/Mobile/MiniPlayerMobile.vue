@@ -4,6 +4,7 @@ import { useLyrics } from '@/composables/useLyrics'
 import { useSettingsStore } from '@/stores/modules/settings'
 import { storeToRefs } from 'pinia'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
+import Button from '@/components/Ui/Button.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -112,25 +113,24 @@ onUnmounted(() => {
           <span class="text-primary/60 text-[11px]">{{ formattedDuration }}</span>
         </div>
       </div>
-      <button
-        class="glass-button flex h-10 w-10 items-center justify-center rounded-full"
+      <Button
+        size="icon-lg"
+        rounded="full"
+        :icon="isPlaying ? 'mdi--pause' : 'mdi--play'"
+        :loading="isLoading"
+        icon-class="h-5 w-5"
         :title="isPlaying ? $t('player.pause') : $t('player.play')"
         @click="togglePlay"
-      >
-        <span v-if="isLoading" class="icon-[mdi--loading] text-primary h-5 w-5 animate-spin"></span>
-        <span
-          v-else
-          :class="isPlaying ? 'icon-[mdi--pause]' : 'icon-[mdi--play]'"
-          class="text-primary h-5 w-5"
-        ></span>
-      </button>
-      <button
-        class="glass-button ml-1 flex h-10 w-10 items-center justify-center rounded-full"
+      />
+      <Button
+        size="icon-lg"
+        rounded="full"
+        icon="mdi--skip-next"
+        icon-class="h-5 w-5"
+        class="ml-1"
         :title="$t('playlistBubble.actions.queueNext')"
         @click="next"
-      >
-        <span class="icon-[mdi--skip-next] text-primary h-5 w-5"></span>
-      </button>
+      />
     </div>
   </div>
 </template>

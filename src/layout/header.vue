@@ -107,23 +107,11 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         >
           {{ t(item.labelKey) }}
         </RouterLink> -->
-        <Button
-          
-          size="none"
-          class="p-2"
-          aria-label="back"
-          @click="router.back()"
-        >
+        <Button size="none" class="p-2" aria-label="back" @click="router.back()">
           <span class="icon-[mdi--chevron-left] h-5 w-5"></span>
         </Button>
 
-        <Button
-          
-          size="none"
-          class="p-2"
-          aria-label="forward"
-          @click="router.forward()"
-        >
+        <Button size="none" class="p-2" aria-label="forward" @click="router.forward()">
           <span class="icon-[mdi--chevron-right] h-5 w-5"></span>
         </Button>
       </nav>
@@ -133,7 +121,6 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://github.com/XiangZi7/GlassMusicPlayer"
           target="_blank"
           rel="noopener noreferrer"
-          
           size="sm"
           class="rounded-lg font-medium"
         >
@@ -145,7 +132,6 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://miraitv.pages.dev"
           target="_blank"
           rel="noopener noreferrer"
-          
           size="sm"
           class="rounded-lg font-medium"
         >
@@ -157,7 +143,6 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           href="https://gm-doc.pages.dev/"
           target="_blank"
           rel="noopener noreferrer"
-          
           size="sm"
           class="rounded-lg font-medium"
         >
@@ -181,14 +166,18 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           :placeholder="t('common.search.placeholder')"
           class="text-primary placeholder-primary/50 min-w-0 flex-1 bg-transparent pr-10 text-sm outline-none"
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon-md"
+          rounded="full"
           class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
           :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'pointer-events-none opacity-0'"
           :title="t('common.clear')"
+          icon="icon-[mdi--close]"
+          icon-class="text-primary/70 h-4 w-4"
           @click="clearSearch"
         >
-          <span class="icon-[mdi--close] text-primary/70 h-4 w-4"></span>
-        </button>
+        </Button>
       </div>
       <Teleport to="body">
         <div
@@ -205,13 +194,17 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
               @mousedown.prevent="selectHistory(opt)"
             >
               <span class="truncate pr-8">{{ opt }}</span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-md"
+                rounded="full"
+                icon="icon-[mdi--close]"
+                icon-class="h-4 w-4 text-(--glass-dropdown-text)"
                 class="absolute top-1/2 right-2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
                 :title="t('common.delete')"
                 @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
               >
-                <span class="icon-[mdi--close] h-4 w-4 text-(--glass-dropdown-text)"></span>
-              </button>
+              </Button>
             </li>
           </ul>
         </div>
@@ -219,7 +212,6 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
       <!-- 主题切换 -->
       <Button
-        
         size="icon-md"
         rounded="lg"
         :title="
@@ -239,19 +231,13 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         <img :src="userStore.avatarUrl" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
         <span class="text-primary/90 text-sm">{{ userStore.nickname }}</span>
       </div>
-      <Button
-        v-else
-        
-        size="sm"
-        class="gap-1 px-3 py-2"
-        @click="showLogin = true"
-      >
+      <Button v-else size="sm" class="gap-1 px-3 py-2" @click="showLogin = true">
         <icon-ic:baseline-person-pin />
         {{ t('auth.login') }}
       </Button>
 
       <!-- 移动端菜单按钮 -->
-      <Button  size="none" class="p-2 md:hidden">
+      <Button size="none" class="p-2 md:hidden">
         <span class="icon-[mdi--menu] text-primary h-5 w-5"></span>
       </Button>
     </div>

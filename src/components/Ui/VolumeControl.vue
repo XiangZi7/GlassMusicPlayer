@@ -42,7 +42,7 @@ const handleVolumeDrag = (clientX: number) => {
   const x = clientX - rect.left
   const newVolume = Math.max(0, Math.min(1, x / rect.width))
   state.dragVolume = newVolume
-  
+
   setVolume(newVolume)
 
   state.previewVolume = newVolume
@@ -115,14 +115,18 @@ const previewVolumeText = computed(() => {
 
 <template>
   <div class="flex items-center gap-2">
-    <button
+    <Button
+      variant="ghost"
+      size="icon-md"
+      rounded="full"
       @click="toggleMute"
-      class="flex items-center text-primary/70 transition-colors hover:text-primary"
+      class="text-primary/70 hover:text-primary flex items-center transition-colors"
       title="Toggle Mute"
+      :icon="volumeIcon"
+      icon-class="h-6 w-6"
     >
-      <span :class="volumeIcon" class="h-6 w-6"></span>
-    </button>
-    
+    </Button>
+
     <div
       ref="volumeBarRef"
       @click="handleVolumeClick"

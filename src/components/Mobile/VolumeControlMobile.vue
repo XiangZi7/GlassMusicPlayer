@@ -137,16 +137,17 @@ const handleMouseUp = () => {
     </Transition>
 
     <!-- Toggle Button -->
-    <button
+    <Button
+      variant="ghost"
+      size="icon-lg"
+      rounded="full"
       class="control-btn flex h-14 w-14 items-center justify-center rounded-full"
       :class="{ 'text-primary': showPopup }"
       @click.stop="togglePopup"
+      :icon="volumeIcon"
+      icon-class="text-primary/70 group-hover:text-primary h-7 w-7 transition-colors"
     >
-      <span
-        :class="[volumeIcon]"
-        class="text-primary/70 group-hover:text-primary h-7 w-7 transition-colors"
-      ></span>
-    </button>
+    </Button>
   </div>
 </template>
 

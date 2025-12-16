@@ -42,6 +42,8 @@ export interface FooterLyricsSettingsState {
   modes: Array<'original' | 'trans' | 'roma'>
 }
 
+export type AudioQuality = 'standard' | 'higher' | 'exhigh' | 'lossless' | 'hires' | 'jyeffect' | 'sky' | 'jymaster'
+
 export const useSettingsStore = defineStore('settings', {
   state: (): {
     aurora: AuroraSettingsState
@@ -49,6 +51,7 @@ export const useSettingsStore = defineStore('settings', {
     ultimate: UltimateSettingsState
     footerLyrics: FooterLyricsSettingsState
     backgroundType: 'aurora' | 'colorbends' | 'ultimate'
+    audioQuality: AudioQuality
   } => ({
     aurora: {
       colorStops: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'],
@@ -88,6 +91,7 @@ export const useSettingsStore = defineStore('settings', {
       modes: ['original', 'trans'],
     },
     backgroundType: 'ultimate',
+    audioQuality: 'jymaster',
   }),
   actions: {
     
@@ -160,6 +164,9 @@ export const useSettingsStore = defineStore('settings', {
       ) as Array<'original' | 'trans' | 'roma'>
       this.footerLyrics.modes = uniq.slice(0, 2)
       if (this.footerLyrics.modes.length === 0) this.footerLyrics.modes = ['original']
+    },
+    setAudioQuality(quality: AudioQuality) {
+      this.audioQuality = quality
     },
   },
   persist: piniaPersistConfig('settings'),

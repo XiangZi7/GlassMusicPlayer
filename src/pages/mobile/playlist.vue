@@ -3,6 +3,7 @@ import { playlistDetail, playlistTrackAll } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
+import Button from '@/components/Ui/Button.vue'
 import { useI18n } from 'vue-i18n'
 import { formatCount } from '@/utils/time'
 const { t } = useI18n()
@@ -205,36 +206,47 @@ const toggleCollect = () => {
       </div>
 
       <div class="action-bar flex items-center gap-3 px-4 py-3">
-        <button
-          class="play-all-btn text-primary flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium"
+        <Button
+          variant="gradient"
+          size="md"
+          rounded="full"
+          class="play-all-btn flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-medium"
+          icon="mdi--play-circle"
+          icon-class="h-5 w-5"
           @click="playAll"
         >
-          <span class="icon-[mdi--play-circle] h-5 w-5"></span>
           {{ t('actions.playAll') }}
-        </button>
-        <button
-          class="shuffle-btn flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium"
+        </Button>
+        <Button
+          variant="glass"
+          size="md"
+          rounded="full"
+          class="shuffle-btn flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-medium"
+          icon="mdi--shuffle-variant"
+          icon-class="h-5 w-5"
           @click="shufflePlay"
         >
-          <span class="icon-[mdi--shuffle-variant] h-5 w-5"></span>
           {{ t('actions.shufflePlay') }}
-        </button>
-        <button
-          class="collect-btn flex h-10 w-10 items-center justify-center rounded-full"
+        </Button>
+        <Button
+          variant="glass"
+          size="icon-lg"
+          rounded="full"
+          class="collect-btn"
           :class="state.collected ? 'collected' : ''"
+          :icon="state.collected ? 'mdi--heart' : 'mdi--heart-outline'"
+          icon-class="h-5 w-5"
           @click="toggleCollect"
-        >
-          <span
-            :class="state.collected ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
-            class="h-5 w-5"
-          ></span>
-        </button>
-        <button
-          class="comment-btn flex h-10 w-10 items-center justify-center rounded-full"
+        />
+        <Button
+          variant="glass"
+          size="icon-lg"
+          rounded="full"
+          class="comment-btn"
+          icon="mdi--message-processing-outline"
+          icon-class="h-5 w-5"
           @click="state.showComments = true"
-        >
-          <span class="icon-[mdi--message-processing-outline] h-5 w-5"></span>
-        </button>
+        />
         <PlaylistCommentsPopup
           v-model:show="state.showComments"
           :id="playlistId"

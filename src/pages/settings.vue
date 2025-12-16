@@ -13,15 +13,17 @@ import {
   getThemeOptions,
   getLangOptions,
   getShowHideOptions,
+  getAudioQualityOptions,
 } from '@/config/settingsOptions'
 const settings = useSettingsStore()
-const { backgroundType, footerLyrics } = storeToRefs(settings)
+const { backgroundType, footerLyrics, audioQuality } = storeToRefs(settings)
 const globalStore = useGlobalStore()
 const { theme, lang } = storeToRefs(globalStore)
 const { t } = useI18n()
 const bgOptions = computed(() => getBackgroundOptions(t))
 const themeOptions = computed(() => getThemeOptions(t))
 const langOptions = computed(() => getLangOptions(t))
+const qualityOptions = computed(() => getAudioQualityOptions(t))
 const initialLocale = (() => {
   const cur = I18n.global.locale
   return typeof cur === 'object' && 'value' in cur ? (cur as any).value : (cur as any)
@@ -62,7 +64,7 @@ const romaChecked = computed({
 </script>
 
 <template>
-  <div class="h-full overflow-auto p-6 w-full">
+  <div class="h-full w-full overflow-auto p-6">
     <PageSkeleton v-if="state.isPageLoading" :sections="['list']" :list-count="6" />
     <div v-else>
       <div class="mb-8">
@@ -122,6 +124,23 @@ const romaChecked = computed({
             </div>
           </div>
           <GlassSelect v-model="backgroundType" :options="bgOptions" />
+        </div>
+
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600"
+            >
+              <span class="icon-[mdi--music-circle] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.audioQuality.title') }}
+              </h3>
+              <p class="text-primary/50 text-xs">{{ t('components.settings.audioQuality.desc') }}</p>
+            </div>
+          </div>
+          <GlassSelect v-model="audioQuality" :options="qualityOptions" />
         </div>
 
         <div class="glass-card space-y-5 rounded-2xl p-5">

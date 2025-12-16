@@ -9,6 +9,8 @@ import {
 } from '@/api'
 import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from 'vue-i18n'
+import Button from '@/components/Ui/Button.vue'
+import TabGroup, { type Tab } from '@/components/Ui/TabGroup.vue'
 const { t } = useI18n()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'success'): void }>()
 const userStore = useUserStore()
@@ -21,14 +23,25 @@ const state = reactive({
   phone: '',
   email: '',
   password: '',
-  useEmail: false,
+  accountType: 'phone' as 'phone' | 'email',
   qrKey: '',
   qrImg: '',
   qrPolling: false,
   qrStatusText: '请使用网易云音乐 App 扫码',
   qrUser: null as null | { avatarUrl: string; nickname: string; message?: string },
 })
-const { tab, loading, phone, email, password, useEmail, qrImg, qrStatusText } = toRefs(state)
+const { tab, loading, phone, email, password, accountType, qrImg, qrStatusText } = toRefs(state)
+
+// Tab configurations
+const loginTabs: readonly Tab<'password' | 'qr'>[] = [
+  { key: 'password', labelKey: 'auth.passwordLogin', icon: 'icon-[mdi--form-textbox-password]' },
+  { key: 'qr', labelKey: 'auth.qrLogin', icon: 'icon-[mdi--qrcode-scan]' },
+]
+
+const accountTypeTabs: readonly Tab<'phone' | 'email'>[] = [
+  { key: 'phone', labelKey: 'auth.phone', icon: 'icon-[mdi--cellphone]' },
+  { key: 'email', labelKey: 'auth.email', icon: 'icon-[mdi--email-outline]' },
+]
 
 const genQr = async () => {
   try {
@@ -83,11 +96,15 @@ const pollQr = () => {
 }
 
 const doPasswordLogin = async () => {
-  if ((!state.useEmail && !state.phone) || (state.useEmail && !state.email) || !state.password)
+  if (
+    (!state.accountType && !state.phone) ||
+    (state.accountType === 'email' && !state.email) ||
+    !state.password
+  )
     return
   try {
     state.loading = true
-    if (state.useEmail) {
+    if (state.accountType === 'email') {
       await loginEmail({ email: state.email, password: state.password })
     } else {
       await loginCellphone({ phone: state.phone, password: state.password })
@@ -147,82 +164,85 @@ watch(visible, v => {
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
     <Transition name="mask" appear>
-      <div v-if="visible" class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="visible = false" />
+      <div
+        v-if="visible"
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        @click="visible = false"
+      />
     </Transition>
 
     <Transition name="dialog" appear @after-leave="handleAfterLeave">
       <div v-if="visible" class="relative z-10 w-full max-w-xl">
         <div class="glass-container-strong overflow-hidden">
-          <button
-            class="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
+          <Button
+            variant="soft"
+            size="icon-sm"
+            rounded="full"
+            icon="mdi--close"
+            icon-class="h-4 w-4"
+            class="absolute top-4 right-4 z-20"
             @click="visible = false"
-          >
-            <span class="icon-[mdi--close] text-primary h-4 w-4" />
-          </button>
+          />
 
           <div class="relative p-6 pb-4">
             <div class="mb-6 flex items-center gap-4">
-              <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25">
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25"
+              >
                 <span class="icon-[mdi--account-circle] h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 class="text-primary text-xl font-bold">{{ t('auth.login') }}</h2>
-                <p class="text-primary/50 mt-0.5 text-sm">{{ t('auth.tip') || '登录以享受完整功能' }}</p>
+                <p class="text-primary/50 mt-0.5 text-sm">
+                  {{ t('auth.tip') || '登录以享受完整功能' }}
+                </p>
               </div>
             </div>
-
-            <div class="glass-nav mb-6 inline-flex w-full gap-1 rounded-xl p-1">
-              <button
-                class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all"
-                :class="tab === 'password' ? 'bg-white/15 text-primary shadow-sm' : 'text-primary/60 hover:text-primary/80'"
-                @click="tab = 'password'"
-              >
-                <span class="icon-[mdi--form-textbox-password] h-4 w-4" />
-                {{ t('auth.passwordLogin') || '密码登录' }}
-              </button>
-              <button
-                class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all"
-                :class="tab === 'qr' ? 'bg-white/15 text-primary shadow-sm' : 'text-primary/60 hover:text-primary/80'"
-                @click="tab = 'qr'"
-              >
-                <span class="icon-[mdi--qrcode-scan] h-4 w-4" />
-                {{ t('auth.qrLogin') || '扫码登录' }}
-              </button>
+            <!-- 登录方式选择 -->
+            <div class="flex w-full items-center justify-center">
+              <TabGroup
+                :tabs="loginTabs"
+                :model-value="tab"
+                class="justify-center flex-wrap"
+                @click="key => (tab = key)"
+              />
             </div>
           </div>
 
           <Transition name="tab-fade" mode="out-in">
             <div v-if="tab === 'password'" key="pwd" class="px-6 pb-6">
               <div class="mb-5 flex justify-center">
-                <div class="glass-nav inline-flex gap-1 rounded-full p-1">
-                  <button
-                    class="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-all"
-                    :class="!useEmail ? 'bg-white/15 text-primary' : 'text-primary/60 hover:text-primary/80'"
-                    @click="useEmail = false"
-                  >
-                    <span class="icon-[mdi--cellphone] h-3.5 w-3.5" />
-                    {{ t('auth.phone') || '手机号' }}
-                  </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-all"
-                    :class="useEmail ? 'bg-white/15 text-primary' : 'text-primary/60 hover:text-primary/80'"
-                    @click="useEmail = true"
-                  >
-                    <span class="icon-[mdi--email-outline] h-3.5 w-3.5" />
-                    {{ t('auth.email') || '邮箱' }}
-                  </button>
-                </div>
+                <TabGroup
+                  :tabs="accountTypeTabs"
+                  :model-value="accountType"
+                  size="sm"
+                  class="glass-nav rounded-full"
+                  @click="key => (accountType = key)"
+                />
               </div>
 
               <div class="space-y-4">
                 <div class="space-y-2">
                   <label class="text-primary/60 block text-xs font-medium">
-                    {{ useEmail ? (t('auth.email') || '邮箱') : (t('auth.phone') || '手机号') }}
+                    {{
+                      accountType === 'email'
+                        ? t('auth.email') || '邮箱'
+                        : t('auth.phone') || '手机号'
+                    }}
                   </label>
-                  <div class="glass-card group flex items-center gap-3 rounded-xl px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-pink-400/50">
-                    <span :class="useEmail ? 'icon-[mdi--email-outline]' : 'icon-[mdi--cellphone]'" class="text-primary/40 h-5 w-5 transition-colors group-focus-within:text-pink-400" />
+                  <div
+                    class="glass-card group flex items-center gap-3 rounded-xl px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-pink-400/50"
+                  >
+                    <span
+                      :class="
+                        accountType === 'email'
+                          ? 'icon-[mdi--email-outline]'
+                          : 'icon-[mdi--cellphone]'
+                      "
+                      class="text-primary/40 h-5 w-5 transition-colors group-focus-within:text-pink-400"
+                    />
                     <input
-                      v-if="!useEmail"
+                      v-if="accountType === 'phone'"
                       v-model="phone"
                       type="tel"
                       :placeholder="t('auth.inputPhone') || '请输入手机号'"
@@ -239,9 +259,15 @@ watch(visible, v => {
                 </div>
 
                 <div class="space-y-2">
-                  <label class="text-primary/60 block text-xs font-medium">{{ t('auth.password') || '密码' }}</label>
-                  <div class="glass-card group flex items-center gap-3 rounded-xl px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-purple-400/50">
-                    <span class="icon-[mdi--lock-outline] text-primary/40 h-5 w-5 transition-colors group-focus-within:text-purple-400" />
+                  <label class="text-primary/60 block text-xs font-medium">{{
+                    t('auth.password') || '密码'
+                  }}</label>
+                  <div
+                    class="glass-card group flex items-center gap-3 rounded-xl px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-purple-400/50"
+                  >
+                    <span
+                      class="icon-[mdi--lock-outline] text-primary/40 h-5 w-5 transition-colors group-focus-within:text-purple-400"
+                    />
                     <input
                       v-model="password"
                       type="password"
@@ -252,49 +278,80 @@ watch(visible, v => {
                 </div>
               </div>
 
-              <button
-                class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-pink-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pink-500/25 transition-all hover:shadow-xl hover:shadow-pink-500/30 disabled:opacity-50 disabled:shadow-none"
-                :disabled="loading || (!useEmail && !phone) || (useEmail && !email) || !password"
+              <Button
+                variant="solid"
+                size="md"
+                block
+                :loading="loading"
+                :disabled="
+                  loading ||
+                  (accountType === 'phone' && !phone) ||
+                  (accountType === 'email' && !email) ||
+                  !password
+                "
+                icon="mdi--login"
+                class="mt-6"
                 @click="doPasswordLogin"
               >
-                <span v-if="loading" class="icon-[mdi--loading] h-4 w-4 animate-spin" />
-                <span v-else class="icon-[mdi--login] h-4 w-4" />
-                {{ loading ? (t('common.loading') || '登录中...') : t('auth.login') }}
-              </button>
+                {{ loading ? t('common.loading') || '登录中...' : t('auth.login') }}
+              </Button>
             </div>
 
             <div v-else key="qr" class="px-6 pb-6">
               <div class="flex flex-col items-center">
                 <div class="relative mb-4">
                   <div class="overflow-hidden rounded-2xl bg-white p-3 shadow-xl">
-                    <img v-if="qrImg" :src="qrImg" :alt="t('auth.qr') || '二维码'" class="h-44 w-44" />
+                    <img
+                      v-if="qrImg"
+                      :src="qrImg"
+                      :alt="t('auth.qr') || '二维码'"
+                      class="h-44 w-44"
+                    />
                     <div v-else class="flex h-44 w-44 items-center justify-center">
                       <span class="icon-[mdi--loading] h-8 w-8 animate-spin text-gray-400" />
                     </div>
                   </div>
                   <Transition name="fade">
-                    <div v-if="state.qrUser?.avatarUrl" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
+                    <div
+                      v-if="state.qrUser?.avatarUrl"
+                      class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm"
+                    >
                       <div class="flex flex-col items-center gap-2">
-                        <img :src="state.qrUser.avatarUrl" :alt="state.qrUser.nickname" class="h-16 w-16 rounded-full ring-2 ring-white/20" />
-                        <span class="text-primary text-sm font-medium">{{ state.qrUser.nickname }}</span>
+                        <img
+                          :src="state.qrUser.avatarUrl"
+                          :alt="state.qrUser.nickname"
+                          class="h-16 w-16 rounded-full ring-2 ring-white/20"
+                        />
+                        <span class="text-primary text-sm font-medium">{{
+                          state.qrUser.nickname
+                        }}</span>
                       </div>
                     </div>
                   </Transition>
                 </div>
 
                 <div class="mb-4 text-center">
-                  <p class="text-primary/80 text-sm">{{ state.qrUser?.message || qrStatusText || (t('common.loading') + '...') }}</p>
-                  <p v-if="state.qrUser?.nickname && !state.qrUser?.message" class="text-primary mt-1 font-medium">{{ state.qrUser.nickname }}</p>
+                  <p class="text-primary/80 text-sm">
+                    {{ state.qrUser?.message || qrStatusText || t('common.loading') + '...' }}
+                  </p>
+                  <p
+                    v-if="state.qrUser?.nickname && !state.qrUser?.message"
+                    class="text-primary mt-1 font-medium"
+                  >
+                    {{ state.qrUser.nickname }}
+                  </p>
                 </div>
 
-                <button
-                  class="glass-button flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm transition-all hover:bg-white/15"
+                <Button
+                  
+                  size="md"
+                  :loading="loading"
                   :disabled="loading"
+                  icon="mdi--refresh"
                   @click="genQr"
                 >
-                  <span :class="loading ? 'icon-[mdi--loading] animate-spin' : 'icon-[mdi--refresh]'" class="text-primary h-4 w-4" />
-                  <span class="text-primary">{{ t('auth.refreshQr') || '刷新二维码' }}</span>
-                </button>
+                  {{ t('auth.refreshQr') || '刷新二维码' }}
+                </Button>
               </div>
             </div>
           </Transition>

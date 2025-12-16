@@ -66,21 +66,28 @@ const close = () => (show.value = false)
     <Transition name="dialog" appear>
       <div v-if="show" class="relative z-10 w-full max-w-2xl">
         <div class="glass-container-strong overflow-hidden">
-          <button
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            rounded="full"
             class="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
+            icon="mdi--close"
+            icon-class="h-4 w-4 text-primary"
             @click="close"
-          >
-            <span class="icon-[mdi--close] h-4 w-4 text-primary" />
-          </button>
+          />
 
           <div class="relative p-6 pb-4">
             <div class="mb-4 flex items-center gap-4">
-              <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25">
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25"
+              >
                 <span class="icon-[mdi--comment-text-multiple] h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 class="text-xl font-bold text-primary">{{ $t('comments.title') }}</h2>
-                <p class="mt-0.5 text-sm text-primary/50">{{ $t('comments.total', { total: state.total }) }}</p>
+                <h2 class="text-primary text-xl font-bold">{{ $t('comments.title') }}</h2>
+                <p class="text-primary/50 mt-0.5 text-sm">
+                  {{ $t('comments.total', { total: state.total }) }}
+                </p>
               </div>
             </div>
           </div>
@@ -90,11 +97,7 @@ const close = () => (show.value = false)
               <PageSkeleton :sections="['list']" :list-count="8" />
             </div>
             <div v-else class="space-y-3 pb-4">
-              <div
-                v-for="(c, idx) in state.comments"
-                :key="idx"
-                class="glass-card flex gap-3 p-4"
-              >
+              <div v-for="(c, idx) in state.comments" :key="idx" class="glass-card flex gap-3 p-4">
                 <div class="h-10 w-10 shrink-0 overflow-hidden rounded-xl">
                   <img
                     v-if="c.user?.avatarUrl"
@@ -112,29 +115,35 @@ const close = () => (show.value = false)
 
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-2">
-                    <span class="truncate text-sm font-medium text-primary">{{ c.user?.nickname || $t('comments.user') }}</span>
-                    <span v-if="c.ipLocation?.location || c.ipLocation?.ip" class="text-xs text-primary/40">
+                    <span class="text-primary truncate text-sm font-medium">{{
+                      c.user?.nickname || $t('comments.user')
+                    }}</span>
+                    <span
+                      v-if="c.ipLocation?.location || c.ipLocation?.ip"
+                      class="text-primary/40 text-xs"
+                    >
                       {{ c.ipLocation?.location || c.ipLocation?.ip }}
                     </span>
-                    <span v-if="c.timeStr || c.time" class="text-xs text-primary/40">
+                    <span v-if="c.timeStr || c.time" class="text-primary/40 text-xs">
                       {{ c.timeStr || (c.time ? new Date(c.time).toLocaleString() : '') }}
                     </span>
                   </div>
 
-                  <p class="mt-2 text-sm leading-relaxed text-primary/80">{{ c.content }}</p>
+                  <p class="text-primary/80 mt-2 text-sm leading-relaxed">{{ c.content }}</p>
 
-                  <div v-if="Array.isArray(c.beReplied) && c.beReplied.length" class="mt-3 space-y-2">
-                    <div
-                      v-for="(r, ri) in c.beReplied"
-                      :key="ri"
-                      class="rounded-xl bg-white/5 p-3"
-                    >
-                      <span class="text-xs font-medium text-primary/60">@{{ r?.user?.nickname || $t('comments.user') }}</span>
-                      <p class="mt-1 text-xs leading-relaxed text-primary/50">{{ r?.content }}</p>
+                  <div
+                    v-if="Array.isArray(c.beReplied) && c.beReplied.length"
+                    class="mt-3 space-y-2"
+                  >
+                    <div v-for="(r, ri) in c.beReplied" :key="ri" class="rounded-xl bg-white/5 p-3">
+                      <span class="text-primary/60 text-xs font-medium"
+                        >@{{ r?.user?.nickname || $t('comments.user') }}</span
+                      >
+                      <p class="text-primary/50 mt-1 text-xs leading-relaxed">{{ r?.content }}</p>
                     </div>
                   </div>
 
-                  <div class="mt-3 flex items-center gap-1.5 text-primary/40">
+                  <div class="text-primary/40 mt-3 flex items-center gap-1.5">
                     <span class="icon-[mdi--thumb-up-outline] h-4 w-4" />
                     <span class="text-xs">{{ c.likedCount || 0 }}</span>
                   </div>
@@ -142,8 +151,10 @@ const close = () => (show.value = false)
               </div>
 
               <div v-if="state.comments.length === 0" class="py-12 text-center">
-                <span class="icon-[mdi--comment-off-outline] mx-auto mb-3 block h-12 w-12 text-primary/30" />
-                <p class="text-sm text-primary/50">{{ $t('comments.empty') }}</p>
+                <span
+                  class="icon-[mdi--comment-off-outline] text-primary/30 mx-auto mb-3 block h-12 w-12"
+                />
+                <p class="text-primary/50 text-sm">{{ $t('comments.empty') }}</p>
               </div>
             </div>
           </div>

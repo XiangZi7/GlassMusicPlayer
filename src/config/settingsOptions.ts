@@ -1,3 +1,5 @@
+import type { AudioQuality } from '@/stores/modules/settings'
+
 export type Option<T = any> = { value: T; label: string }
 
 export const getBackgroundOptions = (t: (k: string) => string): Option<string>[] => [
@@ -16,6 +18,15 @@ export const getLangOptions = (t: (k: string) => string): Option<string>[] => [
   { value: 'zh', label: '中文' },
   { value: 'en', label: 'English' },
   { value: 'ja', label: '日本語' },
+]
+
+export const getAudioQualityOptions = (t: (k: string) => string): Option<AudioQuality>[] => [
+  { value: 'standard', label: t('components.settings.audioQuality.standard') },
+  { value: 'higher', label: t('components.settings.audioQuality.higher') },
+  { value: 'exhigh', label: t('components.settings.audioQuality.exhigh') },
+  { value: 'lossless', label: t('components.settings.audioQuality.lossless') },
+  { value: 'hires', label: t('components.settings.audioQuality.hires') },
+  { value: 'jymaster', label: t('components.settings.audioQuality.jymaster') },
 ]
 
 export const getShowHideOptions = (t: (k: string) => string): Option<boolean>[] => [

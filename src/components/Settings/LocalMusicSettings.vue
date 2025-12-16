@@ -80,7 +80,7 @@ const handlePlayOne = (music: any) => {
 <template>
   <div
     class="glass-card overflow-hidden rounded-3xl transition-all"
-    :class="{ 'ring-2 ring-green-500 ring-offset-2 ring-offset-(--color-overlay)': isDragging }"
+    :class="{ 'ring-offset-overlay ring-2 ring-green-500 ring-offset-2': isDragging }"
     @drop="handleDrop"
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"
@@ -88,7 +88,9 @@ const handlePlayOne = (music: any) => {
     <!-- 头部操作栏 -->
     <div class="flex items-center justify-between border-b border-(--glass-border) p-6">
       <div class="flex items-center gap-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-green-500 to-emerald-600 shadow-md">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-green-500 to-emerald-600 shadow-md"
+        >
           <span class="icon-[mdi--folder-music-outline] h-6 w-6 text-white" />
         </div>
         <div>
@@ -154,25 +156,22 @@ const handlePlayOne = (music: any) => {
     <!-- 音乐列表 -->
     <div class="max-h-[500px] overflow-y-auto p-6">
       <!-- 加载状态 -->
-      <div v-if="isLoading" class="flex items-center justify-center py-12 text-primary/50">
+      <div v-if="isLoading" class="text-primary/50 flex items-center justify-center py-12">
         <span class="icon-[mdi--loading] mr-2 h-6 w-6 animate-spin"></span>
         <span class="text-sm font-medium">{{ t('common.loading') }}</span>
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="musics.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+      <div
+        v-else-if="musics.length === 0"
+        class="flex flex-col items-center justify-center py-12 text-center"
+      >
         <div class="mb-4 rounded-full bg-white/5 p-6">
           <span class="icon-[mdi--music-note-off] text-primary/20 h-12 w-12"></span>
         </div>
         <p class="text-primary/60 mb-2 text-sm font-medium">{{ t('common.noData') }}</p>
         <p class="text-primary/40 mb-4 text-xs">{{ t('components.settings.localMusicEmpty') }}</p>
-        <Button
-          variant="soft"
-          size="sm"
-          rounded="lg"
-          class="gap-2"
-          @click="triggerFileInput"
-        >
+        <Button variant="soft" size="sm" rounded="lg" class="gap-2" @click="triggerFileInput">
           <span class="icon-[mdi--plus] h-4 w-4" />
           {{ t('components.settings.addMusic') }}
         </Button>
@@ -183,15 +182,20 @@ const handlePlayOne = (music: any) => {
         <div
           v-for="music in musics"
           :key="music.id"
-          class="group flex items-center justify-between rounded-xl p-3 transition-all hover:bg-hover-glass"
+          class="group hover:bg-hover-glass flex items-center justify-between rounded-xl p-3 transition-all"
         >
-          <div class="flex min-w-0 flex-1 items-center gap-3 cursor-pointer" @click="handlePlayOne(music)">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg glass-card text-primary/50 transition-colors group-hover:text-primary">
+          <div
+            class="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
+            @click="handlePlayOne(music)"
+          >
+            <div
+              class="glass-card text-primary/50 group-hover:text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-colors"
+            >
               <span class="icon-[mdi--music] h-6 w-6"></span>
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-primary mb-1 truncate text-sm font-semibold">{{ music.name }}</p>
-              <div class="flex items-center gap-3 text-xs text-primary/60">
+              <div class="text-primary/60 flex items-center gap-3 text-xs">
                 <span class="flex items-center gap-1">
                   <span class="icon-[mdi--clock-outline] h-3.5 w-3.5"></span>
                   {{ formatTime(music.duration) }}
@@ -203,14 +207,16 @@ const handlePlayOne = (music: any) => {
               </div>
             </div>
           </div>
-
-          <button
-            class="text-primary/40 hover:text-red-400 ml-3 rounded-lg p-2 transition-all hover:bg-red-500/10"
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            rounded="full"
+            class="text-primary/40 ml-3 rounded-lg p-2 transition-all hover:bg-red-500/10 hover:text-red-400"
             @click="handleDelete(music.id)"
             :title="t('common.delete')"
-          >
-            <span class="icon-[mdi--trash-can-outline] h-5 w-5" />
-          </button>
+            icon="mdi--trash-can-outline"
+            icon-class="h-5 w-5"
+          />
         </div>
       </div>
     </div>

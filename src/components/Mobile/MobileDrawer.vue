@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onClickOutside } from '@vueuse/core'
+import Button from '@/components/Ui/Button.vue'
 
 const props = defineProps<{
   title?: string
@@ -109,12 +110,14 @@ onClickOutside(drawerRef, () => {
         </div>
         <div v-else class="-mt-2 flex items-center justify-between border-b border-white/5 px-4 pb-3">
           <h3 class="text-primary text-base font-bold">{{ title }}</h3>
-          <button
-            class="text-primary/60 hover:text-primary flex items-center justify-center rounded-full p-1 transition-colors hover:bg-white/10"
+          <Button
+            variant="ghost"
+            size="icon-md"
+            rounded="full"
+            icon="mdi--close"
+            icon-class="h-6 w-6"
             @click="isOpen = false"
-          >
-            <span class="icon-[mdi--close] h-6 w-6"></span>
-          </button>
+          />
         </div>
 
         <!-- 内容区域 -->

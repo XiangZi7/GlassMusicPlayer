@@ -158,9 +158,14 @@ const emit = defineEmits(['show'])
         <VolumeControl />
         <PlaylistBubble v-model:show="showQueue" placement="top-right" :offset-y="25">
           <template #trigger>
-            <button class="text-primary/70 hover:text-primary flex items-center transition-colors">
-              <span class="icon-[mdi--playlist-music] h-6 w-6"></span>
-            </button>
+            <Button
+              variant="text"
+              size="none"
+              icon="mdi--playlist-music"
+              icon-class="size-6"
+              class="text-primary/70 hover:text-primary flex items-center transition-colors"
+            >
+            </Button>
           </template>
         </PlaylistBubble>
       </div>
