@@ -5,4 +5,3 @@
 @import './utilities.css';
 
 @plugin '@iconify/tailwind4';
-@layer theme, base, components, utilities;
