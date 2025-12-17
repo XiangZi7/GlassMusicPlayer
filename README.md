@@ -22,6 +22,7 @@
 <img src="https://img.shields.io/badge/Swiper-Carousel-6332F6?style=flat-square" />
 <img src="https://img.shields.io/badge/Three.js-3D-000000?style=flat-square" />
 <img src="https://img.shields.io/badge/Lottie-Animation-00DDB3?style=flat-square" />
+<img src="https://img.shields.io/badge/Web_Audio_API-Visualization-FF9500?style=flat-square" />
 </p>
 
 <p align="center">
@@ -34,114 +35,27 @@
 
 ![预览图](images/home.png)
 
-<br/>
+## ✨ 核心特性
 
-## ✨ 核心亮点
+- 🎨 **毛玻璃设计** - 现代化 UI，精致视觉效果
+- 🌓 **双主题切换** - 浅色/深色主题，支持系统跟随，三种背景主题
+- 🎵 **音频可视化** - 实时频谱/波形/圆形可视化，自适应主题配色
+- 📱 **响应式布局** - 完美适配桌面端与移动端
+- 🌍 **国际化支持** - 中文 / English / 日本語
 
-<table>
-<tr>
-<td width="50%">
+## 🎬 主要功能
 
-### 🎨 毛玻璃设计
-现代化 UI 设计，精致的毛玻璃视觉效果，登录框、播放器、下拉菜单等组件统一风格
+### 🎵 播放器
+黑胶唱片动画 · 实时音频可视化 · 音质选择 · 歌词同步 · 进度拖拽
 
-</td>
-<td width="50%">
+### 🏠 发现音乐
+首页推荐 · 排行榜 · 艺术家 · 新碟 · 歌单
 
-### 🌓 双主题支持
-浅色/深色主题自由切换，支持系统主题跟随，Aurora / ColorBends / Ultimate 三种背景可选
+### 🔍 搜索
+实时联想 · 历史记录 · 歌曲/歌单/MV/艺术家
 
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 📱 响应式布局
-完美适配 PC 与 Mobile 端，移动端专属底部导航、全屏播放器抽屉
-
-</td>
-<td width="50%">
-
-### 🌍 国际化
-支持中文 / English / 日本語 三种语言
-
-</td>
-</tr>
-</table>
-
-<br/>
-
-## 🎬 功能一览
-
-<table width="100%" style="table-layout: fixed;">
-  <tr>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>🏠</h3>
-      <strong>首页与发现</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>卡片化首页布局</li>
-        <li>推荐歌单轮播</li>
-        <li>排行榜多类型切换</li>
-        <li>艺术家/新碟筛选</li>
-      </ul>
-    </td>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>🎵</h3>
-      <strong>播放器</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>黑胶唱片 + 唱臂动画</li>
-        <li>丝滑进度条拖拽</li>
-        <li>双层封面背景切换</li>
-        <li>电池/网络状态显示</li>
-      </ul>
-    </td>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>🎤</h3>
-      <strong>歌词体验</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>原文/译文/罗马音</li>
-        <li>字体大小调节</li>
-        <li>自动滚动跟随</li>
-        <li>拖动定位 + 时间预览</li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>🔍</h3>
-      <strong>搜索功能</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>实时搜索联想</li>
-        <li>历史记录管理</li>
-        <li>分页结果浏览</li>
-        <li>歌曲/歌单/MV</li>
-      </ul>
-    </td>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>📄</h3>
-      <strong>详情页面</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>歌曲详情 + 评论</li>
-        <li>艺术家热门/专辑</li>
-        <li>专辑曲目列表</li>
-        <li>MV 高清播放</li>
-      </ul>
-    </td>
-    <td style="width:33%; text-align:center; vertical-align:top; padding:12px;">
-      <h3>📱</h3>
-      <strong>移动端</strong>
-      <ul style="list-style:none; padding:0; margin:12px 0 0 0;">
-        <li>底部标签栏导航</li>
-        <li>全屏播放器抽屉</li>
-        <li>播放列表/历史滑动切换</li>
-        <li>触控手势优化</li>
-      </ul>
-    </td>
-  </tr>
-  
-</table>
-
-<br/>
+### 📱 移动端优化
+底部导航 · 全屏播放器抽屉 · 滑动切换 · 触控手势
 
 <details>
 <summary><strong>📋 查看完整功能列表</strong></summary>
@@ -149,7 +63,7 @@
 
 | 模块 | 功能 |
 |------|------|
-| **主题视觉** | 双主题模式 · 系统跟随 · 三种背景主题 · 毛玻璃效果 |
+| **主题视觉** | 双主题模式 · 系统跟随 · 三种背景主题 · 毛玻璃效果 · 动态颜色适配 |
 | **首页列表** | 卡片化布局 · 推荐歌单 · 骨架屏加载 · 图片懒加载 |
 | **排行榜** | 多类型切换（华语/欧美/日本/韩国） · 分页加载 |
 | **搜索** | 实时联想 · 历史记录 · 分页浏览 · 外部点击关闭 · 滑动切换 |
@@ -157,10 +71,11 @@
 | **艺术家** | 类型/地区/首字母筛选 · 分页 · 英雄区动画 · 热门/专辑Tab |
 | **专辑** | 封面英雄区 · 发行信息 · 简介折叠 · 曲目列表 |
 | **MV** | 高清播放 · HLS流媒体 · 相关推荐 |
-| **播放器** | 黑胶唱片 · 唱臂动画 · 进度拖拽 · 背景切换 · 设备状态 |
+| **播放器** | 黑胶唱片 · 唱臂动画 · 实时音频可视化(频谱/波形/圆形) · 音质选择 · 进度拖拽 · 背景切换 · 设备状态 |
 | **歌词** | 多语言切换 · 字体缩放 · 自动滚动 · 拖动定位 · 时间预览 |
 | **评论** | 分页浏览 · IP归属地 · 楼中楼回复 |
 | **播放列表** | 拖拽排序 · 下一首播放 · 批量删除 · 清空列表 · 历史记录管理 |
+| **音频可视化** | Web Audio API · 频谱/波形/圆形三种样式 · 实时频谱分析 · 自适应主题配色 |
 | **移动端** | 响应式 · 底部导航 · 播放器抽屉 · 列表/历史滑动切换 · 艺术家列表 · 搜索结果滑动切换 |
 | **多语言** | 简体中文 ✅ · English ✅ · 日本語 ✅ |
 
