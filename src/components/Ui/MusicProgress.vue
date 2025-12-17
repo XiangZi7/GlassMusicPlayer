@@ -2,6 +2,34 @@
 import { useAudio } from '@/composables/useAudio'
 import { useEventListener } from '@vueuse/core'
 
+const props = defineProps({
+  color: {
+    type: Array as PropType<string[]>,
+    default: () => [],
+  },
+})
+
+// 生成渐变样式
+const gradientStyle = computed(() => {
+  if (props.color.length === 0) {
+    // 使用默认渐变
+    return 'linear-gradient(90deg, #ec4899, #8b5cf6)'
+  }
+  // 使用传入的颜色数组生成渐变
+  return `linear-gradient(90deg, ${props.color.join(', ')})`
+})
+
+// 生成圆点纯色样式 - 使用渐变的中间色或主色
+const thumbStyle = computed(() => {
+  if (props.color.length === 0) {
+    // 使用默认主色
+    return '#ec4899'
+  }
+  // 使用颜色数组的中间位置的颜色
+  const midIndex = Math.floor(props.color.length / 2)
+  return props.color[midIndex]
+})
+
 const { currentSong, duration, progress, setProgress } = useAudio()
 
 const progressBarRef = useTemplateRef('progressBarRef')
@@ -65,16 +93,16 @@ const handleProgressDrag = (clientX: number) => {
 const startDrag = (event: MouseEvent | TouchEvent) => {
   if (event instanceof TouchEvent) {
     // 阻止默认滚动行为
-    // event.preventDefault() 
+    // event.preventDefault()
     // 注意：在 passive listener 中不能 preventDefault，这里假设在 template 中使用了 .prevent
   } else {
     event.preventDefault()
   }
-  
+
   state.isDragging = true
   state.dragProgress = progress.value
   document.body.style.userSelect = 'none'
-  
+
   const clientX = event instanceof MouseEvent ? event.clientX : event.touches[0].clientX
   handleProgressDrag(clientX)
 }
@@ -160,13 +188,13 @@ const previewPositionPercent = computed(() => {
     >
       <div
         class="progress-fill absolute inset-y-0 left-0 rounded-full"
-        :style="{ width: `${displayProgress}%` }"
+        :style="{ width: `${displayProgress}%`, background: gradientStyle }"
       ></div>
     </div>
     <div
       class="progress-thumb absolute top-1/2"
       :class="state.isDragging ? 'active' : ''"
-      :style="{ left: `${displayProgress}%` }"
+      :style="{ left: `${displayProgress}%`, background: thumbStyle }"
     ></div>
   </div>
 </template>
@@ -183,7 +211,6 @@ const previewPositionPercent = computed(() => {
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #ec4899, #8b5cf6);
   box-shadow: 0 0 8px rgba(236, 72, 153, 0.4);
   transition: width 0.05s linear;
 }
@@ -192,7 +219,6 @@ const previewPositionPercent = computed(() => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transform: translate(-50%, -50%);
   opacity: 0;

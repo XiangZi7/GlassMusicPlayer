@@ -42,6 +42,12 @@ export interface FooterLyricsSettingsState {
   modes: Array<'original' | 'trans' | 'roma'>
 }
 
+export interface AudioVisualizerSettingsState {
+  enabledInFooter: boolean
+  enabledInDrawer: boolean
+  visualizerType: 'bars' | 'wave' | 'circular'
+}
+
 export type AudioQuality = 'standard' | 'higher' | 'exhigh' | 'lossless' | 'hires' | 'jyeffect' | 'sky' | 'jymaster'
 
 export const useSettingsStore = defineStore('settings', {
@@ -50,6 +56,7 @@ export const useSettingsStore = defineStore('settings', {
     colorBends: ColorBendsSettingsState
     ultimate: UltimateSettingsState
     footerLyrics: FooterLyricsSettingsState
+    audioVisualizer: AudioVisualizerSettingsState
     backgroundType: 'aurora' | 'colorbends' | 'ultimate'
     audioQuality: AudioQuality
   } => ({
@@ -89,6 +96,11 @@ export const useSettingsStore = defineStore('settings', {
     footerLyrics: {
       enabled: true,
       modes: ['original', 'trans'],
+    },
+    audioVisualizer: {
+      enabledInFooter: true,
+      enabledInDrawer: true,
+      visualizerType: 'bars',
     },
     backgroundType: 'ultimate',
     audioQuality: 'jymaster',
@@ -167,6 +179,15 @@ export const useSettingsStore = defineStore('settings', {
     },
     setAudioQuality(quality: AudioQuality) {
       this.audioQuality = quality
+    },
+    setAudioVisualizerFooter(enabled: boolean) {
+      this.audioVisualizer.enabledInFooter = enabled
+    },
+    setAudioVisualizerDrawer(enabled: boolean) {
+      this.audioVisualizer.enabledInDrawer = enabled
+    },
+    setAudioVisualizerType(type: 'bars' | 'wave' | 'circular') {
+      this.audioVisualizer.visualizerType = type
     },
   },
   persist: piniaPersistConfig('settings'),

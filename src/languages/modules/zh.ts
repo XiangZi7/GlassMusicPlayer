@@ -96,6 +96,18 @@ export default {
       footerLyricsTitle: '底部播放器歌词',
       footerLyricsDesc: '底部歌词显示设置',
       footerLyricsModes: '显示语言（最多选择两种）',
+      audioVisualizer: {
+        title: '音频可视化',
+        desc: '音频频谱可视化设置',
+        footer: '底部播放器',
+        drawer: '播放器抽屉',
+        type: '可视化模式',
+      },
+      visualizerType: {
+        bars: '柱状图',
+        wave: '波形图',
+        circular: '圆形图',
+      },
       themeOptions: { light: '浅色模式', dark: '暗黑模式', system: '跟随系统' },
       localMusic: '本地音乐',
       localMusicDesc: '管理已上传的本地歌曲',

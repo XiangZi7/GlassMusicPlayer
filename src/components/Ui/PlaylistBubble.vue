@@ -27,30 +27,61 @@ const open = computed({
 
 const triggerRef = ref<HTMLElement>()
 const bubbleRef = ref<HTMLElement>()
+const bubblePosition = ref({ top: 0, left: 0 })
 
-const positionClass = computed(() => {
+// 计算气泡的绝对位置
+const updateBubblePosition = () => {
+  if (!triggerRef.value) return
+
+  const rect = triggerRef.value.getBoundingClientRect()
+  const scrollX = window.pageXOffset || document.documentElement.scrollLeft
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop
+
+  let top = 0
+  let left = 0
+
   switch (props.placement) {
     case 'top-right':
-      return 'absolute bottom-full right-0'
+      top = rect.top + scrollY - (bubbleRef.value?.offsetHeight || 0) - props.offsetY
+      left = rect.right + scrollX - (bubbleRef.value?.offsetWidth || 0) - props.offsetX
+      break
     case 'top-left':
-      return 'absolute bottom-full left-0'
+      top = rect.top + scrollY - (bubbleRef.value?.offsetHeight || 0) - props.offsetY
+      left = rect.left + scrollX + props.offsetX
+      break
     case 'bottom-right':
-      return 'absolute top-full right-0'
+      top = rect.bottom + scrollY + props.offsetY
+      left = rect.right + scrollX - (bubbleRef.value?.offsetWidth || 0) - props.offsetX
+      break
     case 'bottom-left':
-      return 'absolute top-full left-0'
-    default:
-      return 'absolute bottom-full right-0'
+      top = rect.bottom + scrollY + props.offsetY
+      left = rect.left + scrollX + props.offsetX
+      break
+  }
+
+  bubblePosition.value = { top, left }
+}
+
+// 监听打开状态，更新位置
+watch(open, isOpen => {
+  if (isOpen) {
+    nextTick(() => {
+      updateBubblePosition()
+      window.addEventListener('scroll', updateBubblePosition, true)
+      window.addEventListener('resize', updateBubblePosition)
+    })
+  } else {
+    window.removeEventListener('scroll', updateBubblePosition, true)
+    window.removeEventListener('resize', updateBubblePosition)
   }
 })
 
-const offsetStyle = computed(() => {
-  const style: Record<string, string> = {}
-  if (props.placement?.startsWith('top')) style.marginBottom = `${props.offsetY}px`
-  if (props.placement?.startsWith('bottom')) style.marginTop = `${props.offsetY}px`
-  if (props.placement?.endsWith('right')) style.marginRight = `${props.offsetX}px`
-  if (props.placement?.endsWith('left')) style.marginLeft = `${props.offsetX}px`
-  return style
-})
+const bubbleStyle = computed(() => ({
+  position: 'absolute' as const,
+  top: `${bubblePosition.value.top}px`,
+  left: `${bubblePosition.value.left}px`,
+  zIndex: 99999,
+}))
 
 const onDocClick = (e: Event) => {
   if (!props.closeOnClickOutside) return
@@ -142,12 +173,13 @@ const totalDuration = computed(() => {
     <div @click.stop="toggle" class="flex items-center justify-center">
       <slot name="trigger"></slot>
     </div>
-    <Transition name="bubble">
-      <div v-if="open" ref="bubbleRef" :class="positionClass" :style="offsetStyle" class="z-99999">
-        <template v-if="$slots.default">
-          <slot></slot>
-        </template>
-        <template v-else>
+    <Teleport to="body">
+      <Transition name="bubble">
+        <div v-if="open" ref="bubbleRef" :style="bubbleStyle">
+          <template v-if="$slots.default">
+            <slot></slot>
+          </template>
+          <template v-else>
           <div class="playlist-bubble w-[360px] overflow-hidden rounded-xl shadow-2xl lg:w-[420px]">
             <div class="bubble-header flex items-center justify-between px-4 py-3">
               <div class="flex items-center gap-3">
@@ -347,6 +379,7 @@ const totalDuration = computed(() => {
         </template>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 

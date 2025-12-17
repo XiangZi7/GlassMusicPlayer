@@ -16,6 +16,7 @@ interface Props {
   icon?: string
   iconClass?: ClassBinding
   type?: 'button' | 'submit' | 'reset'
+  gradientColors?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -97,8 +98,31 @@ const iconName = computed(() => {
   if (!props.icon) return ''
   // 如果已经包含了 icon-[...] 格式，则直接返回
   if (props.icon.startsWith('icon-[')) return props.icon
+
+  // 注意：Tailwind JIT 编译器需要在编译时扫描到完整的类名才能生成 CSS。
+  // 如果传入 "mdi--shuffle-variant"，JIT 编译器看不到 "icon-[mdi--shuffle-variant]" 这个字符串，
+  // 因此不会生成对应的 CSS 类，导致图标无法显示。
+  // 解决方案：
+  // 1. 在使用组件时直接传入完整的类名：icon="icon-[mdi--shuffle-variant]"
+  // 2. 或者确保该图标类名在项目的其他地方（如注释或 safelist）中出现过。
+
   // 否则包装成 icon-[...] 格式
   return `icon-[${props.icon}]`
+})
+
+// 生成动态渐变样式
+const gradientStyle = computed(() => {
+  if (props.variant !== 'gradient') return {}
+
+  if (!props.gradientColors || props.gradientColors.length === 0) {
+    // 使用默认渐变
+    return {}
+  }
+
+  // 使用传入的颜色数组生成渐变
+  return {
+    background: `linear-gradient(135deg, ${props.gradientColors.join(', ')})`,
+  }
 })
 </script>
 
@@ -109,20 +133,14 @@ const iconName = computed(() => {
     :href="href"
     :type="!to && !href ? type : undefined"
     :class="classes"
+    :style="gradientStyle"
     :disabled="disabled || loading"
   >
     <!-- Loading State -->
-    <span
-      v-if="loading"
-      class="icon-[mdi--loading] animate-spin"
-      :class="[iconClass, { 'mr-2': !!$slots.default }]"
-    ></span>
+    <span v-if="loading" class="icon-[mdi--loading] animate-spin" :class="[iconClass]"></span>
 
     <!-- Icon Prop -->
-    <span
-      v-else-if="icon"
-      :class="[iconName, iconClass, { 'mr-2': !!$slots.default }]"
-    ></span>
+    <span v-else-if="icon" :class="[iconName, iconClass]"></span>
 
     <!-- Default Slot (Text) -->
     <slot></slot>
@@ -132,7 +150,7 @@ const iconName = computed(() => {
 <style>
 @reference "../../style/tailwind.css";
 .play-btn {
-  @apply text-white flex items-center justify-center rounded-full shadow-2xl transition-all duration-300;
+  @apply flex items-center justify-center rounded-full text-white shadow-2xl transition-all duration-300;
   background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
   box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4);
 }

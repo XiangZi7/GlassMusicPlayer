@@ -207,7 +207,7 @@ const goToArtist = () => {
           size="md"
           rounded="full"
           class="play-all-btn flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-medium"
-          icon="mdi--play-circle"
+          icon="icon-[mdi--play-circle]"
           icon-class="h-5 w-5"
           @click="playAll"
         >
@@ -218,7 +218,7 @@ const goToArtist = () => {
           size="md"
           rounded="full"
           class="shuffle-btn flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-medium"
-          icon="mdi--shuffle-variant"
+          icon="icon-[mdi--shuffle-variant]"
           icon-class="h-5 w-5"
           @click="shufflePlay"
         >
@@ -230,7 +230,7 @@ const goToArtist = () => {
           rounded="full"
           class="collect-btn"
           :class="state.collected ? 'collected' : ''"
-          :icon="state.collected ? 'mdi--heart' : 'mdi--heart-outline'"
+          :icon="state.collected ? 'icon-[mdi--heart]' : 'icon-[mdi--heart-outline]'"
           icon-class="h-5 w-5"
           @click="toggleCollect"
         />

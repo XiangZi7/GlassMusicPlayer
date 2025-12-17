@@ -7,12 +7,21 @@ import SongCommentsDialog from '@/components/Comments/SongCommentsDialog.vue'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControl from '@/components/Ui/VolumeControl.vue'
 import Button from '@/components/Ui/Button.vue'
+import AudioVisualizer from '@/components/Ui/AudioVisualizer.vue'
 import { useNow, useOnline, useBattery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useGlobalStore } from '@/stores/modules/global'
+import { useAudioStore } from '@/stores/modules/audio'
+import { useSettingsStore } from '@/stores/modules/settings'
+import { getColorPalette } from '@/utils/colorExtractor'
+import { useAudioAnalyser } from '@/composables/useAudioAnalyser'
+import { adaptColorsForTheme } from '@/utils/colorThemeAdapter'
 
 const { t } = useI18n()
 const globalStore = useGlobalStore()
+const audioStore = useAudioStore()
+const settingsStore = useSettingsStore()
+const { audioVisualizer } = storeToRefs(settingsStore)
 
 const themeIcon = computed(() => {
   switch (globalStore.theme) {
@@ -30,7 +39,60 @@ const cycleTheme = () => {
   const idx = order.indexOf(globalStore.theme)
   globalStore.setTheme(order[(idx + 1) % 3])
 }
+
+const cycleVisualizerType = () => {
+  const types: Array<'bars' | 'wave' | 'circular'> = ['bars', 'wave', 'circular']
+  const idx = types.indexOf(audioVisualizer.value.visualizerType)
+  settingsStore.setAudioVisualizerType(types[(idx + 1) % 3])
+}
+
+const visualizerTypeIcon = computed(() => {
+  switch (audioVisualizer.value.visualizerType) {
+    case 'bars':
+      return 'icon-[mdi--chart-bar]'
+    case 'wave':
+      return 'icon-[mdi--waveform]'
+    case 'circular':
+      return 'icon-[mdi--circle-outline]'
+  }
+})
+
 const isOpen = defineModel<boolean>()
+
+// 音频分析器
+const {
+  frequencyData,
+  timeDomainData,
+  isInitialized: isAnalyserInitialized,
+  init: initAnalyser,
+  start: startAnalyser,
+  stop: stopAnalyser,
+  resume: resumeAnalyser,
+} = useAudioAnalyser({
+  fftSize: 2048,
+  smoothingTimeConstant: 0.8,
+})
+
+// 计算可视化器渐变颜色
+const visualizerGradient = computed(() => {
+  const gradient = state.bgActive === 'A' ? state.bgAGradient : state.bgBGradient
+  if (gradient.length === 0) {
+    return ['#3b82f6', '#8b5cf6', '#ec4899']
+  }
+  // 提取渐变中的颜色
+  const colors = gradient.map(color => {
+    // 如果包含rgba，提取rgb部分
+    const match = color.match(/rgba?\(([^)]+)\)/)
+    if (match) {
+      const values = match[1].split(',').slice(0, 3)
+      return `rgb(${values.join(',')})`
+    }
+    return color
+  })
+
+  // 根据主题调整颜色
+  return adaptColorsForTheme(colors)
+})
 
 const state = reactive({
   isRendered: false,
@@ -41,8 +103,8 @@ const state = reactive({
   commentCount: 0,
   useCoverBg: true,
   bgActive: 'A' as 'A' | 'B',
-  bgAUrl: '' as string,
-  bgBUrl: '' as string,
+  bgAGradient: [] as string[],
+  bgBGradient: [] as string[],
   lyricsPositioned: false,
   autoScroll: true,
   lyricsScale: 1,
@@ -52,8 +114,6 @@ const state = reactive({
 const {
   isRendered,
   useCoverBg,
-  bgAUrl,
-  bgBUrl,
   currentLyricIndex,
   isRecentOpen,
   isCommentsOpen,
@@ -106,6 +166,21 @@ const batteryPct = computed(() =>
 const batteryIcon = computed(() =>
   battery.charging?.value ? 'icon-[mdi--battery-charging]' : 'icon-[mdi--battery]'
 )
+
+// 生成背景渐变样式
+const bgAStyle = computed(() => {
+  if (state.bgAGradient.length === 0) return {}
+  return {
+    backgroundImage: `linear-gradient(135deg, ${state.bgAGradient.join(', ')})`,
+  }
+})
+
+const bgBStyle = computed(() => {
+  if (state.bgBGradient.length === 0) return {}
+  return {
+    backgroundImage: `linear-gradient(135deg, ${state.bgBGradient.join(', ')})`,
+  }
+})
 
 const {
   lyricsTrans,
@@ -178,30 +253,6 @@ const stopAlbumRotation = () => {
 
 const startBackgroundBreathing = () => {
   stopBackgroundBreathing()
-
-  if (bgARef.value && parseFloat(getComputedStyle(bgARef.value).opacity) > 0) {
-    const tween = gsap.to(bgARef.value, {
-      scale: '+=0.05',
-      opacity: '+=0.05',
-      duration: 2,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut',
-    })
-    bgBreathingTweens.push(tween)
-  }
-
-  if (bgBRef.value && parseFloat(getComputedStyle(bgBRef.value).opacity) > 0) {
-    const tween = gsap.to(bgBRef.value, {
-      scale: '+=0.05',
-      opacity: '+=0.05',
-      duration: 2,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut',
-    })
-    bgBreathingTweens.push(tween)
-  }
 }
 
 const stopBackgroundBreathing = () => {
@@ -274,17 +325,56 @@ const scrollToCurrentLyric = (instant = false) => {
   }
 }
 
-const setBackground = (url?: string) => {
-  if (!state.useCoverBg || !url) return
-  if (state.bgAUrl === '' && state.bgBUrl === '') {
-    state.bgAUrl = url
-    if (bgARef.value) {
-      gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
-      gsap.to(bgARef.value, {
+const setBackgroundGradient = async (coverUrl?: string, delay: number = 0) => {
+  if (!state.useCoverBg || !coverUrl) return
+
+  // 延迟执行以等待动画完成
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  try {
+    // 提取颜色
+    const palette = await getColorPalette(coverUrl + '?param=320x320')
+
+    // 首次初始化
+    if (state.bgAGradient.length === 0 && state.bgBGradient.length === 0) {
+      state.bgAGradient = palette.gradient
+      if (bgARef.value) {
+        gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
+        gsap.to(bgARef.value, {
+          opacity: 0.55,
+          scale: 1.5,
+          duration: 1.2,
+          ease: 'power2.out',
+          onComplete: () => {
+            if (isPlaying.value && isOpen.value) {
+              startBackgroundBreathing()
+            }
+          },
+        })
+      }
+      state.bgActive = 'A'
+      return
+    }
+
+    // 双层切换以实现平滑过渡
+    const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
+    const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
+
+    if (state.bgActive === 'A') {
+      state.bgBGradient = palette.gradient
+    } else {
+      state.bgAGradient = palette.gradient
+    }
+
+    if (incomingRef.value) {
+      gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
+      gsap.to(incomingRef.value, {
         opacity: 0.55,
         scale: 1.5,
-        duration: 1.2,
-        ease: 'power2.out',
+        duration: 1.4,
+        ease: 'power2.inOut',
         onComplete: () => {
           if (isPlaying.value && isOpen.value) {
             startBackgroundBreathing()
@@ -292,43 +382,19 @@ const setBackground = (url?: string) => {
         },
       })
     }
-    state.bgActive = 'A'
-    return
-  }
+    if (outgoingRef.value) {
+      gsap.to(outgoingRef.value, {
+        opacity: 0,
+        scale: 1.45,
+        duration: 1.4,
+        ease: 'power2.inOut',
+      })
+    }
 
-  const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
-  const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
-
-  if (state.bgActive === 'A') {
-    state.bgBUrl = url
-  } else {
-    state.bgAUrl = url
+    state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
+  } catch (error) {
+    console.error('Failed to extract colors:', error)
   }
-
-  if (incomingRef.value) {
-    gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
-    gsap.to(incomingRef.value, {
-      opacity: 0.55,
-      scale: 1.5,
-      duration: 1.4,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        if (isPlaying.value && isOpen.value) {
-          startBackgroundBreathing()
-        }
-      },
-    })
-  }
-  if (outgoingRef.value) {
-    gsap.to(outgoingRef.value, {
-      opacity: 0,
-      scale: 1.45,
-      duration: 1.4,
-      ease: 'power2.inOut',
-    })
-  }
-
-  state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
 }
 
 const openDrawer = () => {
@@ -390,7 +456,11 @@ watch(
       openDrawer()
       state.lyricsPositioned = false
       updateCurrentLyric(true)
-      setBackground(currentSong.value?.cover)
+      // 延迟700ms等待抽屉打开动画完成后再提取颜色
+      setBackgroundGradient(currentSong.value?.cover)
+
+      // 音频分析由 isPlaying 的 watch 统一管理，这里不需要再启动
+
       if (isPlaying.value) {
         startAlbumRotation()
         startBackgroundBreathing()
@@ -401,6 +471,8 @@ watch(
     } else {
       closeDrawer()
       stopBackgroundBreathing()
+      // 不要停止分析器，因为 footer 可能还在使用
+      // stopAnalyser()
     }
   }
 )
@@ -413,9 +485,16 @@ watch(
       if (isOpen.value) {
         startBackgroundBreathing()
       }
+      // 启动音频分析（无论抽屉是否打开，因为 footer 也需要）
+      if (isAnalyserInitialized.value) {
+        startAnalyser()
+        resumeAnalyser()
+      }
     } else {
       stopAlbumRotation()
       stopBackgroundBreathing()
+      // 停止音频分析
+      stopAnalyser()
     }
   },
   { immediate: true }
@@ -433,7 +512,8 @@ watch(
     state.lyricsPositioned = false
     await nextTick()
     updateCurrentLyric(true)
-    setBackground(s?.cover)
+    // 切换歌曲时使用平滑过渡，无需延迟
+    setBackgroundGradient(s?.cover, 0)
   },
   { immediate: true }
 )
@@ -442,11 +522,33 @@ onMounted(() => {
   if (drawerRef.value) {
     gsap.set(drawerRef.value as any, { display: 'none' })
   }
+
+  // 初始化音频分析器
+  const audioElement = audioStore.audio.audio
+  if (audioElement && !isAnalyserInitialized.value) {
+    initAnalyser(audioElement)
+  }
 })
+
+// 监听音频元素变化，初始化分析器
+watch(
+  () => audioStore.audio.audio,
+  audioElement => {
+    if (audioElement && !isAnalyserInitialized.value) {
+      initAnalyser(audioElement)
+      if (isPlaying.value && isOpen.value) {
+        startAnalyser()
+        resumeAnalyser()
+      }
+    }
+  }
+)
 
 onUnmounted(() => {
   stopAlbumRotation()
   stopBackgroundBreathing()
+  // 不要停止分析器，因为是全局单例，footer 可能还在使用
+  // stopAnalyser()
 })
 </script>
 
@@ -457,17 +559,24 @@ onUnmounted(() => {
     class="bg-overlay/95 absolute inset-0 z-50 flex backdrop-blur-md backdrop-filter"
   >
     <div v-show="useCoverBg" class="absolute inset-0 -z-10 overflow-hidden">
-      <div
-        ref="bgARef"
-        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
-        :style="bgAUrl ? { backgroundImage: `url(${bgAUrl})` } : {}"
-      ></div>
-      <div
-        ref="bgBRef"
-        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
-        :style="bgBUrl ? { backgroundImage: `url(${bgBUrl})` } : {}"
-      ></div>
+      <div ref="bgARef" class="bg-layer absolute inset-0 opacity-0" :style="bgAStyle"></div>
+      <div ref="bgBRef" class="bg-layer absolute inset-0 opacity-0" :style="bgBStyle"></div>
       <div class="bg-overlay/40 absolute inset-0"></div>
+
+      <!-- 音频可视化器 - 占满背景底部 -->
+      <div v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer" class="absolute right-0 bottom-0 left-0 z-10 opacity-40">
+        <AudioVisualizer
+          :frequency-data="frequencyData"
+          :time-domain-data="timeDomainData"
+          :type="audioVisualizer.visualizerType"
+          :bar-count="128"
+          :bar-width="4"
+          :bar-gap="1"
+          :gradient-colors="visualizerGradient"
+          :height="150"
+          class="h-full"
+        />
+      </div>
     </div>
 
     <div class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:p-6">
@@ -545,7 +654,7 @@ onUnmounted(() => {
             :class="{ 'text-primary bg-white/15 ring-1 ring-white/20': showTrans }"
             @click="toggleTransBtn"
           >
-            <span class="icon-[mdi--translate] h-4 w-4"></span>
+            <span class="icon-[mdi--translate] h-4 w-4" />
             <span>{{ t('player.translate') }}</span>
           </Button>
           <Button
@@ -566,7 +675,7 @@ onUnmounted(() => {
           variant="soft"
           rounded="full"
           size="none"
-          class="flex h-11 w-11 justify-center border border-[#ffffff1a] lg:hidden"
+          class="flex size-11 justify-center border border-[#ffffff1a] lg:hidden"
           @click="showMobileLyrics = !showMobileLyrics"
           :icon="showMobileLyrics ? 'icon-[mdi--album]' : 'icon-[mdi--text-box-outline]'"
           icon-class="h-5 w-5"
@@ -576,7 +685,7 @@ onUnmounted(() => {
           variant="soft"
           rounded="full"
           size="none"
-          class="h-11 w-11 justify-center border border-[#ffffff1a]"
+          class="size-11 justify-center border border-[#ffffff1a]"
           :class="{ 'bg-white/20 text-yellow-300': !state.useCoverBg }"
           @click="state.useCoverBg = !state.useCoverBg"
           :title="t('player.toggleBg')"
@@ -589,6 +698,31 @@ onUnmounted(() => {
               'h-5 w-5',
             ]"
           ></span>
+        </Button>
+
+        <Button
+          v-if="isAnalyserInitialized"
+          variant="soft"
+          rounded="full"
+          size="none"
+          class="h-11 w-11 justify-center border border-[#ffffff1a]"
+          :class="{ 'bg-white/20 text-cyan-300': audioVisualizer.enabledInDrawer }"
+          @click="settingsStore.setAudioVisualizerDrawer(!audioVisualizer.enabledInDrawer)"
+          title="切换频谱显示"
+        >
+          <span class="icon-[mdi--waveform] h-5 w-5"></span>
+        </Button>
+
+        <Button
+          v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer"
+          variant="soft"
+          rounded="full"
+          size="none"
+          class="h-11 w-11 justify-center border border-[#ffffff1a]"
+          @click="cycleVisualizerType"
+          title="切换频谱模式"
+        >
+          <span :class="[visualizerTypeIcon, 'h-5 w-5']"></span>
         </Button>
 
         <Button
@@ -631,7 +765,7 @@ onUnmounted(() => {
               class="vinyl-label absolute top-1/2 left-1/2 flex h-1/2 w-1/2 -translate-1/2 items-center justify-center rounded-full bg-cover text-center"
               :style="{
                 backgroundImage: currentSong?.cover
-                  ? `url(${currentSong.cover})`
+                  ? `url(${currentSong.cover + '?param=320x320'})`
                   : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               }"
             ></div>
@@ -670,7 +804,8 @@ onUnmounted(() => {
       </div>
 
       <div v-if="currentSong" class="mb-4 w-full max-w-xl px-4">
-        <MusicProgress />
+        <!-- 音乐进度条 -->
+        <MusicProgress :color="visualizerGradient" />
         <div class="mt-1 flex justify-between">
           <span class="text-primary/50 text-xs">{{
             isLoading ? t('player.loading') : formattedCurrentTime

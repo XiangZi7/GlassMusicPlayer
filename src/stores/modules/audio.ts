@@ -9,7 +9,11 @@ let eventsBound = false
 let lastRetrySongId: string | number | null = null
 let lastRetryTime = 0
 const getAudioSingleton = (): HTMLAudioElement => {
-  if (!globalAudio) globalAudio = new Audio()
+  if (!globalAudio) {
+    globalAudio = new Audio()
+    // 允许跨域音频分析
+    globalAudio.crossOrigin = 'anonymous'
+  }
   return globalAudio
 }
 

@@ -14,9 +14,10 @@ import {
   getLangOptions,
   getShowHideOptions,
   getAudioQualityOptions,
+  getVisualizerTypeOptions,
 } from '@/config/settingsOptions'
 const settings = useSettingsStore()
-const { backgroundType, footerLyrics, audioQuality } = storeToRefs(settings)
+const { backgroundType, footerLyrics, audioQuality, audioVisualizer } = storeToRefs(settings)
 const globalStore = useGlobalStore()
 const { theme, lang } = storeToRefs(globalStore)
 const { t } = useI18n()
@@ -24,6 +25,7 @@ const bgOptions = computed(() => getBackgroundOptions(t))
 const themeOptions = computed(() => getThemeOptions(t))
 const langOptions = computed(() => getLangOptions(t))
 const qualityOptions = computed(() => getAudioQualityOptions(t))
+const visualizerTypeOptions = computed(() => getVisualizerTypeOptions(t))
 const initialLocale = (() => {
   const cur = I18n.global.locale
   return typeof cur === 'object' && 'value' in cur ? (cur as any).value : (cur as any)
@@ -177,6 +179,54 @@ const romaChecked = computed({
                 <GlassCheckbox v-model="transChecked" :label="t('common.trans')" />
                 <GlassCheckbox v-model="romaChecked" :label="t('common.roma')" />
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card space-y-5 rounded-2xl p-5">
+          <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600"
+            >
+              <span class="icon-[mdi--waveform] h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-primary text-sm font-semibold">
+                {{ t('components.settings.audioVisualizer.title') }}
+              </h3>
+              <p class="text-primary/50 text-xs">{{ t('components.settings.audioVisualizer.desc') }}</p>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-primary/70 text-xs text-nowrap">{{
+                t('components.settings.audioVisualizer.footer')
+              }}</span>
+              <GlassSelect
+                :options="getShowHideOptions(t)"
+                v-model="audioVisualizer.enabledInFooter"
+                class="w-32"
+              />
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-primary/70 text-xs text-nowrap">{{
+                t('components.settings.audioVisualizer.drawer')
+              }}</span>
+              <GlassSelect
+                :options="getShowHideOptions(t)"
+                v-model="audioVisualizer.enabledInDrawer"
+                class="w-32"
+              />
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-primary/70 text-xs text-nowrap">{{
+                t('components.settings.audioVisualizer.type')
+              }}</span>
+              <GlassSelect
+                :options="visualizerTypeOptions"
+                v-model="audioVisualizer.visualizerType"
+                class="w-32"
+              />
             </div>
           </div>
         </div>

@@ -110,6 +110,18 @@ export default {
       footerLyricsTitle: 'フッター歌詞',
       footerLyricsDesc: 'フッター歌詞の表示設定',
       footerLyricsModes: '表示言語（最大2つ）',
+      audioVisualizer: {
+        title: 'オーディオビジュアライザ',
+        desc: 'オーディオスペクトルの視覚化設定',
+        footer: 'フッタープレーヤー',
+        drawer: 'プレーヤードロワー',
+        type: 'ビジュアライザモード',
+      },
+      visualizerType: {
+        bars: 'バー',
+        wave: 'ウェーブ',
+        circular: 'サーキュラー',
+      },
       themeOptions: { light: 'ライト', dark: 'ダーク', system: 'システムに従う' },
       localMusic: 'ローカル音楽',
       localMusicDesc: 'アップロードされたローカル曲を管理',

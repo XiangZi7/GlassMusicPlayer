@@ -5,6 +5,7 @@ import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
 import { commentMusic } from '@/api'
 import { useI18n } from 'vue-i18n'
+import { getColorPalette } from '@/utils/colorExtractor'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControlMobile from '@/components/Mobile/VolumeControlMobile.vue'
 import PlaylistDrawerMobile from '@/components/Mobile/PlaylistDrawerMobile.vue'
@@ -30,10 +31,10 @@ interface PlayerDrawerState {
   useCoverBg: boolean
   // 背景层激活标记（A/B）
   bgActive: 'A' | 'B'
-  // 背景A层图片地址
-  bgAUrl: string
-  // 背景B层图片地址
-  bgBUrl: string
+  // 背景A层渐变色
+  bgAGradient: string[]
+  // 背景B层渐变色
+  bgBGradient: string[]
   // 是否已定位歌词到居中
   lyricsPositioned: boolean
   // 自动居中开关
@@ -68,8 +69,8 @@ const state = reactive<PlayerDrawerState>({
   useCoverBg: true,
   // 背景层管理（A/B双层交替淡入淡出）
   bgActive: 'A' as 'A' | 'B',
-  bgAUrl: '' as string,
-  bgBUrl: '' as string,
+  bgAGradient: [] as string[],
+  bgBGradient: [] as string[],
   lyricsPositioned: false,
   autoScroll: true,
   lyricsScale: 1,
@@ -95,8 +96,6 @@ const {
   lyricDragMoved,
   previewLyricTime,
   useCoverBg,
-  bgAUrl,
-  bgBUrl,
   autoScroll,
   lyricsScale,
   isCommentsOpen,
@@ -132,6 +131,21 @@ const lyricsRef = useTemplateRef('lyricsRef')
 const bgARef = useTemplateRef('bgARef')
 // 背景B层引用
 const bgBRef = useTemplateRef('bgBRef')
+
+// 生成背景渐变样式
+const bgAStyle = computed(() => {
+  if (state.bgAGradient.length === 0) return {}
+  return {
+    backgroundImage: `linear-gradient(135deg, ${state.bgAGradient.join(', ')})`
+  }
+})
+
+const bgBStyle = computed(() => {
+  if (state.bgBGradient.length === 0) return {}
+  return {
+    backgroundImage: `linear-gradient(135deg, ${state.bgBGradient.join(', ')})`
+  }
+})
 
 // 歌词封装
 // 说明：集中管理歌词的多轨显示与时间轴信息
@@ -390,17 +404,56 @@ const scrollToCurrentLyric = (instant = false) => {
 }
 
 // 背景封面淡入淡出（方法：setBackground）
-const setBackground = (url?: string) => {
-  if (!state.useCoverBg || !url) return
-  if (state.bgAUrl === '' && state.bgBUrl === '') {
-    state.bgAUrl = url
-    if (bgARef.value) {
-      gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
-      gsap.to(bgARef.value, {
+const setBackground = async (coverUrl?: string, delay: number = 0) => {
+  if (!state.useCoverBg || !coverUrl) return
+
+  // 延迟执行以等待动画完成
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  try {
+    // 提取颜色
+    const palette = await getColorPalette(coverUrl + '?param=320x320')
+
+    // 首次初始化
+    if (state.bgAGradient.length === 0 && state.bgBGradient.length === 0) {
+      state.bgAGradient = palette.gradient
+      if (bgARef.value) {
+        gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
+        gsap.to(bgARef.value, {
+          opacity: 0.55,
+          scale: 1.5,
+          duration: 1.2,
+          ease: 'power2.out',
+          onComplete: () => {
+            if (isPlaying.value && isOpen.value) {
+              startBackgroundBreathing()
+            }
+          },
+        })
+      }
+      state.bgActive = 'A'
+      return
+    }
+
+    // 双层切换以实现平滑过渡
+    const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
+    const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
+
+    if (state.bgActive === 'A') {
+      state.bgBGradient = palette.gradient
+    } else {
+      state.bgAGradient = palette.gradient
+    }
+
+    if (incomingRef.value) {
+      gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
+      gsap.to(incomingRef.value, {
         opacity: 0.55,
         scale: 1.5,
-        duration: 1.2,
-        ease: 'power2.out',
+        duration: 1.4,
+        ease: 'power2.inOut',
         onComplete: () => {
           if (isPlaying.value && isOpen.value) {
             startBackgroundBreathing()
@@ -408,43 +461,19 @@ const setBackground = (url?: string) => {
         },
       })
     }
-    state.bgActive = 'A'
-    return
-  }
+    if (outgoingRef.value) {
+      gsap.to(outgoingRef.value, {
+        opacity: 0,
+        scale: 1.45,
+        duration: 1.4,
+        ease: 'power2.inOut',
+      })
+    }
 
-  const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
-  const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
-
-  if (state.bgActive === 'A') {
-    state.bgBUrl = url
-  } else {
-    state.bgAUrl = url
+    state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
+  } catch (error) {
+    console.error('Failed to extract colors:', error)
   }
-
-  if (incomingRef.value) {
-    gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
-    gsap.to(incomingRef.value, {
-      opacity: 0.55,
-      scale: 1.5,
-      duration: 1.4,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        if (isPlaying.value && isOpen.value) {
-          startBackgroundBreathing()
-        }
-      },
-    })
-  }
-  if (outgoingRef.value) {
-    gsap.to(outgoingRef.value, {
-      opacity: 0,
-      scale: 1.45,
-      duration: 1.4,
-      ease: 'power2.inOut',
-    })
-  }
-
-  state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
 }
 
 // 抽屉动画：打开/关闭过渡（方法：openDrawer/closeDrawer）
@@ -573,13 +602,13 @@ const playModeIcon = computed(() => {
     <div v-show="useCoverBg" class="absolute inset-0 -z-10 overflow-hidden">
       <div
         ref="bgARef"
-        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
-        :style="bgAUrl ? { backgroundImage: `url(${bgAUrl})` } : {}"
+        class="bg-layer absolute inset-0 opacity-0"
+        :style="bgAStyle"
       ></div>
       <div
         ref="bgBRef"
-        class="bg-layer absolute inset-0 bg-cover bg-center opacity-0"
-        :style="bgBUrl ? { backgroundImage: `url(${bgBUrl})` } : {}"
+        class="bg-layer absolute inset-0 opacity-0"
+        :style="bgBStyle"
       ></div>
       <div class="bg-overlay/30 absolute inset-0"></div>
     </div>
@@ -631,7 +660,7 @@ const playModeIcon = computed(() => {
           variant="text"
           size="none"
           class="toolbar-btn"
-          :icon="useCoverBg ? 'mdi--image' : 'mdi--image-off'"
+          :icon="useCoverBg ? 'icon-[mdi--image]' : 'icon-[mdi--image-off]'"
           icon-class="h-5 w-5"
           @click="useCoverBg = !useCoverBg"
         >
@@ -682,7 +711,7 @@ const playModeIcon = computed(() => {
               class="vinyl-label absolute top-1/2 left-1/2 h-[65%] w-[65%] -translate-1/2 rounded-full bg-cover bg-center"
               :style="{
                 backgroundImage: currentSong?.cover
-                  ? `url(${currentSong.cover})`
+                  ? `url(${currentSong.cover+'?param=320x320'})`
                   : 'linear-gradient(135deg, rgba(167,139,250,0.6) 0%, rgba(108,92,231,0.6) 100%)',
               }"
             ></div>
@@ -804,7 +833,7 @@ const playModeIcon = computed(() => {
             variant="ghost"
             size="none"
             class="group p-2"
-            icon="mdi--message-processing-outline"
+            icon="icon-[mdi--message-processing-outline]"
             icon-class="h-6 w-6 text-primary/70 group-hover:text-primary transition-colors"
             @click.stop="isCommentsOpen = true"
           />
@@ -872,7 +901,7 @@ const playModeIcon = computed(() => {
           variant="gradient"
           size="icon-lg"
           rounded="full"
-          class="play-btn !h-16 !w-16"
+          class="play-btn size-16!"
           :class="isLoading ? 'opacity-60' : ''"
           :loading="isLoading"
           :disabled="isLoading"

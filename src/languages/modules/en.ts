@@ -106,6 +106,18 @@ export default {
       footerLyricsTitle: 'Footer Lyrics',
       footerLyricsDesc: 'Footer lyrics display settings',
       footerLyricsModes: 'Display languages (choose up to two)',
+      audioVisualizer: {
+        title: 'Audio Visualizer',
+        desc: 'Audio spectrum visualization settings',
+        footer: 'Footer Player',
+        drawer: 'Player Drawer',
+        type: 'Visualizer Mode',
+      },
+      visualizerType: {
+        bars: 'Bars',
+        wave: 'Wave',
+        circular: 'Circular',
+      },
       themeOptions: { light: 'Light', dark: 'Dark', system: 'Follow System' },
       localMusic: 'Local Music',
       localMusicDesc: 'Manage uploaded local songs',

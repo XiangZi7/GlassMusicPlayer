@@ -105,7 +105,7 @@ const handleClear = () => {
       variant="ghost"
       size="none"
       class="group p-2"
-      icon="mdi--playlist-music-outline"
+      icon="icon-[mdi--playlist-music-outline]"
       icon-class="text-primary/70 group-hover:text-primary h-7 w-7 transition-colors"
       @click.stop="isDrawerOpen = true"
     />

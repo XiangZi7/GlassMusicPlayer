@@ -33,3 +33,11 @@ export const getShowHideOptions = (t: (k: string) => string): Option<boolean>[] 
   { value: true, label: t('common.show') },
   { value: false, label: t('common.hide') },
 ]
+
+export const getVisualizerTypeOptions = (
+  t: (k: string) => string
+): Option<'bars' | 'wave' | 'circular'>[] => [
+  { value: 'bars', label: t('components.settings.visualizerType.bars') },
+  { value: 'wave', label: t('components.settings.visualizerType.wave') },
+  { value: 'circular', label: t('components.settings.visualizerType.circular') },
+]
