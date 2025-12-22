@@ -175,8 +175,10 @@ const drawCircular = (ctx: CanvasRenderingContext2D, width: number, height: numb
 
   const centerX = width / 2
   const centerY = height / 2
-  const radius = Math.min(width, height) * 0.25
-  const maxBarHeight = Math.min(width, height) * 0.35
+  // 内圆半径：容器的37.5%（对应75%封面的半径，即288px在384px中的半径144px）
+  const radius = Math.min(width, height) * 0.375
+  // 频谱条最大高度：容器的25%（从内圆延伸到边缘）
+  const maxBarHeight = Math.min(width, height) * 0.25
 
   // 创建径向渐变
   const gradient = ctx.createRadialGradient(centerX, centerY, radius, centerX, centerY, radius + maxBarHeight)
@@ -184,19 +186,30 @@ const drawCircular = (ctx: CanvasRenderingContext2D, width: number, height: numb
     gradient.addColorStop(index / (gradientColors.length - 1), color)
   })
 
-  const sliceWidth = Math.floor(frequencyData.length / barCount)
+  // 使用对数分布采样，类似柱状图的处理
+  const usableDataLength = Math.floor(frequencyData.length * 0.6)
   const angleStep = (Math.PI * 2) / barCount
 
   for (let i = 0; i < barCount; i++) {
-    // 取平均值
-    let sum = 0
-    for (let j = 0; j < sliceWidth; j++) {
-      sum += frequencyData[i * sliceWidth + j]
-    }
-    const average = sum / sliceWidth
+    // 使用对数分布来采样数据
+    const logIndex = Math.log(i + 1) / Math.log(barCount + 1)
+    const dataIndex = Math.floor(logIndex * usableDataLength)
 
-    // 计算柱子高度
-    const barHeight = (average / 255) * maxBarHeight
+    // 获取该位置的频率值，并对相邻数据做平滑
+    let sum = 0
+    const smoothRange = 2
+    let count = 0
+    for (let j = -smoothRange; j <= smoothRange; j++) {
+      const idx = Math.min(Math.max(dataIndex + j, 0), frequencyData.length - 1)
+      sum += frequencyData[idx]
+      count++
+    }
+    const average = sum / count
+
+    // 使用非线性映射增强可视化效果
+    const normalized = average / 255
+    const enhanced = Math.pow(normalized, 0.7)
+    const barHeight = enhanced * maxBarHeight
 
     const angle = angleStep * i - Math.PI / 2 // 从顶部开始
 
@@ -214,12 +227,6 @@ const drawCircular = (ctx: CanvasRenderingContext2D, width: number, height: numb
     ctx.lineTo(x2, y2)
     ctx.stroke()
   }
-
-  // 绘制中心圆
-  ctx.fillStyle = gradientColors[0] + '33' // 添加透明度
-  ctx.beginPath()
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-  ctx.fill()
 }
 
 // 渲染循环

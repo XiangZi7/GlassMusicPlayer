@@ -48,10 +48,13 @@ const cycleVisualizerType = () => {
 const visualizerTypeIcon = computed(() => {
   switch (audioVisualizer.value.visualizerType) {
     case 'bars':
+      // 专辑旋转
+      startAlbumRotation()
       return 'icon-[mdi--chart-bar]'
     case 'wave':
       return 'icon-[mdi--waveform]'
     case 'circular':
+      startAlbumRotation()
       return 'icon-[mdi--circle-outline]'
   }
 })
@@ -456,11 +459,9 @@ watch(
       openDrawer()
       state.lyricsPositioned = false
       updateCurrentLyric(true)
-      // 延迟700ms等待抽屉打开动画完成后再提取颜色
+      // 抽屉打开动画完成后再提取颜色
       setBackgroundGradient(currentSong.value?.cover)
-
       // 音频分析由 isPlaying 的 watch 统一管理，这里不需要再启动
-
       if (isPlaying.value) {
         startAlbumRotation()
         startBackgroundBreathing()
@@ -471,8 +472,6 @@ watch(
     } else {
       closeDrawer()
       stopBackgroundBreathing()
-      // 不要停止分析器，因为 footer 可能还在使用
-      // stopAnalyser()
     }
   }
 )
@@ -547,8 +546,6 @@ watch(
 onUnmounted(() => {
   stopAlbumRotation()
   stopBackgroundBreathing()
-  // 不要停止分析器，因为是全局单例，footer 可能还在使用
-  // stopAnalyser()
 })
 </script>
 
@@ -565,7 +562,11 @@ onUnmounted(() => {
 
       <!-- 音频可视化器 - 占满背景底部 -->
       <div
-        v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer"
+        v-if="
+          isAnalyserInitialized &&
+          audioVisualizer.enabledInDrawer &&
+          audioVisualizer.visualizerType !== 'circular'
+        "
         class="absolute right-0 bottom-0 left-0 z-10 opacity-40"
       >
         <AudioVisualizer
@@ -732,7 +733,58 @@ onUnmounted(() => {
       class="player-left-panel flex w-full flex-col items-center justify-center px-4 pt-20 pb-8 lg:w-1/2 lg:px-8 lg:pt-24 lg:pb-12"
       :class="{ 'hidden lg:flex': state.showMobileLyrics }"
     >
-      <div class="mb-4 flex flex-col items-center lg:mb-6">
+      <!-- 专辑封面和频谱可视化 -->
+      <!-- 圆形频谱可视化 - 当选择 circular 类型时显示 -->
+      <div
+        v-if="
+          isAnalyserInitialized &&
+          audioVisualizer.enabledInDrawer &&
+          audioVisualizer.visualizerType === 'circular'
+        "
+        class="mb-4 flex flex-col items-center lg:mb-6"
+      >
+        <!-- 可视化容器：固定尺寸 384px -->
+        <div class="relative mb-6">
+          <!-- 圆形频谱可视化 -->
+          <AudioVisualizer
+            :frequency-data="frequencyData"
+            :time-domain-data="timeDomainData"
+            type="circular"
+            :bar-count="128"
+            :gradient-colors="visualizerGradient"
+            :height="384"
+            class="h-full w-full"
+          />
+
+          <!-- 中心封面图片 - 绝对定位居中，75% = 288px -->
+          <div
+            class="absolute top-1/2 left-1/2 h-full w-[65%] -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
+            @click="handleAlbumCoverClick"
+          >
+            <img
+              v-if="currentSong?.cover"
+              :src="currentSong.cover + '?param=320x320'"
+              :alt="currentSong.name"
+              class="h-full w-full object-cover"
+            />
+            <div v-else class="h-full w-full bg-linear-to-br from-blue-500 to-purple-600"></div>
+          </div>
+        </div>
+
+        <div class="song-info text-center">
+          <h2 class="text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
+            {{ currentSong?.name || t('player.unknownSong') }}
+          </h2>
+          <p class="text-primary/70 text-sm sm:text-base lg:text-lg">
+            {{ currentSong?.artist || t('player.unknownArtist') }}
+          </p>
+          <p class="text-primary/50 mt-0.5 text-xs sm:text-sm">
+            {{ currentSong?.album || t('player.unknownAlbum') }}
+          </p>
+        </div>
+      </div>
+      <!-- 黑胶播放器 -->
+      <div v-else class="mb-4 flex flex-col items-center lg:mb-6">
         <div
           class="album-wrapper relative mb-6 h-96 w-96 cursor-pointer"
           @click="handleAlbumCoverClick"
