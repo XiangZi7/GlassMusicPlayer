@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
-
 export interface AudioVisualizerProps {
   frequencyData: Uint8Array
   timeDomainData: Uint8Array
@@ -28,11 +26,25 @@ const props = withDefaults(defineProps<AudioVisualizerProps>(), {
 const canvasRef = ref<HTMLCanvasElement>()
 let animationId: number | null = null
 
+// 检测是否有音频活动
+const hasAudioActivity = (data: Uint8Array, threshold = 10) => {
+  // 计算平均值，如果平均值太低说明没有音频播放
+  let sum = 0
+  for (let i = 0; i < data.length; i++) {
+    sum += data[i]
+  }
+  const average = sum / data.length
+  return average > threshold
+}
+
 // 绘制频谱柱状图
 const drawBars = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
   const { frequencyData, barCount, barWidth, barGap, gradientColors, showMirror } = props
 
   if (frequencyData.length === 0) return
+
+  // 如果没有音频活动，不绘制任何内容
+  if (!hasAudioActivity(frequencyData)) return
 
   // 创建渐变色
   const gradient = ctx.createLinearGradient(0, height, 0, 0)
@@ -70,7 +82,7 @@ const drawBars = (ctx: CanvasRenderingContext2D, width: number, height: number) 
     // 对低音量进行放大，使得小幅度的变化也能看得清楚
     const normalized = average / 255
     const enhanced = Math.pow(normalized, 0.7) // 使用0.7的幂次，放大小值
-    const barHeight = Math.max(3, enhanced * height)
+    const barHeight = enhanced * height
 
     const x = startX + i * totalBarWidth
 
@@ -93,6 +105,14 @@ const drawWave = (ctx: CanvasRenderingContext2D, width: number, height: number) 
   const { timeDomainData, gradientColors } = props
 
   if (timeDomainData.length === 0) return
+
+  // 检测波形数据是否有变化（不是静止在128附近）
+  let variance = 0
+  for (let i = 0; i < timeDomainData.length; i++) {
+    variance += Math.abs(timeDomainData[i] - 128)
+  }
+  const averageVariance = variance / timeDomainData.length
+  if (averageVariance < 2) return // 如果波形太平说明没有音频
 
   const sliceWidth = width / timeDomainData.length
   const centerY = height / 2
@@ -149,6 +169,9 @@ const drawCircular = (ctx: CanvasRenderingContext2D, width: number, height: numb
   const { frequencyData, barCount, gradientColors } = props
 
   if (frequencyData.length === 0) return
+
+  // 如果没有音频活动，不绘制任何内容
+  if (!hasAudioActivity(frequencyData)) return
 
   const centerX = width / 2
   const centerY = height / 2

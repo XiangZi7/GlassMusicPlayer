@@ -8,7 +8,6 @@ import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControl from '@/components/Ui/VolumeControl.vue'
 import Button from '@/components/Ui/Button.vue'
 import AudioVisualizer from '@/components/Ui/AudioVisualizer.vue'
-import { useNow, useOnline, useBattery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useGlobalStore } from '@/stores/modules/global'
 import { useAudioStore } from '@/stores/modules/audio'
@@ -95,19 +94,33 @@ const visualizerGradient = computed(() => {
 })
 
 const state = reactive({
+  // 播放器抽屉是否已渲染
   isRendered: false,
+  // 当前高亮的歌词索引
   currentLyricIndex: 0,
+  // 歌词滚动偏移量
   lyricsOffset: 0,
+  // 最近播放面板是否打开
   isRecentOpen: false,
+  // 评论面板是否打开
   isCommentsOpen: false,
+  // 评论数量
   commentCount: 0,
+  // 是否使用封面背景
   useCoverBg: true,
+  // 当前激活的背景（用于背景切换动画）
   bgActive: 'A' as 'A' | 'B',
+  // 背景A的渐变色数组
   bgAGradient: [] as string[],
+  // 背景B的渐变色数组
   bgBGradient: [] as string[],
+  // 歌词是否已定位到当前播放位置
   lyricsPositioned: false,
+  // 是否启用歌词自动滚动
   autoScroll: true,
+  // 歌词缩放比例
   lyricsScale: 1,
+  // 移动端是否显示歌词
   showMobileLyrics: false,
 })
 
@@ -153,19 +166,6 @@ const albumCoverRef = useTemplateRef('albumCoverRef')
 const lyricsRef = useTemplateRef('lyricsRef')
 const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
-
-const now = useNow()
-const online = useOnline()
-const timeText = computed(() =>
-  new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-)
-const battery = useBattery()
-const batteryPct = computed(() =>
-  typeof battery.level?.value === 'number' ? Math.round(battery.level.value * 100) : null
-)
-const batteryIcon = computed(() =>
-  battery.charging?.value ? 'icon-[mdi--battery-charging]' : 'icon-[mdi--battery]'
-)
 
 // 生成背景渐变样式
 const bgAStyle = computed(() => {
@@ -564,7 +564,10 @@ onUnmounted(() => {
       <div class="bg-overlay/40 absolute inset-0"></div>
 
       <!-- 音频可视化器 - 占满背景底部 -->
-      <div v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer" class="absolute right-0 bottom-0 left-0 z-10 opacity-40">
+      <div
+        v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer"
+        class="absolute right-0 bottom-0 left-0 z-10 opacity-40"
+      >
         <AudioVisualizer
           :frequency-data="frequencyData"
           :time-domain-data="timeDomainData"
@@ -614,29 +617,6 @@ onUnmounted(() => {
               class="h-4 w-4"
             ></span>
           </Button>
-        </div>
-
-        <div class="glass-toolbar hidden items-center gap-3 rounded-2xl px-4 py-2 sm:flex">
-          <span class="text-primary/80 text-sm font-medium">{{ timeText }}</span>
-          <div class="h-3 w-px bg-white/10"></div>
-          <span class="flex items-center gap-1.5 text-sm">
-            <span
-              :class="
-                online ? 'bg-emerald-400 shadow-emerald-400/50' : 'bg-red-400 shadow-red-400/50'
-              "
-              class="inline-block h-2 w-2 rounded-full shadow-lg"
-            ></span>
-            <span class="text-primary/70">{{
-              online ? t('player.online') : t('player.offline')
-            }}</span>
-          </span>
-          <template v-if="battery.isSupported">
-            <div class="h-3 w-px bg-white/10"></div>
-            <span class="text-primary/70 flex items-center gap-1.5 text-sm">
-              <span :class="batteryIcon" class="h-4 w-4"></span>
-              {{ batteryPct !== null ? batteryPct + '%' : 'N/A' }}
-            </span>
-          </template>
         </div>
       </div>
 
