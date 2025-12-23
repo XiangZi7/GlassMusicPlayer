@@ -58,9 +58,7 @@ const currentBackgroundType = computed<BackgroundType>(() => backgroundType.valu
 const currentBackgroundComponent = computed<Component>(
   () => backgroundComponents[currentBackgroundType.value]
 )
-const currentBackgroundProps = computed(
-  () => backgroundPropsMap.value[currentBackgroundType.value]
-)
+const currentBackgroundProps = computed(() => backgroundPropsMap.value[currentBackgroundType.value])
 </script>
 
 <template>
@@ -85,9 +83,11 @@ const currentBackgroundProps = computed(
           <Aside />
           <!-- 右侧主内容 -->
           <router-view v-slot="{ Component }">
-            <keep-alive>
-              <component :is="Component" />
-            </keep-alive>
+            <transition appear name="fade-transform" mode="out-in">
+              <keep-alive>
+                <component :is="Component" />
+              </keep-alive>
+            </transition>
           </router-view>
           <!-- 播放器抽屉 -->
           <PlayerDrawer v-model="isDrawerOpen" />
@@ -97,3 +97,19 @@ const currentBackgroundProps = computed(
     </div>
   </div>
 </template>
+<style>
+.fade-transform-enter-active,
+.fade-transform-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-transform-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.fade-transform-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+</style>
