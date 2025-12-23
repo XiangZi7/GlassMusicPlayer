@@ -125,6 +125,14 @@ const state = reactive({
   lyricsScale: 1,
   // 移动端是否显示歌词
   showMobileLyrics: false,
+  // 歌词是否正在被拖动
+  lyricsDragging: false,
+  // 拖动开始的Y坐标
+  dragStartY: 0,
+  // 拖动开始时的歌词滚动位置
+  dragStartScrollY: 0,
+  // 拖动时预览的歌词索引
+  dragPreviewIndex: -1,
 })
 
 const {
@@ -169,6 +177,7 @@ const albumCoverRef = useTemplateRef('albumCoverRef')
 const lyricsRef = useTemplateRef('lyricsRef')
 const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
+const lyricsContainerRef = ref<HTMLElement | null>(null)
 
 // 生成背景渐变样式
 const bgAStyle = computed(() => {
@@ -225,12 +234,110 @@ const handleAlbumCoverClick = () => {
   }
 }
 
-const seekToLyric = (index: number) => {
-  const targetTime = timeForIndex(index) ?? 0
-  setCurrentTime(targetTime)
-  state.currentLyricIndex = index
-  scrollToCurrentLyric()
+// 歌词拖动相关逻辑
+const handleLyricsDragStart = (e: MouseEvent | TouchEvent) => {
+  e.preventDefault()
+
+  state.lyricsDragging = true
+  state.autoScroll = false
+
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+  state.dragStartY = clientY
+
+  // 获取当前的transform translateY值
+  if (lyricsRef.value) {
+    const transform = window.getComputedStyle(lyricsRef.value).transform
+    if (transform && transform !== 'none') {
+      const matrix = new DOMMatrix(transform)
+      state.dragStartScrollY = matrix.m42 // translateY value
+    } else {
+      state.dragStartScrollY = 0
+    }
+  }
+
+  // 禁止文本选择
+  document.body.style.userSelect = 'none'
+  document.body.style.webkitUserSelect = 'none'
+  document.body.style.cursor = 'grabbing'
 }
+
+const handleLyricsDragMove = (e: MouseEvent | TouchEvent) => {
+  if (!state.lyricsDragging || !lyricsRef.value || !lyricsContainerRef.value) return
+
+  e.preventDefault()
+
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+  const deltaY = clientY - state.dragStartY
+  const newScrollY = state.dragStartScrollY + deltaY
+
+  // 直接设置transform
+  gsap.set(lyricsRef.value, { y: newScrollY })
+
+  // 计算当前应该高亮哪一句歌词
+  const containerHeight = lyricsContainerRef.value.clientHeight
+  const centerY = containerHeight / 2
+
+  let closestIndex = 0
+  let minDistance = Infinity
+
+  const lyricElements = lyricsRef.value.children
+  for (let i = 0; i < lyricElements.length - 1; i++) {
+    const element = lyricElements[i] as HTMLElement
+    const rect = element.getBoundingClientRect()
+    const containerRect = lyricsContainerRef.value.getBoundingClientRect()
+    const elementCenterY = rect.top + rect.height / 2 - containerRect.top
+    const distance = Math.abs(elementCenterY - centerY)
+
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = i
+    }
+  }
+
+  state.dragPreviewIndex = closestIndex
+}
+
+const handleLyricsDragEnd = () => {
+  if (!state.lyricsDragging) return
+
+  state.lyricsDragging = false
+
+  // 恢复文本选择和鼠标样式
+  document.body.style.userSelect = ''
+  document.body.style.webkitUserSelect = ''
+  document.body.style.cursor = ''
+
+  // 如果有预览索引，跳转到该歌词
+  if (state.dragPreviewIndex >= 0 && state.dragPreviewIndex < activeSingleLyrics.value.length) {
+    const targetTime = timeForIndex(state.dragPreviewIndex) ?? 0
+    setCurrentTime(targetTime)
+    state.currentLyricIndex = state.dragPreviewIndex
+    scrollToCurrentLyric()
+  }
+
+  state.dragPreviewIndex = -1
+  // 1秒后恢复自动滚动
+  setTimeout(() => {
+    toggleAutoScroll()
+  }, 1500)
+}
+
+// 计算拖动预览时的时间信息
+const dragPreviewTime = computed(() => {
+  if (state.dragPreviewIndex < 0 || state.dragPreviewIndex >= activeSingleLyrics.value.length) {
+    return null
+  }
+
+  const time = timeForIndex(state.dragPreviewIndex) ?? 0
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.floor(time % 60)
+  const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`
+
+  return {
+    time: formattedTime,
+    lyric: activeSingleLyrics.value[state.dragPreviewIndex],
+  }
+})
 
 let albumRotationTween: gsap.core.Tween | null = null
 let bgBreathingTweens: gsap.core.Tween[] = []
@@ -527,6 +634,12 @@ onMounted(() => {
   if (audioElement && !isAnalyserInitialized.value) {
     initAnalyser(audioElement)
   }
+
+  // 添加全局拖动事件监听
+  document.addEventListener('mousemove', handleLyricsDragMove)
+  document.addEventListener('mouseup', handleLyricsDragEnd)
+  document.addEventListener('touchmove', handleLyricsDragMove, { passive: false })
+  document.addEventListener('touchend', handleLyricsDragEnd)
 })
 
 // 监听音频元素变化，初始化分析器
@@ -546,6 +659,12 @@ watch(
 onUnmounted(() => {
   stopAlbumRotation()
   stopBackgroundBreathing()
+
+  // 移除全局拖动事件监听
+  document.removeEventListener('mousemove', handleLyricsDragMove)
+  document.removeEventListener('mouseup', handleLyricsDragEnd)
+  document.removeEventListener('touchmove', handleLyricsDragMove)
+  document.removeEventListener('touchend', handleLyricsDragEnd)
 })
 </script>
 
@@ -929,25 +1048,36 @@ onUnmounted(() => {
       class="player-right-panel hidden w-1/2 flex-col px-6 pt-20 pb-8 lg:flex lg:px-8 lg:pt-24 lg:pb-12"
       :class="{ 'flex! w-full': state.showMobileLyrics }"
     >
-      <div class="lyrics-container relative h-full flex-1 overflow-hidden">
+      <div
+        ref="lyricsContainerRef"
+        class="lyrics-container relative h-full flex-1 overflow-hidden"
+        :class="{ 'cursor-grabbing': state.lyricsDragging, 'cursor-grab': !state.lyricsDragging }"
+      >
         <div
           ref="lyricsRef"
-          class="lyrics-scroll relative z-20 h-full"
+          class="lyrics-scroll relative z-20 h-full select-none"
           :style="{ fontSize: state.lyricsScale + 'rem' }"
+          @mousedown="handleLyricsDragStart"
+          @touchstart="handleLyricsDragStart"
         >
           <div
             v-for="(line, index) in activeSingleLyrics"
             :key="index"
-            class="lyric-line cursor-pointer text-center transition-all duration-500"
+            class="lyric-line text-center transition-all duration-500"
             :class="{
-              current: index === currentLyricIndex,
-              'text-primary/40 hover:text-primary/60': index !== currentLyricIndex,
+              current:
+                index === (state.lyricsDragging ? state.dragPreviewIndex : currentLyricIndex),
+              'text-primary/40':
+                index !== (state.lyricsDragging ? state.dragPreviewIndex : currentLyricIndex),
             }"
-            @click="seekToLyric(index)"
           >
-            <p class="lyric-text">{{ line.ori }}</p>
-            <p v-if="showTrans && line.tran" class="lyric-sub">{{ line.tran }}</p>
-            <p v-if="showRoma && line.roma" class="lyric-sub">{{ line.roma }}</p>
+            <p class="lyric-text pointer-events-none">{{ line.ori }}</p>
+            <p v-if="showTrans && line.tran" class="lyric-sub pointer-events-none">
+              {{ line.tran }}
+            </p>
+            <p v-if="showRoma && line.roma" class="lyric-sub pointer-events-none">
+              {{ line.roma }}
+            </p>
           </div>
           <div class="h-64"></div>
         </div>
@@ -955,6 +1085,32 @@ onUnmounted(() => {
         <div
           class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
         ></div>
+
+        <!-- 拖动时显示的时间和歌词提示 -->
+        <Transition name="fade-scale">
+          <div
+            v-if="state.lyricsDragging && dragPreviewTime"
+            class="drag-preview pointer-events-none absolute top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/30 bg-black/90 px-6 py-4 shadow-2xl backdrop-blur-xl"
+          >
+            <div class="mb-3 flex items-center justify-center gap-4">
+              <div class="flex items-center gap-2">
+                <span class="icon-[mdi--clock-outline] text-primary h-5 w-5"></span>
+                <span class="text-primary text-2xl font-bold">{{ dragPreviewTime.time }}</span>
+              </div>
+              <div class="h-6 w-px bg-white/20"></div>
+              <div class="flex items-center gap-2">
+                <span class="icon-[mdi--clock-end] h-5 w-5 text-white/60"></span>
+                <span class="text-xl text-white/60">{{ formattedDuration }}</span>
+              </div>
+            </div>
+            <div class="max-w-md text-center">
+              <p class="text-primary mb-2 text-lg font-semibold">{{ dragPreviewTime.lyric.ori }}</p>
+              <p v-if="showTrans && dragPreviewTime.lyric.tran" class="text-primary/70 text-sm">
+                {{ dragPreviewTime.lyric.tran }}
+              </p>
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
   </div>
@@ -1095,9 +1251,6 @@ onUnmounted(() => {
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   white-space: pre-line;
 }
-.lyric-line:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
 
 .lyric-line.current {
   @apply text-primary;
@@ -1137,5 +1290,23 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 拖动提示框动画 */
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* 拖动预览卡片样式 */
+.drag-preview {
+  min-width: 280px;
+  max-width: 500px;
 }
 </style>
