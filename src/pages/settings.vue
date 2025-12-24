@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import AuroraSettingsPanel from '@/components/Background/AuroraSettingsPanel.vue'
-import ColorBendsSettingsPanel from '@/components/Background/ColorBendsSettingsPanel.vue'
-import UltimateSettingsPanel from '@/components/Background/UltimateSettingsPanel.vue'
+import { defineAsyncComponent } from 'vue'
 import GlassSelect from '@/components/Ui/GlassSelect.vue'
 import GlassCheckbox from '@/components/Ui/GlassCheckbox.vue'
 import { useSettingsStore } from '@/stores/modules/settings'
@@ -16,6 +14,17 @@ import {
   getAudioQualityOptions,
   getVisualizerTypeOptions,
 } from '@/config/settingsOptions'
+
+// 动态导入背景设置面板组件,只在需要时加载
+const AuroraSettingsPanel = defineAsyncComponent(
+  () => import('@/components/Background/AuroraSettingsPanel.vue')
+)
+const ColorBendsSettingsPanel = defineAsyncComponent(
+  () => import('@/components/Background/ColorBendsSettingsPanel.vue')
+)
+const UltimateSettingsPanel = defineAsyncComponent(
+  () => import('@/components/Background/UltimateSettingsPanel.vue')
+)
 const settings = useSettingsStore()
 const { backgroundType, footerLyrics, audioQuality, audioVisualizer } = storeToRefs(settings)
 const globalStore = useGlobalStore()

@@ -43,7 +43,7 @@ const variantClasses = computed(() => {
     case 'solid':
       return 'bg-pink-500 text-white shadow-lg shadow-pink-500/25 hover:bg-pink-600 hover:shadow-xl hover:shadow-pink-500/30'
     case 'soft':
-      return 'bg-white/10 text-primary backdrop-blur-sm hover:bg-white/20'
+      return 'bg-white/10 text-primary backdrop-blur-sm hover:bg-white/20 hover:scale-110'
     case 'ghost':
       return 'text-primary/70 hover:text-primary bg-transparent hover:bg-white/5'
     case 'text':
@@ -153,5 +153,13 @@ const gradientStyle = computed(() => {
   @apply flex items-center justify-center rounded-full text-white shadow-2xl transition-all duration-300;
   background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
   box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4);
+}
+
+.play-btn:hover {
+  @apply scale-110;
+  box-shadow: 0 12px 40px rgba(236, 72, 153, 0.5);
+}
+.play-btn.loading {
+  @apply cursor-wait opacity-70;
 }
 </style>
