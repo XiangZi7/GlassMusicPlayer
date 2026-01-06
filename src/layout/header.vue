@@ -140,7 +140,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </Button>
         <Button
-          href="https://gm-doc.pages.dev/"
+          href="https://gmpd.netlify.app/"
           target="_blank"
           rel="noopener noreferrer"
           size="sm"
