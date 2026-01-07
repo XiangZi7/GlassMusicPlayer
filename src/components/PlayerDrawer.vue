@@ -547,7 +547,7 @@ const closeDrawer = () => {
     })
 
     tl.to(drawerRef.value, {
-      y: '-100%',
+      y: '100%',
       opacity: 0,
       duration: 0.4,
       ease: 'power3.in',
