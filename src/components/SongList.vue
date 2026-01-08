@@ -60,9 +60,6 @@ const openMV = (song: Song, index: number) => {
   }
 }
 
-const downloadSong = (song: Song, index: number) => {
-  emit('download', song, index)
-}
 </script>
 
 <style scoped>
