@@ -547,7 +547,7 @@ const closeDrawer = () => {
     })
 
     tl.to(drawerRef.value, {
-      y: '-100%',
+      y: '100%',
       opacity: 0,
       duration: 0.4,
       ease: 'power3.in',
@@ -877,7 +877,7 @@ onUnmounted(() => {
 
           <!-- 中心封面图片 - 绝对定位居中，75% = 288px -->
           <div
-            class="absolute top-1/2 left-1/2 h-full w-[65%] -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
+            class="absolute top-1/2 left-1/2 aspect-square w-[65%] -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
             @click="handleAlbumCoverClick"
           >
             <img
