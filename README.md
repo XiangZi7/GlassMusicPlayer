@@ -33,6 +33,10 @@
 
 </div>
 
+## 🤝 友情链接
+
+- [HotPulse](https://hotpulse.pages.dev/) - 全网热点聚合平台
+
 ![预览图](images/home.png)
 
 ## ✨ 核心特性
