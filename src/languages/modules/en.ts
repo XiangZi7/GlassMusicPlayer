@@ -176,6 +176,7 @@ export default {
       repo: 'Repository',
       movies: 'Movies',
       projectDocs: 'Documentation',
+      backupDocs: 'Backup Docs',
     },
     aside: {
       explore: 'Explore',

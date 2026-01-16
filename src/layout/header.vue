@@ -140,7 +140,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </Button>
         <Button
-          href="https://gm-doc.pages.dev/"
+          href="https://gm-doc.pages.dev"
           target="_blank"
           rel="noopener noreferrer"
           size="sm"
@@ -148,6 +148,17 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         >
           <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.projectDocs') }}
+          <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
+        </Button>
+        <Button
+          href="https://gmpd.netlify.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          size="sm"
+          class="rounded-lg font-medium"
+        >
+          <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
+          {{ t('layout.nav.backupDocs') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </Button>
       </nav>
