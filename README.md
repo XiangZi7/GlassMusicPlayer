@@ -213,19 +213,11 @@ pnpm dev
 <tr>
 <td align="center">
 <strong>QQ 交流2群</strong><br/><br/>
-<img src="https://github.com/user-attachments/assets/d74218a8-8731-4f2a-9925-feb96ca46929" alt="QQ2群" width="150" />
+<img src="https://github.com/user-attachments/assets/d74218a8-8731-4f2a-9925-feb96ca46929" alt="QQ2群" width="350" />
 </td>
 <td align="center">
 <strong>QQ 交流群</strong><br/><br/>
-<img src="https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329" alt="QQ群" width="150" />
-</td>
-<td align="center">
-<strong>支付宝</strong><br/><br/>
-<img src="https://github.com/user-attachments/assets/46d07565-72b9-4d48-bea2-4a7242e5ada0" alt="Alipay" width="150" />
-</td>
-<td align="center">
-<strong>微信</strong><br/><br/>
-<img src="https://github.com/user-attachments/assets/7c3e1e96-cfc3-460d-b534-8a1da636cc09" alt="WeChat" width="150" />
+<img src="https://github.com/user-attachments/assets/83786a34-cf75-4268-9f28-7ceb180cc329" alt="QQ群" width="350" />
 </td>
 </tr>
 </table>
