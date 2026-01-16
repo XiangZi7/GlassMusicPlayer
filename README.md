@@ -26,10 +26,12 @@
 </p>
 
 <p align="center">
-  <a href="https://gmpd.netlify.app/" target="_blank" style="display:inline-block; padding:10px 18px; border-radius:12px; background: linear-gradient(90deg, #8b5cf6, #ec4899); color:#fff; font-weight:700; text-decoration:none; box-shadow: 0 4px 12px rgba(236,72,153,0.3);">📘 项目文档</a>
+  <a href="https://gm-doc.pages.dev"><img alt="项目文档" src="https://img.shields.io/badge/📘%20项目文档-在线阅读-8b5cf6?style=for-the-badge"></a>
+  <a href="https://gmpd.netlify.app/"><img alt="备用文档" src="https://img.shields.io/badge/📘%20备用文档-备用线路-4f46e5?style=for-the-badge"></a>
+  <a href="https://topm.pages.dev/"><img alt="在线预览" src="https://img.shields.io/badge/🚀%20在线预览-立即体验-ec4899?style=for-the-badge"></a>
+  <a href="https://github.com/XiangZi7/KM-Music-Player"><img alt="GitHub" src="https://img.shields.io/badge/💻%20GitHub-源码仓库-181717?style=for-the-badge&logo=github"></a>
+  <a href="https://neteasecloudmusicapi.vercel.app/#/"><img alt="API文档" src="https://img.shields.io/badge/🔌%20API文档-接口参考-0284c7?style=for-the-badge"></a>
 </p>
-
-[项目文档](https://gmpd.netlify.app/) · [在线预览](https://topm.pages.dev/) · [GitHub 仓库](https://github.com/XiangZi7/KM-Music-Player) · [API 文档](https://neteasecloudmusicapi.vercel.app/#/)
 
 </div>
 
