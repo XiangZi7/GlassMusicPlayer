@@ -2,11 +2,20 @@ import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router
 import { defineComponent, h, defineAsyncComponent } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 
-const mode = import.meta.env.VITE_ROUTER_MODE
+const mode = import.meta.env.VITE_ROUTER_MODE || 'hash'
 
-const routerMode = {
+const routerMode: Record<string, () => ReturnType<typeof createWebHashHistory>> = {
   hash: () => createWebHashHistory(),
   history: () => createWebHistory(),
+}
+
+const getHistory = () => {
+  const createHistory = routerMode[mode]
+  if (typeof createHistory === 'function') {
+    return createHistory()
+  }
+  // 默认使用 hash 模式
+  return createWebHashHistory()
 }
 
 // 响应式组件工厂：根据窗口宽度在桌面端与移动端组件之间切换
@@ -25,7 +34,7 @@ const responsive = (desktopLoader: () => Promise<any>, mobileLoader: () => Promi
   })
 
 const router = createRouter({
-  history: routerMode[mode](),
+  history: getHistory(),
   strict: false,
   scrollBehavior: () => ({ left: 0, top: 0 }),
   routes: [
