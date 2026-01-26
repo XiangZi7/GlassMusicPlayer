@@ -117,6 +117,10 @@ const state = reactive({
   bgAGradient: [] as string[],
   // 背景B的渐变色数组
   bgBGradient: [] as string[],
+  // 背景A的背景色
+  bgABackground: '',
+  // 背景B的背景色
+  bgBBackground: '',
   // 歌词是否已定位到当前播放位置
   lyricsPositioned: false,
   // 是否启用歌词自动滚动
@@ -179,18 +183,24 @@ const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
 const lyricsContainerRef = ref<HTMLElement | null>(null)
 
-// 生成背景渐变样式
+// 生成背景渐变样式（从上到下：封面颜色 -> 黑色）
 const bgAStyle = computed(() => {
   if (state.bgAGradient.length === 0) return {}
+  const topColor = state.bgAGradient[0]
+  const mainColor = state.bgAGradient[1]
+
   return {
-    backgroundImage: `linear-gradient(135deg, ${state.bgAGradient.join(', ')})`,
+    // 第一个颜色只占顶部一小部分，中间颜色占大头
+    backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`,
   }
 })
 
 const bgBStyle = computed(() => {
   if (state.bgBGradient.length === 0) return {}
+  const topColor = state.bgBGradient[0]
+  const mainColor = state.bgBGradient[1]
   return {
-    backgroundImage: `linear-gradient(135deg, ${state.bgBGradient.join(', ')})`,
+    backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`,
   }
 })
 

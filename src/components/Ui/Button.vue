@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 type ClassBinding = string | Record<string, boolean> | (string | Record<string, boolean>)[]
@@ -17,6 +17,7 @@ interface Props {
   iconClass?: ClassBinding
   type?: 'button' | 'submit' | 'reset'
   gradientColors?: string[]
+  ripple?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -28,7 +29,33 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   type: 'button',
   iconClass: 'h-5 w-5',
+  ripple: true,
 })
+
+// 波纹效果
+const buttonRef = ref<HTMLElement>()
+const ripples = ref<{ id: number; x: number; y: number; size: number }[]>([])
+let rippleId = 0
+
+const createRipple = (e: MouseEvent) => {
+  if (!props.ripple || props.disabled || props.loading) return
+
+  const el = buttonRef.value
+  if (!el) return
+
+  const rect = el.getBoundingClientRect()
+  const size = Math.max(rect.width, rect.height) * 2
+  const x = e.clientX - rect.left - size / 2
+  const y = e.clientY - rect.top - size / 2
+
+  const id = rippleId++
+  ripples.value.push({ id, x, y, size })
+
+  // 动画结束后移除
+  setTimeout(() => {
+    ripples.value = ripples.value.filter(r => r.id !== id)
+  }, 600)
+}
 
 const componentType = computed(() => {
   if (props.to) return RouterLink
@@ -129,13 +156,28 @@ const gradientStyle = computed(() => {
 <template>
   <component
     :is="componentType"
+    ref="buttonRef"
     :to="to"
     :href="href"
     :type="!to && !href ? type : undefined"
-    :class="classes"
+    :class="[classes, { 'relative overflow-hidden': ripple }]"
     :style="gradientStyle"
     :disabled="disabled || loading"
+    @click="createRipple"
   >
+    <!-- 波纹效果 -->
+    <span
+      v-for="r in ripples"
+      :key="r.id"
+      class="ripple-effect"
+      :style="{
+        left: `${r.x}px`,
+        top: `${r.y}px`,
+        width: `${r.size}px`,
+        height: `${r.size}px`,
+      }"
+    />
+
     <!-- Loading State -->
     <span v-if="loading" class="icon-[mdi--loading] animate-spin" :class="[iconClass]"></span>
 
@@ -161,5 +203,23 @@ const gradientStyle = computed(() => {
 }
 .play-btn.loading {
   @apply cursor-wait opacity-70;
+}
+
+/* 波纹效果 */
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.2;
+  pointer-events: none;
+  transform: scale(0);
+  animation: ripple-animation 0.6s ease-out forwards;
+}
+
+@keyframes ripple-animation {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 </style>
