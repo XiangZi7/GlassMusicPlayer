@@ -8,14 +8,22 @@ import Button from '@/components/Ui/Button.vue'
 import TabGroup from '@/components/Ui/TabGroup.vue'
 import { formatCount } from '@/utils/time'
 import { useI18n } from 'vue-i18n'
+import {
+  transformPlaylistDetail,
+  transformSongs,
+  transformSearchPlaylists,
+  type SongData,
+  type PlaylistData,
+} from '@/utils/transformers'
+
 const route = useRoute()
 const playlistId = route.params.id
 
 interface SimilarPlaylist {
-  id: number
+  id: number | string
   name: string
   coverImgUrl: string
-  trackCount: number
+  trackCount?: number
   playCount?: number
   creator?: { nickname: string }
 }
@@ -24,7 +32,7 @@ interface PlaylistState {
   activeTab: 'songs' | 'comments' | 'similar'
   playlistInfo: PlaylistInfo
   isCollected: boolean
-  songs: PlaylistSong[]
+  songs: SongData[]
   newComment: string
   comments: CommentItem[]
   isPageLoading: boolean
@@ -57,51 +65,26 @@ const loadPlaylist = async (id: number) => {
       playlistDetail({ id }),
       playlistTrackAll({ id, limit: 100 }),
     ])
-    const detail =
-      (detailRes as any)?.playlist || (detailRes as any)?.data?.playlist || (detailRes as any)?.data
+
+    const detail = transformPlaylistDetail(detailRes as Record<string, unknown>, t('home.playlistFallback'))
     if (detail) {
       state.playlistInfo = {
-        name: detail?.name || state.playlistInfo.name,
-        description: detail?.description || '',
-        creator: detail?.creator?.nickname || '',
-        creatorAvatar: detail?.creator?.avatarUrl || '',
-        createTime: detail?.createTime ? new Date(detail.createTime).toLocaleDateString() : '',
-        songCount: detail?.trackCount || 0,
-        playCount: detail?.playCount || 0,
-        likes: String(detail?.subscribedCount || detail?.bookedCount || 0),
-        category: detail?.tags?.[0] || t('home.playlistFallback'),
+        name: detail.name,
+        description: detail.description,
+        creator: detail.creator,
+        creatorAvatar: detail.creatorAvatar,
+        createTime: detail.createTime,
+        songCount: detail.songCount,
+        playCount: detail.playCount as number,
+        likes: String(detail.likes),
+        category: detail.category,
         emoji: state.playlistInfo.emoji,
         gradient: pickGradient(),
-        coverImgUrl: detail?.coverImgUrl || '',
+        coverImgUrl: detail.coverImgUrl,
       }
     }
 
-    const tracks =
-      (tracksRes as any)?.songs || (tracksRes as any)?.data?.songs || (tracksRes as any)?.data || []
-    if (Array.isArray(tracks) && tracks.length) {
-      state.songs = tracks.map((t: any, i: number) => ({
-        id: t?.id || 0,
-        mvId: t?.mv,
-        name: t?.name || '',
-        artist: Array.isArray(t?.ar)
-          ? t.ar.map((a: any) => a.name).join(' / ')
-          : Array.isArray(t?.artists)
-            ? t.artists.map((a: any) => a.name).join(' / ')
-            : '',
-        artists: Array.isArray(t?.ar)
-          ? t.ar.map((a: any) => ({ id: a.id, name: a.name }))
-          : Array.isArray(t?.artists)
-            ? t.artists.map((a: any) => ({ id: a.id, name: a.name }))
-            : [],
-        album: t?.al?.name || t?.album?.name || '',
-        albumId: t?.al?.id || t?.album?.id || 0,
-        duration: t?.dt ?? t?.duration ?? 0,
-        emoji: emojis[i % emojis.length],
-        gradient: gradients[i % gradients.length],
-        liked: false,
-        cover: t?.al?.picUrl || t?.album?.picUrl || '',
-      }))
-    }
+    state.songs = transformSongs(tracksRes as Record<string, unknown>, 100)
   } catch {
   } finally {
     state.isPageLoading = false
@@ -134,15 +117,14 @@ const loadComments = async (id: number) => {
 
 const loadSimilarPlaylists = async (name: string) => {
   try {
-    const res: any = await search({ keywords: name, type: 1000 })
-    const list = res?.result?.playlists || []
-    state.similarPlaylists = list.slice(0, 12).map((pl: any) => ({
+    const res = await search({ keywords: name, type: 1000 })
+    const { playlists } = transformSearchPlaylists(res as Record<string, unknown>, 12)
+    state.similarPlaylists = playlists.map(pl => ({
       id: pl.id,
       name: pl.name,
       coverImgUrl: pl.coverImgUrl,
       trackCount: pl.trackCount,
       playCount: pl.playCount,
-      creator: pl.creator,
     }))
   } catch {}
 }
@@ -192,15 +174,13 @@ const submitComment = () => {
   state.newComment = ''
 }
 
-const mapToStoreSong = (s: PlaylistSong): StoreSong => ({
+const mapToStoreSong = (s: SongData): StoreSong => ({
   id: s.id,
   name: s.name,
   artist: s.artist,
   album: s.album,
   duration: s.duration,
   cover: s.cover,
-  emoji: s.emoji,
-  gradient: s.gradient,
   liked: s.liked,
 })
 
@@ -444,7 +424,7 @@ const tabsWithCount = computed(() =>
         <section v-show="activeTab === 'comments'" class="animate-fade-in">
           <div class="glass-card overflow-hidden">
             <!-- 发表评论 -->
-            <div class="border-b border-(--glass-border) p-6">
+            <div class="border-b border-glass p-6">
               <div class="flex gap-4">
                 <div
                   class="accent-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-semibold text-white shadow-md"
@@ -455,7 +435,7 @@ const tabsWithCount = computed(() =>
                   <textarea
                     v-model="newComment"
                     :placeholder="$t('comments.placeholder')"
-                    class="text-primary glass-card placeholder-glass-50 w-full resize-none rounded-xl border border-(--glass-border) p-4 text-sm transition-all focus:border-pink-400/50 focus:ring-2 focus:ring-pink-400/20 focus:outline-none"
+                    class="text-primary glass-card placeholder-glass-50 w-full resize-none rounded-xl border border-glass p-4 text-sm transition-all focus:border-pink-400/50 focus:ring-2 focus:ring-pink-400/20 focus:outline-none"
                     rows="3"
                   ></textarea>
                   <div class="mt-3 flex items-center justify-end">
@@ -561,7 +541,7 @@ const tabsWithCount = computed(() =>
             <!-- 加载更多 -->
             <div
               v-if="comments.length >= 10"
-              class="border-t border-(--glass-border) p-5 text-center"
+              class="border-t border-glass p-5 text-center"
             >
               <Button
                 variant="ghost"

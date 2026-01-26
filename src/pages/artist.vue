@@ -6,6 +6,14 @@ import { formatCount } from '@/utils/time'
 import { useI18n } from 'vue-i18n'
 import TabGroup from '@/components/Ui/TabGroup.vue'
 import Button from '@/components/Ui/Button.vue'
+import {
+  transformArtistDetail,
+  transformSongs,
+  transformAlbums,
+  type SongData,
+  type AlbumData,
+} from '@/utils/transformers'
+
 const route = useRoute()
 const router = useRouter()
 const artistId = computed(() => Number(route.params.id))
@@ -23,31 +31,10 @@ type ArtistInfo = {
   fansCount: number
 }
 
-type AlbumItem = {
-  id: number
-  name: string
-  picUrl: string
-  publishTime: string
-  size: number
-  artistName: string
-}
-
-type SongItem = {
-  id: number | string
-  name: string
-  artist: string
-  artistId: number | string
-  album: string
-  albumId: number | string
-  duration: number
-  cover: string
-  mvId?: number | string
-}
-
 const state = reactive({
   info: {} as ArtistInfo,
-  songs: [] as SongItem[],
-  albums: [] as AlbumItem[],
+  songs: [] as SongData[],
+  albums: [] as AlbumData[],
   loading: true,
   followed: false,
   activeTab: 'songs' as 'songs' | 'albums',
@@ -56,10 +43,6 @@ const state = reactive({
 const { activeTab } = toRefs(state)
 
 const { setPlaylist, play } = useAudio()
-
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
-}
 
 const load = async (id: number) => {
   state.loading = true
@@ -70,45 +53,26 @@ const load = async (id: number) => {
       artistAlbum({ id, limit: 12 }),
     ])
 
-    const artist = (detailRes as any)?.data?.artist || (detailRes as any)?.artist || {}
-    state.info = {
-      id: artist?.id || id,
-      name: artist?.name || '',
-      alias: artist?.alias || [],
-      picUrl: artist?.cover || artist?.picUrl || artist?.avatar || '',
-      briefDesc: artist?.briefDesc || '',
-      albumSize: artist?.albumSize || 0,
-      musicSize: artist?.musicSize || 0,
-      mvSize: artist?.mvSize || 0,
-      followed: artist?.followed || false,
-      fansCount: artist?.fansCnt || 0,
+    const artist = transformArtistDetail(detailRes as Record<string, unknown>)
+    if (artist) {
+      const raw = (detailRes as any)?.data?.artist || (detailRes as any)?.artist || {}
+      state.info = {
+        id: artist.id as number,
+        name: artist.name,
+        alias: artist.alias || [],
+        picUrl: artist.picUrl,
+        briefDesc: raw?.briefDesc || '',
+        albumSize: artist.albumSize || 0,
+        musicSize: artist.musicSize || 0,
+        mvSize: artist.mvSize || 0,
+        followed: raw?.followed || false,
+        fansCount: raw?.fansCnt || 0,
+      }
+      state.followed = state.info.followed
     }
-    state.followed = state.info.followed
 
-    const songs = (songsRes as any)?.songs || (songsRes as any)?.data?.songs || []
-    state.songs = songs.slice(0, 50).map((s: any) => ({
-      id: s?.id || 0,
-      name: s?.name || '',
-      artist: Array.isArray(s?.ar) ? s.ar.map((a: any) => a.name).join(' / ') : state.info.name,
-      artists: Array.isArray(s?.ar)
-        ? s.ar.map((a: any) => ({ id: a.id, name: a.name }))
-        : [{ id: state.info.id, name: state.info.name }],
-      album: s?.al?.name || '',
-      albumId: s?.al?.id || 0,
-      duration: s?.dt ?? s?.duration ?? 0,
-      cover: s?.al?.picUrl || '',
-      mvId: s?.mv,
-    }))
-
-    const albums = (albumsRes as any)?.hotAlbums || (albumsRes as any)?.data?.hotAlbums || []
-    state.albums = albums.slice(0, 12).map((a: any) => ({
-      id: a?.id || 0,
-      name: a?.name || '',
-      picUrl: a?.picUrl || '',
-      publishTime: a?.publishTime ? formatDate(a.publishTime) : '',
-      size: a?.size || 0,
-      artistName: a?.artist?.name || state.info.name,
-    }))
+    state.songs = transformSongs(songsRes as Record<string, unknown>, 50)
+    state.albums = transformAlbums(albumsRes as Record<string, unknown>, 12)
   } finally {
     state.loading = false
   }

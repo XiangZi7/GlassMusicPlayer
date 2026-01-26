@@ -262,7 +262,7 @@ const romaChecked = computed({
 <style scoped>
 .settings-card {
   background: var(--glass-card-bg);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--glass-border-default);
   border-radius: 1rem;
   padding: 1rem;
   backdrop-filter: blur(12px);
@@ -287,12 +287,12 @@ const romaChecked = computed({
 .card-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .card-desc {
   font-size: 0.625rem;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
   margin-top: 0.125rem;
 }
@@ -305,7 +305,7 @@ const romaChecked = computed({
   gap: 0.375rem;
   padding: 0.75rem 0.5rem;
   border-radius: 0.75rem;
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
   border: 1.5px solid transparent;
   transition: all 0.2s ease;
 }
@@ -322,7 +322,7 @@ const romaChecked = computed({
 .option-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
@@ -333,7 +333,7 @@ const romaChecked = computed({
 
 .option-label {
   font-size: 0.625rem;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
@@ -346,8 +346,8 @@ const romaChecked = computed({
   width: 2.75rem;
   height: 1.5rem;
   border-radius: 0.75rem;
-  background: var(--glass-hover-item-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-interactive-hover-muted);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
   flex-shrink: 0;
 }
@@ -381,8 +381,8 @@ const romaChecked = computed({
   padding: 0.5rem 0.875rem;
   border-radius: 2rem;
   font-size: 0.75rem;
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-text-primary);
   opacity: 0.7;
   border: 1.5px solid transparent;
   transition: all 0.2s ease;

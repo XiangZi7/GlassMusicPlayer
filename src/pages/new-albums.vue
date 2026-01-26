@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { albumNew } from '@/api'
 import { useI18n } from 'vue-i18n'
+import { transformAlbums, type AlbumData } from '@/utils/transformers'
 
 const { t } = useI18n()
 
+interface AlbumItem extends AlbumData {
+  cover: string
+}
+
 const state = reactive({
-  albums: [] as any[],
+  albums: [] as AlbumItem[],
   isLoading: false,
   area: 'ALL' as 'ALL' | 'ZH' | 'EA' | 'KR' | 'JP',
   offset: 0,
@@ -33,35 +38,29 @@ const loadAlbums = async (reset = false) => {
 
   try {
     state.isLoading = true
-    const res: any = await albumNew({
+    const res = await albumNew({
       area: state.area,
       limit: state.limit,
       offset: state.offset,
     })
-    const list: any[] = res?.albums || res?.data?.albums || []
+    const albums = transformAlbums(res as Record<string, unknown>)
 
-    const mapped = list.map((it: any) => ({
-      id: it?.id,
-      name: it?.name,
-      artist: it?.artist?.name || it?.artists?.map((a: any) => a.name).join(' / ') || '',
-      artistId: it?.artist?.id || it?.artists?.[0]?.id || 0,
-      cover: it?.picUrl || it?.blurPicUrl || '',
-      publishTime: it?.publishTime || 0,
-      size: it?.size || 0,
+    const mapped: AlbumItem[] = albums.map(it => ({
+      ...it,
+      cover: it.picUrl,
     }))
 
     state.albums = reset ? mapped : [...state.albums, ...mapped]
-    state.hasMore = list.length === state.limit
+    state.hasMore = albums.length === state.limit
     state.offset += state.limit
   } finally {
     state.isLoading = false
   }
 }
 
-const formatDate = (timestamp: number) => {
+const formatDate = (timestamp: string) => {
   if (!timestamp) return ''
-  const date = new Date(timestamp)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return timestamp
 }
 
 watch(area, () => loadAlbums(true))

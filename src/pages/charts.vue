@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import TabGroup from '@/components/Ui/TabGroup.vue'
 import Button from '@/components/Ui/Button.vue'
+import { transformTopSongs, transformSongs, type SongData } from '@/utils/transformers'
 
 const { t } = useI18n()
 const { setPlaylist, play } = useAudio()
@@ -13,11 +14,11 @@ const { setPlaylist, play } = useAudio()
 const state = reactive({
   activeTab: 'newSong' as 'newSong' | 'official',
   activeType: 0 as 0 | 7 | 96 | 8 | 16,
-  songs: [] as any[],
+  songs: [] as SongData[],
   isLoading: false,
   officialLists: [] as any[],
   selectedList: null as any,
-  listSongs: [] as any[],
+  listSongs: [] as SongData[],
   listLoading: false,
 })
 
@@ -39,18 +40,8 @@ const newSongTypes = [
 const loadNewSongs = async () => {
   try {
     state.isLoading = true
-    const res: any = await topSong({ type: activeType.value })
-    const list: any[] = res?.data?.data || res?.data?.songs || res?.songs || res?.data || []
-    state.songs = list.map((it: any) => ({
-      id: it?.id,
-      name: it?.name,
-      artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
-      artists: Array.isArray(it?.artists) ? it.artists.map((a: any) => ({ id: a.id, name: a.name })) : [],
-      album: it?.album?.name || '',
-      albumId: it?.album?.id,
-      duration: it?.duration || 0,
-      cover: it?.album?.picUrl || '',
-    }))
+    const res = await topSong({ type: activeType.value })
+    state.songs = transformTopSongs(res as Record<string, unknown>)
   } finally {
     state.isLoading = false
   }
@@ -82,18 +73,8 @@ const selectList = async (item: any) => {
   state.selectedList = item
   state.listLoading = true
   try {
-    const res: any = await playlistTrackAll({ id: item.id, limit: 100 })
-    const songs: any[] = res?.songs || res?.data?.songs || []
-    state.listSongs = songs.map((it: any) => ({
-      id: it?.id,
-      name: it?.name,
-      artist: Array.isArray(it?.ar) ? it.ar.map((a: any) => a.name).join(' / ') : '',
-      artists: Array.isArray(it?.ar) ? it.ar.map((a: any) => ({ id: a.id, name: a.name })) : [],
-      album: it?.al?.name || '',
-      albumId: it?.al?.id,
-      duration: it?.dt || 0,
-      cover: it?.al?.picUrl || '',
-    }))
+    const res = await playlistTrackAll({ id: item.id, limit: 100 })
+    state.listSongs = transformSongs(res as Record<string, unknown>, 100)
   } finally {
     state.listLoading = false
   }
@@ -134,7 +115,7 @@ onMounted(() => {
     <!-- 侧边栏 -->
     <aside class="glass-card flex w-64 shrink-0 flex-col overflow-hidden rounded-3xl">
       <!-- Tab 切换 -->
-      <div class="shrink-0 border-b border-(--glass-border) p-4">
+      <div class="shrink-0 border-b border-glass p-4">
         <TabGroup v-model="state.activeTab" :tabs="mainTabs" variant="gradient" size="sm" :show-count="false" />
       </div>
 

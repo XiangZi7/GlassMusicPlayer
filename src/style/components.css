@@ -7,7 +7,7 @@
   .glass-button {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border-default);
   }
 
   .glass-base {
@@ -16,13 +16,13 @@
   }
 
   .glass-container {
-    background: var(--glass-bg-container);
+    background: var(--glass-bg-elevated);
     border-radius: 24px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .glass-container-strong {
-    background: var(--glass-container-strong-bg);
+    background: var(--glass-bg-overlay);
     border-radius: 24px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
@@ -34,20 +34,20 @@
   }
 
   .glass-nav {
-    background: var(--glass-bg-nav);
+    background: var(--glass-bg-subtle);
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .mobile-tabbar {
-    background: var(--glass-bg-nav);
+    background: var(--glass-bg-subtle);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-border-default);
   }
 
   .glass-button {
-    background: var(--glass-bg-button);
+    background: var(--glass-interactive-bg);
     border-radius: 12px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -56,17 +56,17 @@
   }
 
   .glass-button:hover {
-    background: var(--glass-hover-button-bg);
+    background: var(--glass-interactive-hover);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   .glass-dropdown {
-    background: var(--glass-dropdown-bg);
-    border: 1px solid var(--glass-dropdown-border);
+    background: var(--glass-bg-overlay);
+    border: 1px solid var(--glass-border-subtle);
     backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
     -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
-    color: var(--glass-dropdown-text);
+    color: var(--glass-text-contrast);
   }
 
   .anime-gradient {

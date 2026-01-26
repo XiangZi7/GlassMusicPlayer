@@ -6,6 +6,12 @@ import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue
 import Button from '@/components/Ui/Button.vue'
 import { useI18n } from 'vue-i18n'
 import { formatCount } from '@/utils/time'
+import {
+  transformPlaylistDetail,
+  transformSongs,
+  type SongData,
+} from '@/utils/transformers'
+
 const { t } = useI18n()
 
 type PlaylistInfo = {
@@ -21,23 +27,12 @@ type PlaylistInfo = {
   coverImgUrl: string
 }
 
-type PlaylistSong = {
-  id: number | string
-  name: string
-  artist: string
-  album: string
-  albumId: number | string
-  duration: number
-  liked: boolean
-  cover: string
-}
-
 const route = useRoute()
 const playlistId = computed(() => Number(route.params.id))
 
 const state = reactive({
   info: {} as PlaylistInfo,
-  songs: [] as PlaylistSong[],
+  songs: [] as SongData[],
   loading: true,
   collected: false,
   showFullDesc: false,
@@ -52,40 +47,20 @@ const load = async (id: number) => {
       playlistDetail({ id }),
       playlistTrackAll({ id, limit: 100 }),
     ])
-    const detail =
-      (detailRes as any)?.playlist || (detailRes as any)?.data?.playlist || (detailRes as any)?.data
+
+    const detail = transformPlaylistDetail(
+      detailRes as Record<string, unknown>,
+      t('home.playlistFallback')
+    )
     if (detail) {
       state.info = {
-        name: detail?.name || '',
-        description: detail?.description || '',
-        creator: detail?.creator?.nickname || '',
-        creatorAvatar: detail?.creator?.avatarUrl || '',
-        createTime: detail?.createTime ? new Date(detail.createTime).toLocaleDateString() : '',
-        songCount: detail?.trackCount || 0,
-        playCount: formatCount(detail?.playCount || 0),
-        likes: formatCount(detail?.subscribedCount || detail?.bookedCount || 0),
-        category: detail?.tags?.[0] || t('home.playlistFallback'),
-        coverImgUrl: detail?.coverImgUrl || '',
+        ...detail,
+        playCount: formatCount(detail.playCount as number),
+        likes: formatCount(detail.likes as number),
       }
     }
-    const tracks =
-      (tracksRes as any)?.songs || (tracksRes as any)?.data?.songs || (tracksRes as any)?.data || []
-    if (Array.isArray(tracks)) {
-      state.songs = tracks.map((t: any) => ({
-        id: t?.id || 0,
-        name: t?.name || '',
-        artist: Array.isArray(t?.ar)
-          ? t.ar.map((a: any) => a.name).join(' / ')
-          : Array.isArray(t?.artists)
-            ? t.artists.map((a: any) => a.name).join(' / ')
-            : '',
-        album: t?.al?.name || t?.album?.name || '',
-        albumId: t?.al?.id || t?.album?.id || 0,
-        duration: t?.dt ?? t?.duration ?? 0,
-        liked: false,
-        cover: t?.al?.picUrl || t?.album?.picUrl || '',
-      }))
-    }
+
+    state.songs = transformSongs(tracksRes as Record<string, unknown>)
   } finally {
     state.loading = false
   }
@@ -277,7 +252,7 @@ const toggleCollect = () => {
     to bottom,
     rgba(0, 0, 0, 0.3) 0%,
     rgba(0, 0, 0, 0.5) 50%,
-    var(--glass-bg) 100%
+    var(--glass-bg-solid) 100%
   );
 }
 
@@ -308,20 +283,20 @@ const toggleCollect = () => {
 
 .shuffle-btn {
   background: var(--glass-card-bg);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 
 .shuffle-btn:active {
   transform: scale(0.97);
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .collect-btn {
   background: var(--glass-card-bg);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 
@@ -337,8 +312,8 @@ const toggleCollect = () => {
 
 .comment-btn {
   background: var(--glass-card-bg);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 

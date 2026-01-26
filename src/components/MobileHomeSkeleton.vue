@@ -130,18 +130,18 @@ const { t } = useI18n()
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .skeleton-bg {
-  background: var(--skeleton-bg);
+  background: var(--glass-skeleton);
 }
 
 .skeleton-bar {
-  background: var(--skeleton-bg);
+  background: var(--glass-skeleton);
 }
 
 .skeleton-strong {
-  background: var(--glass-container-strong-bg);
+  background: var(--glass-bg-overlay);
 }
 </style>

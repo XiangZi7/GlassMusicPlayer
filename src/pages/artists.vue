@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { artistList } from '@/api'
 import { useI18n } from 'vue-i18n'
+import { transformArtists, type ArtistData } from '@/utils/transformers'
 
 const { t } = useI18n()
 
+interface ArtistItem extends ArtistData {
+  alias?: string
+}
+
 const state = reactive({
-  artists: [] as any[],
+  artists: [] as ArtistItem[],
   isLoading: false,
   type: -1,
   area: -1,
@@ -45,7 +50,7 @@ const loadArtists = async (reset = false) => {
     state.hasMore = true
   }
   if (!state.hasMore) return
-  
+
   try {
     state.isLoading = true
     const params: any = {
@@ -56,20 +61,16 @@ const loadArtists = async (reset = false) => {
     if (state.area !== -1) params.area = state.area
     if (state.initial) params.initial = state.initial
 
-    const res: any = await artistList(params)
-    const list: any[] = res?.artists || res?.data?.artists || []
-    
-    const mapped = list.map((it: any) => ({
-      id: it?.id,
-      name: it?.name,
-      alias: it?.alias?.join(' / ') || '',
-      cover: it?.picUrl || it?.img1v1Url || '',
-      albumSize: it?.albumSize || 0,
-      mvSize: it?.mvSize || 0,
+    const res = await artistList(params)
+    const artists = transformArtists(res as Record<string, unknown>)
+
+    const mapped: ArtistItem[] = artists.map(it => ({
+      ...it,
+      alias: it.alias?.join(' / ') || '',
     }))
-    
+
     state.artists = reset ? mapped : [...state.artists, ...mapped]
-    state.hasMore = list.length === state.limit
+    state.hasMore = artists.length === state.limit
     state.offset += state.limit
   } finally {
     state.isLoading = false
@@ -141,7 +142,7 @@ onMounted(() => loadArtists(true))
         >
           <div class="relative mb-3 aspect-square overflow-hidden rounded-full">
             <LazyImage
-              :src="artist.cover + '?param=300y300'"
+              :src="artist.picUrl + '?param=300y300'"
               :alt="artist.name"
               class="h-full w-full object-cover transition-transform group-hover:scale-105"
             />

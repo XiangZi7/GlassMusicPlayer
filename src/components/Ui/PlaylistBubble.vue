@@ -385,10 +385,10 @@ const totalDuration = computed(() => {
 
 <style scoped>
 .playlist-bubble {
-  background: var(--playlist-bubble-bg);
+  background: var(--glass-bg-overlay);
   backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--glass-border-default);
 }
 
 .bubble-header {
@@ -396,38 +396,38 @@ const totalDuration = computed(() => {
 }
 
 .bubble-title {
-  color: var(--glass-dropdown-text);
+  color: var(--glass-text-contrast);
 }
 
 .bubble-subtitle {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
 .bubble-close-btn {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
 .bubble-close-btn:hover {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-hover-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-interactive-text-hover);
   opacity: 1;
 }
 
 .bubble-toolbar {
-  background: var(--glass-hover-item-bg);
-  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-interactive-hover-muted);
+  border-bottom: 1px solid var(--glass-border-default);
 }
 
 .toolbar-btn {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
 .toolbar-btn:hover {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-hover-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-interactive-text-hover);
   opacity: 1;
 }
 
@@ -436,17 +436,17 @@ const totalDuration = computed(() => {
 }
 
 .toolbar-btn-clear {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .toolbar-btn-clear:hover {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
   color: #f87171;
 }
 
 .selected-badge {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .bubble-list {
@@ -454,17 +454,17 @@ const totalDuration = computed(() => {
 }
 
 .playlist-item:hover {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .playlist-item.item-current {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .playlist-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  border-color: var(--glass-border);
+  border-color: var(--glass-border-default);
 }
 
 .playlist-checkbox:checked::after {
@@ -479,7 +479,7 @@ const totalDuration = computed(() => {
 }
 
 .song-name {
-  color: var(--glass-dropdown-text);
+  color: var(--glass-text-contrast);
 }
 
 .song-name-active {
@@ -487,23 +487,23 @@ const totalDuration = computed(() => {
 }
 
 .song-artist {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .song-duration {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .action-btn {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
 .action-btn:hover {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-hover-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-interactive-text-hover);
   opacity: 1;
 }
 
@@ -512,30 +512,30 @@ const totalDuration = computed(() => {
 }
 
 .drag-handle span {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
 .empty-state {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .empty-icon {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .empty-icon span {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.2;
 }
 
 .empty-text {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .empty-hint {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
@@ -590,11 +590,11 @@ const totalDuration = computed(() => {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--glass-hover-button-bg);
+  background: var(--glass-interactive-hover);
 }
 </style>

@@ -156,11 +156,11 @@ const handleClick = (s: Song, i: number) => {
 
 <style scoped>
 .song-item {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .song-item:active:not(.song-item-active) {
-  background: var(--glass-bg-button);
+  background: var(--glass-interactive-bg);
 }
 
 .song-item-active {
@@ -173,7 +173,7 @@ html.dark .song-item-active {
 }
 
 .song-item-compact:not(.song-item-active):active {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .song-cover {
@@ -195,21 +195,21 @@ html.dark .song-cover-small {
 }
 
 .song-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .song-artist {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .song-duration {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
 .song-index {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 </style>

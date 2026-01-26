@@ -103,13 +103,13 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   opacity: 0;
 }
 .option-item {
-  color: var(--glass-dropdown-text);
+  color: var(--glass-text-contrast);
 }
 .option-item:hover {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 .option-item.selected {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-hover-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-interactive-text-hover);
 }
 </style>

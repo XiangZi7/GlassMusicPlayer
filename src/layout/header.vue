@@ -201,7 +201,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             <li
               v-for="opt in searchHistory"
               :key="opt"
-              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-(--glass-dropdown-text) hover:bg-(--glass-hover-item-bg)"
+              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-glass-contrast hover:bg-hover-glass"
               @mousedown.prevent="selectHistory(opt)"
             >
               <span class="truncate pr-8">{{ opt }}</span>
@@ -210,7 +210,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
                 size="icon-md"
                 rounded="full"
                 icon="icon-[mdi--close]"
-                icon-class="h-4 w-4 text-(--glass-dropdown-text)"
+                icon-class="h-4 w-4 text-glass-contrast"
                 class="absolute top-1/2 right-2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
                 :title="t('common.delete')"
                 @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
