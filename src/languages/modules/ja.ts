@@ -180,6 +180,7 @@ export default {
       repo: 'リポジトリ',
       movies: 'ムービー',
       projectDocs: 'ドキュメント',
+      backupDocs: '予備ドキュメント',
     },
     aside: {
       explore: '探索',

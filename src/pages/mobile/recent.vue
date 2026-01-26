@@ -199,7 +199,7 @@ const tabs = computed(() => [
 
 <style scoped>
 .tab-button {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
@@ -211,8 +211,8 @@ const tabs = computed(() => [
 }
 
 .tab-count {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
@@ -223,18 +223,18 @@ const tabs = computed(() => [
 }
 
 .info-text {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .clear-button {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
 .clear-button:active {
-  background: var(--glass-bg-button);
+  background: var(--glass-interactive-bg);
   opacity: 1;
 }
 
@@ -257,17 +257,17 @@ html.dark .empty-icon {
 }
 
 .empty-icon-inner {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .empty-title {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
 .empty-hint {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 </style>

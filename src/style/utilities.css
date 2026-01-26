@@ -1,13 +1,13 @@
 @layer utilities {
   .bottom-mask-gradient {
-    background: linear-gradient(to top, var(--mask-bg), var(--mask-bg), transparent);
+    background: linear-gradient(to top, var(--glass-bg-mask), var(--glass-bg-mask), transparent);
   }
   .progress-track {
-    background: var(--progress-track-bg);
+    background: var(--glass-progress-track);
   }
 
   .progress-fill {
-    background: var(--progress-fill-bg);
+    background: var(--glass-progress-fill);
   }
 
   @keyframes gradient-shift {
@@ -67,29 +67,45 @@
   }
 
   .text-dropdown-glass {
-    color: var(--glass-dropdown-text);
+    color: var(--glass-text-contrast);
+  }
+
+  .text-glass-contrast {
+    color: var(--glass-text-contrast);
+  }
+
+  .text-glass-primary {
+    color: var(--glass-text-primary);
+  }
+
+  .border-glass {
+    border-color: var(--glass-border-default);
   }
 
   .bg-hover-glass {
-    background: var(--glass-hover-item-bg);
+    background: var(--glass-interactive-hover-muted);
+  }
+
+  .hover\:bg-hover-glass:hover {
+    background: var(--glass-interactive-hover-muted);
   }
 
   .bg-button-glass {
-    background: var(--glass-bg-button);
+    background: var(--glass-interactive-bg);
   }
 
   .bg-hover-button-glass {
-    background: var(--glass-hover-button-bg);
+    background: var(--glass-interactive-hover);
   }
 
   .mask-glass {
-    background: var(--mask-bg);
+    background: var(--glass-bg-mask);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
 
   .placeholder-glass-50::placeholder {
-    color: var(--glass-text);
+    color: var(--glass-text-primary);
     opacity: 0.5;
   }
 

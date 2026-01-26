@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { topSong } from '@/api'
+import { transformTopSongs, type SongData } from '@/utils/transformers'
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -11,24 +12,13 @@ const types = [
   { key: 16, labelKey: 'charts.types.korea' },
 ]
 
-const state = reactive({ tab: 0 as 0 | 7 | 96 | 8 | 16, loading: true, songs: [] as any[] })
+const state = reactive({ tab: 0 as 0 | 7 | 96 | 8 | 16, loading: true, songs: [] as SongData[] })
 
 const load = async (t: 0 | 7 | 96 | 8 | 16) => {
   state.loading = true
   try {
     const res = await topSong({ type: t })
-    const list = (res as any)?.data?.data || (res as any)?.data?.songs || (res as any)?.songs || []
-    state.songs = list.map((it: any, i: number) => ({
-      id: it?.id || 0,
-      name: it?.name || '',
-      artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
-      album: it?.album?.name || '',
-      duration: it?.duration || 0,
-      emoji: ['🎵', '🎶', '♪', '♫', '🎼'][i % 5],
-      gradient: ['from-pink-400 to-purple-500'][0],
-      liked: false,
-      cover: it?.album?.picUrl || '',
-    }))
+    state.songs = transformTopSongs(res as Record<string, unknown>)
   } finally {
     state.loading = false
   }

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { banner, topPlaylist, topSong, topArtists, personalizedMv } from '@/api'
 import { useI18n } from 'vue-i18n'
-import { BannerItem, PlaylistItem, SongItem } from '@/api/interface'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, Pagination, Autoplay, EffectCoverflow } from 'swiper/modules'
 import type SwiperClass from 'swiper'
@@ -11,28 +10,27 @@ import 'swiper/css/pagination'
 import 'swiper/css/effect-coverflow'
 
 import { formatCount, formatDuration } from '@/utils/time'
+import {
+  transformBanners,
+  transformPlaylists,
+  transformTopSongs,
+  transformArtists,
+  transformMVs,
+  type BannerData,
+  type PlaylistData,
+  type SongData,
+  type ArtistData,
+  type MVData,
+} from '@/utils/transformers'
+
 const { t } = useI18n()
 
-interface ArtistData {
-  id: number | string
-  name: string
-  picUrl: string
-}
-
-interface MvData {
-  id: number | string
-  name: string
-  cover: string
-  artistName: string
-  playCount: number
-}
-
 const state = reactive({
-  banners: [] as BannerItem[],
-  recommendPlaylists: [] as PlaylistItem[],
-  hotSongs: [] as SongItem[],
+  banners: [] as BannerData[],
+  recommendPlaylists: [] as PlaylistData[],
+  hotSongs: [] as SongData[],
   artists: [] as ArtistData[],
-  mvs: [] as MvData[],
+  mvs: [] as MVData[],
   isLoading: true,
   swiper: null as SwiperClass | null,
 })
@@ -50,53 +48,15 @@ const loadData = async () => {
       personalizedMv(),
     ])
 
-    const bannerList: any[] = (b as any)?.data?.banners || (b as any)?.banners || []
-    state.banners = bannerList.slice(0, 6).map((item: any, i: number) => ({
-      title: item?.typeTitle || '',
-      description: item?.title || '',
-      coverImgUrl: item?.imageUrl || '',
-      url: item?.url || '',
-    }))
-
-    const playlists: any[] = (p as any)?.data?.playlists || (p as any)?.playlists || []
-    state.recommendPlaylists = playlists.map((pl: any, i: number) => ({
-      id: pl?.id || 0,
-      name: pl?.name || '',
-      count: pl?.playCount || 0,
-      trackCount: pl?.trackCount || 0,
-      coverImgUrl: pl?.coverImgUrl || '',
-      creatorName: pl?.creator?.nickname || '',
-      description: pl?.description || '',
-    }))
-
-    const songData = (s as any)?.data.slice(0, 12) || []
-    state.hotSongs = songData.map((it: any, i: number) => ({
-      id: it?.id,
-      name: it?.name,
-      artist: Array.isArray(it?.artists) ? it.artists.map((a: any) => a.name).join(' / ') : '',
-      artistId: it?.artists?.[0]?.id || 0,
-      album: it?.album?.name || '',
-      albumId: it?.album?.id || 0,
-      duration: it?.duration || 0,
-      liked: false,
-      cover: it?.album?.picUrl || '',
-    }))
-
-    const artistData: any[] = (a as any)?.artists || (a as any)?.data?.artists || []
-    state.artists = artistData.map((ar: any) => ({
-      id: ar?.id,
-      name: ar?.name,
-      picUrl: ar?.picUrl || ar?.img1v1Url || '',
-    }))
-
-    const mvData: any[] = (m as any)?.result || (m as any)?.data?.result || []
-    state.mvs = mvData.slice(0, 6).map((mv: any) => ({
-      id: mv?.id,
-      name: mv?.name,
-      cover: mv?.picUrl || mv?.cover,
-      artistName: mv?.artistName || '',
-      playCount: mv?.playCount || 0,
-    }))
+    state.banners = transformBanners(b as Record<string, unknown>, 6)
+    state.recommendPlaylists = transformPlaylists(
+      p as Record<string, unknown>,
+      20,
+      t('home.playlistFallback')
+    )
+    state.hotSongs = transformTopSongs(s as Record<string, unknown>, 12)
+    state.artists = transformArtists(a as Record<string, unknown>, 16)
+    state.mvs = transformMVs(m as Record<string, unknown>, 6)
   } finally {
     state.isLoading = false
   }
@@ -199,7 +159,7 @@ onMounted(() => {
                   class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--headphones] h-3 w-3" />
-                  {{ formatCount(item.count) }}
+                  {{ formatCount(item.playCount) }}
                 </div>
                 <div class="absolute right-0 bottom-0 left-0 p-2.5">
                   <p class="line-clamp-2 text-xs leading-tight font-medium text-white">
@@ -253,7 +213,7 @@ onMounted(() => {
               class="group flex flex-col items-center"
             >
               <div
-                class="relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 border-(--glass-border) shadow-lg transition-all duration-300 group-hover:border-pink-500 group-hover:shadow-pink-500/20"
+                class="border-glass relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 shadow-lg transition-all duration-300 group-hover:border-pink-500 group-hover:shadow-pink-500/20"
               >
                 <LazyImage
                   :src="artist.picUrl + '?param=150y150'"
@@ -301,7 +261,7 @@ onMounted(() => {
                 v-for="(song, idx) in hotSongs"
                 :key="song.id"
                 :to="`/song/${song.id}`"
-                class="group hover:bg-hover-glass flex items-center gap-4 border-b border-(--glass-border) p-4 transition-all last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                class="group hover:bg-hover-glass border-glass flex items-center gap-4 border-b p-4 transition-all last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
               >
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
@@ -375,7 +335,7 @@ onMounted(() => {
                   class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
                 >
                   <span class="icon-[mdi--play] h-3 w-3" />
-                  {{ formatCount(mv.playCount) }}
+                  {{ formatCount(mv.playCount as number) }}
                 </div>
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div
@@ -386,7 +346,7 @@ onMounted(() => {
                 </div>
                 <div class="absolute right-0 bottom-0 left-0 p-3">
                   <p class="truncate text-sm font-medium text-white">{{ mv.name }}</p>
-                  <p class="mt-0.5 truncate text-[11px] text-white/70">{{ mv.artistName }}</p>
+                  <p class="mt-0.5 truncate text-[11px] text-white/70">{{ mv.artist }}</p>
                 </div>
               </div>
             </router-link>

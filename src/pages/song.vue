@@ -6,6 +6,12 @@ import { songDetail, search } from '@/api'
 import { useAudio } from '@/composables/useAudio'
 import { formatDuration } from '@/utils/time'
 import LazyImage from '@/components/Ui/LazyImage.vue'
+import {
+  transformSearchSongs,
+  transformSearchPlaylists,
+  type SongData,
+  type PlaylistData,
+} from '@/utils/transformers'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,8 +22,8 @@ const showComments = ref(false)
 
 const state = reactive({
   info: null as any,
-  similarSongs: [] as any[],
-  similarPlaylists: [] as any[],
+  similarSongs: [] as SongData[],
+  similarPlaylists: [] as PlaylistData[],
 })
 
 onMounted(() => fetchLyrics(songId.value))
@@ -64,20 +70,16 @@ const loadInfo = async () => {
     const artistNameVal = Array.isArray(song?.ar)
       ? song.ar.map((a: any) => a.name).join(' / ')
       : song?.artists?.map((a: any) => a.name).join(' / ')
-    const resSimSongs: any = await search({ keywords: artistNameVal || song?.name || '', type: 1 })
-    const listSongs: any[] = resSimSongs?.result?.songs || []
-    state.similarSongs = (listSongs || []).slice(0, 12).map(s => ({
-      id: s?.id,
-      name: s?.name,
-      artist: Array.isArray(s?.artists) ? s.artists.map((a: any) => a.name).join(' / ') : '',
-      album: s?.album?.name || '',
-      duration: s?.duration || 0,
-      cover: s?.album.artist?.img1v1Url || '',
-      mvId: s?.mvid,
-    }))
-    const resSimPls: any = await search({ keywords: song?.name || '', type: 1000 })
-    const listPls: any[] = resSimPls?.result?.playlists || []
-    state.similarPlaylists = (listPls || []).slice(0, 6)
+
+    // 搜索相似歌曲
+    const resSimSongs = await search({ keywords: artistNameVal || song?.name || '', type: 1 })
+    const { songs } = transformSearchSongs(resSimSongs as Record<string, unknown>, 12)
+    state.similarSongs = songs
+
+    // 搜索相关歌单
+    const resSimPls = await search({ keywords: song?.name || '', type: 1000 })
+    const { playlists } = transformSearchPlaylists(resSimPls as Record<string, unknown>, 6)
+    state.similarPlaylists = playlists
   } catch {}
 }
 

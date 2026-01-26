@@ -5,6 +5,12 @@ import LazyImage from '@/components/Ui/LazyImage.vue'
 import MobileSongList from '@/components/Mobile/MobileSongList.vue'
 import Button from '@/components/Ui/Button.vue'
 import { useI18n } from 'vue-i18n'
+import {
+  transformAlbumDetail,
+  transformSongs,
+  extractArray,
+  type SongData,
+} from '@/utils/transformers'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -14,7 +20,7 @@ const albumId = computed(() => Number(route.params.id))
 type AlbumInfo = {
   name: string
   artist: string
-  artistId: number
+  artistId: number | string
   publishTime: string
   description: string
   company: string
@@ -22,20 +28,9 @@ type AlbumInfo = {
   coverImgUrl: string
 }
 
-type SongItem = {
-  id: number | string
-  name: string
-  artist: string
-  album: string
-  albumId: number | string
-  duration: number
-  liked: boolean
-  cover: string
-}
-
 const state = reactive({
   info: {} as AlbumInfo,
-  songs: [] as SongItem[],
+  songs: [] as SongData[],
   loading: true,
   collected: false,
   showFullDesc: false,
@@ -43,33 +38,28 @@ const state = reactive({
 
 const { setPlaylist, play } = useAudio()
 
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
 const load = async (id: number) => {
   state.loading = true
   try {
     const res = await albumDetail({ id })
-    const album = (res as any)?.album || (res as any)?.data?.album || {}
-    const songs = (res as any)?.songs || (res as any)?.data?.songs || []
+    const album = transformAlbumDetail(res as Record<string, unknown>)
+    const songs = extractArray(res as Record<string, unknown>, 'songs', 'data.songs')
 
-    state.info = {
-      name: album?.name || '',
-      artist: album?.artist?.name || '',
-      artistId: album?.artist?.id || 0,
-      publishTime: album?.publishTime ? formatDate(album.publishTime) : '',
-      description: album?.description || '',
-      company: album?.company || '',
-      songCount: album?.size || songs.length || 0,
-      coverImgUrl: album?.picUrl || '',
+    if (album) {
+      const raw = (res as any)?.album || (res as any)?.data?.album || {}
+      state.info = {
+        name: album.name,
+        artist: album.artist,
+        artistId: album.artistId || 0,
+        publishTime: album.publishTime || '',
+        description: album.description || '',
+        company: raw?.company || '',
+        songCount: album.size || songs.length || 0,
+        coverImgUrl: album.picUrl,
+      }
     }
 
-    if (Array.isArray(songs)) {
+    if (Array.isArray(songs) && songs.length) {
       state.songs = songs.map((s: any) => ({
         id: s?.id || 0,
         name: s?.name || '',
@@ -81,8 +71,8 @@ const load = async (id: number) => {
         album: state.info.name,
         albumId: id,
         duration: s?.dt ?? s?.duration ?? 0,
-        liked: false,
         cover: state.info.coverImgUrl,
+        liked: false,
       }))
     }
   } finally {
@@ -288,20 +278,20 @@ const goToArtist = () => {
 
 .shuffle-btn {
   background: var(--glass-bg-card);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 
 .shuffle-btn:active {
   transform: scale(0.97);
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .collect-btn {
   background: var(--glass-bg-card);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 

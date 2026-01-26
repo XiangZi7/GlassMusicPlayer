@@ -133,8 +133,8 @@ onClickOutside(drawerRef, () => {
 @reference "../../style/tailwind.css";
 
 .glass-container-strong {
-  background: var(--glass-container-strong-bg);
-  border-top: 1px solid var(--glass-border);
+  background: var(--glass-bg-overlay);
+  border-top: 1px solid var(--glass-border-default);
 }
 
 .slide-up-enter-active,

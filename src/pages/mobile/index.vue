@@ -8,50 +8,26 @@ import 'swiper/css/pagination'
 import 'swiper/css/effect-cards'
 
 import { formatCount } from '@/utils/time'
+import {
+  transformBanners,
+  transformPlaylists,
+  transformSongs,
+  transformMVs,
+  transformArtists,
+  type BannerData,
+  type PlaylistData,
+  type SongData,
+  type MVData,
+  type ArtistData,
+} from '@/utils/transformers'
 
 const { t } = useI18n()
-
-interface BannerData {
-  coverImgUrl: string
-  title: string
-  url: string
-}
-
-interface PlaylistData {
-  id: number | string
-  name: string
-  coverImgUrl: string
-  playCount: number
-}
-
-interface SongData {
-  id: number | string
-  name: string
-  artist: string
-  album: string
-  cover: string
-  duration: number
-}
-
-interface MvData {
-  id: number | string
-  name: string
-  cover: string
-  artistName: string
-  playCount: number
-}
-
-interface ArtistData {
-  id: number | string
-  name: string
-  picUrl: string
-}
 
 interface HomeState {
   banners: BannerData[]
   playlists: PlaylistData[]
   newSongs: SongData[]
-  mvs: MvData[]
+  mvs: MVData[]
   artists: ArtistData[]
   isLoading: boolean
 }
@@ -78,48 +54,11 @@ const loadHomeData = async () => {
       topArtists({ limit: 10 }),
     ])
 
-    const bannerList: any[] = (b as any)?.data?.banners || (b as any)?.banners || []
-    state.banners = bannerList.slice(0, 5).map((item: any) => ({
-      coverImgUrl: item?.pic || '',
-      title: item?.typeTitle || '',
-      url: item?.url || '',
-    }))
-
-    const playlistsList: any[] = (p as any)?.result || (p as any)?.data?.result || []
-    state.playlists = playlistsList.slice(0, 6).map((pl: any) => ({
-      id: pl?.id,
-      name: pl?.name || t('home.playlistFallback'),
-      coverImgUrl: pl?.picUrl || pl?.coverImgUrl || '',
-      playCount: pl?.playCount || 0,
-    }))
-
-    const songData: any[] = (s as any)?.result || (s as any)?.data?.result || []
-    state.newSongs = songData.slice(0, 6).map((it: any) => ({
-      id: it?.id || it?.song?.id,
-      name: it?.name || it?.song?.name,
-      artist: Array.isArray(it?.song?.artists)
-        ? it.song.artists.map((a: any) => a.name).join(' / ')
-        : '',
-      album: it?.song?.album?.name || it?.album?.name || '',
-      cover: it?.song?.album?.picUrl || it?.picUrl || '',
-      duration: it?.song?.duration || it?.duration || 0,
-    }))
-
-    const mvData: any[] = (m as any)?.result || (m as any)?.data?.result || []
-    state.mvs = mvData.slice(0, 4).map((mv: any) => ({
-      id: mv?.id,
-      name: mv?.name,
-      cover: mv?.picUrl || mv?.cover,
-      artistName: mv?.artistName || '',
-      playCount: mv?.playCount || 0,
-    }))
-
-    const artistData: any[] = (a as any)?.artists || (a as any)?.data?.artists || []
-    state.artists = artistData.slice(0, 10).map((ar: any) => ({
-      id: ar?.id,
-      name: ar?.name,
-      picUrl: ar?.picUrl || ar?.img1v1Url || '',
-    }))
+    state.banners = transformBanners(b as Record<string, unknown>, 5)
+    state.playlists = transformPlaylists(p as Record<string, unknown>, 6, t('home.playlistFallback'))
+    state.newSongs = transformSongs(s as Record<string, unknown>, 6)
+    state.mvs = transformMVs(m as Record<string, unknown>, 4)
+    state.artists = transformArtists(a as Record<string, unknown>, 10)
   } finally {
     state.isLoading = false
   }
@@ -306,7 +245,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
                 </div>
                 <div class="absolute right-0 bottom-0 left-0 p-2">
                   <p class="text-primary truncate text-xs font-medium">{{ mv.name }}</p>
-                  <p class="text-primary/60 truncate text-[10px]">{{ mv.artistName }}</p>
+                  <p class="text-primary/60 truncate text-[10px]">{{ mv.artist }}</p>
                 </div>
               </div>
             </router-link>
@@ -342,7 +281,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .view-more-link {
@@ -350,7 +289,7 @@ const swiperModules = [Autoplay, Pagination, EffectCards]
   align-items: center;
   gap: 0.125rem;
   font-size: 0.75rem;
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
   transition: opacity 0.2s;
 }
@@ -373,26 +312,26 @@ html.dark .playlist-cover {
 }
 
 .playlist-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.8;
 }
 
 .artist-avatar {
-  box-shadow: 0 0 0 2px var(--glass-border);
+  box-shadow: 0 0 0 2px var(--glass-border-default);
 }
 
 :root.dark .artist-avatar,
 html.dark .artist-avatar {
-  box-shadow: 0 0 0 2px var(--glass-border);
+  box-shadow: 0 0 0 2px var(--glass-border-default);
 }
 
 .artist-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.7;
 }
 
 .song-item:not(.song-item-active):active {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .song-item-active {
@@ -405,7 +344,7 @@ html.dark .song-item-active {
 }
 
 .song-index {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
@@ -423,16 +362,16 @@ html.dark .song-cover {
 }
 
 .song-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .song-artist {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .song-duration {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 

@@ -1,55 +1,40 @@
 @layer base {
   :root {
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-bg-base: rgba(255, 255, 255, 0.1);
-    --glass-bg-container: rgba(255, 255, 255, 0.3);
-    --glass-bg-card: rgba(255, 255, 255, 0.12);
-    --glass-bg-nav: rgba(255, 255, 255, 0.06);
-    --glass-bg-button: rgba(255, 255, 255, 0.15);
-    --glass-hover-button-bg: rgba(255, 255, 255, 0.2);
-    --glass-text: rgba(60, 58, 58, 1);
-    --glass-accent: rgba(255, 255, 255, 0.95);
-    --glass-hover-item-bg: rgba(17, 24, 39, 0.06);
-    --glass-hover-text: #111827;
-    --glass-bg: rgba(255, 255, 255);
-    --glass-dropdown-bg: rgba(255, 255, 255, 0.92);
-    --glass-dropdown-border: rgba(17, 24, 39, 0.08);
-    --glass-dropdown-text: rgba(17, 24, 39, 0.95);
+    color-scheme: light;
+
+    /* ========== 背景 ========== */
+    --glass-bg-solid: light-dark(rgba(255, 255, 255, 1), rgba(0, 0, 0, 1));
+    --glass-bg-base: light-dark(rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.35));
+    --glass-bg-subtle: light-dark(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3));
+    --glass-bg-elevated: light-dark(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.28));
+    --glass-bg-card: light-dark(rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.4));
+    --glass-bg-overlay: light-dark(rgba(255, 255, 255, 0.92), rgba(0, 0, 0, 0.9));
+    --glass-bg-mask: light-dark(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3));
+
+    /* ========== 文字 ========== */
+    --glass-text-primary: light-dark(rgba(60, 58, 58, 1), rgba(255, 255, 255, 0.85));
+    --glass-text-contrast: light-dark(rgba(17, 24, 39, 0.95), rgba(255, 255, 255, 0.95));
+    --glass-text-accent: rgba(255, 255, 255, 0.95);
+
+    /* ========== 边框 ========== */
+    --glass-border-default: light-dark(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+    --glass-border-subtle: light-dark(rgba(17, 24, 39, 0.08), rgba(255, 255, 255, 0.12));
+
+    /* ========== 交互 ========== */
+    --glass-interactive-bg: light-dark(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    --glass-interactive-hover: light-dark(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.12));
+    --glass-interactive-hover-muted: light-dark(rgba(17, 24, 39, 0.06), rgba(255, 255, 255, 0.12));
+    --glass-interactive-text-hover: light-dark(rgba(17, 24, 39, 1), rgba(255, 255, 255, 1));
+
+    /* ========== 组件 ========== */
     --glass-dropdown-blur: 10px;
-    --playlist-bubble-bg: rgba(255, 255, 255, 0.9);
-    --glass-container-strong-bg: rgba(255, 255, 255, 0.92);
-    --mask-bg: rgba(255, 255, 255, 0.06);
-    --progress-track-bg: rgba(17, 24, 39, 0.16);
-    --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
-    --skeleton-bg: #d9dadb;
-    --color-overlay: rgba(255, 255, 255, 1);
+    --glass-progress-track: light-dark(rgba(17, 24, 39, 0.16), rgba(255, 255, 255, 0.22));
+    --glass-progress-fill: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+    --glass-skeleton: light-dark(rgba(217, 218, 219, 1), rgba(255, 255, 255, 0.08));
   }
 
   :root.dark,
   html.dark {
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-bg-base: rgba(0, 0, 0, 0.35);
-    --glass-bg-container: rgba(0, 0, 0, 0.28);
-    --glass-bg-card: rgba(0, 0, 0, 0.4);
-    --glass-bg-nav: rgba(0, 0, 0, 0.3);
-    --glass-bg-button: rgba(255, 255, 255, 0.08);
-    --glass-hover-button-bg: rgba(255, 255, 255, 0.12);
-    --glass-text: rgba(255, 255, 255, 0.85);
-    --glass-accent: rgba(255, 255, 255, 0.95);
-    --glass-hover-item-bg: rgba(255, 255, 255, 0.12);
-    --glass-hover-text: #ffffff;
-    --glass-bg: rgba(0, 0, 0);
-    --glass-dropdown-bg: rgba(0, 0, 0, 0.9);
-    --glass-dropdown-border: rgba(255, 255, 255, 0.12);
-    --glass-dropdown-text: rgba(255, 255, 255, 0.95);
-    --glass-dropdown-blur: 18px;
-    --playlist-bubble-bg: rgba(0, 0, 0, 0.9);
-    --glass-container-strong-bg: rgba(0, 0, 0, 0.9);
-    --mask-bg: rgba(0, 0, 0, 0.3);
-    --progress-track-bg: rgba(255, 255, 255, 0.22);
-    --progress-fill-bg: linear-gradient(90deg, var(--accent-from), var(--accent-to));
-    --skeleton-bg: rgba(255, 255, 255, 0.08);
-    --color-overlay: rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
 

@@ -6,11 +6,17 @@ import PageSkeleton from '@/components/PageSkeleton.vue'
 import Button from '@/components/Ui/Button.vue'
 import { useAudio } from '@/composables/useAudio'
 import type { Song as StoreSong } from '@/stores/interface'
+import {
+  transformAlbumDetail,
+  extractArray,
+  type SongData,
+  type AlbumData,
+} from '@/utils/transformers'
 
 const route = useRoute()
 const albumId = computed(() => Number(route.params.id))
 
-const state = reactive({ info: null as any, songs: [] as any[], loading: false })
+const state = reactive({ info: null as AlbumData | null, songs: [] as SongData[], loading: false })
 const showDesc = ref(false)
 
 const { setPlaylist, play } = useAudio()
@@ -52,28 +58,24 @@ const load = async () => {
   if (!albumId.value) return
   state.loading = true
   try {
-    const res: any = await albumDetail({ id: albumId.value })
-    const album = res?.album || res?.data?.album || null
-    const songs: any[] = res?.songs || res?.data?.songs || []
+    const res = await albumDetail({ id: albumId.value })
+    const album = transformAlbumDetail(res as Record<string, unknown>)
+    const songs = extractArray(res as Record<string, unknown>, 'songs', 'data.songs')
+
     state.info = album
-    state.songs = songs.map(s => ({
-      id: s?.id,
-      name: s?.name,
+    state.songs = songs.map((s: any) => ({
+      id: s?.id || 0,
+      name: s?.name || '',
       artist: Array.isArray(s?.ar)
         ? s.ar.map((a: any) => a.name).join(' / ')
         : Array.isArray(s?.artists)
           ? s.artists.map((a: any) => a.name).join(' / ')
           : '',
-      artists: Array.isArray(s?.ar)
-        ? s.ar.map((a: any) => ({ id: a.id, name: a.name }))
-        : Array.isArray(s?.artists)
-          ? s.artists.map((a: any) => ({ id: a.id, name: a.name }))
-          : [],
       album: s?.al?.name || s?.album?.name || album?.name || '',
       albumId: s?.al?.id ?? s?.album?.id ?? album?.id,
       duration: s?.dt ?? s?.duration ?? 0,
       cover: s?.al?.picUrl || s?.album?.picUrl || album?.picUrl || '',
-      mvId: s?.mv,
+      liked: false,
     }))
   } finally {
     state.loading = false
@@ -125,8 +127,8 @@ onMounted(() => load())
                       : '-'
                   }}</span
                 >
-                <span v-if="state.info?.artist?.name" class="glass-button px-2 py-1">{{
-                  state.info.artist.name
+                <span v-if="state.info?.artist" class="glass-button px-2 py-1">{{
+                  state.info.artist
                 }}</span>
                 <span class="glass-button px-2 py-1"
                   >{{ $t('albumPage.tracks') }}

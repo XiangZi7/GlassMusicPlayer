@@ -10,6 +10,14 @@ import { EffectCreative } from 'swiper/modules'
 import Button from '@/components/Ui/Button.vue'
 import 'swiper/css'
 import 'swiper/css/effect-creative'
+import {
+  transformSearchSongs,
+  transformSearchPlaylists,
+  transformSearchMVs,
+  type SongData,
+  type PlaylistData,
+  type MVData,
+} from '@/utils/transformers'
 
 const creativeEffect = {
   prev: {
@@ -24,13 +32,6 @@ const creativeEffect = {
 }
 
 type SearchTab = 'song' | 'playlist' | 'mv'
-type PlaylistItem = {
-  id: number | string
-  name: string
-  coverImgUrl: string
-  trackCount: number
-}
-type MVItem = { id: number | string; name: string; cover: string; artist: string }
 
 const { t } = useI18n()
 const { setPlaylist, play, currentSong } = useAudio()
@@ -42,15 +43,15 @@ interface MobileSearchState {
   suggest: string[]
   loading: boolean
   suggestVisible: boolean
-  songs: Song[]
+  songs: SongData[]
   songPage: number
   songPageSize: number
   songTotal: number
-  playlists: PlaylistItem[]
+  playlists: PlaylistData[]
   playlistPage: number
   playlistPageSize: number
   playlistTotal: number
-  mvs: MVItem[]
+  mvs: MVData[]
   mvPage: number
   mvPageSize: number
   mvTotal: number
@@ -111,62 +112,41 @@ const fetchSuggest = async () => {
 
 const fetchSongs = async () => {
   if (!state.q.trim()) return
-  const res: any = await cloudSearch({
+  const res = await cloudSearch({
     keywords: state.q,
     type: 1,
     limit: state.songPageSize,
     offset: (state.songPage - 1) * state.songPageSize,
   })
-  const songs = res?.result?.songs || []
-  state.songs = songs.map((s: any) => ({
-    id: s?.id || 0,
-    name: s?.name || '',
-    artist: Array.isArray(s?.ar)
-      ? s.ar.map((a: any) => a.name).join(' / ')
-      : Array.isArray(s?.artists)
-        ? s.artists.map((a: any) => a.name).join(' / ')
-        : '',
-    album: s?.al?.name || s?.album?.name || '',
-    duration: s?.dt ?? s?.duration ?? 0,
-    cover: s?.al?.picUrl || s?.album?.picUrl || '',
-  }))
-  state.songTotal = Number(res?.result?.songCount ?? state.songs.length)
+  const { songs, total } = transformSearchSongs(res as Record<string, unknown>)
+  state.songs = songs
+  state.songTotal = total
 }
 
 const fetchPlaylists = async () => {
   if (!state.q.trim()) return
-  const res: any = await cloudSearch({
+  const res = await cloudSearch({
     keywords: state.q,
     type: 1000,
     limit: state.playlistPageSize,
     offset: (state.playlistPage - 1) * state.playlistPageSize,
   })
-  const playlists = res?.result?.playlists || []
-  state.playlists = playlists.map((p: any) => ({
-    id: p?.id || 0,
-    name: p?.name || '',
-    coverImgUrl: p?.coverImgUrl || '',
-    trackCount: p?.trackCount || 0,
-  }))
-  state.playlistTotal = Number(res?.result?.playlistCount ?? state.playlists.length)
+  const { playlists, total } = transformSearchPlaylists(res as Record<string, unknown>)
+  state.playlists = playlists
+  state.playlistTotal = total
 }
 
 const fetchMVs = async () => {
   if (!state.q.trim()) return
-  const res: any = await cloudSearch({
+  const res = await cloudSearch({
     keywords: state.q,
     type: 1004,
     limit: state.mvPageSize,
     offset: (state.mvPage - 1) * state.mvPageSize,
   })
-  const mvs = res?.result?.mvs || []
-  state.mvs = mvs.map((m: any) => ({
-    id: m?.id || 0,
-    name: m?.name || '',
-    cover: m?.cover || m?.imgurl || '',
-    artist: m?.artistName || '',
-  }))
-  state.mvTotal = Number(res?.result?.mvCount ?? res?.result?.songCount ?? state.mvs.length)
+  const { mvs, total } = transformSearchMVs(res as Record<string, unknown>)
+  state.mvs = mvs
+  state.mvTotal = total
 }
 
 const searchAll = async () => {
@@ -244,7 +224,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleDocClick)
 })
 
-const mapToStoreSong = (s: Song): Song => ({
+const mapToStoreSong = (s: SongData): Song => ({
   id: s.id,
   name: s.name,
   artist: s.artist,
@@ -253,13 +233,13 @@ const mapToStoreSong = (s: Song): Song => ({
   cover: s.cover,
 })
 
-const playSong = (s: Song, index: number) => {
+const playSong = (s: SongData, index: number) => {
   const list: Song[] = state.songs.map(mapToStoreSong)
   setPlaylist(list, index)
   play(list[index], index)
 }
 
-const isCurrent = (s: Song) => {
+const isCurrent = (s: SongData) => {
   const cur = currentSong.value
   if (!cur) return false
   return String(s.id) === String(cur.id)
@@ -564,27 +544,27 @@ watch(
 }
 
 .search-icon {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .search-input {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .search-input::placeholder {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .clear-btn {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .clear-btn:active {
   opacity: 0.7;
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .search-btn {
@@ -593,21 +573,21 @@ watch(
 }
 
 .suggest-dropdown {
-  background: var(--glass-dropdown-bg);
-  border: 1px solid var(--glass-dropdown-border);
+  background: var(--glass-bg-overlay);
+  border: 1px solid var(--glass-border-subtle);
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 .suggest-title {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 
 .suggest-tag {
-  background: var(--glass-hover-item-bg);
-  color: var(--glass-text);
+  background: var(--glass-interactive-hover-muted);
+  color: var(--glass-text-primary);
   opacity: 0.8;
 }
 
@@ -617,7 +597,7 @@ watch(
 }
 
 .tab-button {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
@@ -629,7 +609,7 @@ watch(
 }
 
 .info-text {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
@@ -652,12 +632,12 @@ html.dark .empty-icon {
 }
 
 .empty-title {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
 .song-item:not(.song-item-active):active {
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .song-item-active {
@@ -670,7 +650,7 @@ html.dark .song-item-active {
 }
 
 .song-index {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
@@ -684,16 +664,16 @@ html.dark .song-cover {
 }
 
 .song-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
 }
 
 .song-artist {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.5;
 }
 
 .song-duration {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.3;
 }
 
@@ -734,7 +714,7 @@ html.dark .playlist-cover {
 }
 
 .playlist-name {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.9;
 }
 

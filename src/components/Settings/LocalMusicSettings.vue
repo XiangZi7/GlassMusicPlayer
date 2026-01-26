@@ -86,7 +86,7 @@ const handlePlayOne = (music: any) => {
     @dragleave="handleDragLeave"
   >
     <!-- 头部操作栏 -->
-    <div class="flex items-center justify-between border-b border-(--glass-border) p-6">
+    <div class="flex items-center justify-between border-b border-glass p-6">
       <div class="flex items-center gap-4">
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-green-500 to-emerald-600 shadow-md"

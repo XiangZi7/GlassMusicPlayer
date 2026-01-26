@@ -4,6 +4,14 @@ import { useAudio } from '@/composables/useAudio'
 import Button from '@/components/Ui/Button.vue'
 import { useI18n } from 'vue-i18n'
 import { formatCount } from '@/utils/time'
+import {
+  transformArtistDetail,
+  transformSongs,
+  transformAlbums,
+  type SongData,
+  type AlbumData,
+} from '@/utils/transformers'
+
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -22,39 +30,16 @@ type ArtistInfo = {
   fansCount: number
 }
 
-type AlbumItem = {
-  id: number
-  name: string
-  picUrl: string
-  publishTime: string
-  size: number
-}
-
-type SongItem = {
-  id: number | string
-  name: string
-  artist: string
-  album: string
-  albumId: number | string
-  duration: number
-  liked: boolean
-  cover: string
-}
-
 const state = reactive({
   info: {} as ArtistInfo,
-  songs: [] as SongItem[],
-  albums: [] as AlbumItem[],
+  songs: [] as SongData[],
+  albums: [] as AlbumData[],
   loading: true,
   activeTab: 0,
   followed: false,
 })
 
 const { setPlaylist, play } = useAudio()
-
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' })
-}
 
 const load = async (id: number) => {
   state.loading = true
@@ -65,41 +50,30 @@ const load = async (id: number) => {
       artistAlbum({ id, limit: 10 }),
     ])
 
-    const artist = (detailRes as any)?.data?.artist || (detailRes as any)?.artist || {}
-    state.info = {
-      id: artist?.id || id,
-      name: artist?.name || '',
-      alias: artist?.alias || [],
-      picUrl: artist?.cover || artist?.picUrl || artist?.avatar || '',
-      briefDesc: artist?.briefDesc || '',
-      albumSize: artist?.albumSize || 0,
-      musicSize: artist?.musicSize || 0,
-      mvSize: artist?.mvSize || 0,
-      followed: artist?.followed || false,
-      fansCount: artist?.fansCnt || 0,
+    // 歌手详情
+    const artist = transformArtistDetail(detailRes as Record<string, unknown>)
+    if (artist) {
+      const raw = (detailRes as any)?.data?.artist || (detailRes as any)?.artist || {}
+      state.info = {
+        id: artist.id as number,
+        name: artist.name,
+        alias: artist.alias || [],
+        picUrl: artist.picUrl,
+        briefDesc: raw?.briefDesc || '',
+        albumSize: artist.albumSize || 0,
+        musicSize: artist.musicSize || 0,
+        mvSize: artist.mvSize || 0,
+        followed: raw?.followed || false,
+        fansCount: raw?.fansCnt || 0,
+      }
+      state.followed = state.info.followed
     }
-    state.followed = state.info.followed
 
-    const songs = (songsRes as any)?.songs || (songsRes as any)?.data?.songs || []
-    state.songs = songs.slice(0, 50).map((s: any) => ({
-      id: s?.id || 0,
-      name: s?.name || '',
-      artist: Array.isArray(s?.ar) ? s.ar.map((a: any) => a.name).join(' / ') : state.info.name,
-      album: s?.al?.name || '',
-      albumId: s?.al?.id || 0,
-      duration: s?.dt ?? s?.duration ?? 0,
-      liked: false,
-      cover: s?.al?.picUrl || '',
-    }))
+    // 歌曲列表
+    state.songs = transformSongs(songsRes as Record<string, unknown>, 50)
 
-    const albums = (albumsRes as any)?.hotAlbums || (albumsRes as any)?.data?.hotAlbums || []
-    state.albums = albums.slice(0, 10).map((a: any) => ({
-      id: a?.id || 0,
-      name: a?.name || '',
-      picUrl: a?.picUrl || '',
-      publishTime: a?.publishTime ? formatDate(a.publishTime) : '',
-      size: a?.size || 0,
-    }))
+    // 专辑列表
+    state.albums = transformAlbums(albumsRes as Record<string, unknown>, 10)
   } finally {
     state.loading = false
   }
@@ -132,7 +106,7 @@ const toggleFollow = () => {
   state.followed = !state.followed
 }
 
-const goToAlbum = (id: number) => {
+const goToAlbum = (id: number | string) => {
   router.push(`/album/${id}`)
 }
 
@@ -329,20 +303,20 @@ const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
 
 .shuffle-btn {
   background: var(--glass-bg-card);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 
 .shuffle-btn:active {
   transform: scale(0.97);
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .follow-btn {
   background: var(--glass-bg-card);
-  color: var(--glass-text);
-  border: 1px solid var(--glass-border);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.3s ease;
 }
 
@@ -357,11 +331,11 @@ const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
 }
 
 .tabs-bar {
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border-default);
 }
 
 .tab-btn {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.6;
 }
 
@@ -373,17 +347,17 @@ const tabs = ['artistPage.tabs.hotSongs', 'artistPage.tabs.albums']
 
 .album-card {
   background: var(--glass-bg-card);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--glass-border-default);
   transition: all 0.2s ease;
 }
 
 .album-card:active {
   transform: scale(0.98);
-  background: var(--glass-hover-item-bg);
+  background: var(--glass-interactive-hover-muted);
 }
 
 .empty-text {
-  color: var(--glass-text);
+  color: var(--glass-text-primary);
   opacity: 0.4;
 }
 </style>

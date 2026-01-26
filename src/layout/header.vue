@@ -140,7 +140,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </Button>
         <Button
-          href="https://gmpd.netlify.app/"
+          href="https://gm-doc.pages.dev"
           target="_blank"
           rel="noopener noreferrer"
           size="sm"
@@ -148,6 +148,17 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
         >
           <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
           {{ t('layout.nav.projectDocs') }}
+          <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
+        </Button>
+        <Button
+          href="https://gmpd.netlify.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          size="sm"
+          class="rounded-lg font-medium"
+        >
+          <span class="icon-[mdi--text-box-outline] mr-2 h-4 w-4"></span>
+          {{ t('layout.nav.backupDocs') }}
           <span class="icon-[mdi--open-in-new] ml-2 h-4 w-4"></span>
         </Button>
       </nav>
@@ -190,7 +201,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             <li
               v-for="opt in searchHistory"
               :key="opt"
-              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-(--glass-dropdown-text) hover:bg-(--glass-hover-item-bg)"
+              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-glass-contrast hover:bg-hover-glass"
               @mousedown.prevent="selectHistory(opt)"
             >
               <span class="truncate pr-8">{{ opt }}</span>
@@ -199,7 +210,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
                 size="icon-md"
                 rounded="full"
                 icon="icon-[mdi--close]"
-                icon-class="h-4 w-4 text-(--glass-dropdown-text)"
+                icon-class="h-4 w-4 text-glass-contrast"
                 class="absolute top-1/2 right-2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-80"
                 :title="t('common.delete')"
                 @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"

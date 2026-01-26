@@ -60,6 +60,9 @@ const openMV = (song: Song, index: number) => {
   }
 }
 
+const downloadSong = (song: Song, index: number) => {
+  emit('download', song, index)
+}
 </script>
 
 <style scoped>
@@ -242,7 +245,7 @@ const openMV = (song: Song, index: number) => {
                 :title="t('common.detail')"
                 @click.stop="router.push(`/song/${song.id}`)"
               />
-              <!-- <Button
+              <Button
                 variant="ghost"
                 size="icon-md"
                 rounded="full"
@@ -251,7 +254,7 @@ const openMV = (song: Song, index: number) => {
                 iconClass="h-5 w-5"
                 :title="t('common.download')"
                 @click.stop="downloadSong(song, index)"
-              /> -->
+              />
             </div>
           </div>
         </div>
