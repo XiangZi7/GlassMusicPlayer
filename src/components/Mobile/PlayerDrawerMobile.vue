@@ -619,7 +619,7 @@ const playModeIcon = computed(() => {
         variant="ghost"
         size="icon-lg"
         rounded="full"
-        icon="mdi--chevron-down"
+        icon="icon-[mdi--chevron-down]"
         icon-class="h-7 w-7 text-primary/90"
         @click="isOpen = false"
       />
@@ -632,7 +632,7 @@ const playModeIcon = computed(() => {
         variant="ghost"
         size="icon-lg"
         rounded="full"
-        icon="mdi--dots-horizontal"
+        icon="icon-[mdi--dots-horizontal]"
         icon-class="h-6 w-6 text-primary/90"
         @click="showToolbar = !showToolbar"
       />
@@ -649,7 +649,7 @@ const playModeIcon = computed(() => {
           size="none"
           class="toolbar-btn"
           :class="{ active: autoScroll }"
-          icon="mdi--autorenew"
+          icon="icon-[mdi--autorenew]"
           icon-class="h-5 w-5"
           @click="toggleAutoScroll"
         >
@@ -671,7 +671,7 @@ const playModeIcon = computed(() => {
           variant="text"
           size="none"
           class="toolbar-btn"
-          icon="mdi--format-font-size-decrease"
+          icon="icon-[mdi--format-font-size-decrease]"
           icon-class="h-5 w-5"
           @click="lyricsScale = Math.max(0.75, lyricsScale - 0.05)"
         >
@@ -682,7 +682,7 @@ const playModeIcon = computed(() => {
           variant="text"
           size="none"
           class="toolbar-btn"
-          icon="mdi--format-font-size-increase"
+          icon="icon-[mdi--format-font-size-increase]"
           icon-class="h-5 w-5"
           @click="lyricsScale = Math.min(1.5, lyricsScale + 0.05)"
         >
@@ -850,7 +850,7 @@ const playModeIcon = computed(() => {
           variant="ghost"
           size="none"
           class="p-2"
-          icon="mdi--translate"
+          icon="icon-[mdi--translate]"
           :icon-class="['h-6 w-6', { 'text-primary': showTrans }]"
           @click.stop="toggleTransBtn"
         />
@@ -860,7 +860,7 @@ const playModeIcon = computed(() => {
           variant="ghost"
           size="none"
           class="group p-2"
-          icon="mdi--alphabetical"
+          icon="icon-[mdi--alphabetical]"
           :icon-class="[
             'h-6 w-6 text-primary/70 group-hover:text-primary transition-colors',
             { 'text-primary': showRoma },
@@ -892,7 +892,7 @@ const playModeIcon = computed(() => {
           size="icon-lg"
           rounded="full"
           class="control-btn"
-          icon="mdi--skip-previous"
+          icon="icon-[mdi--skip-previous]"
           icon-class="text-primary h-8 w-8"
           @click="previous"
         />
@@ -915,7 +915,7 @@ const playModeIcon = computed(() => {
           size="icon-lg"
           rounded="full"
           class="control-btn"
-          icon="mdi--skip-next"
+          icon="icon-[mdi--skip-next]"
           icon-class="text-primary h-8 w-8"
           @click="next"
         />

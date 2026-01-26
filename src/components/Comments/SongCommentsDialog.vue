@@ -71,7 +71,7 @@ const close = () => (show.value = false)
             size="icon-lg"
             rounded="full"
             class="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
-            icon="mdi--close"
+            icon="icon-[mdi--close]"
             icon-class="h-4 w-4 text-primary"
             @click="close"
           />
