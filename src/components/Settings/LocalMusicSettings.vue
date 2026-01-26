@@ -214,7 +214,7 @@ const handlePlayOne = (music: any) => {
             class="text-primary/40 ml-3 rounded-lg p-2 transition-all hover:bg-red-500/10 hover:text-red-400"
             @click="handleDelete(music.id)"
             :title="t('common.delete')"
-            icon="mdi--trash-can-outline"
+            icon="icon-[mdi--trash-can-outline]"
             icon-class="h-5 w-5"
           />
         </div>

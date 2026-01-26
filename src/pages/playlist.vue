@@ -490,7 +490,7 @@ const tabsWithCount = computed(() =>
                         variant="ghost"
                         size="none"
                         class="text-primary/60 hover:text-primary flex items-center gap-1.5 transition-colors"
-                        icon="mdi--thumb-up-outline"
+                        icon="icon-[mdi--thumb-up-outline]"
                         icon-class="h-4 w-4"
                       >
                         <span class="font-medium">{{ comment.likes || '' }}</span>
@@ -499,7 +499,7 @@ const tabsWithCount = computed(() =>
                         variant="ghost"
                         size="none"
                         class="text-primary/60 hover:text-primary flex items-center gap-1.5 transition-colors"
-                        icon="mdi--reply"
+                        icon="icon-[mdi--reply]"
                         icon-class="h-4 w-4"
                       >
                         <span class="font-medium">{{ $t('comments.reply') }}</span>

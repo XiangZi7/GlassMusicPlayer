@@ -68,7 +68,7 @@ const visualizerGradient = computed(() => {
     return ['#3b82f6', '#8b5cf6', '#ec4899']
   }
   // 提取渐变中的颜色
-  const colors = state.footerGradient.map(color => {
+  const colors = state.footerGradient.map((color: string) => {
     const match = color.match(/rgba?\(([^)]+)\)/)
     if (match) {
       const values = match[1].split(',').slice(0, 3)
@@ -103,7 +103,7 @@ const updateLyricIndex = () => {
     return
   }
   const t = currentTime.value
-  let idx = times.findIndex((time, i) => {
+  let idx = times.findIndex((time: number, i: number) => {
     const next = times[i + 1]
     return t >= time && (next === undefined || t < next)
   })
@@ -127,7 +127,7 @@ watch(
 // 监听歌曲变化，提取颜色
 watch(
   () => currentSong.value,
-  song => {
+  (  song: { cover: string | undefined }) => {
     if (song?.cover) {
       extractCoverColors(song.cover)
     }
@@ -138,7 +138,7 @@ watch(
 // 监听播放状态，控制音频分析
 watch(
   isPlaying,
-  playing => {
+  (  playing: any) => {
     if (playing && audioVisualizer.value.enabledInFooter) {
       if (isAnalyserInitialized.value) {
         startAnalyser()
@@ -242,7 +242,7 @@ const emit = defineEmits(['show'])
           variant="text"
           size="none"
           @click="previous"
-          icon="mdi--skip-previous"
+          icon="icon-[mdi--skip-previous]"
           icon-class="size-6"
         />
         <Button
@@ -263,7 +263,7 @@ const emit = defineEmits(['show'])
           variant="text"
           size="none"
           @click="next"
-          icon="mdi--skip-next"
+          icon="icon-[mdi--skip-next]"
           icon-class="size-6"
         />
         <Button
@@ -284,7 +284,7 @@ const emit = defineEmits(['show'])
             <Button
               variant="text"
               size="none"
-              icon="mdi--playlist-music"
+              icon="icon-[mdi--playlist-music]"
               icon-class="size-6"
               class="text-primary/70 hover:text-primary flex items-center transition-colors"
             >

@@ -178,7 +178,7 @@ watch(visible, v => {
             variant="soft"
             size="icon-sm"
             rounded="full"
-            icon="mdi--close"
+            icon="icon-[mdi--close]"
             icon-class="h-4 w-4"
             class="absolute top-4 right-4 z-20"
             @click="visible = false"
@@ -289,7 +289,7 @@ watch(visible, v => {
                   (accountType === 'email' && !email) ||
                   !password
                 "
-                icon="mdi--login"
+                icon="icon-[mdi--login]"
                 class="mt-6"
                 @click="doPasswordLogin"
               >
@@ -347,7 +347,7 @@ watch(visible, v => {
                   size="md"
                   :loading="loading"
                   :disabled="loading"
-                  icon="mdi--refresh"
+                  icon="icon-[mdi--refresh]"
                   @click="genQr"
                 >
                   {{ t('auth.refreshQr') || '刷新二维码' }}

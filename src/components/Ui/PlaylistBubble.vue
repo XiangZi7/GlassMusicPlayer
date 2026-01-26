@@ -28,6 +28,8 @@ const open = computed({
 const triggerRef = ref<HTMLElement>()
 const bubbleRef = ref<HTMLElement>()
 const bubblePosition = ref({ top: 0, left: 0 })
+// 标记位置是否已计算完成，避免首次打开时从(0,0)位置移动过来的割裂感
+const positionReady = ref(false)
 
 // 计算气泡的绝对位置
 const updateBubblePosition = () => {
@@ -65,12 +67,18 @@ const updateBubblePosition = () => {
 // 监听打开状态，更新位置
 watch(open, isOpen => {
   if (isOpen) {
+    positionReady.value = false
     nextTick(() => {
       updateBubblePosition()
+      // 等待下一帧后再标记为ready，确保位置已应用
+      requestAnimationFrame(() => {
+        positionReady.value = true
+      })
       window.addEventListener('scroll', updateBubblePosition, true)
       window.addEventListener('resize', updateBubblePosition)
     })
   } else {
+    positionReady.value = false
     window.removeEventListener('scroll', updateBubblePosition, true)
     window.removeEventListener('resize', updateBubblePosition)
   }
@@ -175,210 +183,217 @@ const totalDuration = computed(() => {
     </div>
     <Teleport to="body">
       <Transition name="bubble">
-        <div v-if="open" ref="bubbleRef" :style="bubbleStyle">
+        <div
+          v-if="open"
+          ref="bubbleRef"
+          :style="bubbleStyle"
+          :class="{ 'bubble-positioning': !positionReady }"
+        >
           <template v-if="$slots.default">
             <slot></slot>
           </template>
           <template v-else>
-          <div class="playlist-bubble w-[360px] overflow-hidden rounded-xl shadow-2xl lg:w-[420px]">
-            <div class="bubble-header flex items-center justify-between px-4 py-3">
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600"
-                >
-                  <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
-                </div>
-                <div>
-                  <h4 class="bubble-title text-sm font-semibold">
-                    {{ $t('playlistBubble.title') }}
-                  </h4>
-                  <p class="bubble-subtitle text-xs">
-                    {{ playlist.length }} 首 · {{ formatDuration(totalDuration) }}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                rounded="lg"
-                icon="mdi--close"
-                icon-class="h-5 w-5"
-                class="bubble-close-btn"
-                @click="open = false"
-              />
-            </div>
-
-            <div class="bubble-toolbar flex items-center gap-2 px-4 py-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                rounded="lg"
-                icon="mdi--checkbox-multiple-outline"
-                icon-class="h-4 w-4"
-                class="toolbar-btn"
-                @click="selectAll"
-              >
-                全选
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                rounded="lg"
-                icon="mdi--playlist-plus"
-                icon-class="h-4 w-4"
-                class="toolbar-btn"
-                :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
-                :disabled="selectedCount === 0"
-                :title="$t('playlistBubble.queueNextSelected')"
-                @click="doQueueNextSelected"
-              >
-                下一首播放
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                rounded="lg"
-                icon="mdi--delete-outline"
-                icon-class="h-4 w-4"
-                class="toolbar-btn toolbar-btn-delete"
-                :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
-                :disabled="selectedCount === 0"
-                :title="$t('playlistBubble.deleteSelected')"
-                @click="doDeleteSelected"
-              >
-                删除
-                <span v-if="selectedCount > 0" class="selected-badge rounded px-1.5 text-[10px]">{{
-                  selectedCount
-                }}</span>
-              </Button>
-              <div class="flex-1"></div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                rounded="lg"
-                icon="mdi--delete-sweep"
-                icon-class="h-4 w-4"
-                class="toolbar-btn-clear"
-                :title="$t('playlistBubble.clearAll')"
-                @click="doClearAll"
-              />
-            </div>
-
             <div
-              v-if="playlist.length"
-              class="bubble-list custom-scrollbar max-h-[400px] overflow-y-auto"
+              class="playlist-bubble w-[360px] overflow-hidden rounded-xl shadow-2xl lg:w-[420px]"
             >
-              <div
-                v-for="(s, i) in playlist"
-                :key="s.id || i"
-                class="playlist-item group relative flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all"
-                :class="{
-                  'item-current': isCurrent(s),
-                  'bg-pink-500/20': dragOverIndex === i && draggingIndex !== i,
-                  'opacity-50': draggingIndex === i,
-                }"
-                draggable="true"
-                @dragstart="onDragStart(i)"
-                @dragover="e => onDragOver(e, i)"
-                @dragleave="onDragLeave"
-                @drop="onDrop(i)"
-                @dragend="onDragEnd"
-                @dblclick.stop="playByIndex(i)"
-              >
-                <div class="flex w-6 shrink-0 items-center justify-center">
-                  <input
-                    type="checkbox"
-                    :checked="selected[s.id as any]"
-                    class="playlist-checkbox h-4 w-4 cursor-pointer rounded border-2 bg-transparent transition-all checked:border-pink-500 checked:bg-pink-500"
-                    @change="toggleSelect(s.id as any)"
-                    @click.stop
-                  />
-                </div>
-
-                <div class="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
-                  <img
-                    v-if="s.cover"
-                    :src="s.cover + '?param=100y100'"
-                    alt=""
-                    class="h-full w-full object-cover"
-                  />
+              <div class="bubble-header flex items-center justify-between px-4 py-3">
+                <div class="flex items-center gap-3">
                   <div
-                    v-else
-                    class="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-500 to-purple-600"
+                    class="flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600"
                   >
-                    <span class="icon-[mdi--music-note] h-5 w-5 text-white"></span>
+                    <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
                   </div>
-                  <div
-                    v-if="isCurrent(s)"
-                    class="absolute inset-0 flex items-center justify-center bg-black/50"
-                  >
-                    <div v-if="isPlaying" class="playing-bars flex items-end gap-0.5">
-                      <span class="bar"></span>
-                      <span class="bar"></span>
-                      <span class="bar"></span>
-                      <span class="bar"></span>
-                    </div>
-                    <span v-else class="icon-[mdi--pause] h-5 w-5 text-white"></span>
+                  <div>
+                    <h4 class="bubble-title text-sm font-semibold">
+                      {{ $t('playlistBubble.title') }}
+                    </h4>
+                    <p class="bubble-subtitle text-xs">
+                      {{ playlist.length }} 首 · {{ formatDuration(totalDuration) }}
+                    </p>
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  rounded="lg"
+                  icon="icon-[mdi--close]"
+                  icon-class="h-5 w-5"
+                  class="bubble-close-btn"
+                  @click="open = false"
+                />
+              </div>
 
-                <div class="min-w-0 flex-1">
-                  <p
-                    class="song-name truncate text-sm font-medium"
-                    :class="{ 'song-name-active': isCurrent(s) }"
-                  >
-                    {{ s.name }}
-                  </p>
-                  <p class="song-artist truncate text-xs">{{ s.artist }}</p>
-                </div>
-
-                <div class="flex shrink-0 items-center">
-                  <span class="song-duration mr-2 text-xs">{{ formatDuration(s.duration) }}</span>
-                  <div
-                    class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="none"
-                      rounded="lg"
-                      icon="mdi--playlist-plus"
-                      icon-class="h-4 w-4"
-                      class="action-btn p-1.5"
-                      :title="$t('playlistBubble.actions.queueNext')"
-                      @click.stop="queueNext(s.id as any)"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="none"
-                      rounded="lg"
-                      icon="mdi--delete-outline"
-                      icon-class="h-4 w-4"
-                      class="action-btn action-btn-delete p-1.5"
-                      :title="$t('playlistBubble.actions.delete')"
-                      @click.stop="removeSong(s.id as any)"
-                    />
-                  </div>
-                </div>
-
-                <div
-                  class="drag-handle absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100"
+              <div class="bubble-toolbar flex items-center gap-2 px-4 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  rounded="lg"
+                  icon="icon-[mdi--checkbox-multiple-outline]"
+                  icon-class="h-4 w-4"
+                  class="toolbar-btn"
+                  @click="selectAll"
                 >
-                  <span class="icon-[mdi--drag-vertical] h-full w-full"></span>
+                  全选
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  rounded="lg"
+                  icon="icon-[mdi--playlist-plus]"
+                  icon-class="h-4 w-4"
+                  class="toolbar-btn"
+                  :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
+                  :disabled="selectedCount === 0"
+                  :title="$t('playlistBubble.queueNextSelected')"
+                  @click="doQueueNextSelected"
+                >
+                  下一首播放
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  rounded="lg"
+                  icon="icon-[mdi--delete-outline]"
+                  icon-class="h-4 w-4"
+                  class="toolbar-btn toolbar-btn-delete"
+                  :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
+                  :disabled="selectedCount === 0"
+                  :title="$t('playlistBubble.deleteSelected')"
+                  @click="doDeleteSelected"
+                >
+                  删除
+                  <span v-if="selectedCount > 0" class="selected-badge  rounded px-1.5">{{
+                    selectedCount
+                  }}</span>
+                </Button>
+                <div class="flex-1"></div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  rounded="lg"
+                  icon="icon-[mdi--delete-sweep]"
+                  icon-class="h-4 w-4"
+                  class="toolbar-btn-clear"
+                  :title="$t('playlistBubble.clearAll')"
+                  @click="doClearAll"
+                />
+              </div>
+
+              <div
+                v-if="playlist.length"
+                class="bubble-list custom-scrollbar max-h-[400px] overflow-y-auto"
+              >
+                <div
+                  v-for="(s, i) in playlist"
+                  :key="s.id || i"
+                  class="playlist-item group relative flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all"
+                  :class="{
+                    'item-current': isCurrent(s),
+                    'bg-pink-500/20': dragOverIndex === i && draggingIndex !== i,
+                    'opacity-50': draggingIndex === i,
+                  }"
+                  draggable="true"
+                  @dragstart="onDragStart(i)"
+                  @dragover="e => onDragOver(e, i)"
+                  @dragleave="onDragLeave"
+                  @drop="onDrop(i)"
+                  @dragend="onDragEnd"
+                  @dblclick.stop="playByIndex(i)"
+                >
+                  <div class="flex w-6 shrink-0 items-center justify-center">
+                    <input
+                      type="checkbox"
+                      :checked="selected[s.id as any]"
+                      class="playlist-checkbox h-4 w-4 cursor-pointer rounded border-2 bg-transparent transition-all checked:border-pink-500 checked:bg-pink-500"
+                      @change="toggleSelect(s.id as any)"
+                      @click.stop
+                    />
+                  </div>
+
+                  <div class="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
+                    <img
+                      v-if="s.cover"
+                      :src="s.cover + '?param=100y100'"
+                      alt=""
+                      class="h-full w-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-500 to-purple-600"
+                    >
+                      <span class="icon-[mdi--music-note] h-5 w-5 text-white"></span>
+                    </div>
+                    <div
+                      v-if="isCurrent(s)"
+                      class="absolute inset-0 flex items-center justify-center bg-black/50"
+                    >
+                      <div v-if="isPlaying" class="playing-bars flex items-end gap-0.5">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                      </div>
+                      <span v-else class="icon-[mdi--pause] h-5 w-5 text-white"></span>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <p
+                      class="song-name truncate text-sm font-medium"
+                      :class="{ 'song-name-active': isCurrent(s) }"
+                    >
+                      {{ s.name }}
+                    </p>
+                    <p class="song-artist truncate text-xs">{{ s.artist }}</p>
+                  </div>
+
+                  <div class="flex shrink-0 items-center">
+                    <span class="song-duration mr-2 text-xs">{{ formatDuration(s.duration) }}</span>
+                    <div
+                      class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Button
+                        variant="ghost"
+                        size="none"
+                        rounded="lg"
+                        icon="icon-[mdi--playlist-plus]"
+                        icon-class="h-4 w-4"
+                        class="action-btn p-1.5"
+                        :title="$t('playlistBubble.actions.queueNext')"
+                        @click.stop="queueNext(s.id as any)"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="none"
+                        rounded="lg"
+                        icon="icon-[mdi--delete-outline]"
+                        icon-class="h-4 w-4"
+                        class="action-btn action-btn-delete p-1.5"
+                        :title="$t('playlistBubble.actions.delete')"
+                        @click.stop="removeSong(s.id as any)"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    class="drag-handle absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <span class="icon-[mdi--drag-vertical] h-full w-full"></span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div v-else class="empty-state flex flex-col items-center justify-center py-16">
-              <div class="empty-icon mb-3 rounded-full p-4">
-                <span class="icon-[mdi--playlist-remove] h-10 w-10"></span>
+              <div v-else class="empty-state flex flex-col items-center justify-center py-16">
+                <div class="empty-icon mb-3 rounded-full p-4">
+                  <span class="icon-[mdi--playlist-remove] h-10 w-10"></span>
+                </div>
+                <p class="empty-text text-sm">播放列表为空</p>
+                <p class="empty-hint mt-1 text-xs">双击歌曲即可添加到播放列表</p>
               </div>
-              <p class="empty-text text-sm">播放列表为空</p>
-              <p class="empty-hint mt-1 text-xs">双击歌曲即可添加到播放列表</p>
             </div>
-          </div>
-        </template>
-      </div>
-    </Transition>
+          </template>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -572,13 +587,21 @@ const totalDuration = computed(() => {
 
 .bubble-enter-active,
 .bubble-leave-active {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .bubble-enter-from,
 .bubble-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.95);
+}
+
+/* 位置计算完成前隐藏元素，避免从(0,0)位置移动的割裂感 */
+.bubble-positioning {
+  visibility: hidden !important;
+  pointer-events: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

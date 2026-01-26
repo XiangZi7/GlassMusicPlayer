@@ -31,7 +31,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       size="icon-lg"
       rounded="full"
       class="info-trigger flex h-7 w-7 items-center justify-center rounded-full"
-      icon="mdi--information-outline"
+      icon="icon-[mdi--information-outline]"
       icon-class="h-4 w-4 text-primary/60"
       @click.stop="toggle"
     />

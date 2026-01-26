@@ -145,7 +145,7 @@ const handleClear = () => {
               variant="ghost"
               size="none"
               class="text-primary/60 hover:text-primary flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/5"
-              icon="mdi--trash-can-outline"
+              icon="icon-[mdi--trash-can-outline]"
               icon-class="h-4 w-4"
               @click="handleClear"
             />
@@ -206,7 +206,7 @@ const handleClear = () => {
                   variant="ghost"
                   size="none"
                   class="ml-2 p-2 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 active:opacity-100"
-                  icon="mdi--close"
+                  icon="icon-[mdi--close]"
                   icon-class="text-primary/40 hover:text-primary h-4 w-4"
                   @click.stop="removeSong(song.id)"
                 />

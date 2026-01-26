@@ -153,7 +153,7 @@ watch(
                     variant="ghost"
                     size="sm"
                     class="text-primary/70 flex items-center gap-2 text-sm font-medium transition-colors hover:text-pink-400"
-                    icon="mdi--account-music"
+                    icon="icon-[mdi--account-music]"
                     icon-class="h-5 w-5"
                     @click="router.push(`/artist/${currentMV.artistId}`)"
                   >
@@ -193,7 +193,7 @@ watch(
                     variant="glass"
                     size="md"
                     class="text-primary flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all hover:text-pink-400"
-                    icon="mdi--share-variant-outline"
+                    icon="icon-[mdi--share-variant-outline]"
                     icon-class="h-5 w-5"
                     @click="shareMV"
                   >
@@ -242,7 +242,7 @@ watch(
                           variant="ghost"
                           size="none"
                           class="text-primary/40 flex items-center gap-1.5 text-xs transition-colors hover:text-pink-400"
-                          icon="mdi--thumb-up-outline"
+                          icon="icon-[mdi--thumb-up-outline]"
                           icon-class="h-4 w-4"
                         >
                           {{ c.likes || '' }}
@@ -251,7 +251,7 @@ watch(
                           variant="ghost"
                           size="none"
                           class="text-primary/40 hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
-                          icon="mdi--reply"
+                          icon="icon-[mdi--reply]"
                           icon-class="h-4 w-4"
                         >
                           {{ t('mvPlayer.comments.reply') }}

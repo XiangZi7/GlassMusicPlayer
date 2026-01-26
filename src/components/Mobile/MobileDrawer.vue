@@ -114,7 +114,7 @@ onClickOutside(drawerRef, () => {
             variant="ghost"
             size="icon-md"
             rounded="full"
-            icon="mdi--close"
+            icon="icon-[mdi--close]"
             icon-class="h-6 w-6"
             @click="isOpen = false"
           />

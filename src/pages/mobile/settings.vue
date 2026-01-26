@@ -221,7 +221,7 @@ const romaChecked = computed({
             size="none"
             class="mode-chip"
             :class="{ active: originalChecked }"
-            icon="mdi--format-text"
+            icon="icon-[mdi--format-text]"
             icon-class="h-3.5 w-3.5"
             @click="originalChecked = !originalChecked"
           >
@@ -232,7 +232,7 @@ const romaChecked = computed({
             size="none"
             class="mode-chip"
             :class="{ active: transChecked }"
-            icon="mdi--translate"
+            icon="icon-[mdi--translate]"
             icon-class="h-3.5 w-3.5"
             @click="transChecked = !transChecked"
           >
@@ -243,7 +243,7 @@ const romaChecked = computed({
             size="none"
             class="mode-chip"
             :class="{ active: romaChecked }"
-            icon="mdi--alphabetical"
+            icon="icon-[mdi--alphabetical]"
             icon-class="h-3.5 w-3.5"
             @click="romaChecked = !romaChecked"
           >

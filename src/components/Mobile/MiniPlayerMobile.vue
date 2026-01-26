@@ -125,7 +125,7 @@ onUnmounted(() => {
       <Button
         size="icon-lg"
         rounded="full"
-        icon="mdi--skip-next"
+        icon="icon-[mdi--skip-next]"
         icon-class="h-5 w-5"
         class="ml-1"
         :title="$t('playlistBubble.actions.queueNext')"

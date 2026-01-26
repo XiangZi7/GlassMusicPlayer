@@ -301,7 +301,7 @@ watch(
             variant="ghost"
             size="none"
             class="clear-btn flex h-7 w-7 items-center justify-center rounded-full transition-all"
-            icon="mdi--close-circle"
+            icon="icon-[mdi--close-circle]"
             icon-class="h-4 w-4"
             :title="$t('common.clear')"
             @click="clearQuery"
@@ -310,7 +310,7 @@ watch(
             variant="gradient"
             size="none"
             class="search-btn text-white flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium transition-all active:scale-95"
-            icon="mdi--magnify"
+            icon="icon-[mdi--magnify]"
             icon-class="h-4 w-4"
             @click="handleSearchClick"
           >
@@ -386,7 +386,7 @@ watch(
                 variant="gradient"
                 size="none"
                 class="play-all-button text-white flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all duration-200 active:scale-95"
-                icon="mdi--play"
+                icon="icon-[mdi--play]"
                 icon-class="h-4 w-4"
                 @click="playAllSongs"
               >
