@@ -6,13 +6,14 @@ import Footer from './footer.vue'
 import Aurora from '@/components/Background/Aurora.vue'
 import ColorBends from '@/components/Background/ColorBends.vue'
 import Ultimate from '@/components/Background/Ultimate.vue'
+import ShadowBling from '@/components/Background/ShadowBling.vue'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import type { Component } from 'vue'
 import { useSettingsStore } from '@/stores/modules/settings'
 
 const settings = useSettingsStore()
-const { aurora, colorBends, ultimate, backgroundType } = storeToRefs(settings)
+const { aurora, colorBends, ultimate, shadowBling, backgroundType } = storeToRefs(settings)
 
 // 抽屉状态
 const state = reactive({
@@ -35,12 +36,13 @@ const openPlayerDrawer = () => {
   state.isDrawerOpen = true
 }
 
-type BackgroundType = 'colorbends' | 'ultimate' | 'aurora'
+type BackgroundType = 'colorbends' | 'ultimate' | 'aurora' | 'shadowBling'
 
 const backgroundComponents: Record<BackgroundType, Component> = {
   colorbends: ColorBends,
   ultimate: Ultimate,
   aurora: Aurora,
+  shadowBling: ShadowBling,
 }
 
 const backgroundPropsMap = computed<Record<BackgroundType, any>>(() => ({
@@ -51,6 +53,7 @@ const backgroundPropsMap = computed<Record<BackgroundType, any>>(() => ({
     colorPositions: positions.value,
     colorStops: colorStops.value,
   },
+  shadowBling: shadowBling.value,
 }))
 
 const currentBackgroundType = computed<BackgroundType>(() => backgroundType.value as BackgroundType)

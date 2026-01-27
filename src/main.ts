@@ -19,11 +19,19 @@ import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
 import { useWindowSize, useDebounceFn, usePreferredDark } from '@vueuse/core'
 
+// 动画指令
+import { animationDirectives } from '@/directives/animations'
+
 const app = createApp(App)
 
 app.use(Pinia)
 app.use(router)
 app.use(I18n)
+
+// 注册全局动画指令
+Object.entries(animationDirectives).forEach(([name, directive]) => {
+  app.directive(name, directive)
+})
 
 app.mount('#app')
 

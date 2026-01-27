@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAudio } from '@/composables/useAudio'
+import { useSharedElement } from '@/composables/useSharedElement'
 import type { Song } from '@/stores/interface'
 import { formatDuration } from '@/utils/time'
 import { RouterLink, useRouter } from 'vue-router'
@@ -36,14 +37,55 @@ const emit = defineEmits<Emits>()
 const router = useRouter()
 const { setPlaylist, play, currentSong, isPlaying } = useAudio()
 const { t } = useI18n()
+const { flyTo, createRipple } = useSharedElement()
 
-const playSong = async (song: Song, index: number) => {
+// 歌曲封面飞行动画
+const playSongWithAnimation = async (song: Song, index: number, event?: MouseEvent) => {
   try {
-    setPlaylist(props.songs, index)
-    play(props.songs[index], index)
+    // 获取源封面元素和目标元素
+    const sourceCover = document.getElementById(`song-cover-${song.id}`)
+    const targetCover = document.getElementById('footer-cover')
+
+    // 如果有点击事件，添加涟漪效果
+    if (event && sourceCover) {
+      const container = sourceCover.closest('.song-item') as HTMLElement
+      if (container) {
+        createRipple(event, container, 'rgba(236, 72, 153, 0.3)')
+      }
+    }
+
+    // 如果能获取到元素，执行飞行动画
+    if (sourceCover && targetCover && song.cover) {
+      // 先设置播放列表
+      setPlaylist(props.songs, index)
+
+      // 执行抛物线飞行动画
+      await flyTo(sourceCover, targetCover, song.cover + '?param=128x128', {
+        duration: 0.55,
+        ease: 'power2.out',
+        borderRadius: { from: '8px', to: '8px' },
+        scale: { from: 1, to: 1 },
+        onComplete: () => {
+          // 动画完成后播放
+          play(props.songs[index], index)
+        }
+      })
+    } else {
+      // 降级：直接播放
+      setPlaylist(props.songs, index)
+      play(props.songs[index], index)
+    }
+
     emit('play', song, index)
   } catch {}
 }
+
+const playSong = async (song: Song, index: number) => {
+  await playSongWithAnimation(song, index)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _playSong = playSong // 保留以备将来使用
 
 const isCurrent = (s: Song) => {
   const cur = currentSong.value
@@ -118,7 +160,7 @@ const downloadSong = (song: Song, index: number) => {
           :key="song.id || index"
           class="song-item group flex cursor-pointer items-center rounded-xl p-2 hover:bg-white/10"
           :class="isCurrent(song) ? 'bg-white/10' : ''"
-          @dblclick="playSong(song, index)"
+          @dblclick="(e) => playSongWithAnimation(song, index, e)"
         >
           <!-- 序号/播放状态 -->
           <div class="flex w-14 shrink-0 items-center justify-center text-center">
@@ -138,7 +180,7 @@ const downloadSong = (song: Song, index: number) => {
               variant="text"
               size="none"
               class="hidden! transition-colors group-hover:block! hover:text-pink-400"
-              @click.stop="playSong(song, index)"
+              @click.stop="(e: MouseEvent) => playSongWithAnimation(song, index, e)"
             >
               <span class="icon-[mdi--play] h-6 w-6"></span>
             </Button>
@@ -147,6 +189,7 @@ const downloadSong = (song: Song, index: number) => {
           <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
             <div class="col-span-4 flex items-center space-x-4">
               <div
+                :id="`song-cover-${song.id}`"
                 class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-md transition-shadow group-hover:shadow-lg"
               >
                 <LazyImage

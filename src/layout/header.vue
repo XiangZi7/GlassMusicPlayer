@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import LoginDialog from '@/components/Auth/LoginDialog.vue'
-import Button from '@/components/Ui/Button.vue'
-import { useUserStore } from '@/stores/modules/user'
-import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -84,7 +80,7 @@ onMounted(() => {
 onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 </script>
 <template>
-  <header class="glass-nav m-4 flex items-center justify-between p-4">
+  <header class="glass-nav m-4 flex items-center justify-between p-4 py-3">
     <!-- 左侧菜单栏 -->
     <div class="flex items-center space-x-6">
       <!-- Logo -->
@@ -181,7 +177,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           variant="ghost"
           size="icon-md"
           rounded="full"
-          class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
+          class="rounded-full transition-opacity duration-150"
           :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'pointer-events-none opacity-0'"
           :title="t('common.clear')"
           icon="icon-[mdi--close]"
@@ -201,7 +197,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             <li
               v-for="opt in searchHistory"
               :key="opt"
-              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-glass-contrast hover:bg-hover-glass"
+              class="group text-glass-contrast hover:bg-hover-glass relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm"
               @mousedown.prevent="selectHistory(opt)"
             >
               <span class="truncate pr-8">{{ opt }}</span>

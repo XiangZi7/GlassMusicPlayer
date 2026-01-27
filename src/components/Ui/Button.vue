@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { gsap } from 'gsap'
 
 type ClassBinding = string | Record<string, boolean> | (string | Record<string, boolean>)[]
 
@@ -18,6 +19,8 @@ interface Props {
   type?: 'button' | 'submit' | 'reset'
   gradientColors?: string[]
   ripple?: boolean
+  pulse?: boolean // 脉冲光环效果
+  press3d?: boolean // 3D 按压效果
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -30,6 +33,8 @@ const props = withDefaults(defineProps<Props>(), {
   type: 'button',
   iconClass: 'h-5 w-5',
   ripple: true,
+  pulse: false,
+  press3d: false,
 })
 
 // 波纹效果
@@ -42,6 +47,12 @@ const createRipple = (e: MouseEvent) => {
 
   const el = buttonRef.value
   if (!el) return
+
+  // 确保按钮有定位上下文（如果还没有的话）
+  const computedStyle = window.getComputedStyle(el)
+  if (computedStyle.position === 'static') {
+    el.style.position = 'relative'
+  }
 
   const rect = el.getBoundingClientRect()
   const size = Math.max(rect.width, rect.height) * 2
@@ -56,6 +67,82 @@ const createRipple = (e: MouseEvent) => {
     ripples.value = ripples.value.filter(r => r.id !== id)
   }, 600)
 }
+
+// 3D 按压效果
+const handleMouseDown = () => {
+  if (!props.press3d || !buttonRef.value || props.disabled || props.loading) return
+
+  gsap.to(buttonRef.value, {
+    scale: 0.92,
+    rotateX: 8,
+    rotateY: -3,
+    duration: 0.1,
+    ease: 'power2.out',
+  })
+}
+
+const handleMouseUp = () => {
+  if (!props.press3d || !buttonRef.value) return
+
+  gsap.to(buttonRef.value, {
+    scale: 1,
+    rotateX: 0,
+    rotateY: 0,
+    duration: 0.4,
+    ease: 'elastic.out(1, 0.4)',
+  })
+}
+
+// 脉冲效果
+const createPulse = () => {
+  if (!props.pulse || !buttonRef.value || props.disabled || props.loading) return
+
+  const el = buttonRef.value
+  const parent = el.parentElement
+  if (!parent) return
+
+  const rect = el.getBoundingClientRect()
+  const parentRect = parent.getBoundingClientRect()
+
+  const pulse = document.createElement('div')
+  pulse.className = 'btn-pulse-ring'
+  pulse.style.cssText = `
+    position: absolute;
+    width: ${rect.width}px;
+    height: ${rect.height}px;
+    left: ${rect.left - parentRect.left}px;
+    top: ${rect.top - parentRect.top}px;
+    border-radius: 100%;
+    border: 2px solid currentColor;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.6;
+  `
+
+  parent.style.position = parent.style.position || 'relative'
+  parent.appendChild(pulse)
+
+  gsap.to(pulse, {
+    scale: 1.6,
+    opacity: 0,
+    duration: 0.7,
+    ease: 'power2.out',
+    onComplete: () => pulse.remove(),
+  })
+}
+
+// 处理点击，添加脉冲效果
+const handleClick = (e: MouseEvent) => {
+  createRipple(e)
+  createPulse()
+}
+
+onMounted(() => {
+  if (props.press3d && buttonRef.value) {
+    buttonRef.value.style.transformStyle = 'preserve-3d'
+    buttonRef.value.style.perspective = '800px'
+  }
+})
 
 const componentType = computed(() => {
   if (props.to) return RouterLink
@@ -160,10 +247,13 @@ const gradientStyle = computed(() => {
     :to="to"
     :href="href"
     :type="!to && !href ? type : undefined"
-    :class="[classes, { 'relative overflow-hidden': ripple }]"
+    :class="[classes, { 'overflow-hidden': ripple, 'btn-3d': press3d }]"
     :style="gradientStyle"
     :disabled="disabled || loading"
-    @click="createRipple"
+    @click="handleClick"
+    @mousedown="handleMouseDown"
+    @mouseup="handleMouseUp"
+    @mouseleave="handleMouseUp"
   >
     <!-- 波纹效果 -->
     <span
@@ -220,6 +310,44 @@ const gradientStyle = computed(() => {
   to {
     transform: scale(1);
     opacity: 0;
+  }
+}
+
+/* 3D 按压效果 */
+.btn-3d {
+  transform-style: preserve-3d;
+  perspective: 800px;
+  will-change: transform;
+}
+
+/* 渐变播放按钮增强 */
+.play-btn {
+  position: relative;
+}
+
+.play-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6, #ec4899);
+  background-size: 200% 200%;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  animation: gradient-rotate 3s ease infinite;
+}
+
+.play-btn:hover::before {
+  opacity: 0.6;
+}
+
+@keyframes gradient-rotate {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }
 </style>

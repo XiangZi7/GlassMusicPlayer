@@ -82,6 +82,14 @@
     border-color: var(--glass-border-default);
   }
 
+  .ring-glass {
+    --tw-ring-color: var(--glass-border-default);
+  }
+
+  .divide-glass > :not(:last-child) {
+    border-color: var(--glass-border-default);
+  }
+
   .bg-hover-glass {
     background: var(--glass-interactive-hover-muted);
   }

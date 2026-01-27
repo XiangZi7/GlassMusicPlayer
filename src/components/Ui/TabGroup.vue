@@ -21,10 +21,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
+  'update:modelValue': [value: T]
   'click': [value: T]
 }>()
 
 const handleTabClick = (key: T) => {
+  emit('update:modelValue', key)
   emit('click', key)
 }
 </script>

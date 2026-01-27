@@ -25,6 +25,9 @@ const ColorBendsSettingsPanel = defineAsyncComponent(
 const UltimateSettingsPanel = defineAsyncComponent(
   () => import('@/components/Background/UltimateSettingsPanel.vue')
 )
+const ShadowBlingSettingsPanel = defineAsyncComponent(
+  () => import('@/components/Background/ShadowBlingSettingsPanel.vue')
+)
 const settings = useSettingsStore()
 const { backgroundType, footerLyrics, audioQuality, audioVisualizer } = storeToRefs(settings)
 const globalStore = useGlobalStore()
@@ -248,7 +251,9 @@ const romaChecked = computed({
               ? ColorBendsSettingsPanel
               : backgroundType === 'aurora'
                 ? AuroraSettingsPanel
-                : UltimateSettingsPanel
+                : backgroundType === 'shadowBling'
+                  ? ShadowBlingSettingsPanel
+                  : UltimateSettingsPanel
           "
         />
       </div>

@@ -202,6 +202,7 @@ const emit = defineEmits(['show'])
       <!-- 左侧：当前歌曲信息 -->
       <div class="flex min-w-0 flex-1 space-x-4">
         <div
+          id="footer-cover"
           @click="emit('show')"
           class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg bg-cover transition-all duration-300 hover:scale-105 hover:shadow-lg"
           :style="{
@@ -210,7 +211,7 @@ const emit = defineEmits(['show'])
               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           }"
         ></div>
-        <div class="flex min-w-0 flex-col justify-around">
+        <div id="footer-song-info" class="flex min-w-0 flex-col justify-around">
           <p class="text-primary truncate text-sm font-medium">
             {{ currentSong?.name || t('player.unknownSong') }}
           </p>
@@ -252,6 +253,8 @@ const emit = defineEmits(['show'])
           @click="togglePlay"
           :title="isPlaying ? t('player.pause') : t('player.play')"
           :loading="isLoading"
+          :pulse="true"
+          :press3d="true"
         >
           <span
             v-if="!isLoading"

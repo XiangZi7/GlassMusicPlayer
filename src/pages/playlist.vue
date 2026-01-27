@@ -264,7 +264,7 @@ const tabsWithCount = computed(() =>
                 <!-- 封面 -->
                 <div class="group relative mx-auto w-56 shrink-0 lg:mx-0 lg:w-72">
                   <div
-                    class="aspect-square overflow-hidden rounded-3xl shadow-2xl ring-1 ring-(--glass-border)"
+                    class="aspect-square overflow-hidden rounded-3xl shadow-2xl ring-1 ring-glass"
                   >
                     <LazyImage
                       :src="playlistInfo.coverImgUrl + '?param=400y400'"
@@ -276,7 +276,7 @@ const tabsWithCount = computed(() =>
                   <Button
                     variant="ghost"
                     size="none"
-                    class="absolute inset-0 rounded-3xl opacity-0 transition-all duration-300 group-hover:opacity-100"
+                    class="absolute! inset-0 flex items-center justify-center rounded-3xl opacity-0 transition-all duration-300 group-hover:opacity-100"
                     @click="playAll"
                   >
                     <div
@@ -301,7 +301,7 @@ const tabsWithCount = computed(() =>
                     <img
                       v-if="playlistInfo.creatorAvatar"
                       :src="playlistInfo.creatorAvatar + '?param=80y80'"
-                      class="h-8 w-8 rounded-full ring-2 ring-(--glass-border)"
+                      class="h-8 w-8 rounded-full ring-2 ring-glass"
                     />
                     <span class="text-primary font-medium">{{ playlistInfo.creator }}</span>
                     <span class="text-primary/40">•</span>
@@ -455,7 +455,7 @@ const tabsWithCount = computed(() =>
             </div>
 
             <!-- 评论列表 -->
-            <div v-if="comments.length" class="divide-y divide-(--glass-border)">
+            <div v-if="comments.length" class="divide-y divide-glass">
               <div
                 v-for="(comment, index) in comments"
                 :key="index"
@@ -465,7 +465,7 @@ const tabsWithCount = computed(() =>
                   <img
                     v-if="comment.avatarUrl"
                     :src="comment.avatarUrl + '?param=100y100'"
-                    class="h-11 w-11 shrink-0 rounded-full ring-2 ring-(--glass-border)"
+                    class="h-11 w-11 shrink-0 rounded-full ring-2 ring-glass"
                   />
                   <div
                     v-else
@@ -515,7 +515,7 @@ const tabsWithCount = computed(() =>
                         <img
                           v-if="reply.avatarUrl"
                           :src="reply.avatarUrl + '?param=80y80'"
-                          class="h-8 w-8 shrink-0 rounded-full ring-1 ring-(--glass-border)"
+                          class="h-8 w-8 shrink-0 rounded-full ring-1 ring-glass"
                         />
                         <div class="min-w-0 flex-1">
                           <span class="text-primary text-xs font-semibold">{{
