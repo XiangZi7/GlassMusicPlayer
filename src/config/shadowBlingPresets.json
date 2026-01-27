@@ -1,0 +1,123 @@
+[
+  {
+    "id": "default",
+    "name": "Obsidian Flow",
+    "nameZh": "黑曜石流光",
+    "description": "Classic monochrome elegance with subtle shimmer. Perfect for dark mode.",
+    "params": {
+      "bgColors": ["#000000", "#ffffff", "#808080"],
+      "speed": 1.0,
+      "intensity": 1.0
+    }
+  },
+  {
+    "id": "cyberpunk",
+    "name": "Neon City",
+    "nameZh": "霓虹赛博",
+    "description": "High contrast neon lights reflecting on wet pavement. Cyberpunk aesthetic.",
+    "params": {
+      "bgColors": ["#2b002b", "#00f0ff", "#ff0099"],
+      "speed": 1.8,
+      "intensity": 1.4
+    }
+  },
+  {
+    "id": "sunset",
+    "name": "Liquid Sunset",
+    "nameZh": "液态日落",
+    "description": "Warm gradients melting into twilight. Relaxing and energetic.",
+    "params": {
+      "bgColors": ["#4a0e0e", "#ffaa00", "#ff5500"],
+      "speed": 0.6,
+      "intensity": 1.2
+    }
+  },
+  {
+    "id": "ocean",
+    "name": "Deep Sea",
+    "nameZh": "深海幽蓝",
+    "description": "Calm, mysterious depths with bioluminescent hints.",
+    "params": {
+      "bgColors": ["#000510", "#004488", "#002244"],
+      "speed": 0.4,
+      "intensity": 0.8
+    }
+  },
+  {
+    "id": "golden",
+    "name": "Gilded Silk",
+    "nameZh": "流金岁月",
+    "description": "Luxurious metallic gold flowing smoothly. Premium feel.",
+    "params": {
+      "bgColors": ["#332200", "#ffd700", "#bf9b30"],
+      "speed": 0.7,
+      "intensity": 1.1
+    }
+  },
+  {
+    "id": "mint",
+    "name": "Fresh Mint",
+    "nameZh": "清新薄荷",
+    "description": "Bright and airy vibe with soft greens. Clean and modern.",
+    "params": {
+      "bgColors": ["#e0f7fa", "#00bfa5", "#80cbc4"],
+      "speed": 1.2,
+      "intensity": 0.9
+    }
+  },
+  {
+    "id": "cotton-candy",
+    "name": "Dreamy Cloud",
+    "nameZh": "梦幻棉花糖",
+    "description": "Soft pastel pinks and blues. Playful and light.",
+    "params": {
+      "bgColors": ["#f3e5f5", "#81d4fa", "#ff80ab"],
+      "speed": 0.5,
+      "intensity": 0.6
+    }
+  },
+  {
+    "id": "aurora",
+    "name": "Northern Lights",
+    "nameZh": "极光幻境",
+    "description": "Ethereal mix of greens, purples, and blues dancing in the dark.",
+    "params": {
+      "bgColors": ["#000000", "#00ff88", "#aa00ff"],
+      "speed": 1.5,
+      "intensity": 1.3
+    }
+  },
+  {
+    "id": "lava",
+    "name": "Molten Core",
+    "nameZh": "熔岩核心",
+    "description": "Intense heat and energy with dark reds and bright yellows.",
+    "params": {
+      "bgColors": ["#1a0000", "#ff0000", "#ffcc00"],
+      "speed": 2.0,
+      "intensity": 1.5
+    }
+  },
+  {
+    "id": "royal",
+    "name": "Royal Velvet",
+    "nameZh": "皇家丝绒",
+    "description": "Deep purple and gold for a majestic and rich appearance.",
+    "params": {
+      "bgColors": ["#1a0033", "#ffd700", "#4b0082"],
+      "speed": 0.8,
+      "intensity": 1.0
+    }
+  },
+  {
+    "id": "toxic",
+    "name": "Toxic Sludge",
+    "nameZh": "酸性废土",
+    "description": "Edgy, high-tech vibe with neon greens and deep blacks.",
+    "params": {
+      "bgColors": ["#000000", "#ccff00", "#003300"],
+      "speed": 1.6,
+      "intensity": 1.2
+    }
+  }
+]

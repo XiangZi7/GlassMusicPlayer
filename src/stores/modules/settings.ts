@@ -37,6 +37,12 @@ export interface UltimateSettingsState {
   blending: string
 }
 
+export interface ShadowBlingSettingsState {
+  bgColors: string[]
+  speed: number
+  intensity: number
+}
+
 export interface FooterLyricsSettingsState {
   enabled: boolean
   modes: Array<'original' | 'trans' | 'roma'>
@@ -55,9 +61,10 @@ export const useSettingsStore = defineStore('settings', {
     aurora: AuroraSettingsState
     colorBends: ColorBendsSettingsState
     ultimate: UltimateSettingsState
+    shadowBling: ShadowBlingSettingsState
     footerLyrics: FooterLyricsSettingsState
     audioVisualizer: AudioVisualizerSettingsState
-    backgroundType: 'aurora' | 'colorbends' | 'ultimate'
+    backgroundType: 'aurora' | 'colorbends' | 'ultimate' | 'shadowBling'
     audioQuality: AudioQuality
   } => ({
     aurora: {
@@ -93,6 +100,11 @@ export const useSettingsStore = defineStore('settings', {
       circleSize: '80%',
       blending: 'hard-light',
     },
+    shadowBling: {
+      bgColors: ['#000000', '#ffffff', '#808080'],
+      speed: 1.0,
+      intensity: 1.0,
+    },
     footerLyrics: {
       enabled: true,
       modes: ['original', 'trans'],
@@ -116,7 +128,7 @@ export const useSettingsStore = defineStore('settings', {
     setColorPositions(positions: number[]) {
       this.aurora.colorPositions = positions.map(p => Math.max(0, Math.min(1, p)))
     },
-    setBackgroundType(type: 'aurora' | 'colorbends' | 'ultimate') {
+    setBackgroundType(type: 'aurora' | 'colorbends' | 'ultimate' | 'shadowBling') {
       this.backgroundType = type
     },
     resetAurora() {
@@ -164,6 +176,16 @@ export const useSettingsStore = defineStore('settings', {
         interactiveColor: '#8C64FF',
         circleSize: '80%',
         blending: 'hard-light',
+      }
+    },
+    setShadowBling(partial: Partial<ShadowBlingSettingsState>) {
+      this.shadowBling = { ...this.shadowBling, ...partial }
+    },
+    resetShadowBling() {
+      this.shadowBling = {
+        bgColors: ['#000000', '#ffffff', '#808080'],
+        speed: 1.0,
+        intensity: 1.0,
       }
     },
     setFooterLyricsEnabled(val: boolean) {

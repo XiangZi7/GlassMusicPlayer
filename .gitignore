@@ -29,6 +29,7 @@ dist-ssr
 /src/auto-import
 
 .trae
+.claude
 
 # 环境变量文件
 .env.*

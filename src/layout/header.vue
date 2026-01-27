@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import LoginDialog from '@/components/Auth/LoginDialog.vue'
-import Button from '@/components/Ui/Button.vue'
-import { useUserStore } from '@/stores/modules/user'
-import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -84,7 +80,7 @@ onMounted(() => {
 onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 </script>
 <template>
-  <header class="glass-nav m-4 flex items-center justify-between p-4">
+  <header class="glass-nav m-4 flex items-center justify-between p-4 py-3">
     <!-- 左侧菜单栏 -->
     <div class="flex items-center space-x-6">
       <!-- Logo -->

@@ -6,6 +6,7 @@ export const getBackgroundOptions = (t: (k: string) => string): Option<string>[]
   { value: 'aurora', label: t('components.settings.backgroundNames.aurora') },
   { value: 'colorbends', label: t('components.settings.backgroundNames.colorbends') },
   { value: 'ultimate', label: t('components.settings.backgroundNames.ultimate') },
+  { value: 'shadowBling', label: t('components.settings.backgroundNames.shadowBling') },
 ]
 
 export const getThemeOptions = (t: (k: string) => string): Option<string>[] => [

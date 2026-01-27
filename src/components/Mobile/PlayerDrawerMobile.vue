@@ -3,106 +3,29 @@
 import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
-import { commentMusic } from '@/api'
+import { useLyricsScroll } from '@/composables/useLyricsScroll'
+import { useGradientBackground } from '@/composables/useGradientBackground'
+import { useCommentCount } from '@/composables/useCommentCount'
 import { useI18n } from 'vue-i18n'
-import { getColorPalette } from '@/utils/colorExtractor'
 import MusicProgress from '@/components/Ui/MusicProgress.vue'
 import VolumeControlMobile from '@/components/Mobile/VolumeControlMobile.vue'
 import PlaylistDrawerMobile from '@/components/Mobile/PlaylistDrawerMobile.vue'
 import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
 import Button from '@/components/Ui/Button.vue'
+import VinylDisc from '@/components/Player/VinylDisc.vue'
 
 // 国际化文本函数
 const { t } = useI18n()
 // 抽屉开关（父组件通过 v-model 控制）
 const isOpen = defineModel<boolean>()
-interface PlayerDrawerState {
-  // 抽屉是否渲染
-  isRendered: boolean
-  // 当前高亮的歌词索引
-  currentLyricIndex: number
-  // 歌词时间校正偏移（秒）
-  lyricsOffset: number
-  // 评论弹窗状态
-  isCommentsOpen: boolean
-  // 评论总数
-  commentCount: number
-  // 是否使用封面模糊背景
-  useCoverBg: boolean
-  // 背景层激活标记（A/B）
-  bgActive: 'A' | 'B'
-  // 背景A层渐变色
-  bgAGradient: string[]
-  // 背景B层渐变色
-  bgBGradient: string[]
-  // 是否已定位歌词到居中
-  lyricsPositioned: boolean
-  // 自动居中开关
-  autoScroll: boolean
-  // 歌词字号比例
-  lyricsScale: number
-  // 是否显示歌词
-  showLyrics: boolean
-  // 是否显示工具栏
-  showToolbar: boolean
-  // 中心区触摸起点Y
-  touchStartY: number | null
-  // 歌词拖动起点Y
-  lyricDragStartY: number | null
-  // 歌词拖动起始时间（秒）
-  lyricDragStartTime: number | null
-  // 是否正在拖动歌词
-  draggingLyrics: boolean
-  // 拖动预览时间（秒）
-  previewLyricTime: number | null
-  // 是否发生了拖动动作
-  lyricDragMoved: boolean
-}
 
-const state = reactive<PlayerDrawerState>({
-  isRendered: false,
-  currentLyricIndex: 0,
-  lyricsOffset: 0,
-  isCommentsOpen: false,
-  commentCount: 0,
-  // 是否使用封面背景（放大+模糊）
-  useCoverBg: true,
-  // 背景层管理（A/B双层交替淡入淡出）
-  bgActive: 'A' as 'A' | 'B',
-  bgAGradient: [] as string[],
-  bgBGradient: [] as string[],
-  lyricsPositioned: false,
-  autoScroll: true,
-  lyricsScale: 1,
-  // 显示封面 or 歌词
-  showLyrics: false,
-  // 显示工具栏
-  showToolbar: false,
-  // 歌词拖动相关状态
-  touchStartY: null as number | null,
-  lyricDragStartY: null as number | null,
-  lyricDragStartTime: null as number | null,
-  draggingLyrics: false,
-  previewLyricTime: null as number | null,
-  lyricDragMoved: false,
-})
+// 模板引用
+const drawerRef = useTemplateRef('drawerRef')
+const lyricsRef = useTemplateRef('lyricsRef')
+const bgARef = useTemplateRef('bgARef')
+const bgBRef = useTemplateRef('bgBRef')
 
-// 响应式引用（模板中使用）
-const {
-  isRendered,
-  currentLyricIndex,
-  showLyrics,
-  showToolbar,
-  lyricDragMoved,
-  previewLyricTime,
-  useCoverBg,
-  autoScroll,
-  lyricsScale,
-  isCommentsOpen,
-  commentCount,
-} = toRefs(state)
-
-// 使用音频播放器
+// 音频播放器
 const {
   currentSong,
   isPlaying,
@@ -118,48 +41,7 @@ const {
   togglePlayMode,
 } = useAudio()
 
-// 媒体会话（系统媒体控制集成）在 useAudio 内通过 watch(currentSong) 自动更新
-
-// 模板引用
-// 抽屉根节点引用
-const drawerRef = useTemplateRef('drawerRef')
-// 专辑封面节点（旋转动画目标）
-const albumCoverRef = useTemplateRef('albumCoverRef')
-// 歌词滚动容器引用
-const lyricsRef = useTemplateRef('lyricsRef')
-// 背景A层引用
-const bgARef = useTemplateRef('bgARef')
-// 背景B层引用
-const bgBRef = useTemplateRef('bgBRef')
-
-// 生成背景渐变样式（从上到下：封面颜色 -> 黑色）
-const bgAStyle = computed(() => {
-  if (state.bgAGradient.length === 0) return {}
-  const topColor = state.bgAGradient[0]
-  const mainColor = state.bgAGradient[1]
-  return {
-    backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`
-  }
-})
-
-const bgBStyle = computed(() => {
-  if (state.bgBGradient.length === 0) return {}
-  const topColor = state.bgBGradient[0]
-  const mainColor = state.bgBGradient[1]
-  return {
-    backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`
-  }
-})
-
-// 歌词封装
-// 说明：集中管理歌词的多轨显示与时间轴信息
-// - lyricsTrans：翻译文本数组（可选显示）
-// - lyricsRoma：罗马音文本数组（可选显示）
-// - showTrans：翻译开关（true 显示翻译）
-// - showRoma：罗马音开关（true 显示罗马音）
-// - activeSingleLyrics：当前实际渲染的歌词行（随开关动态切换）
-// - activeTimeline：每句歌词的时间轴，用于定位与高亮
-// - fetchLyrics：按歌曲 ID 拉取歌词数据
+// 歌词
 const {
   lyricsTrans,
   lyricsRoma,
@@ -170,42 +52,93 @@ const {
   fetchLyrics,
 } = useLyrics()
 
-// 切换“翻译”后：等待视图更新，重置定位标记并将当前行居中
+// 歌词滚动
+const {
+  currentIndex: currentLyricIndex,
+  positioned: lyricsPositioned,
+  autoScroll,
+  scale: lyricsScale,
+  updateCurrentLyric,
+  toggleAutoScroll,
+  resetLyrics,
+  increaseScale,
+  decreaseScale,
+} = useLyricsScroll({
+  lyricsRef,
+  timeline: activeTimeline,
+  currentTime,
+})
+
+// 背景渐变
+const {
+  useCoverBg,
+  bgAStyle,
+  bgBStyle,
+  startBackgroundBreathing,
+  stopBackgroundBreathing,
+  setBackgroundGradient,
+} = useGradientBackground({
+  bgARef,
+  bgBRef,
+  isPlaying,
+  isOpen: isOpen as Ref<boolean>,
+})
+
+// 评论数量
+const songId = computed(() => currentSong.value?.id)
+const { commentCount } = useCommentCount({ songId })
+
+// 本地状态
+const state = reactive({
+  isRendered: false,
+  isCommentsOpen: false,
+  showLyrics: false,
+  showToolbar: false,
+  // 触摸相关
+  touchStartY: null as number | null,
+  lyricDragStartY: null as number | null,
+  lyricDragStartTime: null as number | null,
+  draggingLyrics: false,
+  previewLyricTime: null as number | null,
+  lyricDragMoved: false,
+})
+
+const {
+  isRendered,
+  showLyrics,
+  showToolbar,
+  lyricDragMoved,
+  previewLyricTime,
+  isCommentsOpen,
+} = toRefs(state)
+
+// 切换翻译/罗马音
 const toggleTransBtn = async () => {
   showTrans.value = !showTrans.value
   await nextTick()
-  state.lyricsPositioned = false
+  lyricsPositioned.value = false
   updateCurrentLyric(true)
 }
 
-// 切换“罗马音”后：等待视图更新，重置定位标记并将当前行居中
 const toggleRomaBtn = async () => {
   showRoma.value = !showRoma.value
   await nextTick()
-  state.lyricsPositioned = false
+  lyricsPositioned.value = false
   updateCurrentLyric(true)
 }
 
-// 自动居中开关方法：切换 autoScroll 并在开启时立即居中当前句
-const toggleAutoScroll = () => {
-  state.autoScroll = !state.autoScroll
-  if (state.autoScroll) updateCurrentLyric(true)
-}
-
-// 播放/暂停交互方法：调用 togglePlay 切换播放状态
 const handleTogglePlay = () => {
   togglePlay()
 }
 
-// 显示歌词视图方法：打开歌词并在下一帧居中定位当前句
 const handleShowLyricsClick = async () => {
   showLyrics.value = true
-  state.lyricsPositioned = false
+  lyricsPositioned.value = false
   await nextTick()
   updateCurrentLyric(true)
 }
 
-// 工具函数：格式化秒数为 mm:ss
+// 时间格式化
 const formatSeconds = (sec: number | null) => {
   if (sec == null) return ''
   const s = Math.floor(sec)
@@ -214,15 +147,13 @@ const formatSeconds = (sec: number | null) => {
   return `${m.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`
 }
 
-// 预览时间的格式化文本（拖动歌词时在右侧显示）
 const formattedPreviewLyricTime = computed(() => formatSeconds(previewLyricTime.value))
 
-// 中心区域触摸开始：记录起点Y用于判定滑动距离
+// 触摸事件处理
 const handleCenterTouchStart = (e: TouchEvent) => {
   state.touchStartY = e.touches?.[0]?.clientY ?? null
 }
 
-// 中心区域触摸结束：根据滑动距离切换歌词视图
 const handleCenterTouchEnd = async (e: TouchEvent) => {
   const endY = e.changedTouches?.[0]?.clientY ?? null
   if (state.touchStartY == null || endY == null) return
@@ -230,13 +161,12 @@ const handleCenterTouchEnd = async (e: TouchEvent) => {
   state.touchStartY = null
   if (!showLyrics.value && Math.abs(dy) > 30) {
     showLyrics.value = true
-    state.lyricsPositioned = false
+    lyricsPositioned.value = false
     await nextTick()
     updateCurrentLyric(true)
   }
 }
 
-// 歌词拖动开始：记录起点与当前播放时间，重置预览状态
 const handleLyricsTouchStart = (e: TouchEvent) => {
   state.lyricDragStartY = e.touches?.[0]?.clientY ?? null
   state.lyricDragStartTime = currentTime.value
@@ -245,7 +175,6 @@ const handleLyricsTouchStart = (e: TouchEvent) => {
   lyricDragMoved.value = false
 }
 
-// 歌词拖动移动：超过阈值后计算预览时间（向上/下拖动）
 const handleLyricsTouchMove = (e: TouchEvent) => {
   if (!state.draggingLyrics) return
   const y = e.touches?.[0]?.clientY ?? null
@@ -265,7 +194,6 @@ const handleLyricsTouchMove = (e: TouchEvent) => {
   previewLyricTime.value = nextTime
 }
 
-// 歌词拖动结束：如果发生拖动则跳转到预览时间，并重置拖动状态
 const handleLyricsTouchEnd = () => {
   if (lyricDragMoved.value && previewLyricTime.value != null) {
     setCurrentTime(previewLyricTime.value)
@@ -278,213 +206,10 @@ const handleLyricsTouchEnd = () => {
   lyricDragMoved.value = false
 }
 
-// 动画相关
-// 专辑封面旋转动画实例（用于启动/停止控制）
-let albumRotationTween: gsap.core.Tween | null = null
-let bgBreathingTweens: gsap.core.Tween[] = []
-
-// 开始封面旋转动画（无限匀速旋转）
-const startAlbumRotation = () => {
-  if (albumCoverRef.value) {
-    if (albumRotationTween) albumRotationTween.kill()
-    albumRotationTween = gsap.to(albumCoverRef.value, {
-      rotation: '+=360',
-      duration: 10,
-      repeat: -1,
-      ease: 'none',
-    })
-  }
-}
-
-// 停止封面旋转动画（销毁 tween 实例）
-const stopAlbumRotation = () => {
-  if (albumRotationTween) {
-    albumRotationTween.kill()
-    albumRotationTween = null
-  }
-}
-
-const startBackgroundBreathing = () => {
-  stopBackgroundBreathing()
-
-  if (bgARef.value && parseFloat(getComputedStyle(bgARef.value).opacity) > 0) {
-    const tween = gsap.to(bgARef.value, {
-      scale: '+=0.05',
-      opacity: '+=0.05',
-      duration: 2,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut',
-    })
-    bgBreathingTweens.push(tween)
-  }
-
-  if (bgBRef.value && parseFloat(getComputedStyle(bgBRef.value).opacity) > 0) {
-    const tween = gsap.to(bgBRef.value, {
-      scale: '+=0.05',
-      opacity: '+=0.05',
-      duration: 2,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut',
-    })
-    bgBreathingTweens.push(tween)
-  }
-}
-
-const stopBackgroundBreathing = () => {
-  bgBreathingTweens.forEach(tween => tween.kill())
-  bgBreathingTweens = []
-}
-
-// 加载歌曲评论数量方法：根据歌曲ID获取评论总数
-const loadCommentCount = async (songId?: number | string) => {
-  if (!songId) {
-    state.commentCount = 0
-    return
-  }
-  try {
-    const res: any = await commentMusic({ id: Number(songId), limit: 1, offset: 0 })
-    state.commentCount = Number(res?.data?.total ?? res?.total ?? res?.totalCount ?? 0)
-  } catch {
-    state.commentCount = 0
-  }
-}
-
-watch(
-  () => currentSong.value?.id,
-  id => {
-    loadCommentCount(id as any)
-  },
-  { immediate: true }
-)
-
-// 更新当前歌词索引（方法：updateCurrentLyric）
-// 说明：根据当前播放时间在时间轴中定位应高亮的歌词行，并触发居中滚动
-const updateCurrentLyric = (instant = false) => {
-  const adjustedTime = currentTime.value + state.lyricsOffset
-  const times = activeTimeline.value
-  if (!times.length) return
-  let idx = times.findIndex((t, i) => {
-    const nextT = times[i + 1]
-    return adjustedTime >= t && (nextT === undefined || adjustedTime < nextT)
-  })
-  if (idx === -1) {
-    if (adjustedTime < times[0]) idx = 0
-    else if (adjustedTime >= times[times.length - 1]) idx = times.length - 1
-    else idx = times.findIndex(t => t > adjustedTime)
-  }
-  if (idx !== -1 && idx !== state.currentLyricIndex) {
-    state.currentLyricIndex = idx
-    if (state.autoScroll) scrollToCurrentLyric(instant)
-  } else if (!state.lyricsPositioned) {
-    if (state.autoScroll) scrollToCurrentLyric(instant)
-  }
-}
-
-// 滚动到当前歌词位置（方法：scrollToCurrentLyric）
-// 说明：以容器的可视中心为参考，计算当前行相对中心的偏移量并平滑对齐
-const scrollToCurrentLyric = (instant = false) => {
-  if (lyricsRef.value && state.currentLyricIndex >= 0) {
-    const lyricsContainer = lyricsRef.value
-    const currentLyricElement = lyricsContainer.children[state.currentLyricIndex] as HTMLElement
-
-    if (currentLyricElement) {
-      const containerHeight = lyricsContainer.parentElement?.clientHeight || 0
-      const targetScrollTop =
-        currentLyricElement.offsetTop - containerHeight / 2 + currentLyricElement.clientHeight / 2
-      if (instant || !state.lyricsPositioned) {
-        gsap.set(lyricsContainer, { y: -targetScrollTop })
-        state.lyricsPositioned = true
-      } else {
-        gsap.to(lyricsContainer, {
-          y: -targetScrollTop,
-          duration: 0.8,
-          ease: 'power2.out',
-        })
-      }
-    }
-  }
-}
-
-// 背景封面淡入淡出（方法：setBackground）
-const setBackground = async (coverUrl?: string, delay: number = 0) => {
-  if (!state.useCoverBg || !coverUrl) return
-
-  // 延迟执行以等待动画完成
-  if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay))
-  }
-
-  try {
-    // 提取颜色
-    const palette = await getColorPalette(coverUrl + '?param=320x320')
-
-    // 首次初始化
-    if (state.bgAGradient.length === 0 && state.bgBGradient.length === 0) {
-      state.bgAGradient = palette.gradient
-      if (bgARef.value) {
-        gsap.set(bgARef.value, { opacity: 0, scale: 1.6 })
-        gsap.to(bgARef.value, {
-          opacity: 0.55,
-          scale: 1.5,
-          duration: 1.2,
-          ease: 'power2.out',
-          onComplete: () => {
-            if (isPlaying.value && isOpen.value) {
-              startBackgroundBreathing()
-            }
-          },
-        })
-      }
-      state.bgActive = 'A'
-      return
-    }
-
-    // 双层切换以实现平滑过渡
-    const incomingRef = state.bgActive === 'A' ? bgBRef : bgARef
-    const outgoingRef = state.bgActive === 'A' ? bgARef : bgBRef
-
-    if (state.bgActive === 'A') {
-      state.bgBGradient = palette.gradient
-    } else {
-      state.bgAGradient = palette.gradient
-    }
-
-    if (incomingRef.value) {
-      gsap.set(incomingRef.value, { opacity: 0, scale: 1.6 })
-      gsap.to(incomingRef.value, {
-        opacity: 0.55,
-        scale: 1.5,
-        duration: 1.4,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          if (isPlaying.value && isOpen.value) {
-            startBackgroundBreathing()
-          }
-        },
-      })
-    }
-    if (outgoingRef.value) {
-      gsap.to(outgoingRef.value, {
-        opacity: 0,
-        scale: 1.45,
-        duration: 1.4,
-        ease: 'power2.inOut',
-      })
-    }
-
-    state.bgActive = state.bgActive === 'A' ? 'B' : 'A'
-  } catch (error) {
-    console.error('Failed to extract colors:', error)
-  }
-}
-
-// 抽屉动画：打开/关闭过渡（方法：openDrawer/closeDrawer）
+// 抽屉动画
 const openDrawer = async () => {
   if (drawerRef.value) {
     gsap.set(drawerRef.value, { display: 'flex' })
-
     const tl = gsap.timeline()
     await nextTick()
     tl.fromTo(
@@ -507,19 +232,16 @@ const closeDrawer = () => {
         state.isRendered = false
       },
     })
-
     tl.to(drawerRef.value, {
       y: '100%',
       opacity: 0,
       duration: 0.35,
       ease: 'power3.in',
     })
-
-    stopAlbumRotation()
   }
 }
 
-// 监听器：抽屉开关、播放状态、时间进度、当前歌曲
+// Watchers
 watch(
   () => isOpen.value,
   async newVal => {
@@ -527,62 +249,54 @@ watch(
       state.isRendered = true
       await nextTick()
       openDrawer()
-      state.lyricsPositioned = false
+      lyricsPositioned.value = false
       updateCurrentLyric(true)
-      setBackground(currentSong.value?.cover)
-      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
-      isPlaying.value ? startBackgroundBreathing() : stopBackgroundBreathing()
+      setBackgroundGradient(currentSong.value?.cover)
+      if (isPlaying.value) {
+        startBackgroundBreathing()
+      }
     } else {
       closeDrawer()
-      isPlaying.value ? startAlbumRotation() : stopAlbumRotation()
       stopBackgroundBreathing()
     }
   }
 )
 
-// 播放状态控制封面旋转
 watch(
   isPlaying,
   playing => {
-    playing ? startAlbumRotation() : stopAlbumRotation()
-    playing ? startBackgroundBreathing() : stopBackgroundBreathing()
+    if (playing) {
+      startBackgroundBreathing()
+    } else {
+      stopBackgroundBreathing()
+    }
   },
   { immediate: true }
 )
 
-// 监听当前时间更新歌词高亮
 watch(currentTime, () => {
   updateCurrentLyric()
 })
 
-// 当前歌曲变化时拉取歌词
 watch(
   currentSong,
   async s => {
     await fetchLyrics(s?.id)
-    state.currentLyricIndex = 0
-    state.lyricsPositioned = false
+    resetLyrics()
     await nextTick()
     updateCurrentLyric(true)
-    // 背景封面淡入淡出
-    setBackground(s?.cover)
+    setBackgroundGradient(s?.cover)
   },
   { immediate: true }
 )
 
-// 生命周期
 onMounted(() => {
   if (drawerRef.value) {
     gsap.set(drawerRef.value as any, { display: 'none' })
   }
 })
 
-onUnmounted(() => {
-  stopAlbumRotation()
-  stopBackgroundBreathing()
-})
-
-// 播放模式图标计算属性（变量：playModeIcon）
+// 播放模式图标
 const playModeIcon = computed(() => {
   switch (playMode.value) {
     case 'single':
@@ -677,7 +391,7 @@ const playModeIcon = computed(() => {
           class="toolbar-btn"
           icon="icon-[mdi--format-font-size-decrease]"
           icon-class="h-5 w-5"
-          @click="lyricsScale = Math.max(0.75, lyricsScale - 0.05)"
+          @click="decreaseScale(0.05, 0.75)"
         >
           <span>{{ t('player.fontDec') }}</span>
         </Button>
@@ -688,7 +402,7 @@ const playModeIcon = computed(() => {
           class="toolbar-btn"
           icon="icon-[mdi--format-font-size-increase]"
           icon-class="h-5 w-5"
-          @click="lyricsScale = Math.min(1.5, lyricsScale + 0.05)"
+          @click="increaseScale(0.05, 1.5)"
         >
           <span>{{ t('player.fontInc') }}</span>
         </Button>
@@ -706,39 +420,14 @@ const playModeIcon = computed(() => {
         class="album-area flex h-full w-full flex-col items-center justify-center"
         @click.stop="handleShowLyricsClick"
       >
-        <div class="album-wrapper relative mb-8">
-          <div
-            ref="albumCoverRef"
-            class="vinyl-disc relative aspect-square w-[65vw] max-w-[280px] overflow-hidden rounded-full shadow-2xl"
-          >
-            <div
-              class="vinyl-label absolute top-1/2 left-1/2 h-[65%] w-[65%] -translate-1/2 rounded-full bg-cover bg-center"
-              :style="{
-                backgroundImage: currentSong?.cover
-                  ? `url(${currentSong.cover+'?param=320x320'})`
-                  : 'linear-gradient(135deg, rgba(167,139,250,0.6) 0%, rgba(108,92,231,0.6) 100%)',
-              }"
-            ></div>
-            <div
-              class="spindle absolute top-1/2 left-1/2 h-6 w-6 -translate-1/2 rounded-full"
-            ></div>
-          </div>
-
-          <div
-            class="tonearm absolute -top-8 -right-4 z-10 origin-top-left transition-transform duration-500 ease-out"
-            :class="isPlaying ? 'rotate-6' : 'rotate-[-18deg]'"
-          >
-            <div class="arm-pivot relative h-8 w-8 rounded-full"></div>
-            <div class="arm-shaft -mt-px h-28 w-2 rounded-full"></div>
-            <div class="counterweight -mt-2 ml-2 h-5 w-5 rounded-full"></div>
-            <div class="headshell relative mt-0.5 h-6 w-9 rounded-md">
-              <div
-                class="cartridge absolute top-1/2 left-1/2 h-3 w-6 -translate-x-1/2 -translate-y-1/2 rounded-sm"
-              ></div>
-              <div class="stylus absolute top-full left-1/2 h-3 w-[2px] -translate-x-1/2"></div>
-            </div>
-          </div>
-        </div>
+        <VinylDisc
+          ref="vinylDiscRef"
+          :cover="currentSong?.cover"
+          :is-playing="isPlaying"
+          :is-loading="isLoading"
+          size="md"
+          class="mb-8"
+        />
 
         <div class="w-full px-6 text-center">
           <h2 class="text-primary line-clamp-1 text-xl font-bold">
