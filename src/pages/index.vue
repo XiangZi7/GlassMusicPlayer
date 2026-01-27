@@ -9,7 +9,10 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-coverflow'
 
-import { formatCount, formatDuration } from '@/utils/time'
+import HeroCard from '@/components/Ui/HeroCard.vue'
+import ArtistCard from '@/components/Ui/ArtistCard.vue'
+import MVCard from '@/components/Ui/MVCard.vue'
+import SongCard from '@/components/Ui/SongCard.vue'
 import {
   transformBanners,
   transformPlaylists,
@@ -78,7 +81,8 @@ onMounted(() => {
     <div class="custom-scrollbar h-full overflow-y-auto">
       <HomeSkeleton v-if="isLoading" />
       <div v-else class="space-y-8 p-4">
-        <section v-if="banners.length" class="relative">
+        <!-- 轮播图 -->
+        <section v-if="banners.length" v-scroll-in="{ direction: 'up', duration: 0.8 }" class="relative">
           <Swiper
             @swiper="onSwiper"
             :modules="swiperModules"
@@ -128,7 +132,7 @@ onMounted(() => {
         </section>
 
         <!-- 推荐歌单 -->
-        <section v-if="recommendPlaylists.length">
+        <section v-if="recommendPlaylists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
               <span
@@ -139,53 +143,26 @@ onMounted(() => {
               {{ t('home.recommendPlaylists') }}
             </h2>
           </div>
-          <div class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
-            <router-link
+          <div
+            v-scroll-in="{ stagger: true, staggerDelay: 0.04 }"
+            class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10"
+          >
+            <HeroCard
               v-for="item in recommendPlaylists"
               :key="item.id"
+              :id="item.id"
+              :cover-url="item.coverImgUrl"
+              :title="item.name"
+              :play-count="item.playCount"
+              :track-count="item.trackCount"
               :to="`/playlist/${item.id}`"
-              class="group"
-            >
-              <div class="relative aspect-square overflow-hidden rounded-2xl shadow-lg">
-                <LazyImage
-                  :src="item.coverImgUrl + '?param=300y300'"
-                  alt="cover"
-                  img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
-                />
-                <div
-                  class="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent"
-                />
-                <div
-                  class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
-                >
-                  <span class="icon-[mdi--headphones] h-3 w-3" />
-                  {{ formatCount(item.playCount) }}
-                </div>
-                <div class="absolute right-0 bottom-0 left-0 p-2.5">
-                  <p class="line-clamp-2 text-xs leading-tight font-medium text-white">
-                    {{ item.name }}
-                  </p>
-                  <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-white/70">
-                    <span class="icon-[mdi--music-note] h-3 w-3" />
-                    <span>{{ item.trackCount }}首</span>
-                  </div>
-                </div>
-                <div
-                  class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-all duration-300 group-hover:opacity-100"
-                >
-                  <div
-                    class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-xl"
-                  >
-                    <span class="icon-[mdi--play] h-6 w-6 text-pink-500" />
-                  </div>
-                </div>
-              </div>
-            </router-link>
+              class="stagger-item"
+            />
           </div>
         </section>
 
         <!-- 热门歌手 -->
-        <section v-if="artists.length">
+        <section v-if="artists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
               <span
@@ -196,6 +173,7 @@ onMounted(() => {
               {{ t('components.discover.hotArtists') }}
             </h2>
             <router-link
+              v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/artists"
               class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
             >
@@ -204,40 +182,23 @@ onMounted(() => {
             </router-link>
           </div>
           <div
+            v-scroll-in="{ stagger: true, staggerDelay: 0.03 }"
             class="grid grid-cols-4 gap-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12"
           >
-            <router-link
+            <ArtistCard
               v-for="artist in artists.slice(0, 12)"
               :key="artist.id"
+              :id="artist.id"
+              :name="artist.name"
+              :pic-url="artist.picUrl"
               :to="`/artist/${artist.id}`"
-              class="group flex flex-col items-center"
-            >
-              <div
-                class="border-glass relative mb-2.5 aspect-square w-full overflow-hidden rounded-full border-2 shadow-lg transition-all duration-300 group-hover:border-pink-500 group-hover:shadow-pink-500/20"
-              >
-                <LazyImage
-                  :src="artist.picUrl + '?param=150y150'"
-                  :alt="artist.name"
-                  img-class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
-                <div
-                  class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/40 group-hover:opacity-100"
-                >
-                  <span
-                    class="icon-[mdi--play] h-6 w-6 scale-50 text-white transition-transform group-hover:scale-100"
-                  />
-                </div>
-              </div>
-              <span
-                class="text-primary/70 group-hover:text-primary w-full truncate text-center text-xs transition-colors"
-                >{{ artist.name }}</span
-              >
-            </router-link>
+              class="stagger-item"
+            />
           </div>
         </section>
 
         <!-- 热门歌曲 -->
-        <section v-if="hotSongs.length">
+        <section v-if="hotSongs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
               <span
@@ -248,6 +209,7 @@ onMounted(() => {
               {{ t('home.hotSongs') }}
             </h2>
             <router-link
+              v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/charts"
               class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
             >
@@ -255,54 +217,25 @@ onMounted(() => {
               <span class="icon-[mdi--arrow-right] h-4 w-4" />
             </router-link>
           </div>
-          <div class="glass-card overflow-hidden">
-            <div class="grid md:grid-cols-2">
-              <router-link
+          <div v-spotlight="{ color: 'rgba(236, 72, 153, 0.1)', size: 350 }" class="glass-card overflow-hidden">
+            <div
+              v-scroll-in="{ stagger: true, staggerDelay: 0.03, distance: 20 }"
+              class="grid md:grid-cols-2"
+            >
+              <SongCard
                 v-for="(song, idx) in hotSongs"
                 :key="song.id"
+                :song="song"
+                :index="idx"
                 :to="`/song/${song.id}`"
-                class="group hover:bg-hover-glass border-glass flex items-center gap-4 border-b p-4 transition-all last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
-              >
-                <span
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-                  :class="
-                    idx < 3
-                      ? 'bg-linear-to-t from-rose-500 to-pink-600 text-white'
-                      : 'bg-primary/5 text-primary/40'
-                  "
-                >
-                  {{ idx + 1 }}
-                </span>
-                <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl shadow-md">
-                  <LazyImage
-                    :src="song.cover + '?param=100y100'"
-                    alt="cover"
-                    img-class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <div
-                    class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100"
-                  >
-                    <span class="icon-[mdi--play] h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p
-                    class="text-primary truncate text-sm font-medium transition-colors group-hover:text-pink-500"
-                  >
-                    {{ song.name }}
-                  </p>
-                  <p class="text-primary/50 mt-0.5 truncate text-xs">{{ song.artist }}</p>
-                </div>
-                <span class="text-primary/30 shrink-0 text-xs">{{
-                  formatDuration(song.duration)
-                }}</span>
-              </router-link>
+                class="stagger-item border-glass border-b last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+              />
             </div>
           </div>
         </section>
 
         <!-- 推荐MV -->
-        <section v-if="mvs.length">
+        <section v-if="mvs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
               <span
@@ -313,6 +246,7 @@ onMounted(() => {
               {{ t('components.discover.recommendMv') }}
             </h2>
             <router-link
+              v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/mv-list"
               class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
             >
@@ -320,36 +254,21 @@ onMounted(() => {
               <span class="icon-[mdi--arrow-right] h-4 w-4" />
             </router-link>
           </div>
-          <div class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-            <router-link v-for="mv in mvs" :key="mv.id" :to="`/mv-player/${mv.id}`" class="group">
-              <div class="relative aspect-video overflow-hidden rounded-2xl shadow-xl">
-                <LazyImage
-                  :src="mv.cover + '?param=400y225'"
-                  :alt="mv.name"
-                  img-class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
-                />
-                <div
-                  class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"
-                />
-                <div
-                  class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm"
-                >
-                  <span class="icon-[mdi--play] h-3 w-3" />
-                  {{ formatCount(mv.playCount as number) }}
-                </div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div
-                    class="flex h-12 w-12 scale-75 items-center justify-center rounded-full bg-white/20 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:scale-100 group-hover:opacity-100"
-                  >
-                    <span class="icon-[mdi--play] h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div class="absolute right-0 bottom-0 left-0 p-3">
-                  <p class="truncate text-sm font-medium text-white">{{ mv.name }}</p>
-                  <p class="mt-0.5 truncate text-[11px] text-white/70">{{ mv.artist }}</p>
-                </div>
-              </div>
-            </router-link>
+          <div
+            v-scroll-in="{ stagger: true, staggerDelay: 0.06 }"
+            class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+          >
+            <MVCard
+              v-for="mv in mvs"
+              :key="mv.id"
+              :id="mv.id"
+              :name="mv.name"
+              :artist="mv.artist"
+              :cover="mv.cover"
+              :play-count="mv.playCount as number"
+              :to="`/mv-player/${mv.id}`"
+              class="stagger-item"
+            />
           </div>
         </section>
       </div>

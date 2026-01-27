@@ -177,7 +177,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           variant="ghost"
           size="icon-md"
           rounded="full"
-          class="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-opacity duration-150"
+          class="rounded-full transition-opacity duration-150"
           :class="searchQuery ? 'opacity-80 hover:opacity-100' : 'pointer-events-none opacity-0'"
           :title="t('common.clear')"
           icon="icon-[mdi--close]"
@@ -197,7 +197,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
             <li
               v-for="opt in searchHistory"
               :key="opt"
-              class="group relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm text-glass-contrast hover:bg-hover-glass"
+              class="group text-glass-contrast hover:bg-hover-glass relative flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm"
               @mousedown.prevent="selectHistory(opt)"
             >
               <span class="truncate pr-8">{{ opt }}</span>

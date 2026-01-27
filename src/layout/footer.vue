@@ -253,6 +253,8 @@ const emit = defineEmits(['show'])
           @click="togglePlay"
           :title="isPlaying ? t('player.pause') : t('player.play')"
           :loading="isLoading"
+          :pulse="true"
+          :press3d="true"
         >
           <span
             v-if="!isLoading"

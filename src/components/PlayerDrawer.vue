@@ -915,6 +915,8 @@ onUnmounted(() => {
           size="none"
           class="h-18 w-18 justify-center shadow-2xl"
           :loading="isLoading"
+          :pulse="true"
+          :press3d="true"
           @click="handleTogglePlay"
         >
           <span
