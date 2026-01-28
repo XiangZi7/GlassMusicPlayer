@@ -508,6 +508,9 @@ const closeDrawer = () => {
   // 停止旋转动画
   vinylDiscRef.value?.stopAlbumRotation()
 
+  // 先清理可能存在的旧克隆
+  document.querySelectorAll('.hero-clone-cover').forEach(el => el.remove())
+
   const footerCover = document.getElementById('footer-cover')
   const targetCover = drawerRef.value.querySelector('.album-cover') as HTMLElement
   const vinylLabel = targetCover?.querySelector('.vinyl-label') as HTMLElement
@@ -539,15 +542,15 @@ const closeDrawer = () => {
     // 隐藏 vinyl-label
     gsap.set(vinylLabel, { opacity: 0 })
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        coverClone.remove()
-        state.isRendered = false
-      }
+    // 立即隐藏抽屉背景，让克隆飞行更明显
+    gsap.to(drawerRef.value, {
+      opacity: 0,
+      duration: 0.3,
+      ease: 'power2.in',
     })
 
     // 封面从 vinyl-label 飞回 footer
-    tl.to(coverClone, {
+    gsap.to(coverClone, {
       width: footerRect.width,
       height: footerRect.height,
       left: footerRect.left,
@@ -555,26 +558,21 @@ const closeDrawer = () => {
       borderRadius: '8px',
       duration: 0.5,
       ease: 'power3.inOut',
+      onComplete: () => {
+        coverClone.remove()
+        state.isRendered = false
+      }
     })
-
-    // 背景淡出
-    tl.to(drawerRef.value, {
-      opacity: 0,
-      duration: 0.4,
-      ease: 'power2.in',
-    }, '-=0.4')
   } else {
     // 降级：普通关闭动画
-    const tl = gsap.timeline({
-      onComplete: () => {
-        state.isRendered = false
-      },
-    })
-    tl.to(drawerRef.value, {
+    gsap.to(drawerRef.value, {
       y: '100%',
       opacity: 0,
       duration: 0.4,
       ease: 'power3.in',
+      onComplete: () => {
+        state.isRendered = false
+      },
     })
   }
 }
