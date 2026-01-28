@@ -26,7 +26,14 @@ const emit = defineEmits<{
 }>()
 
 const albumCoverRef = useTemplateRef('albumCoverRef')
+const vinylLabelRef = useTemplateRef('vinylLabelRef')
 let albumRotationTween: gsap.core.Tween | null = null
+
+// 封面切换动画状态
+const state = reactive({
+  displayCover: props.cover || '',
+  isFlipping: false,
+})
 
 // 尺寸映射
 const sizeClasses = computed(() => {
@@ -86,6 +93,67 @@ const tonearmRotation = computed(() => {
 })
 
 /**
+ * 封面翻转动画
+ */
+const flipCover = (newCover: string) => {
+  if (!vinylLabelRef.value || state.isFlipping) {
+    state.displayCover = newCover
+    return
+  }
+
+  // 如果没有旧封面，直接设置
+  if (!state.displayCover) {
+    state.displayCover = newCover
+    return
+  }
+
+  state.isFlipping = true
+
+  // 获取当前旋转角度
+  const currentRotation = albumRotationTween ? gsap.getProperty(albumCoverRef.value, 'rotation') : 0
+
+  // 创建翻转动画时间线
+  const tl = gsap.timeline({
+    onComplete: () => {
+      state.isFlipping = false
+    },
+  })
+
+  // 第一阶段：翻转到90度（隐藏）+ 缩放
+  tl.to(vinylLabelRef.value, {
+    rotateY: 90,
+    scale: 0.85,
+    duration: 0.25,
+    ease: 'power2.in',
+    onComplete: () => {
+      // 在最大翻转时切换封面
+      state.displayCover = newCover
+    },
+  })
+
+  // 第二阶段：从-90度翻转回来 + 恢复缩放
+  tl.to(vinylLabelRef.value, {
+    rotateY: 0,
+    scale: 1,
+    duration: 0.35,
+    ease: 'back.out(1.7)',
+  })
+
+  // 添加光晕效果
+  tl.fromTo(
+    vinylLabelRef.value,
+    { boxShadow: 'inset 0 2px 20px rgba(0, 0, 0, 0.3)' },
+    {
+      boxShadow: 'inset 0 2px 20px rgba(0, 0, 0, 0.3), 0 0 30px rgba(236, 72, 153, 0.5)',
+      duration: 0.2,
+      yoyo: true,
+      repeat: 1,
+    },
+    0
+  )
+}
+
+/**
  * 开始封面旋转动画
  */
 const startAlbumRotation = () => {
@@ -119,6 +187,23 @@ watch(
   { immediate: true }
 )
 
+// 监听封面变化，触发翻转动画
+watch(
+  () => props.cover,
+  (newCover, oldCover) => {
+    if (newCover !== oldCover && newCover) {
+      flipCover(newCover)
+    }
+  }
+)
+
+// 初始化封面
+onMounted(() => {
+  if (props.cover) {
+    state.displayCover = props.cover
+  }
+})
+
 // 清理动画
 onUnmounted(() => {
   stopAlbumRotation()
@@ -136,6 +221,7 @@ defineExpose({
     class="album-wrapper relative cursor-pointer"
     :class="sizeClasses.wrapper"
     @click="emit('click')"
+    style="perspective: 1000px;"
   >
     <!-- 黑胶唱片 -->
     <div
@@ -145,12 +231,15 @@ defineExpose({
     >
       <!-- 唱片标签（封面） -->
       <div
+        ref="vinylLabelRef"
         class="vinyl-label absolute top-1/2 left-1/2 -translate-1/2 rounded-full bg-cover bg-center"
         :class="sizeClasses.label"
         :style="{
-          backgroundImage: cover
-            ? `url(${cover}?param=320x320)`
+          backgroundImage: state.displayCover
+            ? `url(${state.displayCover}?param=320x320)`
             : 'linear-gradient(135deg, rgba(167,139,250,0.6) 0%, rgba(108,92,231,0.6) 100%)',
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
         }"
       ></div>
       <!-- 中心轴 -->
@@ -184,6 +273,10 @@ defineExpose({
 </template>
 
 <style scoped>
+.album-wrapper {
+  transform-style: preserve-3d;
+}
+
 .vinyl-disc {
   background: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0a0a0a 60%, #000 100%);
   box-shadow:
@@ -219,6 +312,15 @@ defineExpose({
 .vinyl-label {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.3);
+  will-change: transform, box-shadow;
+  transition: box-shadow 0.3s ease;
+}
+
+/* 翻转时的发光效果 */
+.vinyl-label.flipping {
+  box-shadow:
+    inset 0 2px 20px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(236, 72, 153, 0.6);
 }
 
 .spindle {

@@ -14,6 +14,7 @@ interface Props {
   showHeader?: boolean
   showControls?: boolean
   emptyMessage?: string
+  loading?: boolean
 }
 
 interface Emits {
@@ -31,6 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   showHeader: true,
   showControls: true,
   emptyMessage: '',
+  loading: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -150,9 +152,44 @@ const downloadSong = (song: Song, index: number) => {
         </div>
       </div>
 
+      <!-- Loading 骨架屏 -->
+      <div v-if="loading" class="custom-scrollbar h-full space-y-1 overflow-x-hidden overflow-y-auto pr-2">
+        <div
+          v-for="i in 12"
+          :key="i"
+          class="flex items-center rounded-xl p-2"
+        >
+          <div class="flex w-14 shrink-0 items-center justify-center">
+            <div class="h-4 w-4 animate-pulse rounded bg-white/10"></div>
+          </div>
+          <div class="grid min-w-0 flex-1 grid-cols-12 items-center gap-4">
+            <div class="col-span-4 flex items-center space-x-4">
+              <div class="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-white/10"></div>
+              <div class="min-w-0 flex-1 space-y-2">
+                <div class="h-4 w-3/4 animate-pulse rounded bg-white/10"></div>
+                <div class="h-3 w-1/2 animate-pulse rounded bg-white/10 md:hidden"></div>
+              </div>
+            </div>
+            <div class="col-span-3 hidden md:block">
+              <div class="h-4 w-2/3 animate-pulse rounded bg-white/10"></div>
+            </div>
+            <div class="col-span-2 hidden md:block">
+              <div class="mx-auto h-4 w-1/2 animate-pulse rounded bg-white/10"></div>
+            </div>
+            <div class="col-span-1 flex justify-end">
+              <div class="h-4 w-10 animate-pulse rounded bg-white/10"></div>
+            </div>
+            <div class="col-span-2 flex justify-center gap-1">
+              <div class="h-8 w-8 animate-pulse rounded-full bg-white/10"></div>
+              <div class="h-8 w-8 animate-pulse rounded-full bg-white/10"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 歌曲列表 -->
       <div
-        v-if="songs.length > 0"
+        v-else-if="songs.length > 0"
         class="custom-scrollbar h-full space-y-1 overflow-x-hidden overflow-y-auto pr-2"
       >
         <div
@@ -305,7 +342,7 @@ const downloadSong = (song: Song, index: number) => {
 
       <!-- 空状态 -->
       <div
-        v-if="!songs || songs.length === 0"
+        v-if="!loading && (!songs || songs.length === 0)"
         class="flex h-full flex-col items-center justify-center py-12 text-center"
       >
         <div class="mb-6 rounded-full bg-white/5 p-6">

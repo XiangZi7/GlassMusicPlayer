@@ -24,11 +24,14 @@ export interface SongData {
   id: number | string
   name: string
   artist: string
+  artistId?: number | string
+  artists?: { id: number | string; name: string }[]
   album: string
   albumId?: number | string
   cover: string
   duration: number
   liked?: boolean
+  mvId?: number | string
 }
 
 export interface ArtistData {
@@ -197,15 +200,34 @@ export function transformSong(item: Record<string, unknown>): SongData {
 
   const albumData = al || album || songAlbum
 
+  // 提取歌手数组
+  const ar = item?.ar as Array<Record<string, unknown>> | undefined
+  const artistsRaw = item?.artists as Array<Record<string, unknown>> | undefined
+  const songArtists = song?.artists as Array<Record<string, unknown>> | undefined
+  const artistList = ar || artistsRaw || songArtists
+
+  const artists = Array.isArray(artistList)
+    ? artistList.map(a => ({
+        id: (a?.id as number | string) || 0,
+        name: (a?.name as string) || '',
+      }))
+    : undefined
+
+  // 提取单个歌手 ID（用于只有一个歌手的情况）
+  const artistId = artists?.[0]?.id || 0
+
   return {
     id: (item?.id as number | string) || (song?.id as number | string) || 0,
     name: (item?.name as string) || (song?.name as string) || '',
     artist: extractArtistName(item),
+    artistId,
+    artists,
     album: (albumData?.name as string) || '',
     albumId: (albumData?.id as number | string) || 0,
     cover: (albumData?.picUrl as string) || (item?.picUrl as string) || '',
     duration: (item?.dt as number) ?? (item?.duration as number) ?? (song?.duration as number) ?? 0,
     liked: false,
+    mvId: (item?.mv as number | string) || (item?.mvid as number | string) || 0,
   }
 }
 
@@ -478,17 +500,28 @@ export function transformTopSongs(
   )
   const result = list.map((item: unknown) => {
     const it = item as Record<string, unknown>
-    const artists = it?.artists as Array<Record<string, unknown>> | undefined
+    const artistsRaw = it?.artists as Array<Record<string, unknown>> | undefined
     const album = it?.album as Record<string, unknown> | undefined
+
+    const artists = Array.isArray(artistsRaw)
+      ? artistsRaw.map(a => ({
+          id: (a?.id as number | string) || 0,
+          name: (a?.name as string) || '',
+        }))
+      : undefined
+
     return {
       id: (it?.id as number | string) || 0,
       name: (it?.name as string) || '',
-      artist: Array.isArray(artists) ? artists.map(a => a?.name || '').join(' / ') : '',
+      artist: Array.isArray(artistsRaw) ? artistsRaw.map(a => a?.name || '').join(' / ') : '',
+      artistId: artists?.[0]?.id || 0,
+      artists,
       album: (album?.name as string) || '',
       albumId: (album?.id as number | string) || 0,
       cover: (album?.picUrl as string) || '',
       duration: (it?.duration as number) || 0,
       liked: false,
+      mvId: (it?.mvid as number | string) || 0,
     }
   })
   return limit ? result.slice(0, limit) : result

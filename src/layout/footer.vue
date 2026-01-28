@@ -13,6 +13,7 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { getColorPalette } from '@/utils/colorExtractor'
 import { adaptColorsForTheme } from '@/utils/colorThemeAdapter'
+import { gsap } from 'gsap'
 
 const { t } = useI18n()
 const audioStore = useAudioStore()
@@ -59,8 +60,19 @@ const state = reactive({
   currentLyricIndex: 0,
   // 背景渐变颜色
   footerGradient: [] as string[],
+  // 封面翻转状态
+  isFlipping: false,
+  // 当前显示的封面（用于翻转动画）
+  displayCover: '' as string,
+  // 前一个封面（用于翻转动画）
+  prevCover: '' as string,
 })
 const { showQueue, currentLyricIndex } = toRefs(state)
+
+// 封面容器引用
+const coverRef = ref<HTMLElement | null>(null)
+const coverFrontRef = ref<HTMLElement | null>(null)
+const coverBackRef = ref<HTMLElement | null>(null)
 
 // 计算可视化器渐变颜色
 const visualizerGradient = computed(() => {
@@ -115,6 +127,44 @@ const updateLyricIndex = () => {
   if (idx !== -1) state.currentLyricIndex = idx
 }
 
+// 封面翻转动画
+const flipCover = (newCover: string) => {
+  if (!coverRef.value || state.isFlipping || !state.displayCover) {
+    state.displayCover = newCover
+    return
+  }
+
+  state.isFlipping = true
+  state.prevCover = state.displayCover
+
+  // 创建翻转动画
+  const tl = gsap.timeline({
+    onComplete: () => {
+      state.isFlipping = false
+      state.prevCover = ''
+    },
+  })
+
+  // 翻转到背面
+  tl.to(coverRef.value, {
+    rotateY: 90,
+    scale: 0.9,
+    duration: 0.2,
+    ease: 'power2.in',
+    onComplete: () => {
+      state.displayCover = newCover
+    },
+  })
+
+  // 翻转回正面
+  tl.to(coverRef.value, {
+    rotateY: 0,
+    scale: 1,
+    duration: 0.3,
+    ease: 'back.out(1.5)',
+  })
+}
+
 watch(currentTime, updateLyricIndex)
 watch(
   () => [footerLyrics.value.enabled, currentSong.value?.id],
@@ -124,12 +174,18 @@ watch(
   { immediate: true }
 )
 
-// 监听歌曲变化，提取颜色
+// 监听歌曲变化，提取颜色并触发翻转动画
 watch(
   () => currentSong.value,
-  (  song: { cover: string | undefined }) => {
+  (song, oldSong) => {
     if (song?.cover) {
       extractCoverColors(song.cover)
+      // 只有当歌曲真正变化时才触发翻转
+      if (oldSong && oldSong.id !== song.id) {
+        flipCover(song.cover)
+      } else if (!state.displayCover) {
+        state.displayCover = song.cover
+      }
     }
   },
   { immediate: true }
@@ -138,7 +194,7 @@ watch(
 // 监听播放状态，控制音频分析
 watch(
   isPlaying,
-  (  playing: any) => {
+  (playing: any) => {
     if (playing && audioVisualizer.value.enabledInFooter) {
       if (isAnalyserInitialized.value) {
         startAnalyser()
@@ -201,16 +257,33 @@ const emit = defineEmits(['show'])
     <div class="relative z-10 flex items-center justify-between">
       <!-- 左侧：当前歌曲信息 -->
       <div class="flex min-w-0 flex-1 space-x-4">
-        <div
-          id="footer-cover"
-          @click="emit('show')"
-          class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg bg-cover transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          :style="{
-            backgroundImage: currentSong?.cover
-              ? `url(${currentSong.cover + '?param=128x128'})`
-              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          }"
-        ></div>
+        <!-- 封面容器 - 3D 翻转效果 -->
+        <div class="cover-container" style="perspective: 800px;">
+          <div
+            ref="coverRef"
+            id="footer-cover"
+            @click="emit('show')"
+            class="cover-inner flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg bg-cover shadow-lg transition-shadow duration-300 hover:shadow-xl"
+            :class="{ 'animate-pulse-subtle': isPlaying }"
+            :style="{
+              backgroundImage: state.displayCover
+                ? `url(${state.displayCover + '?param=128x128'})`
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            }"
+          >
+            <!-- 播放状态指示器 -->
+            <div
+              v-if="isPlaying"
+              class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/20 opacity-0 transition-opacity hover:opacity-100"
+            >
+              <div class="flex items-end gap-0.5 h-4">
+                <span class="w-1 bg-white rounded-full animate-equalizer-1"></span>
+                <span class="w-1 bg-white rounded-full animate-equalizer-2"></span>
+                <span class="w-1 bg-white rounded-full animate-equalizer-3"></span>
+              </div>
+            </div>
+          </div>
+        </div>
         <div id="footer-song-info" class="flex min-w-0 flex-col justify-around">
           <p class="text-primary truncate text-sm font-medium">
             {{ currentSong?.name || t('player.unknownSong') }}
@@ -307,3 +380,58 @@ const emit = defineEmits(['show'])
     </div>
   </footer>
 </template>
+
+<style scoped>
+/* 封面容器 */
+.cover-container {
+  position: relative;
+}
+
+.cover-inner {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* 播放时微微脉动 */
+@keyframes pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(236, 72, 153, 0.5);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* 音频均衡器动画 */
+@keyframes equalizer-1 {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+@keyframes equalizer-2 {
+  0%, 100% { height: 8px; }
+  50% { height: 12px; }
+}
+
+@keyframes equalizer-3 {
+  0%, 100% { height: 6px; }
+  50% { height: 14px; }
+}
+
+.animate-equalizer-1 {
+  animation: equalizer-1 0.5s ease-in-out infinite;
+}
+
+.animate-equalizer-2 {
+  animation: equalizer-2 0.5s ease-in-out infinite 0.1s;
+}
+
+.animate-equalizer-3 {
+  animation: equalizer-3 0.5s ease-in-out infinite 0.2s;
+}
+</style>

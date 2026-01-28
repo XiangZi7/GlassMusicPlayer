@@ -150,9 +150,68 @@ const state = reactive({
   dragStartY: 0,
   dragStartScrollY: 0,
   dragPreviewIndex: -1,
+  // 圆形可视化器封面动画
+  circularCover: '' as string,
+  isCircularFlipping: false,
 })
 
 const { isRendered, isRecentOpen, isCommentsOpen, showMobileLyrics } = toRefs(state)
+
+// 圆形可视化器封面引用
+const circularCoverRef = ref<HTMLElement | null>(null)
+
+// 圆形可视化器封面翻转动画
+const flipCircularCover = (newCover: string) => {
+  if (!circularCoverRef.value || state.isCircularFlipping) {
+    state.circularCover = newCover
+    return
+  }
+
+  if (!state.circularCover) {
+    state.circularCover = newCover
+    return
+  }
+
+  state.isCircularFlipping = true
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      state.isCircularFlipping = false
+    },
+  })
+
+  // 第一阶段：翻转到90度 + 缩放
+  tl.to(circularCoverRef.value, {
+    rotateY: 90,
+    scale: 0.85,
+    duration: 0.25,
+    ease: 'power2.in',
+    onComplete: () => {
+      state.circularCover = newCover
+    },
+  })
+
+  // 第二阶段：翻转回来
+  tl.to(circularCoverRef.value, {
+    rotateY: 0,
+    scale: 1,
+    duration: 0.35,
+    ease: 'back.out(1.7)',
+  })
+
+  // 添加发光效果
+  tl.fromTo(
+    circularCoverRef.value,
+    { boxShadow: '0 0 0 rgba(236, 72, 153, 0)' },
+    {
+      boxShadow: '0 0 40px rgba(236, 72, 153, 0.6)',
+      duration: 0.2,
+      yoyo: true,
+      repeat: 1,
+    },
+    0
+  )
+}
 
 // 计算可视化器渐变颜色
 const visualizerGradient = computed(() => {
@@ -449,6 +508,9 @@ const closeDrawer = () => {
   // 停止旋转动画
   vinylDiscRef.value?.stopAlbumRotation()
 
+  // 先清理可能存在的旧克隆
+  document.querySelectorAll('.hero-clone-cover').forEach(el => el.remove())
+
   const footerCover = document.getElementById('footer-cover')
   const targetCover = drawerRef.value.querySelector('.album-cover') as HTMLElement
   const vinylLabel = targetCover?.querySelector('.vinyl-label') as HTMLElement
@@ -480,15 +542,15 @@ const closeDrawer = () => {
     // 隐藏 vinyl-label
     gsap.set(vinylLabel, { opacity: 0 })
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        coverClone.remove()
-        state.isRendered = false
-      }
+    // 立即隐藏抽屉背景，让克隆飞行更明显
+    gsap.to(drawerRef.value, {
+      opacity: 0,
+      duration: 0.3,
+      ease: 'power2.in',
     })
 
     // 封面从 vinyl-label 飞回 footer
-    tl.to(coverClone, {
+    gsap.to(coverClone, {
       width: footerRect.width,
       height: footerRect.height,
       left: footerRect.left,
@@ -496,26 +558,21 @@ const closeDrawer = () => {
       borderRadius: '8px',
       duration: 0.5,
       ease: 'power3.inOut',
+      onComplete: () => {
+        coverClone.remove()
+        state.isRendered = false
+      }
     })
-
-    // 背景淡出
-    tl.to(drawerRef.value, {
-      opacity: 0,
-      duration: 0.4,
-      ease: 'power2.in',
-    }, '-=0.4')
   } else {
     // 降级：普通关闭动画
-    const tl = gsap.timeline({
-      onComplete: () => {
-        state.isRendered = false
-      },
-    })
-    tl.to(drawerRef.value, {
+    gsap.to(drawerRef.value, {
       y: '100%',
       opacity: 0,
       duration: 0.4,
       ease: 'power3.in',
+      onComplete: () => {
+        state.isRendered = false
+      },
     })
   }
 }
@@ -566,12 +623,19 @@ watch(currentTime, () => {
 
 watch(
   currentSong,
-  async s => {
+  async (s, oldSong) => {
     await fetchLyrics(s?.id)
     resetLyrics()
     await nextTick()
     updateCurrentLyric(true)
     setBackgroundGradient(s?.cover, 0)
+
+    // 触发圆形可视化器封面翻转动画
+    if (s?.cover && oldSong && oldSong.id !== s.id) {
+      flipCircularCover(s.cover)
+    } else if (s?.cover && !state.circularCover) {
+      state.circularCover = s.cover
+    }
   },
   { immediate: true }
 )
@@ -824,16 +888,19 @@ onUnmounted(() => {
             class="h-full w-full"
           />
 
-          <!-- 中心封面图片 - 绝对定位居中，75% = 288px -->
+          <!-- 中心封面图片 - 绝对定位居中，带翻转动画 -->
           <div
-            class="absolute top-1/2 left-1/2 aspect-square w-1/2 -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
+            ref="circularCoverRef"
+            class="circular-cover absolute top-1/2 left-1/2 aspect-square w-1/2 -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
+            style="perspective: 1000px; transform-style: preserve-3d;"
             @click="handleAlbumCoverClick"
           >
             <img
-              v-if="currentSong?.cover"
-              :src="currentSong.cover + '?param=320x320'"
-              :alt="currentSong.name"
+              v-if="state.circularCover"
+              :src="state.circularCover + '?param=320x320'"
+              :alt="currentSong?.name"
               class="h-full w-full object-cover"
+              style="backface-visibility: hidden;"
             />
             <div v-else class="h-full w-full bg-linear-to-br from-blue-500 to-purple-600"></div>
           </div>
@@ -1054,6 +1121,16 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 圆形可视化器封面翻转动画 */
+.circular-cover {
+  will-change: transform, box-shadow;
+  transition: box-shadow 0.3s ease;
+}
+
+.circular-cover img {
+  will-change: transform;
 }
 
 .vinyl-disc {

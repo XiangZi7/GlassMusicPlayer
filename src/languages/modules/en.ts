@@ -53,6 +53,10 @@ export default {
     results: 'results',
     enterKeyword: 'Enter keywords to search',
     hint: 'Search songs, playlists, MVs and more',
+    title: 'Discover Music',
+    recentSearches: 'Recent Searches',
+    hotSearches: 'Hot Searches',
+    foundResults: 'Found {count} results',
   },
   charts: {
     types: { all: 'All', mandarin: 'Mandarin', west: 'Western', japan: 'Japan', korea: 'Korea' },

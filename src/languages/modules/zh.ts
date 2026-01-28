@@ -49,6 +49,10 @@ export default {
     results: '条结果',
     enterKeyword: '输入关键词开始搜索',
     hint: '搜索歌曲、歌单、MV等内容',
+    title: '发现音乐',
+    recentSearches: '搜索历史',
+    hotSearches: '热门搜索',
+    foundResults: '共找到 {count} 条结果',
   },
   charts: {
     types: { all: '全部', mandarin: '华语', west: '欧美', japan: '日本', korea: '韩国' },

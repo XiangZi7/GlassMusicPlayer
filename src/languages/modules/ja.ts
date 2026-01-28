@@ -53,6 +53,10 @@ export default {
     results: '件',
     enterKeyword: 'キーワードを入力して検索',
     hint: '曲、プレイリスト、MVなどを検索',
+    title: '音楽を探す',
+    recentSearches: '検索履歴',
+    hotSearches: '人気の検索',
+    foundResults: '{count} 件見つかりました',
   },
   charts: {
     types: { all: '全部', mandarin: '華語', west: '洋楽', japan: '日本', korea: '韓国' },

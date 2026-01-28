@@ -213,6 +213,7 @@ export const vParallax: Directive<HTMLElement, { speed?: number }> = {
 /**
  * v-scroll-in 指令
  * 滚动触发入场动画 - 元素进入视口时触发动画
+ * 使用 IntersectionObserver 实现，支持任意滚动容器
  *
  * 使用方式:
  * <div v-scroll-in>内容</div>
@@ -229,6 +230,7 @@ export const vScrollIn: Directive<
     stagger?: boolean
     staggerDelay?: number
     once?: boolean
+    threshold?: number
   }
 > = {
   mounted(el: HTMLElement, binding) {
@@ -240,6 +242,7 @@ export const vScrollIn: Directive<
       stagger = false,
       staggerDelay = 0.08,
       once = true,
+      threshold = 0.1,
     } = binding.value || {}
 
     // 计算起始位置
@@ -259,55 +262,61 @@ export const vScrollIn: Directive<
         break
     }
 
+    // 设置初始状态
     if (stagger) {
-      // 子元素错开动画
       const items = el.querySelectorAll('.stagger-item')
       const targets = items.length > 0 ? items : el.children
-
       gsap.set(targets, fromVars)
-
-      ScrollTrigger.create({
-        trigger: el,
-        start: 'top 85%',
-        once,
-        onEnter: () => {
-          gsap.to(targets, {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            duration,
-            delay,
-            stagger: staggerDelay,
-            ease: 'power3.out',
-          })
-        },
-      })
     } else {
-      // 单个元素动画
       gsap.set(el, fromVars)
-
-      ScrollTrigger.create({
-        trigger: el,
-        start: 'top 85%',
-        once,
-        onEnter: () => {
-          gsap.to(el, {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            duration,
-            delay,
-            ease: 'power3.out',
-          })
-        },
-      })
     }
+
+    // 使用 IntersectionObserver 检测元素是否进入视口
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (stagger) {
+              const items = el.querySelectorAll('.stagger-item')
+              const targets = items.length > 0 ? items : el.children
+              gsap.to(targets, {
+                opacity: 1,
+                x: 0,
+                y: 0,
+                duration,
+                delay,
+                stagger: staggerDelay,
+                ease: 'power3.out',
+              })
+            } else {
+              gsap.to(el, {
+                opacity: 1,
+                x: 0,
+                y: 0,
+                duration,
+                delay,
+                ease: 'power3.out',
+              })
+            }
+
+            // 如果只触发一次，则取消观察
+            if (once) {
+              observer.unobserve(el)
+            }
+          }
+        })
+      },
+      {
+        threshold,
+        rootMargin: '0px 0px -10% 0px', // 提前一点触发
+      }
+    )
+
+    observer.observe(el)
 
     // 存储清理函数
     ;(el as any)._scrollInCleanup = () => {
-      ScrollTrigger.getAll()
-        .filter(st => st.trigger === el)
-        .forEach(st => st.kill())
+      observer.disconnect()
     }
   },
   unmounted(el: HTMLElement) {

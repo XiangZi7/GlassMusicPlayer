@@ -16,10 +16,11 @@ const emit = defineEmits<{
 
 interface SongsState {
   results: SongData[]
+  isLoading: boolean
 }
 
-const state = reactive<SongsState>({ results: [] })
-const { results } = toRefs(state)
+const state = reactive<SongsState>({ results: [], isLoading: false })
+const { results, isLoading } = toRefs(state)
 
 const { setPlaylist, play } = useAudio()
 
@@ -36,16 +37,21 @@ const fetchSongs = async () => {
     state.results = []
     return
   }
-  const res = await cloudSearch({
-    keywords: term,
-    type: 1,
-    limit: props.limit ?? 40,
-    offset: props.offset ?? 0,
-  })
-  const { songs, total } = transformSearchSongs(res as Record<string, unknown>)
-  state.results = songs
-  emit('loaded', state.results.length)
-  emit('total', total)
+  state.isLoading = true
+  try {
+    const res = await cloudSearch({
+      keywords: term,
+      type: 1,
+      limit: props.limit ?? 40,
+      offset: props.offset ?? 0,
+    })
+    const { songs, total } = transformSearchSongs(res as Record<string, unknown>)
+    state.results = songs
+    emit('loaded', state.results.length)
+    emit('total', total)
+  } finally {
+    state.isLoading = false
+  }
 }
 
 watch(
@@ -64,6 +70,7 @@ defineExpose({
   <div class="flex h-full flex-col overflow-hidden">
     <SongList
       :songs="results"
+      :loading="isLoading"
       :showHeader="true"
       :showControls="false"
       :emptyMessage="$t('components.songList.empty')"
