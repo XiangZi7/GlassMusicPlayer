@@ -284,12 +284,12 @@ const gradientStyle = computed(() => {
 .play-btn {
   @apply flex items-center justify-center rounded-full text-white shadow-2xl transition-all duration-300;
   background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 6px 24px rgba(236, 72, 153, 0.3);
 }
 
 .play-btn:hover {
   @apply scale-110;
-  box-shadow: 0 12px 40px rgba(236, 72, 153, 0.5);
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4);
 }
 .play-btn.loading {
   @apply cursor-wait opacity-70;

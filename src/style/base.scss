@@ -10,24 +10,53 @@ body,
   display: flex;
 }
 
-// 滚动条
+/* ── 滚动条 ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-  border-radius: 10px;
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: 226, 226, 226;
-  background-color: rgb(206, 206, 206);
+  background: rgba(128, 128, 128, 0.25);
   border-radius: 10px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(128, 128, 128, 0.4);
+  }
 }
+
+/* 暗色模式滚动条 */
+html.dark {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+  }
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.25) transparent;
+}
+
+html.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
 @font-face {
   font-family: 'hanyi';
   src: url('../assets/hanyi.woff2');
 }
 
-/* 播放动画图标 */
+/* ── 播放动画图标 ── */
 .playing-icon {
   display: flex;
   align-items: flex-end;
@@ -37,10 +66,9 @@ body,
   justify-content: center;
 }
 
-
 .bar {
   width: 3px;
-  background-color: #f472b6; /* text-pink-400 */
+  background-color: #f472b6;
   height: 20%;
   border-radius: 1px;
   transition: height 0.2s ease;

@@ -396,10 +396,10 @@ const emit = defineEmits(['show'])
 /* 播放时微微脉动 */
 @keyframes pulse-subtle {
   0%, 100% {
-    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
   }
   50% {
-    box-shadow: 0 4px 25px rgba(236, 72, 153, 0.5);
+    box-shadow: 0 4px 20px rgba(236, 72, 153, 0.35);
   }
 }
 

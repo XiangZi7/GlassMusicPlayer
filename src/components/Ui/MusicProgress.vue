@@ -207,25 +207,25 @@ const previewPositionPercent = computed(() => {
 }
 
 .progress-track {
-  background: rgba(201, 190, 190, 0.5);
+  background: var(--glass-progress-track);
 }
 
 .progress-fill {
-  box-shadow: 0 0 8px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
   transition: width 0.05s linear;
 }
 
 .progress-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transform: translate(-50%, -50%);
   opacity: 0;
   transition:
-    opacity 0.2s,
-    transform 0.2s,
-    box-shadow 0.2s;
+    opacity 0.2s var(--glass-ease, ease),
+    transform 0.2s var(--glass-ease, ease),
+    box-shadow 0.25s var(--glass-ease, ease);
 }
 
 .progress-wrapper:hover .progress-thumb,
@@ -234,10 +234,10 @@ const previewPositionPercent = computed(() => {
 }
 
 .progress-thumb.active {
-  transform: translate(-50%, -50%) scale(1.2);
+  transform: translate(-50%, -50%) scale(1.15);
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(236, 72, 153, 0.6);
+    0 2px 10px rgba(0, 0, 0, 0.25),
+    0 0 16px rgba(236, 72, 153, 0.4);
 }
 
 .time-preview {

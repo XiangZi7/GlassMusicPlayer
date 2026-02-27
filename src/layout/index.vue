@@ -75,9 +75,7 @@ const currentBackgroundProps = computed(() => backgroundPropsMap.value[currentBa
     </div>
     <!-- 主容器 -->
     <div class="z-50 flex w-full flex-col px-36 py-6">
-      <div
-        class="glass-container flex flex-1 flex-col overflow-hidden backdrop-blur-md backdrop-filter"
-      >
+      <div class="glass-container flex flex-1 flex-col overflow-hidden">
         <!-- 头部区域 -->
         <Header />
         <!-- 主内容区域 -->
