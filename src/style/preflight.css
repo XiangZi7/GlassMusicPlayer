@@ -2,35 +2,128 @@
   :root {
     color-scheme: light;
 
-    /* ========== 背景 ========== */
-    --glass-bg-solid: light-dark(rgba(255, 255, 255, 1), rgba(0, 0, 0, 1));
-    --glass-bg-base: light-dark(rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.35));
-    --glass-bg-subtle: light-dark(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3));
-    --glass-bg-elevated: light-dark(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.28));
-    --glass-bg-card: light-dark(rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.4));
-    --glass-bg-overlay: light-dark(rgba(255, 255, 255, 0.92), rgba(0, 0, 0, 0.9));
-    --glass-bg-mask: light-dark(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.3));
+    /* ═══════ 模糊层级 ═══════ */
+    --glass-blur-xs: 6px;
+    --glass-blur-sm: 10px;
+    --glass-blur-md: 18px;
+    --glass-blur-lg: 28px;
+    --glass-blur-xl: 40px;
 
-    /* ========== 文字 ========== */
-    --glass-text-primary: light-dark(rgba(60, 58, 58, 1), rgba(255, 255, 255, 0.85));
-    --glass-text-contrast: light-dark(rgba(17, 24, 39, 0.95), rgba(255, 255, 255, 0.95));
+    /* ═══════ 背景 ═══════ */
+    --glass-bg-solid: light-dark(#ffffff, #08080c);
+    --glass-bg-base: light-dark(
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.03)
+    );
+    --glass-bg-subtle: light-dark(
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.035)
+    );
+    --glass-bg-elevated: light-dark(
+      rgba(255, 255, 255, 0.32),
+      rgba(16, 16, 26, 0.52)
+    );
+    --glass-bg-card: light-dark(
+      rgba(255, 255, 255, 0.14),
+      rgba(255, 255, 255, 0.04)
+    );
+    --glass-bg-overlay: light-dark(
+      rgba(255, 255, 255, 0.86),
+      rgba(12, 12, 20, 0.88)
+    );
+    --glass-bg-mask: light-dark(
+      rgba(255, 255, 255, 0.06),
+      rgba(0, 0, 0, 0.22)
+    );
+
+    /* ═══════ 文字 ═══════ */
+    --glass-text-primary: light-dark(
+      rgba(18, 18, 32, 0.88),
+      rgba(255, 255, 255, 0.88)
+    );
+    --glass-text-secondary: light-dark(
+      rgba(18, 18, 32, 0.58),
+      rgba(255, 255, 255, 0.58)
+    );
+    --glass-text-muted: light-dark(
+      rgba(18, 18, 32, 0.36),
+      rgba(255, 255, 255, 0.36)
+    );
+    --glass-text-contrast: light-dark(
+      rgba(17, 24, 39, 0.95),
+      rgba(255, 255, 255, 0.95)
+    );
     --glass-text-accent: rgba(255, 255, 255, 0.95);
 
-    /* ========== 边框 ========== */
-    --glass-border-default: light-dark(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-    --glass-border-subtle: light-dark(rgba(17, 24, 39, 0.08), rgba(255, 255, 255, 0.12));
+    /* ═══════ 边框 ═══════ */
+    --glass-border-default: light-dark(
+      rgba(255, 255, 255, 0.22),
+      rgba(255, 255, 255, 0.06)
+    );
+    --glass-border-subtle: light-dark(
+      rgba(0, 0, 0, 0.05),
+      rgba(255, 255, 255, 0.035)
+    );
+    --glass-border-strong: light-dark(
+      rgba(0, 0, 0, 0.1),
+      rgba(255, 255, 255, 0.1)
+    );
 
-    /* ========== 交互 ========== */
-    --glass-interactive-bg: light-dark(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-    --glass-interactive-hover: light-dark(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.12));
-    --glass-interactive-hover-muted: light-dark(rgba(17, 24, 39, 0.06), rgba(255, 255, 255, 0.12));
-    --glass-interactive-text-hover: light-dark(rgba(17, 24, 39, 1), rgba(255, 255, 255, 1));
+    /* ═══════ 交互 ═══════ */
+    --glass-interactive-bg: light-dark(
+      rgba(255, 255, 255, 0.14),
+      rgba(255, 255, 255, 0.055)
+    );
+    --glass-interactive-hover: light-dark(
+      rgba(255, 255, 255, 0.24),
+      rgba(255, 255, 255, 0.1)
+    );
+    --glass-interactive-hover-muted: light-dark(
+      rgba(0, 0, 0, 0.035),
+      rgba(255, 255, 255, 0.06)
+    );
+    --glass-interactive-active: light-dark(
+      rgba(0, 0, 0, 0.06),
+      rgba(255, 255, 255, 0.13)
+    );
+    --glass-interactive-text-hover: light-dark(
+      rgba(17, 24, 39, 1),
+      rgba(255, 255, 255, 1)
+    );
 
-    /* ========== 组件 ========== */
-    --glass-dropdown-blur: 10px;
-    --glass-progress-track: light-dark(rgba(17, 24, 39, 0.16), rgba(255, 255, 255, 0.22));
-    --glass-progress-fill: linear-gradient(90deg, var(--accent-from), var(--accent-to));
-    --glass-skeleton: light-dark(rgba(217, 218, 219, 1), rgba(255, 255, 255, 0.08));
+    /* ═══════ 阴影 ═══════ */
+    --glass-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.03);
+    --glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.03);
+    --glass-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.06),
+      0 2px 6px rgba(0, 0, 0, 0.03);
+    --glass-shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.04);
+    --glass-shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.1),
+      0 6px 18px rgba(0, 0, 0, 0.05);
+    --glass-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.03);
+
+    /* ═══════ 组件 ═══════ */
+    --glass-dropdown-blur: 18px;
+    --glass-progress-track: light-dark(
+      rgba(0, 0, 0, 0.08),
+      rgba(255, 255, 255, 0.1)
+    );
+    --glass-progress-fill: linear-gradient(
+      90deg,
+      var(--accent-from, #ec4899),
+      var(--accent-to, #8b5cf6)
+    );
+    --glass-skeleton: light-dark(
+      rgba(0, 0, 0, 0.04),
+      rgba(255, 255, 255, 0.05)
+    );
+
+    /* ═══════ 过渡曲线 ═══════ */
+    --glass-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --glass-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --glass-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   :root.dark,
@@ -39,9 +132,10 @@
   }
 
   html.dark body {
-    background-color: #0b0b0f;
+    background-color: #08080c;
   }
 
+  /* 亮色模式下的背景叠层 —— 降低白度，保留流体背景色彩 */
   html:not(.dark) body .custom-theme::after {
     content: '';
     position: absolute;
@@ -51,10 +145,10 @@
     height: 100vh;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.72) 0%,
-      rgba(255, 255, 255, 0.45) 100%
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.3) 100%
     );
-    -webkit-backdrop-filter: saturate(3);
-    backdrop-filter: saturate(3);
+    -webkit-backdrop-filter: saturate(1.6) brightness(1.08);
+    backdrop-filter: saturate(1.6) brightness(1.08);
   }
 }

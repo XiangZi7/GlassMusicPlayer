@@ -9,11 +9,11 @@ const onChange = (e: Event) => emit('update:modelValue', (e.target as HTMLInputE
   <label class="inline-flex cursor-pointer items-center gap-2">
     <input type="checkbox" class="sr-only" :checked="modelValue" @change="onChange" />
     <span
-      class="flex h-5 w-5 items-center justify-center rounded-md border"
+      class="flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200"
       :class="[
         modelValue
-          ? 'border-white/40 bg-white/70 text-black'
-          : 'border-white/30 bg-transparent text-primary/70',
+          ? 'border-white/30 bg-white/60 text-black shadow-sm'
+          : 'border-white/15 bg-white/5 text-primary/70',
       ]"
       @click.prevent="onToggle"
     >
