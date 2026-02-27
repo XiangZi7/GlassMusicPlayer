@@ -693,6 +693,8 @@ onUnmounted(() => {
       <div ref="bgARef" class="bg-layer absolute inset-0 opacity-0" :style="bgAStyle"></div>
       <div ref="bgBRef" class="bg-layer absolute inset-0 opacity-0" :style="bgBStyle"></div>
       <div class="bg-overlay/40 absolute inset-0"></div>
+      <!-- 暗角 -->
+      <div class="vignette pointer-events-none absolute inset-0"></div>
 
       <!-- 音频可视化器 - 占满背景底部 -->
       <div
@@ -701,7 +703,7 @@ onUnmounted(() => {
           audioVisualizer.enabledInDrawer &&
           audioVisualizer.visualizerType !== 'circular'
         "
-        class="absolute right-0 bottom-0 left-0 z-10 opacity-40"
+        class="absolute right-0 bottom-0 left-0 z-10 opacity-30"
       >
         <AudioVisualizer
           :frequency-data="frequencyData"
@@ -711,39 +713,39 @@ onUnmounted(() => {
           :bar-width="4"
           :bar-gap="1"
           :gradient-colors="visualizerGradient"
-          :height="150"
+          :height="180"
           class="h-full"
         />
       </div>
     </div>
 
-    <div class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:p-6">
-      <div class="flex items-center gap-3">
-        <div class="glass-toolbar flex items-center gap-1 rounded-2xl p-1.5">
+    <div class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:px-6 lg:pt-5">
+      <div class="flex items-center gap-2">
+        <div class="glass-toolbar flex items-center gap-0.5 rounded-xl p-1">
           <Button
             variant="ghost"
             size="icon-sm"
-            rounded="xl"
+            rounded="lg"
             :title="t('player.fontDec')"
             @click="decreaseScale()"
-          >
-            <span class="icon-[mdi--format-font-size-decrease] h-4 w-4"></span>
-          </Button>
+            icon="icon-[mdi--format-font-size-decrease]"
+            icon-class="h-4 w-4"
+          />
           <Button
             variant="ghost"
             size="icon-sm"
-            rounded="xl"
+            rounded="lg"
             :title="t('player.fontInc')"
             @click="increaseScale()"
-          >
-            <span class="icon-[mdi--format-font-size-increase] h-4 w-4"></span>
-          </Button>
-          <div class="mx-1 h-4 w-px bg-white/10"></div>
+            icon="icon-[mdi--format-font-size-increase]"
+            icon-class="h-4 w-4"
+          />
+          <div class="mx-0.5 h-4 w-px bg-white/8"></div>
           <Button
             variant="ghost"
             size="icon-sm"
-            rounded="xl"
-            :class="{ 'text-primary bg-white/15 ring-1 ring-white/20': autoScroll }"
+            rounded="lg"
+            :class="{ 'text-primary bg-white/12 ring-1 ring-white/15': autoScroll }"
             :title="t('player.autoCenter')"
             @click="toggleAutoScroll"
           >
@@ -755,109 +757,108 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <div
           v-if="lyricsTrans.length || lyricsRoma.length"
-          class="glass-toolbar flex items-center gap-2 rounded-2xl p-1.5"
+          class="glass-toolbar flex items-center gap-1 rounded-xl p-1"
         >
           <Button
             v-if="lyricsTrans.length"
             variant="ghost"
             size="sm"
-            rounded="xl"
-            class="gap-2"
-            :class="{ 'text-primary bg-white/15 ring-1 ring-white/20': showTrans }"
+            rounded="lg"
+            class="gap-1.5 text-xs"
+            :class="{ 'text-primary bg-white/12 ring-1 ring-white/15': showTrans }"
             @click="toggleTransBtn"
           >
-            <span class="icon-[mdi--translate] h-4 w-4" />
+            <span class="icon-[mdi--translate] h-3.5 w-3.5" />
             <span>{{ t('player.translate') }}</span>
           </Button>
           <Button
             v-if="lyricsRoma.length"
             variant="ghost"
             size="sm"
-            rounded="xl"
-            class="gap-2"
-            :class="{ 'text-primary bg-white/15 ring-1 ring-white/20': showRoma }"
+            rounded="lg"
+            class="gap-1.5 text-xs"
+            :class="{ 'text-primary bg-white/12 ring-1 ring-white/15': showRoma }"
             @click="toggleRomaBtn"
           >
-            <span class="icon-[mdi--alphabetical-variant] h-4 w-4"></span>
+            <span class="icon-[mdi--alphabetical-variant] h-3.5 w-3.5"></span>
             <span>{{ t('player.roma') }}</span>
           </Button>
         </div>
 
-        <Button
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="flex size-11 justify-center border border-[#ffffff1a] lg:hidden"
-          @click="showMobileLyrics = !showMobileLyrics"
-          :icon="showMobileLyrics ? 'icon-[mdi--album]' : 'icon-[mdi--text-box-outline]'"
-          icon-class="h-5 w-5"
-        />
+        <div class="glass-toolbar flex items-center gap-0.5 rounded-xl p-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            class="lg:hidden"
+            @click="showMobileLyrics = !showMobileLyrics"
+            :icon="showMobileLyrics ? 'icon-[mdi--album]' : 'icon-[mdi--text-box-outline]'"
+            icon-class="h-4 w-4"
+          />
 
-        <Button
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="size-11 justify-center border border-[#ffffff1a]"
-          :class="{ 'bg-white/20 text-yellow-300': !useCoverBg }"
-          @click="useCoverBg = !useCoverBg"
-          :title="t('player.toggleBg')"
-        >
-          <span
-            :class="[
-              useCoverBg ? 'icon-[mdi--image-multiple-outline]' : 'icon-[mdi--palette-swatch]',
-              'h-5 w-5',
-            ]"
-          ></span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            :class="{ 'text-yellow-300/80 bg-white/12': !useCoverBg }"
+            @click="useCoverBg = !useCoverBg"
+            :title="t('player.toggleBg')"
+          >
+            <span
+              :class="[
+                useCoverBg ? 'icon-[mdi--image-multiple-outline]' : 'icon-[mdi--palette-swatch]',
+                'h-4 w-4',
+              ]"
+            ></span>
+          </Button>
 
-        <Button
-          v-if="isAnalyserInitialized"
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="h-11 w-11 justify-center border border-[#ffffff1a]"
-          :class="{ 'bg-white/20 text-cyan-300': audioVisualizer.enabledInDrawer }"
-          @click="settingsStore.setAudioVisualizerDrawer(!audioVisualizer.enabledInDrawer)"
-          title="切换频谱显示"
-        >
-          <span class="icon-[mdi--waveform] h-5 w-5"></span>
-        </Button>
+          <Button
+            v-if="isAnalyserInitialized"
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            :class="{ 'text-cyan-300/80 bg-white/12': audioVisualizer.enabledInDrawer }"
+            @click="settingsStore.setAudioVisualizerDrawer(!audioVisualizer.enabledInDrawer)"
+            title="切换频谱显示"
+            icon="icon-[mdi--waveform]"
+            icon-class="h-4 w-4"
+          />
 
-        <Button
-          v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer"
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="h-11 w-11 justify-center border border-[#ffffff1a]"
-          @click="cycleVisualizerType"
-          title="切换频谱模式"
-        >
-          <span :class="[visualizerTypeIcon, 'h-5 w-5']"></span>
-        </Button>
+          <Button
+            v-if="isAnalyserInitialized && audioVisualizer.enabledInDrawer"
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            @click="cycleVisualizerType"
+            title="切换频谱模式"
+          >
+            <span :class="[visualizerTypeIcon, 'h-4 w-4']"></span>
+          </Button>
 
-        <Button
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="h-11 w-11 justify-center border border-[#ffffff1a]"
-          @click="cycleTheme"
-          :title="t('components.settings.themeMode')"
-        >
-          <span :class="[themeIcon, 'h-5 w-5']"></span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            @click="cycleTheme"
+            :title="t('components.settings.themeMode')"
+          >
+            <span :class="[themeIcon, 'h-4 w-4']"></span>
+          </Button>
 
-        <Button
-          variant="soft"
-          rounded="full"
-          size="none"
-          class="h-11 w-11 justify-center border border-[#ffffff1a]"
-          @click="isOpen = false"
-        >
-          <span class="icon-[mdi--chevron-down] h-6 w-6"></span>
-        </Button>
+          <div class="mx-0.5 h-4 w-px bg-white/8"></div>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            rounded="lg"
+            @click="isOpen = false"
+            icon="icon-[mdi--chevron-down]"
+            icon-class="h-5 w-5"
+          />
+        </div>
       </div>
     </div>
 
@@ -906,15 +907,15 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="song-info text-center">
-          <h2 class="text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
+        <div class="song-info mt-2 text-center">
+          <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
             {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="text-primary/70 text-sm sm:text-base lg:text-lg">
+          <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
-          <p class="text-primary/50 mt-0.5 text-xs sm:text-sm">
-            {{ currentSong?.album || t('player.unknownAlbum') }}
+          <p v-if="currentSong?.album" class="text-primary/35 mt-0.5 text-xs sm:text-sm">
+            {{ currentSong.album }}
           </p>
         </div>
       </div>
@@ -931,56 +932,55 @@ onUnmounted(() => {
         />
 
         <div class="song-info text-center">
-          <h2 class="text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
+          <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
             {{ currentSong?.name || t('player.unknownSong') }}
           </h2>
-          <p class="text-primary/70 text-sm sm:text-base lg:text-lg">
+          <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
             {{ currentSong?.artist || t('player.unknownArtist') }}
           </p>
-          <p class="text-primary/50 mt-0.5 text-xs sm:text-sm">
-            {{ currentSong?.album || t('player.unknownAlbum') }}
+          <p v-if="currentSong?.album" class="text-primary/35 mt-0.5 text-xs sm:text-sm">
+            {{ currentSong.album }}
           </p>
         </div>
       </div>
 
-      <div v-if="currentSong" class="mb-4 w-full max-w-xl px-4">
-        <!-- 音乐进度条 -->
+      <div v-if="currentSong" class="mb-5 w-full max-w-xl px-4">
         <MusicProgress :color="visualizerGradient" />
-        <div class="mt-1 flex justify-between">
-          <span class="text-primary/50 text-xs">{{
+        <div class="mt-1.5 flex justify-between">
+          <span class="text-primary/45 text-[11px] tabular-nums">{{
             isLoading ? t('player.loading') : formattedCurrentTime
           }}</span>
-          <span class="text-primary/50 text-xs">{{ formattedDuration }}</span>
+          <span class="text-primary/45 text-[11px] tabular-nums">{{ formattedDuration }}</span>
         </div>
       </div>
 
-      <div class="mb-4 flex items-center gap-3 sm:gap-4 lg:mb-6">
+      <div class="controls-row mb-5 flex items-center gap-3 sm:gap-5 lg:mb-6">
         <Button
-          variant="soft"
+          variant="ghost"
           rounded="full"
           size="none"
-          class="h-11 w-11 justify-center"
-          :class="{ 'bg-pink-500/30': playMode !== 'list' }"
+          class="ctrl-btn h-10 w-10 justify-center"
+          :class="{ 'text-pink-400! bg-pink-500/15': playMode !== 'list' }"
           @click="togglePlayMode"
         >
           <component :is="'span'" :class="playModeIconClass" class="h-5 w-5" />
         </Button>
 
         <Button
-          variant="soft"
+          variant="ghost"
           rounded="full"
           size="none"
-          class="h-14 w-14 justify-center"
+          class="ctrl-btn h-12 w-12 justify-center"
           @click="previous"
-        >
-          <span class="icon-[mdi--skip-previous] h-6 w-6"></span>
-        </Button>
+          icon="icon-[mdi--skip-previous]"
+          icon-class="h-6 w-6"
+        />
 
         <Button
           variant="gradient"
           rounded="full"
           size="none"
-          class="h-18 w-18 justify-center shadow-2xl"
+          class="main-play-btn h-[72px] w-[72px] justify-center"
           :loading="isLoading"
           :pulse="true"
           :press3d="true"
@@ -994,14 +994,14 @@ onUnmounted(() => {
         </Button>
 
         <Button
-          variant="soft"
+          variant="ghost"
           rounded="full"
           size="none"
-          class="h-14 w-14 justify-center"
+          class="ctrl-btn h-12 w-12 justify-center"
           @click="next"
-        >
-          <span class="icon-[mdi--skip-next] h-6 w-6"></span>
-        </Button>
+          icon="icon-[mdi--skip-next]"
+          icon-class="h-6 w-6"
+        />
 
         <PlaylistBubble
           v-model:show="isRecentOpen"
@@ -1010,22 +1010,27 @@ onUnmounted(() => {
           :offset-y="10"
         >
           <template #trigger>
-            <Button variant="soft" rounded="full" size="none" class="h-11 w-11 justify-center">
-              <span class="icon-[mdi--playlist-music] h-5 w-5"></span>
-            </Button>
+            <Button
+              variant="ghost"
+              rounded="full"
+              size="none"
+              class="ctrl-btn h-10 w-10 justify-center"
+              icon="icon-[mdi--playlist-music]"
+              icon-class="h-5 w-5"
+            />
           </template>
         </PlaylistBubble>
       </div>
 
       <div class="flex w-full max-w-sm items-center justify-between px-4">
         <Button
-          variant="soft"
+          variant="ghost"
           size="sm"
           rounded="2xl"
-          class="gap-2 px-4 py-2"
+          class="gap-1.5 px-3.5 py-1.5 text-xs"
           @click="isCommentsOpen = true"
         >
-          <span class="icon-[mdi--comment-outline] h-5 w-5"></span>
+          <span class="icon-[mdi--comment-outline] h-4 w-4"></span>
           <span>{{ commentCount }}</span>
         </Button>
 
@@ -1073,30 +1078,25 @@ onUnmounted(() => {
           <div class="h-64"></div>
         </div>
 
-        <div
-          class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
-        ></div>
+        <!-- 歌词中心指示线 -->
+        <div class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 flex items-center">
+          <div class="center-line h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+        </div>
 
         <!-- 拖动时显示的时间和歌词提示 -->
         <Transition name="fade-scale">
           <div
             v-if="state.lyricsDragging && dragPreviewTime"
-            class="drag-preview pointer-events-none absolute top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/30 bg-black/90 px-6 py-4 shadow-2xl backdrop-blur-xl"
+            class="drag-preview pointer-events-none absolute top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-black/85 px-6 py-4 shadow-2xl backdrop-blur-xl"
           >
-            <div class="mb-3 flex items-center justify-center gap-4">
-              <div class="flex items-center gap-2">
-                <span class="icon-[mdi--clock-outline] text-primary h-5 w-5"></span>
-                <span class="text-primary text-2xl font-bold">{{ dragPreviewTime.time }}</span>
-              </div>
-              <div class="h-6 w-px bg-white/20"></div>
-              <div class="flex items-center gap-2">
-                <span class="icon-[mdi--clock-end] h-5 w-5 text-white/60"></span>
-                <span class="text-xl text-white/60">{{ formattedDuration }}</span>
-              </div>
+            <div class="mb-3 flex items-center justify-center gap-3">
+              <span class="text-primary text-2xl font-bold tabular-nums">{{ dragPreviewTime.time }}</span>
+              <span class="text-primary/25">/</span>
+              <span class="text-lg tabular-nums text-white/40">{{ formattedDuration }}</span>
             </div>
             <div class="max-w-md text-center">
-              <p class="text-primary mb-2 text-lg font-semibold">{{ dragPreviewTime.lyric.ori }}</p>
-              <p v-if="showTrans && dragPreviewTime.lyric.tran" class="text-primary/70 text-sm">
+              <p class="text-primary mb-1.5 text-base font-medium leading-relaxed">{{ dragPreviewTime.lyric.ori }}</p>
+              <p v-if="showTrans && dragPreviewTime.lyric.tran" class="text-primary/50 text-sm">
                 {{ dragPreviewTime.lyric.tran }}
               </p>
             </div>
@@ -1117,16 +1117,51 @@ onUnmounted(() => {
   will-change: transform, opacity;
 }
 
+/* 暗角效果 */
+.vignette {
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.45) 100%);
+}
+
 .glass-toolbar {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 控制按钮 hover 效果 */
+.ctrl-btn {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ctrl-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: scale(1.08);
+}
+.ctrl-btn:active {
+  transform: scale(0.95);
+}
+
+/* 主播放按钮光环 */
+.main-play-btn {
+  box-shadow:
+    0 0 30px rgba(236, 72, 153, 0.25),
+    0 8px 32px rgba(139, 92, 246, 0.2);
+  transition: box-shadow 0.3s ease;
+}
+.main-play-btn:hover {
+  box-shadow:
+    0 0 40px rgba(236, 72, 153, 0.35),
+    0 0 60px rgba(139, 92, 246, 0.15),
+    0 8px 32px rgba(139, 92, 246, 0.25);
 }
 
 /* 圆形可视化器封面翻转动画 */
 .circular-cover {
   will-change: transform, box-shadow;
   transition: box-shadow 0.3s ease;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
 }
 
 .circular-cover img {
@@ -1256,14 +1291,19 @@ onUnmounted(() => {
 .lyric-line.current {
   @apply text-primary;
   transform: scale(1.08);
-  text-shadow: 0 0 24px rgba(255, 255, 255, 0.4);
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(139, 92, 246, 0.12));
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  background: linear-gradient(
+    135deg,
+    rgba(236, 72, 153, 0.08),
+    rgba(139, 92, 246, 0.08)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .lyric-line.current .lyric-text {
   @apply text-xl font-semibold lg:text-2xl;
 }
 .lyric-line.current .lyric-sub {
-  @apply text-primary/70 mt-1 text-sm lg:text-base;
+  @apply text-primary/65 mt-1 text-sm lg:text-base;
 }
 
 .lyric-sub {
@@ -1302,5 +1342,8 @@ onUnmounted(() => {
 .drag-preview {
   min-width: 280px;
   max-width: 500px;
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 </style>

@@ -80,72 +80,65 @@ onMounted(() => {
   <div class="flex-1 overflow-hidden">
     <div class="custom-scrollbar h-full overflow-y-auto">
       <HomeSkeleton v-if="isLoading" />
-      <div v-else class="space-y-8 p-4">
-        <!-- 轮播图 -->
+      <div v-else class="space-y-10 p-5 pb-8">
+        <!-- ═══════ Banner 轮播 ═══════ -->
         <section v-if="banners.length" v-scroll-in="{ direction: 'up', duration: 0.8 }" class="relative">
           <Swiper
             @swiper="onSwiper"
             :modules="swiperModules"
             :slides-per-view="1"
-            :space-between="24"
+            :space-between="20"
             :centered-slides="true"
             :loop="true"
             :autoplay="{ delay: 5000, disableOnInteraction: false }"
             :pagination="{ clickable: true, el: '.home-pagination' }"
             :breakpoints="{
-              640: { slidesPerView: 1.2 },
-              1024: { slidesPerView: 1.5 },
-              1280: { slidesPerView: 1.8 },
+              640: { slidesPerView: 1.15 },
+              1024: { slidesPerView: 1.4 },
+              1280: { slidesPerView: 1.7 },
             }"
-            class="overflow-hidden rounded-3xl"
+            class="overflow-hidden rounded-2xl"
           >
             <SwiperSlide v-for="(item, idx) in banners" :key="idx">
               <a
                 :href="item.url"
                 target="_blank"
-                class="group relative block aspect-[2.1/0.5] overflow-hidden rounded-3xl"
+                class="group relative block aspect-[2.2/0.6] overflow-hidden rounded-2xl"
               >
                 <LazyImage
                   :src="item.coverImgUrl"
                   alt="banner"
-                  img-class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  img-class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
-                <div
-                  class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"
-                />
-                <div class="absolute right-0 bottom-0 left-0 p-6">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div class="absolute right-0 bottom-0 left-0 p-5 lg:p-7">
                   <span
                     v-if="item.title"
-                    class="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md"
+                    class="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90 backdrop-blur-md"
                   >
-                    <span class="icon-[mdi--fire] h-3.5 w-3.5 text-orange-400" />
+                    <span class="icon-[mdi--fire] h-3 w-3 text-orange-400" />
                     {{ item.title }}
                   </span>
-                  <h3 class="line-clamp-2 text-xl font-bold text-white drop-shadow-lg lg:text-2xl">
+                  <h3 class="line-clamp-2 text-lg font-bold tracking-tight text-white drop-shadow-lg lg:text-xl">
                     {{ item.description }}
                   </h3>
                 </div>
               </a>
             </SwiperSlide>
           </Swiper>
-          <div class="home-pagination mt-5 flex justify-center gap-2"></div>
+          <div class="home-pagination mt-4 flex justify-center gap-1.5"></div>
         </section>
 
-        <!-- 推荐歌单 -->
+        <!-- ═══════ 推荐歌单 ═══════ -->
         <section v-if="recommendPlaylists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
-          <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
-              <span
-                class="flex h-8 w-8 items-center justify-center rounded-[10px] bg-linear-to-t from-pink-500 to-rose-600 shadow-lg"
-              >
-                <span class="icon-[mdi--playlist-star] h-4 w-4 text-white" />
-              </span>
+          <div class="mb-6 flex items-baseline justify-between">
+            <h2 class="text-primary text-xl font-bold tracking-tight">
               {{ t('home.recommendPlaylists') }}
             </h2>
           </div>
           <div
             v-scroll-in="{ stagger: true, staggerDelay: 0.04 }"
-            class="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10"
+            class="grid grid-cols-3 gap-3.5 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-10"
           >
             <HeroCard
               v-for="item in recommendPlaylists"
@@ -161,24 +154,19 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- 热门歌手 -->
+        <!-- ═══════ 热门歌手 ═══════ -->
         <section v-if="artists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
-          <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
-              <span
-                class="flex h-8 w-8 items-center justify-center rounded-[10px] bg-linear-to-t from-amber-500 to-orange-600 shadow-lg"
-              >
-                <span class="icon-[mdi--account-music] h-4 w-4 text-white" />
-              </span>
+          <div class="mb-6 flex items-baseline justify-between">
+            <h2 class="text-primary text-xl font-bold tracking-tight">
               {{ t('components.discover.hotArtists') }}
             </h2>
             <router-link
               v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/artists"
-              class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
+              class="text-primary/40 hover:text-primary/70 flex items-center gap-1 text-[13px] font-medium transition-all duration-200 hover:gap-1.5"
             >
               {{ t('common.viewAll') }}
-              <span class="icon-[mdi--arrow-right] h-4 w-4" />
+              <span class="icon-[mdi--chevron-right] h-4 w-4" />
             </router-link>
           </div>
           <div
@@ -197,27 +185,22 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- 热门歌曲 -->
+        <!-- ═══════ 热门歌曲 ═══════ -->
         <section v-if="hotSongs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
-          <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
-              <span
-                class="flex h-8 w-8 items-center justify-center rounded-[10px] bg-linear-to-t from-cyan-500 to-blue-600 shadow-lg"
-              >
-                <span class="icon-[mdi--fire] h-4 w-4 text-white" />
-              </span>
+          <div class="mb-6 flex items-baseline justify-between">
+            <h2 class="text-primary text-xl font-bold tracking-tight">
               {{ t('home.hotSongs') }}
             </h2>
             <router-link
               v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/charts"
-              class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
+              class="text-primary/40 hover:text-primary/70 flex items-center gap-1 text-[13px] font-medium transition-all duration-200 hover:gap-1.5"
             >
               {{ t('common.viewAll') }}
-              <span class="icon-[mdi--arrow-right] h-4 w-4" />
+              <span class="icon-[mdi--chevron-right] h-4 w-4" />
             </router-link>
           </div>
-          <div v-spotlight="{ color: 'rgba(236, 72, 153, 0.1)', size: 350 }" class="glass-card overflow-hidden">
+          <div class="songs-container overflow-hidden rounded-2xl">
             <div
               v-scroll-in="{ stagger: true, staggerDelay: 0.03, distance: 20 }"
               class="grid md:grid-cols-2"
@@ -228,35 +211,30 @@ onMounted(() => {
                 :song="song"
                 :index="idx"
                 :to="`/song/${song.id}`"
-                class="stagger-item border-glass border-b last:border-b-0 odd:last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                class="stagger-item song-divider"
               />
             </div>
           </div>
         </section>
 
-        <!-- 推荐MV -->
+        <!-- ═══════ 推荐MV ═══════ -->
         <section v-if="mvs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
-          <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-primary flex items-center gap-2.5 text-lg font-bold">
-              <span
-                class="flex h-8 w-8 items-center justify-center rounded-[10px] bg-linear-to-t from-rose-500 to-red-600 shadow-lg"
-              >
-                <span class="icon-[mdi--video] h-4 w-4 text-white" />
-              </span>
+          <div class="mb-6 flex items-baseline justify-between">
+            <h2 class="text-primary text-xl font-bold tracking-tight">
               {{ t('components.discover.recommendMv') }}
             </h2>
             <router-link
               v-magnetic="{ strength: 0.3, distance: 60 }"
               to="/mv-list"
-              class="text-primary/50 hover:text-primary flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
+              class="text-primary/40 hover:text-primary/70 flex items-center gap-1 text-[13px] font-medium transition-all duration-200 hover:gap-1.5"
             >
               {{ t('common.viewAll') }}
-              <span class="icon-[mdi--arrow-right] h-4 w-4" />
+              <span class="icon-[mdi--chevron-right] h-4 w-4" />
             </router-link>
           </div>
           <div
             v-scroll-in="{ stagger: true, staggerDelay: 0.06 }"
-            class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+            class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
           >
             <MVCard
               v-for="mv in mvs"
@@ -277,20 +255,44 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 轮播图指示点样式 */
+@reference "../style/tailwind.css";
+
+/* ── 轮播图分页指示器 ── */
 .home-pagination :deep(.swiper-pagination-bullet) {
-  width: 8px;
-  height: 8px;
-  background: rgba(17, 24, 39, 0.2);
-  opacity: 1;
+  width: 6px;
+  height: 6px;
+  background: var(--glass-text-primary);
+  opacity: 0.2;
   border-radius: 9999px;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 轮播图激活指示点样式 */
 .home-pagination :deep(.swiper-pagination-bullet-active) {
-  width: 24px;
-  background: #ec4899; /* pink-500 */
-  border-radius: 4px;
+  width: 20px;
+  opacity: 0.6;
+  border-radius: 3px;
+}
+
+/* ── 歌曲列表容器 ── */
+.songs-container {
+  background: var(--glass-bg-card);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+/* ── 歌曲分隔线 ── */
+.song-divider {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.song-divider:last-child,
+.song-divider:nth-last-child(2):nth-child(odd) {
+  border-bottom: none;
+}
+
+@media (min-width: 768px) {
+  .song-divider:nth-last-child(1),
+  .song-divider:nth-last-child(2):nth-child(odd) {
+    border-bottom: none;
+  }
 }
 </style>
