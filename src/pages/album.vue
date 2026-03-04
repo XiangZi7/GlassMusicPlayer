@@ -4,8 +4,7 @@ import { albumDetail } from '@/api'
 import SongList from '@/components/SongList.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import Button from '@/components/Ui/Button.vue'
-import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
+import { usePlayActions } from '@/composables/usePlayActions'
 import {
   transformAlbumDetail,
   extractArray,
@@ -19,40 +18,9 @@ const albumId = computed(() => Number(route.params.id))
 const state = reactive({ info: null as AlbumData | null, songs: [] as SongData[], loading: false })
 const showDesc = ref(false)
 
-const { setPlaylist, play } = useAudio()
-const playAll = () => {
-  const mapped: StoreSong[] = state.songs.map(s => ({
-    id: s.id,
-    name: s.name,
-    artist: s.artist,
-    album: s.album,
-    duration: s.duration,
-    cover: s.cover,
-  }))
-  if (mapped.length) {
-    setPlaylist(mapped, 0)
-    play(mapped[0], 0)
-  }
-}
-const shufflePlay = () => {
-  const arr = [...state.songs]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  const mapped: StoreSong[] = arr.map(s => ({
-    id: s.id,
-    name: s.name,
-    artist: s.artist,
-    album: s.album,
-    duration: s.duration,
-    cover: s.cover,
-  }))
-  if (mapped.length) {
-    setPlaylist(mapped, 0)
-    play(mapped[0], 0)
-  }
-}
+const { playAll: playAllAction, shufflePlay: shufflePlayAction } = usePlayActions()
+const playAll = () => playAllAction(state.songs)
+const shufflePlay = () => shufflePlayAction(state.songs)
 
 const load = async () => {
   if (!albumId.value) return

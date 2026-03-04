@@ -1,3 +1,8 @@
+/**
+ * 渐变背景组合式函数
+ * 从封面图提取主色调，实现双层交叉淡入淡出的渐变背景切换
+ * 支持呼吸动画效果
+ */
 import { gsap } from 'gsap'
 import type { Ref } from 'vue'
 import { getColorPalette } from '@/utils/colorExtractor'

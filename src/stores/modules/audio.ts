@@ -1,23 +1,37 @@
+/**
+ * 音频播放器 Store
+ * 核心模块：管理音频播放、播放列表、播放模式、音量等全部播放器状态
+ */
 import { defineStore } from 'pinia'
 import { songUrlV1 } from '@/api'
 import { Song, PlayMode, AudioStoreState } from '../interface'
 import { useSettingsStore } from './settings'
 import piniaPersistConfig from '../persist'
+
+/** 全局 Audio 单例（整个应用只创建一个 HTMLAudioElement） */
 let globalAudio: HTMLAudioElement | null = null
+/** 标记事件是否已绑定，防止重复监听 */
 let eventsBound = false
-// 链接过期自动重试节流：记录上次重试的歌曲ID与时间戳，避免短时间重复刷新
+/** 链接过期自动重试节流：记录上次重试的歌曲 ID，避免短时间重复刷新 */
 let lastRetrySongId: string | number | null = null
+/** 上次重试时间戳 */
 let lastRetryTime = 0
+
+/** 获取 Audio 单例（懒初始化） */
 const getAudioSingleton = (): HTMLAudioElement => {
   if (!globalAudio) {
     globalAudio = new Audio()
-    // 允许跨域音频分析
+    // 允许跨域，以便 AudioContext 进行音频可视化分析
     globalAudio.crossOrigin = 'anonymous'
   }
   return globalAudio
 }
 
-// 洗牌算法 - 随机打乱数组
+/**
+ * Fisher-Yates 洗牌算法 —— 随机打乱数组
+ * @param array 待打乱的数组
+ * @returns 打乱后的新数组（不修改原数组）
+ */
 const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -190,7 +204,7 @@ export const useAudioStore = defineStore('audio', {
       eventsBound = true
     },
 
-    // 播放歌曲
+    /** 播放歌曲（自动获取缺失的播放地址） */
     async playSong(song?: Song, index?: number) {
       this.initAudio()
 
@@ -204,35 +218,14 @@ export const useAudioStore = defineStore('audio', {
       try {
         this.audio.error = null
 
-        // 若无URL则拉取（本地音乐除外）
+        // 若无 URL 则拉取（本地音乐除外）
         if (!this.audio.currentSong.url && !this.audio.currentSong.isLocal) {
           this.audio.isLoading = true
-          try {
-            const settingsStore = useSettingsStore()
-            const res: any = await songUrlV1({
-              id: String(this.audio.currentSong.id),
-              level: settingsStore.audioQuality
-            })
-            const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
-            this.audio.currentSong.url = url
-            // 同步到播放列表项
-            const idx = this.audio.currentIndex
-            if (idx >= 0 && idx < this.audio.playlist.length) {
-              this.audio.playlist[idx].url = url
-            }
-          } catch (e) {
-            this.audio.error = '获取音频地址失败'
-            this.audio.isLoading = false
-            throw e
-          }
+          await this._fetchAndApplyUrl()
         }
 
-        // 如果URL变化，重新加载
-        if (this.audio.audio.src !== (this.audio.currentSong.url || '')) {
-          this.audio.audio.src = this.audio.currentSong.url || ''
-          this.audio.audio.load()
-        }
-
+        // 如果 URL 变化，重新加载
+        this._loadAudioSrc(this.audio.currentSong.url || '')
         await this.audio.audio.play()
 
         // 添加到播放历史
@@ -240,44 +233,61 @@ export const useAudioStore = defineStore('audio', {
       } catch (error) {
         this.audio.error = '播放失败，请检查网络连接'
         console.error('Play error:', error)
-        // 播放失败时也尝试刷新URL后重试
+        // 播放失败时也尝试刷新 URL 后重试
         const id = this.audio.currentSong?.id ?? null
         if (id) this.refreshAndReplay()
       }
     },
 
-    // 刷新当前歌曲的播放地址并重试播放
-    // 步骤：
-    // 1) 调用接口获取最新URL；2) 同步到 currentSong 与 playlist；
-    // 3) 重设 audio.src 并 load()；4) 调用 play()
+    /**
+     * 刷新当前歌曲的播放地址并重试播放
+     * 用于链接过期等场景的自动恢复
+     */
     async refreshAndReplay() {
       if (!this.audio.currentSong || !this.audio.audio) return
-      // 本地音乐不进行刷新
       if (this.audio.currentSong.isLocal) return
-      
+
       this.audio.isLoading = true
       try {
-        const settingsStore = useSettingsStore()
-        const res: any = await songUrlV1({
-          id: String(this.audio.currentSong.id),
-          level: settingsStore.audioQuality
-        })
-        const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
-        this.audio.currentSong.url = url
-        const idx = this.audio.currentIndex
-        if (idx >= 0 && idx < this.audio.playlist.length) {
-          this.audio.playlist[idx].url = url
-        }
-        if (this.audio.audio.src !== (url || '')) {
-          this.audio.audio.src = url || ''
-          this.audio.audio.load()
-        }
-        await this.audio.audio.play()
+        await this._fetchAndApplyUrl()
+        this._loadAudioSrc(this.audio.currentSong!.url || '')
+        await this.audio.audio!.play()
         this.audio.error = null
       } catch (e) {
         console.error('Refresh url failed:', e)
       } finally {
         this.audio.isLoading = false
+      }
+    },
+
+    /**
+     * 内部方法：获取歌曲播放地址并同步到 currentSong 和 playlist
+     * 抽取自 playSong 和 refreshAndReplay 的公共逻辑
+     */
+    async _fetchAndApplyUrl() {
+      if (!this.audio.currentSong) return
+      const settingsStore = useSettingsStore()
+      const res: any = await songUrlV1({
+        id: String(this.audio.currentSong.id),
+        level: settingsStore.audioQuality,
+      })
+      const url: string = res?.data?.[0]?.url || res?.data?.data?.[0]?.url || res?.url || ''
+      this.audio.currentSong.url = url
+      // 同步到播放列表对应项
+      const idx = this.audio.currentIndex
+      if (idx >= 0 && idx < this.audio.playlist.length) {
+        this.audio.playlist[idx].url = url
+      }
+    },
+
+    /**
+     * 内部方法：当 URL 变化时重新加载音频源
+     */
+    _loadAudioSrc(url: string) {
+      if (!this.audio.audio) return
+      if (this.audio.audio.src !== url) {
+        this.audio.audio.src = url
+        this.audio.audio.load()
       }
     },
 
@@ -408,58 +418,46 @@ export const useAudioStore = defineStore('audio', {
       }
     },
 
-    // 切换播放模式
+    /** 循环切换播放模式：列表循环 → 单曲循环 → 随机播放 */
     togglePlayMode() {
       const modes = [PlayMode.LIST, PlayMode.SINGLE, PlayMode.RANDOM]
       const currentIndex = modes.indexOf(this.audio.playMode)
       const nextIndex = (currentIndex + 1) % modes.length
-
-      this.audio.playMode = modes[nextIndex]
-
-      // 如果切换到随机模式，打乱播放列表
-      if (this.audio.playMode === PlayMode.RANDOM) {
-        this.shufflePlaylist()
-      } else if (this.audio.originalPlaylist.length > 0) {
-        // 恢复原始播放列表
-        this.audio.playlist = [...this.audio.originalPlaylist]
-        // 更新当前歌曲索引
-        if (this.audio.currentSong) {
-          this.audio.currentIndex = this.audio.playlist.findIndex(
-            (song: { id: any }) => song.id === this.audio.currentSong!.id
-          )
-        }
-      }
+      this.setPlayMode(modes[nextIndex])
     },
 
-    // 设置播放模式
+    /** 设置播放模式（随机模式自动打乱列表，切出时恢复原始顺序） */
     setPlayMode(mode: PlayMode) {
       this.audio.playMode = mode
 
       if (mode === PlayMode.RANDOM) {
         this.shufflePlaylist()
       } else if (this.audio.originalPlaylist.length > 0) {
-        this.audio.playlist = [...this.audio.originalPlaylist]
-        if (this.audio.currentSong) {
-          this.audio.currentIndex = this.audio.playlist.findIndex(
-            (song: { id: any }) => song.id === this.audio.currentSong!.id
-          )
-        }
+        this._restoreOriginalPlaylist()
       }
     },
 
-    // 打乱播放列表
+    /** 打乱播放列表（保留原始顺序的备份） */
     shufflePlaylist() {
       if (this.audio.playlist.length === 0) return
 
-      // 保存原始播放列表
+      // 首次打乱时保存原始顺序
       if (this.audio.originalPlaylist.length === 0) {
         this.audio.originalPlaylist = [...this.audio.playlist]
       }
 
-      // 打乱播放列表
       this.audio.playlist = shuffleArray(this.audio.playlist)
+      this._syncCurrentIndex()
+    },
 
-      // 更新当前歌曲索引
+    /** 内部方法：恢复原始播放列表顺序 */
+    _restoreOriginalPlaylist() {
+      this.audio.playlist = [...this.audio.originalPlaylist]
+      this._syncCurrentIndex()
+    },
+
+    /** 内部方法：根据当前歌曲同步 currentIndex */
+    _syncCurrentIndex() {
       if (this.audio.currentSong) {
         this.audio.currentIndex = this.audio.playlist.findIndex(
           (song: { id: any }) => song.id === this.audio.currentSong!.id

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { playlistDetail, playlistTrackAll } from '@/api'
-import { useAudio } from '@/composables/useAudio'
+import { usePlayActions } from '@/composables/usePlayActions'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import PlaylistCommentsPopup from '@/components/Mobile/PlaylistCommentsPopup.vue'
 import Button from '@/components/Ui/Button.vue'
@@ -39,7 +39,7 @@ const state = reactive({
   showComments: false,
 })
 
-const { setPlaylist, play } = useAudio()
+const { playAll: playAllAction, shufflePlay: shufflePlayAction } = usePlayActions()
 
 const load = async (id: number) => {
   try {
@@ -78,18 +78,9 @@ watch(
   { immediate: true }
 )
 
-const playAll = () => {
-  if (!state.songs.length) return
-  setPlaylist(state.songs, 0)
-  play(state.songs[0], 0)
-}
+const playAll = () => playAllAction(state.songs)
 
-const shufflePlay = () => {
-  if (!state.songs.length) return
-  const shuffled = [...state.songs].sort(() => Math.random() - 0.5)
-  setPlaylist(shuffled, 0)
-  play(shuffled[0], 0)
-}
+const shufflePlay = () => shufflePlayAction(state.songs)
 
 const toggleCollect = () => {
   state.collected = !state.collected

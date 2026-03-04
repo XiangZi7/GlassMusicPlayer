@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { artistDetail, artistTopSong, artistAlbum } from '@/api'
-import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
+import { usePlayActions } from '@/composables/usePlayActions'
 import { formatCount } from '@/utils/time'
-import { useI18n } from 'vue-i18n'
 import TabGroup from '@/components/Ui/TabGroup.vue'
 import Button from '@/components/Ui/Button.vue'
 import {
@@ -42,7 +40,7 @@ const state = reactive({
 
 const { activeTab } = toRefs(state)
 
-const { setPlaylist, play } = useAudio()
+const { playAll: playAllAction, shufflePlay: shufflePlayAction } = usePlayActions()
 
 const load = async (id: number) => {
   state.loading = true
@@ -88,40 +86,9 @@ watch(
   { immediate: true }
 )
 
-const playAll = () => {
-  const mapped: StoreSong[] = state.songs.map(s => ({
-    id: s.id,
-    name: s.name,
-    artist: s.artist,
-    album: s.album,
-    duration: s.duration,
-    cover: s.cover,
-  }))
-  if (mapped.length) {
-    setPlaylist(mapped, 0)
-    play(mapped[0], 0)
-  }
-}
+const playAll = () => playAllAction(state.songs)
 
-const shufflePlay = () => {
-  const arr = [...state.songs]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  const mapped: StoreSong[] = arr.map(s => ({
-    id: s.id,
-    name: s.name,
-    artist: s.artist,
-    album: s.album,
-    duration: s.duration,
-    cover: s.cover,
-  }))
-  if (mapped.length) {
-    setPlaylist(mapped, 0)
-    play(mapped[0], 0)
-  }
-}
+const shufflePlay = () => shufflePlayAction(state.songs)
 
 const toggleFollow = () => {
   state.followed = !state.followed

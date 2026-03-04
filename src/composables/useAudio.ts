@@ -1,4 +1,8 @@
-// 音频播放器组合式API
+/**
+ * 音频播放器组合式函数
+ * 提供播放控制、音量控制、进度控制、播放列表管理、键盘快捷键等完整播放器功能
+ * 是 audioStore 的响应式封装层，供组件直接使用
+ */
 import { Song, PlayMode } from '@/stores/interface'
 import { formatTime } from '@/utils/audioUtils'
 

@@ -1,16 +1,19 @@
+/**
+ * Pinia 持久化配置
+ * 基于 pinia-plugin-persistedstate，将指定的 state 字段存储到 localStorage
+ */
 import { PersistenceOptions } from 'pinia-plugin-persistedstate'
 
 /**
- * @description pinia 持久化参数配置
- * @param {String} key 存储到持久化的 name
- * @param {Array} paths 需要持久化的 state name
- * @return persist
- * */
+ * 生成 Pinia Store 的持久化配置
+ * @param key - 存储到 localStorage 的键名
+ * @param paths - 需要持久化的 state 路径列表（如 ['audio.volume', 'audio.playMode']）
+ * @returns PersistenceOptions 配置对象
+ */
 const piniaPersistConfig = (key: string, paths?: string[]) => {
   const persist: PersistenceOptions = {
     key,
     storage: localStorage,
-    // storage: sessionStorage,
     pick: paths,
   }
   return persist

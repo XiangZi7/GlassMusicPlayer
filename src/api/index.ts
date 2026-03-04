@@ -1,9 +1,17 @@
-// 获取 banner 轮播图
-// params.type:
-// 0: pc, 1: android, 2: iphone, 3: ipad
+/**
+ * API 接口集合
+ * 封装网易云音乐 API 的所有请求方法
+ * 按功能模块分组：轮播图、登录、搜索、歌曲、歌单、歌手、专辑、MV、评论、推荐
+ */
+
+// ═══════ 轮播图 ═══════
+
+/** 获取首页 Banner 轮播图 */
 export const banner = (params?: { type?: 0 | 1 | 2 | 3 }) => httpGet('/banner', params)
 
-// 登录相关
+// ═══════ 登录相关 ═══════
+
+/** 手机号登录 */
 export const loginCellphone = (params: {
   phone: string
   password?: string
@@ -12,32 +20,45 @@ export const loginCellphone = (params: {
   countrycode?: string
 }) => httpGet('/login/cellphone', params)
 
+/** 邮箱登录 */
 export const loginEmail = (params: { email: string; password?: string; md5_password?: string }) =>
   httpGet('/login', params)
 
+/** 刷新登录状态 */
 export const loginRefresh = () => httpGet('/login/refresh')
 
+/** 获取登录状态 */
 export const loginStatus = () => httpGet('/login/status')
 
+/** 匿名登录 */
 export const loginAnonymous = () => httpGet('/register/anonimous')
 
-// 验证码相关
+// ═══════ 验证码 ═══════
+
+/** 发送验证码 */
 export const captchaSent = (params: { phone: string; ctcode?: number }) =>
   httpGet('/captcha/sent', params)
 
+/** 验证验证码 */
 export const captchaVerify = (params: { phone: string; captcha: string; ctcode?: number }) =>
   httpGet('/captcha/verify', params)
 
-// 二维码登录
+// ═══════ 二维码登录 ═══════
+
+/** 获取二维码登录 key */
 export const qrLoginKey = () => httpGet('/login/qr/key')
 
+/** 生成二维码 */
 export const qrLoginCreate = (params: { key: string; qrimg?: boolean }) =>
   httpGet('/login/qr/create', params)
 
+/** 检查二维码登录状态 */
 export const qrLoginCheck = (params: { key: string; noCookie?: boolean }) =>
   httpGet('/login/qr/check', params)
 
-// 搜索相关
+// ═══════ 搜索 ═══════
+
+/** 搜索（type: 1 歌曲, 10 专辑, 100 歌手, 1000 歌单, 1004 MV, ...） */
 export const search = (params: {
   keywords: string
   limit?: number
@@ -45,6 +66,7 @@ export const search = (params: {
   type?: 1 | 10 | 100 | 1000 | 1002 | 1004 | 1006 | 1009 | 1014 | 1018 | 2000
 }) => httpGet('/search', params)
 
+/** 云搜索（返回更丰富的结果） */
 export const cloudSearch = (params: {
   keywords: string
   limit?: number
@@ -52,27 +74,40 @@ export const cloudSearch = (params: {
   type?: 1 | 10 | 100 | 1000 | 1002 | 1004 | 1006 | 1009 | 1014 | 1018 | 2000
 }) => httpGet('/cloudsearch', params)
 
+/** 搜索建议 */
 export const searchSuggest = (params: { keywords: string; type?: 'mobile' }) =>
   httpGet('/search/suggest', params)
+/** 热门搜索（简略） */
 export const searchHot = () => httpGet('/search/hot')
+/** 热门搜索（详细，含排名和热度） */
 export const searchHotDetail = () => httpGet('/search/hot/detail')
+/** 默认搜索关键词 */
 export const searchDefault = () => httpGet('/search/default')
+/** 搜索多重匹配 */
 export const searchMultimatch = (params: { keywords: string }) =>
   httpGet('/search/multimatch', params)
 
-// 音乐链接相关
+// ═══════ 歌曲播放 ═══════
+
+/** 获取歌曲播放地址 */
 export const songUrl = (params: { id: string; br?: number }) => httpGet('/song/url', params)
+
+/** 获取歌曲播放地址 V1（支持更多品质等级） */
 
 export const songUrlV1 = (params: {
   id: string
   level?: 'standard' | 'higher' | 'exhigh' | 'lossless' | 'hires' | 'jyeffect' | 'sky' | 'jymaster'
 }) => httpGet('/song/url/v1', params)
 
+/** 检查音乐是否可用 */
 export const checkMusic = (params: { id: string; br?: number }) => httpGet('/check/music', params)
+/** 获取歌曲下载地址 */
 export const songDownloadUrl = (params: { id: string; br?: number }) =>
   httpGet('/song/download/url', params)
 
-// 评论相关
+// ═══════ 评论 ═══════
+
+/** 歌曲评论 */
 export const commentMusic = (params: {
   id: number
   limit?: number
@@ -80,6 +115,7 @@ export const commentMusic = (params: {
   before?: number
 }) => httpGet('/comment/music', params)
 
+/** 歌单评论 */
 export const commentPlaylist = (params: {
   id: number
   limit?: number
@@ -87,6 +123,7 @@ export const commentPlaylist = (params: {
   before?: number
 }) => httpGet('/comment/playlist', params)
 
+/** 热门评论 */
 export const commentHot = (params: {
   id: number
   type: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -95,6 +132,7 @@ export const commentHot = (params: {
   before?: number
 }) => httpGet('/comment/hot', params)
 
+/** 新版评论（支持排序和分页） */
 export const commentNew = (params: {
   id: number
   type: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7

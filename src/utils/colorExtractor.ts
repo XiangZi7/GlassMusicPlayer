@@ -16,6 +16,14 @@ export interface ColorPalette {
   gradient: string[] // 渐变色数组
 }
 
+/** 默认调色板 —— 当颜色提取失败或图片无有效像素时使用 */
+const DEFAULT_PALETTE: ColorPalette = {
+  dominant: '#667eea',
+  vibrant: '#764ba2',
+  muted: '#f093fb',
+  gradient: ['#667eea', '#764ba2', '#f093fb'],
+}
+
 /**
  * 将 RGB 转换为十六进制颜色
  */
@@ -173,13 +181,7 @@ export async function extractColorsFromImage(imageUrl: string): Promise<ColorPal
         }
 
         if (pixels.length === 0) {
-          // 如果没有有效像素,返回默认渐变
-          resolve({
-            dominant: '#667eea',
-            vibrant: '#764ba2',
-            muted: '#f093fb',
-            gradient: ['#667eea', '#764ba2', '#f093fb']
-          })
+          resolve(DEFAULT_PALETTE)
           return
         }
 
@@ -219,25 +221,13 @@ export async function extractColorsFromImage(imageUrl: string): Promise<ColorPal
 
       } catch (error) {
         console.error('Color extraction error:', error)
-        // 返回默认渐变
-        resolve({
-          dominant: '#667eea',
-          vibrant: '#764ba2',
-          muted: '#f093fb',
-          gradient: ['#667eea', '#764ba2', '#f093fb']
-        })
+        resolve(DEFAULT_PALETTE)
       }
     }
 
     img.onerror = () => {
       console.error('Failed to load image:', imageUrl)
-      // 返回默认渐变
-      resolve({
-        dominant: '#667eea',
-        vibrant: '#764ba2',
-        muted: '#f093fb',
-        gradient: ['#667eea', '#764ba2', '#f093fb']
-      })
+      resolve(DEFAULT_PALETTE)
     }
 
     // 添加时间戳避免缓存问题

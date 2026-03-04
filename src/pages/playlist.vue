@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { playlistDetail, playlistTrackAll, commentNew, search } from '@/api'
-import { useAudio } from '@/composables/useAudio'
-import type { Song as StoreSong } from '@/stores/interface'
+import { usePlayActions } from '@/composables/usePlayActions'
 import { PlaylistInfo, PlaylistSong, CommentItem } from '@/typings'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import Button from '@/components/Ui/Button.vue'
@@ -51,7 +50,7 @@ const state = reactive<PlaylistState>({
 })
 const { activeTab, playlistInfo, songs, newComment, comments, isPageLoading, similarPlaylists } =
   toRefs(state)
-const { setPlaylist, play } = useAudio()
+const { playAll: playAllAction, shufflePlay: shufflePlayAction } = usePlayActions()
 const { t } = useI18n()
 
 const gradients: string[] = ['from-purple-500 to-pink-500']
@@ -174,34 +173,9 @@ const submitComment = () => {
   state.newComment = ''
 }
 
-const mapToStoreSong = (s: SongData): StoreSong => ({
-  id: s.id,
-  name: s.name,
-  artist: s.artist,
-  album: s.album,
-  duration: s.duration,
-  cover: s.cover,
-  liked: s.liked,
-})
+const playAll = () => playAllAction(state.songs)
 
-const playAll = async () => {
-  try {
-    if (!Array.isArray(state.songs) || state.songs.length === 0) return
-    const list: StoreSong[] = state.songs.map(mapToStoreSong)
-    setPlaylist(list, 0)
-    play(list[0], 0)
-  } catch {}
-}
-
-const shufflePlay = async () => {
-  try {
-    if (!Array.isArray(state.songs) || state.songs.length === 0) return
-    const shuffled = [...state.songs].sort(() => Math.random() - 0.5)
-    const list: StoreSong[] = shuffled.map(mapToStoreSong)
-    setPlaylist(list, 0)
-    play(list[0], 0)
-  } catch {}
-}
+const shufflePlay = () => shufflePlayAction(state.songs)
 
 const toggleCollect = () => {
   state.isCollected = !state.isCollected

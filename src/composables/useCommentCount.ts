@@ -1,3 +1,7 @@
+/**
+ * 评论数量组合式函数
+ * 根据歌曲 ID 自动获取并更新评论总数
+ */
 import type { Ref } from 'vue'
 import { commentMusic } from '@/api'
 

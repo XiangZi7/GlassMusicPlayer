@@ -1,6 +1,15 @@
+/**
+ * 时间与数字格式化工具
+ * 提供歌曲时长、播放次数、日期等格式化方法
+ */
 import i18n from '@/languages'
 const { t } = i18n.global
 
+/**
+ * 格式化歌曲时长（毫秒 → m:ss）
+ * @param ms - 毫秒数
+ * @returns 格式化后的时间字符串，如 "3:05"
+ */
 export const formatDuration = (ms: number) => {
   const total = Math.floor(ms / 1000)
   const m = Math.floor(total / 60)
@@ -8,7 +17,11 @@ export const formatDuration = (ms: number) => {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// 格式化数字，超过 100000000 显示亿，超过 10000 显示万
+/**
+ * 格式化播放次数等大数字（自动转为 万/亿 单位）
+ * @param count - 数字或字符串
+ * @returns 格式化后的字符串，如 "3.2万"、"1.5亿"
+ */
 export const formatCount = (count: number | string) => {
   const num = typeof count === 'string' ? parseInt(count) : count
   if (isNaN(num)) return count

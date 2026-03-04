@@ -486,6 +486,7 @@ export function transformSearchMVs(
 
 /**
  * 转换新歌榜数据 (topSong API)
+ * 复用 transformSong 避免重复映射逻辑
  */
 export function transformTopSongs(
   response: ApiResponse,
@@ -498,32 +499,7 @@ export function transformTopSongs(
     'songs',
     'data'
   )
-  const result = list.map((item: unknown) => {
-    const it = item as Record<string, unknown>
-    const artistsRaw = it?.artists as Array<Record<string, unknown>> | undefined
-    const album = it?.album as Record<string, unknown> | undefined
-
-    const artists = Array.isArray(artistsRaw)
-      ? artistsRaw.map(a => ({
-          id: (a?.id as number | string) || 0,
-          name: (a?.name as string) || '',
-        }))
-      : undefined
-
-    return {
-      id: (it?.id as number | string) || 0,
-      name: (it?.name as string) || '',
-      artist: Array.isArray(artistsRaw) ? artistsRaw.map(a => a?.name || '').join(' / ') : '',
-      artistId: artists?.[0]?.id || 0,
-      artists,
-      album: (album?.name as string) || '',
-      albumId: (album?.id as number | string) || 0,
-      cover: (album?.picUrl as string) || '',
-      duration: (it?.duration as number) || 0,
-      liked: false,
-      mvId: (it?.mvid as number | string) || 0,
-    }
-  })
+  const result = list.map(item => transformSong(item as Record<string, unknown>))
   return limit ? result.slice(0, limit) : result
 }
 

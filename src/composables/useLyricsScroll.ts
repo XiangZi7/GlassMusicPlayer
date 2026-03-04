@@ -1,5 +1,9 @@
+/**
+ * 歌词滚动组合式函数
+ * 根据当前播放时间自动高亮对应歌词行并平滑滚动定位
+ * 支持自动/手动滚动、字号缩放
+ */
 import { gsap } from 'gsap'
-import type { Ref } from 'vue'
 
 export interface LyricsScrollOptions {
   /** 歌词容器元素引用 */

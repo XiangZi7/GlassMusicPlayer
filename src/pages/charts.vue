@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SongList from '@/components/SongList.vue'
 import { topSong, toplist, playlistTrackAll } from '@/api'
-import { useAudio } from '@/composables/useAudio'
+import { usePlayActions } from '@/composables/usePlayActions'
 import { useI18n } from 'vue-i18n'
 import LazyImage from '@/components/Ui/LazyImage.vue'
 import TabGroup from '@/components/Ui/TabGroup.vue'
@@ -9,7 +9,7 @@ import Button from '@/components/Ui/Button.vue'
 import { transformTopSongs, transformSongs, type SongData } from '@/utils/transformers'
 
 const { t } = useI18n()
-const { setPlaylist, play } = useAudio()
+const { playAll: playAllAction } = usePlayActions()
 
 const state = reactive({
   activeTab: 'newSong' as 'newSong' | 'official',
@@ -82,9 +82,7 @@ const selectList = async (item: any) => {
 
 const playAll = () => {
   const songs = activeTab.value === 'newSong' ? state.songs : state.listSongs
-  if (!songs.length) return
-  setPlaylist(songs, 0)
-  play(songs[0], 0)
+  playAllAction(songs)
 }
 
 const currentSongs = computed(() => (activeTab.value === 'newSong' ? state.songs : state.listSongs))

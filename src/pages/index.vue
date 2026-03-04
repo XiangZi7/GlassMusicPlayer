@@ -103,14 +103,14 @@ onMounted(() => {
               <a
                 :href="item.url"
                 target="_blank"
-                class="group relative block aspect-[2.2/0.6] overflow-hidden rounded-2xl"
+                class="group relative block aspect-[1.8/0.4] overflow-hidden rounded-2xl"
               >
                 <LazyImage
                   :src="item.coverImgUrl"
                   alt="banner"
                   img-class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div class="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
                 <div class="absolute right-0 bottom-0 left-0 p-5 lg:p-7">
                   <span
                     v-if="item.title"

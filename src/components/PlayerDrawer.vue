@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * PlayerDrawer - 全屏播放器抽屉
+ * 包含黑胶/圆形频谱两种封面模式、歌词滚动、可视化背景、
+ * 共享元素过渡动画、歌词拖动跳转等功能
+ */
 import { gsap } from 'gsap'
 import { useAudio } from '@/composables/useAudio'
 import { useLyrics } from '@/composables/useLyrics'
@@ -7,6 +12,7 @@ import { useGradientBackground } from '@/composables/useGradientBackground'
 import { useCommentCount } from '@/composables/useCommentCount'
 import { useI18n } from 'vue-i18n'
 import { useAudioAnalyser } from '@/composables/useAudioAnalyser'
+import { useLyricsDrag } from '@/composables/useLyricsDrag'
 import VinylDisc from '@/components/Player/VinylDisc.vue'
 
 const { t } = useI18n()
@@ -15,6 +21,9 @@ const audioStore = useAudioStore()
 const settingsStore = useSettingsStore()
 const { audioVisualizer } = storeToRefs(settingsStore)
 
+// ═══ 主题与可视化器切换 ═══
+
+/** 当前主题对应图标 */
 const themeIcon = computed(() => {
   switch (globalStore.theme) {
     case 'light':
@@ -26,18 +35,21 @@ const themeIcon = computed(() => {
   }
 })
 
+/** 循环切换主题：light → dark → system */
 const cycleTheme = () => {
   const order: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
   const idx = order.indexOf(globalStore.theme)
   globalStore.setTheme(order[(idx + 1) % 3])
 }
 
+/** 循环切换可视化器类型：bars → wave → circular */
 const cycleVisualizerType = () => {
   const types: Array<'bars' | 'wave' | 'circular'> = ['bars', 'wave', 'circular']
   const idx = types.indexOf(audioVisualizer.value.visualizerType)
   settingsStore.setAudioVisualizerType(types[(idx + 1) % 3])
 }
 
+/** 可视化器类型对应图标 */
 const visualizerTypeIcon = computed(() => {
   switch (audioVisualizer.value.visualizerType) {
     case 'bars':
@@ -49,15 +61,18 @@ const visualizerTypeIcon = computed(() => {
   }
 })
 
+/** 抽屉开关（双向绑定） */
 const isOpen = defineModel<boolean>()
 
-// 模板引用
+// ═══ 模板引用 ═══
 const drawerRef = useTemplateRef('drawerRef')
 const lyricsRef = useTemplateRef('lyricsRef')
 const bgARef = useTemplateRef('bgARef')
 const bgBRef = useTemplateRef('bgBRef')
 const lyricsContainerRef = ref<HTMLElement | null>(null)
 const vinylDiscRef = ref<InstanceType<typeof VinylDisc> | null>(null)
+
+// ═══ 组合式函数 ═══
 
 // 音频播放器
 const {
@@ -105,6 +120,26 @@ const {
   currentTime,
 })
 
+// 歌词拖动
+const {
+  isDragging: lyricsDragging,
+  previewIndex: dragPreviewIndex,
+  previewInfo: dragPreviewInfo,
+  onDragStart: handleLyricsDragStart,
+} = useLyricsDrag({
+  lyricsRef,
+  lyricsContainerRef,
+  activeSingleLyrics,
+  timeForIndex,
+  setCurrentTime,
+  currentLyricIndex,
+  autoScroll,
+  scrollToCurrentLyric,
+  toggleAutoScroll,
+  formattedDuration,
+  showTrans,
+})
+
 // 背景渐变
 const {
   useCoverBg,
@@ -139,28 +174,29 @@ const {
   smoothingTimeConstant: 0.8,
 })
 
-// 本地状态
+// 本地 UI 状态
 const state = reactive({
+  /** 抽屉是否已渲染（控制 v-if） */
   isRendered: false,
+  /** 播放列表弹出框 */
   isRecentOpen: false,
+  /** 评论弹窗 */
   isCommentsOpen: false,
+  /** 移动端歌词视图 */
   showMobileLyrics: false,
-  // 歌词拖动相关
-  lyricsDragging: false,
-  dragStartY: 0,
-  dragStartScrollY: 0,
-  dragPreviewIndex: -1,
-  // 圆形可视化器封面动画
+  /** 圆形可视化器封面 URL */
   circularCover: '' as string,
+  /** 封面翻转动画锁 */
   isCircularFlipping: false,
 })
 
 const { isRendered, isRecentOpen, isCommentsOpen, showMobileLyrics } = toRefs(state)
 
-// 圆形可视化器封面引用
+// ═══ 圆形可视化器封面翻转动画 ═══
+
 const circularCoverRef = ref<HTMLElement | null>(null)
 
-// 圆形可视化器封面翻转动画
+/** 翻转动画：旋转 Y 轴 90° → 替换图片 → 旋转回来 + 发光 */
 const flipCircularCover = (newCover: string) => {
   if (!circularCoverRef.value || state.isCircularFlipping) {
     state.circularCover = newCover
@@ -213,7 +249,7 @@ const flipCircularCover = (newCover: string) => {
   )
 }
 
-// 计算可视化器渐变颜色
+/** 可视化器渐变色：从背景主色调提取并适配当前主题 */
 const visualizerGradient = computed(() => {
   const gradient = activeGradient.value
   if (gradient.length === 0) {
@@ -230,6 +266,7 @@ const visualizerGradient = computed(() => {
   return adaptColorsForTheme(colors)
 })
 
+/** 播放模式对应图标 */
 const playModeIconClass = computed(() => {
   switch (playMode.value) {
     case 'single':
@@ -242,129 +279,48 @@ const playModeIconClass = computed(() => {
   }
 })
 
-const toggleTransBtn = async () => {
-  showTrans.value = !showTrans.value
+/** 切换歌词选项（翻译/罗马音），切换后重新定位 */
+const toggleLyricsOption = async (option: 'trans' | 'roma') => {
+  if (option === 'trans') showTrans.value = !showTrans.value
+  else showRoma.value = !showRoma.value
   await nextTick()
   lyricsPositioned.value = false
   updateCurrentLyric(true)
 }
 
-const toggleRomaBtn = async () => {
-  showRoma.value = !showRoma.value
-  await nextTick()
-  lyricsPositioned.value = false
-  updateCurrentLyric(true)
-}
-
-const handleTogglePlay = () => {
-  togglePlay()
-}
-
+/** 点击封面切换播放/暂停（加载中忽略） */
 const handleAlbumCoverClick = () => {
   if (!isLoading.value) {
     togglePlay()
   }
 }
 
-// 歌词拖动相关逻辑
-const handleLyricsDragStart = (e: MouseEvent | TouchEvent) => {
-  e.preventDefault()
+// ═══ 封面克隆工具：用于共享元素过渡动画 ═══
 
-  state.lyricsDragging = true
-  autoScroll.value = false
-
-  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-  state.dragStartY = clientY
-
-  if (lyricsRef.value) {
-    const transform = window.getComputedStyle(lyricsRef.value).transform
-    if (transform && transform !== 'none') {
-      const matrix = new DOMMatrix(transform)
-      state.dragStartScrollY = matrix.m42
-    } else {
-      state.dragStartScrollY = 0
-    }
-  }
-
-  document.body.style.userSelect = 'none'
-  document.body.style.webkitUserSelect = 'none'
-  document.body.style.cursor = 'grabbing'
+/** 创建封面克隆 DOM 元素（固定定位，用于飞行动画） */
+const createCoverClone = (rect: DOMRect, borderRadius: string) => {
+  const clone = document.createElement('div')
+  clone.className = 'hero-clone-cover'
+  clone.style.cssText = `
+    position: fixed; z-index: 9999;
+    width: ${rect.width}px; height: ${rect.height}px;
+    left: ${rect.left}px; top: ${rect.top}px;
+    border-radius: ${borderRadius};
+    background-image: ${currentSong.value?.cover ? `url(${currentSong.value.cover}?param=320x320)` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+    background-size: cover; background-position: center;
+    pointer-events: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  `
+  document.body.appendChild(clone)
+  return clone
 }
 
-const handleLyricsDragMove = (e: MouseEvent | TouchEvent) => {
-  if (!state.lyricsDragging || !lyricsRef.value || !lyricsContainerRef.value) return
-
-  e.preventDefault()
-
-  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-  const deltaY = clientY - state.dragStartY
-  const newScrollY = state.dragStartScrollY + deltaY
-
-  gsap.set(lyricsRef.value, { y: newScrollY })
-
-  const containerHeight = lyricsContainerRef.value.clientHeight
-  const centerY = containerHeight / 2
-
-  let closestIndex = 0
-  let minDistance = Infinity
-
-  const lyricElements = lyricsRef.value.children
-  for (let i = 0; i < lyricElements.length - 1; i++) {
-    const element = lyricElements[i] as HTMLElement
-    const rect = element.getBoundingClientRect()
-    const containerRect = lyricsContainerRef.value.getBoundingClientRect()
-    const elementCenterY = rect.top + rect.height / 2 - containerRect.top
-    const distance = Math.abs(elementCenterY - centerY)
-
-    if (distance < minDistance) {
-      minDistance = distance
-      closestIndex = i
-    }
-  }
-
-  state.dragPreviewIndex = closestIndex
+/** 清理所有遗留的封面克隆元素 */
+const cleanupClones = () => {
+  document.querySelectorAll('.hero-clone-cover').forEach(el => el.remove())
 }
 
-const handleLyricsDragEnd = () => {
-  if (!state.lyricsDragging) return
-
-  state.lyricsDragging = false
-
-  document.body.style.userSelect = ''
-  document.body.style.webkitUserSelect = ''
-  document.body.style.cursor = ''
-
-  if (state.dragPreviewIndex >= 0 && state.dragPreviewIndex < activeSingleLyrics.value.length) {
-    const targetTime = timeForIndex(state.dragPreviewIndex) ?? 0
-    setCurrentTime(targetTime)
-    currentLyricIndex.value = state.dragPreviewIndex
-    scrollToCurrentLyric()
-  }
-
-  state.dragPreviewIndex = -1
-  setTimeout(() => {
-    toggleAutoScroll()
-  }, 1500)
-}
-
-// 计算拖动预览时的时间信息
-const dragPreviewTime = computed(() => {
-  if (state.dragPreviewIndex < 0 || state.dragPreviewIndex >= activeSingleLyrics.value.length) {
-    return null
-  }
-
-  const time = timeForIndex(state.dragPreviewIndex) ?? 0
-  const minutes = Math.floor(time / 60)
-  const seconds = Math.floor(time % 60)
-  const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`
-
-  return {
-    time: formattedTime,
-    lyric: activeSingleLyrics.value[state.dragPreviewIndex],
-  }
-})
-
-// 抽屉动画 - 共享元素过渡
+// ═══ 抽屉动画：共享元素过渡 ═══
 const openDrawer = async () => {
   if (!drawerRef.value) return
 
@@ -384,27 +340,10 @@ const openDrawer = async () => {
   // 如果能获取到 footer 元素，执行共享元素过渡
   if (footerCover && targetCover && vinylLabel) {
     const footerRect = footerCover.getBoundingClientRect()
-    // 目标是 vinyl-label（黑胶中心封面）而不是整个唱片
     const labelRect = vinylLabel.getBoundingClientRect()
 
-    // 创建封面克隆元素
-    const coverClone = document.createElement('div')
-    coverClone.className = 'hero-clone-cover'
-    coverClone.style.cssText = `
-      position: fixed;
-      z-index: 9999;
-      width: ${footerRect.width}px;
-      height: ${footerRect.height}px;
-      left: ${footerRect.left}px;
-      top: ${footerRect.top}px;
-      border-radius: 8px;
-      background-image: ${currentSong.value?.cover ? `url(${currentSong.value.cover}?param=320x320)` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
-      background-size: cover;
-      background-position: center;
-      pointer-events: none;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    `
-    document.body.appendChild(coverClone)
+    // 创建封面克隆：从 footer 位置飞向黑胶中心
+    const coverClone = createCoverClone(footerRect, '8px')
 
     // 隐藏原始 vinyl-label，但显示唱片外框
     gsap.set(vinylLabel, { opacity: 0 })
@@ -507,9 +446,7 @@ const closeDrawer = () => {
 
   // 停止旋转动画
   vinylDiscRef.value?.stopAlbumRotation()
-
-  // 先清理可能存在的旧克隆
-  document.querySelectorAll('.hero-clone-cover').forEach(el => el.remove())
+  cleanupClones()
 
   const footerCover = document.getElementById('footer-cover')
   const targetCover = drawerRef.value.querySelector('.album-cover') as HTMLElement
@@ -517,27 +454,10 @@ const closeDrawer = () => {
 
   if (footerCover && targetCover && vinylLabel) {
     const footerRect = footerCover.getBoundingClientRect()
-    // 从 vinyl-label 位置开始动画
     const labelRect = vinylLabel.getBoundingClientRect()
 
-    // 创建封面克隆（从 vinyl-label 位置开始）
-    const coverClone = document.createElement('div')
-    coverClone.className = 'hero-clone-cover'
-    coverClone.style.cssText = `
-      position: fixed;
-      z-index: 9999;
-      width: ${labelRect.width}px;
-      height: ${labelRect.height}px;
-      left: ${labelRect.left}px;
-      top: ${labelRect.top}px;
-      border-radius: 50%;
-      background-image: ${currentSong.value?.cover ? `url(${currentSong.value.cover}?param=320x320)` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
-      background-size: cover;
-      background-position: center;
-      pointer-events: none;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    `
-    document.body.appendChild(coverClone)
+    // 创建封面克隆：从黑胶中心飞回 footer
+    const coverClone = createCoverClone(labelRect, '50%')
 
     // 隐藏 vinyl-label
     gsap.set(vinylLabel, { opacity: 0 })
@@ -577,7 +497,9 @@ const closeDrawer = () => {
   }
 }
 
-// Watchers
+// ═══ Watchers ═══
+
+/** 抽屉开关：打开时初始化动画和背景，关闭时清理 */
 watch(
   () => isOpen.value,
   async newVal => {
@@ -598,6 +520,7 @@ watch(
   }
 )
 
+/** 播放状态变化：控制呼吸动画和音频分析器 */
 watch(
   isPlaying,
   playing => {
@@ -621,6 +544,7 @@ watch(currentTime, () => {
   updateCurrentLyric()
 })
 
+/** 切歌时：加载歌词、重置滚动、更新背景、翻转封面 */
 watch(
   currentSong,
   async (s, oldSong) => {
@@ -650,15 +574,9 @@ onMounted(() => {
   if (audioElement && !isAnalyserInitialized.value) {
     initAnalyser(audioElement)
   }
-
-  // 添加全局拖动事件监听
-  document.addEventListener('mousemove', handleLyricsDragMove)
-  document.addEventListener('mouseup', handleLyricsDragEnd)
-  document.addEventListener('touchmove', handleLyricsDragMove, { passive: false })
-  document.addEventListener('touchend', handleLyricsDragEnd)
 })
 
-// 监听音频元素变化，初始化分析器
+/** 监听音频元素变化，初始化频谱分析器 */
 watch(
   () => audioStore.audio.audio,
   audioElement => {
@@ -674,12 +592,6 @@ watch(
 
 onUnmounted(() => {
   stopBackgroundBreathing()
-
-  // 移除全局拖动事件监听
-  document.removeEventListener('mousemove', handleLyricsDragMove)
-  document.removeEventListener('mouseup', handleLyricsDragEnd)
-  document.removeEventListener('touchmove', handleLyricsDragMove)
-  document.removeEventListener('touchend', handleLyricsDragEnd)
 })
 </script>
 
@@ -769,7 +681,7 @@ onUnmounted(() => {
             rounded="lg"
             class="gap-1.5 text-xs"
             :class="{ 'text-primary bg-white/12 ring-1 ring-white/15': showTrans }"
-            @click="toggleTransBtn"
+            @click="toggleLyricsOption('trans')"
           >
             <span class="icon-[mdi--translate] h-3.5 w-3.5" />
             <span>{{ t('player.translate') }}</span>
@@ -781,7 +693,7 @@ onUnmounted(() => {
             rounded="lg"
             class="gap-1.5 text-xs"
             :class="{ 'text-primary bg-white/12 ring-1 ring-white/15': showRoma }"
-            @click="toggleRomaBtn"
+            @click="toggleLyricsOption('roma')"
           >
             <span class="icon-[mdi--alphabetical-variant] h-3.5 w-3.5"></span>
             <span>{{ t('player.roma') }}</span>
@@ -866,8 +778,8 @@ onUnmounted(() => {
       class="player-left-panel flex w-full flex-col items-center justify-center px-4 pt-20 pb-8 lg:w-1/2 lg:px-8 lg:pt-24 lg:pb-12"
       :class="{ 'hidden lg:flex': state.showMobileLyrics }"
     >
-      <!-- 专辑封面和频谱可视化 -->
-      <!-- 圆形频谱可视化 - 当选择 circular 类型时显示 -->
+      <!-- 专辑封面区域 -->
+      <!-- 圆形频谱可视化模式 -->
       <div
         v-if="
           isAnalyserInitialized &&
@@ -878,7 +790,6 @@ onUnmounted(() => {
       >
         <!-- 可视化容器：固定尺寸 384px -->
         <div class="relative mb-6">
-          <!-- 圆形频谱可视化 -->
           <AudioVisualizer
             :frequency-data="frequencyData"
             :time-domain-data="timeDomainData"
@@ -888,8 +799,7 @@ onUnmounted(() => {
             :height="384"
             class="h-full w-full"
           />
-
-          <!-- 中心封面图片 - 绝对定位居中，带翻转动画 -->
+          <!-- 中心封面 - 带翻转动画 -->
           <div
             ref="circularCoverRef"
             class="circular-cover absolute top-1/2 left-1/2 aspect-square w-1/2 -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
@@ -906,20 +816,8 @@ onUnmounted(() => {
             <div v-else class="h-full w-full bg-linear-to-br from-blue-500 to-purple-600"></div>
           </div>
         </div>
-
-        <div class="song-info mt-2 text-center">
-          <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
-            {{ currentSong?.name || t('player.unknownSong') }}
-          </h2>
-          <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
-            {{ currentSong?.artist || t('player.unknownArtist') }}
-          </p>
-          <p v-if="currentSong?.album" class="text-primary/35 mt-0.5 text-xs sm:text-sm">
-            {{ currentSong.album }}
-          </p>
-        </div>
       </div>
-      <!-- 黑胶播放器 -->
+      <!-- 黑胶播放器模式 -->
       <div v-else class="mb-4 flex flex-col items-center lg:mb-6">
         <VinylDisc
           ref="vinylDiscRef"
@@ -930,18 +828,19 @@ onUnmounted(() => {
           class="album-cover mb-6"
           @click="handleAlbumCoverClick"
         />
+      </div>
 
-        <div class="song-info text-center">
-          <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
-            {{ currentSong?.name || t('player.unknownSong') }}
-          </h2>
-          <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
-            {{ currentSong?.artist || t('player.unknownArtist') }}
-          </p>
-          <p v-if="currentSong?.album" class="text-primary/35 mt-0.5 text-xs sm:text-sm">
-            {{ currentSong.album }}
-          </p>
-        </div>
+      <!-- 歌曲信息（两种模式共享） -->
+      <div class="song-info mb-4 text-center lg:mb-6">
+        <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
+          {{ currentSong?.name || t('player.unknownSong') }}
+        </h2>
+        <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
+          {{ currentSong?.artist || t('player.unknownArtist') }}
+        </p>
+        <p v-if="currentSong?.album" class="text-primary/35 mt-0.5 text-xs sm:text-sm">
+          {{ currentSong.album }}
+        </p>
       </div>
 
       <div v-if="currentSong" class="mb-5 w-full max-w-xl px-4">
@@ -963,7 +862,7 @@ onUnmounted(() => {
           :class="{ 'text-pink-400! bg-pink-500/15': playMode !== 'list' }"
           @click="togglePlayMode"
         >
-          <component :is="'span'" :class="playModeIconClass" class="h-5 w-5" />
+          <span :class="playModeIconClass" class="h-5 w-5" />
         </Button>
 
         <Button
@@ -984,7 +883,7 @@ onUnmounted(() => {
           :loading="isLoading"
           :pulse="true"
           :press3d="true"
-          @click="handleTogglePlay"
+          @click="togglePlay"
         >
           <span
             v-if="!isLoading"
@@ -1047,7 +946,7 @@ onUnmounted(() => {
       <div
         ref="lyricsContainerRef"
         class="lyrics-container relative h-full flex-1 overflow-hidden"
-        :class="{ 'cursor-grabbing': state.lyricsDragging, 'cursor-grab': !state.lyricsDragging }"
+        :class="{ 'cursor-grabbing': lyricsDragging, 'cursor-grab': !lyricsDragging }"
       >
         <div
           ref="lyricsRef"
@@ -1062,9 +961,9 @@ onUnmounted(() => {
             class="lyric-line text-center transition-all duration-500"
             :class="{
               current:
-                index === (state.lyricsDragging ? state.dragPreviewIndex : currentLyricIndex),
+                index === (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
               'text-primary/40':
-                index !== (state.lyricsDragging ? state.dragPreviewIndex : currentLyricIndex),
+                index !== (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
             }"
           >
             <p class="lyric-text pointer-events-none">{{ line.ori }}</p>
@@ -1086,18 +985,18 @@ onUnmounted(() => {
         <!-- 拖动时显示的时间和歌词提示 -->
         <Transition name="fade-scale">
           <div
-            v-if="state.lyricsDragging && dragPreviewTime"
+            v-if="lyricsDragging && dragPreviewInfo"
             class="drag-preview pointer-events-none absolute top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-black/85 px-6 py-4 shadow-2xl backdrop-blur-xl"
           >
             <div class="mb-3 flex items-center justify-center gap-3">
-              <span class="text-primary text-2xl font-bold tabular-nums">{{ dragPreviewTime.time }}</span>
+              <span class="text-primary text-2xl font-bold tabular-nums">{{ dragPreviewInfo.time }}</span>
               <span class="text-primary/25">/</span>
-              <span class="text-lg tabular-nums text-white/40">{{ formattedDuration }}</span>
+              <span class="text-lg tabular-nums text-white/40">{{ dragPreviewInfo.totalDuration }}</span>
             </div>
             <div class="max-w-md text-center">
-              <p class="text-primary mb-1.5 text-base font-medium leading-relaxed">{{ dragPreviewTime.lyric.ori }}</p>
-              <p v-if="showTrans && dragPreviewTime.lyric.tran" class="text-primary/50 text-sm">
-                {{ dragPreviewTime.lyric.tran }}
+              <p class="text-primary mb-1.5 text-base font-medium leading-relaxed">{{ dragPreviewInfo.lyric.ori }}</p>
+              <p v-if="dragPreviewInfo.showTrans && dragPreviewInfo.lyric.tran" class="text-primary/50 text-sm">
+                {{ dragPreviewInfo.lyric.tran }}
               </p>
             </div>
           </div>
