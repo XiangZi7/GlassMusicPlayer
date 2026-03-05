@@ -154,13 +154,17 @@ export const useAudioStore = defineStore('audio', {
 
       // 播放暂停
       audio.addEventListener('pause', () => {
-        this.audio.isPlaying = false
-        this.audio.isPaused = true
+        // waiting 导致的暂停不更新状态，等待自动恢复
+        if (!this.audio._isWaiting) {
+          this.audio.isPlaying = false
+          this.audio.isPaused = true
+        }
       })
 
       // 播放结束
       audio.addEventListener('ended', () => {
         this.audio.isPlaying = false
+        this.audio._isWaiting = false
         this.handleSongEnd()
       })
 
@@ -173,6 +177,25 @@ export const useAudioStore = defineStore('audio', {
       audio.addEventListener('canplay', () => {
         this.audio.isLoading = false
         this.audio.duration = audio.duration || 0
+      })
+
+      // 缓冲等待：网络慢或缓冲不足时触发
+      audio.addEventListener('waiting', () => {
+        this.audio._isWaiting = true
+        this.audio.isLoading = true
+      })
+
+      // 实际开始播放（缓冲恢复后也会触发）
+      audio.addEventListener('playing', () => {
+        this.audio._isWaiting = false
+        this.audio.isLoading = false
+        this.audio.isPlaying = true
+        this.audio.isPaused = false
+      })
+
+      // 网络数据获取停滞
+      audio.addEventListener('stalled', () => {
+        console.warn('Audio stalled: 网络数据获取停滞')
       })
 
       // 时间更新

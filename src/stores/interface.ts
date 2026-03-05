@@ -83,6 +83,8 @@ export interface AudioStoreState {
     error: string | null
     /** 静音前的音量（用于取消静音时恢复） */
     previousVolume?: number
+    /** 是否正在缓冲等待（内部标记，用于区分用户暂停与缓冲暂停） */
+    _isWaiting?: boolean
   }
 }
 

@@ -13,6 +13,7 @@ import { useCommentCount } from '@/composables/useCommentCount'
 import { useI18n } from 'vue-i18n'
 import { useAudioAnalyser } from '@/composables/useAudioAnalyser'
 import { useLyricsDrag } from '@/composables/useLyricsDrag'
+import { useDrawerTransition } from '@/composables/useDrawerTransition'
 import VinylDisc from '@/components/Player/VinylDisc.vue'
 
 const { t } = useI18n()
@@ -174,10 +175,20 @@ const {
   smoothingTimeConstant: 0.8,
 })
 
+// 抽屉过渡动画
+const {
+  isRendered,
+  open: openDrawer,
+  close: closeDrawer,
+} = useDrawerTransition({
+  drawerRef,
+  vinylDiscRef,
+  currentSong,
+  isPlaying,
+})
+
 // 本地 UI 状态
 const state = reactive({
-  /** 抽屉是否已渲染（控制 v-if） */
-  isRendered: false,
   /** 播放列表弹出框 */
   isRecentOpen: false,
   /** 评论弹窗 */
@@ -190,7 +201,7 @@ const state = reactive({
   isCircularFlipping: false,
 })
 
-const { isRendered, isRecentOpen, isCommentsOpen, showMobileLyrics } = toRefs(state)
+const { isRecentOpen, isCommentsOpen, showMobileLyrics } = toRefs(state)
 
 // ═══ 圆形可视化器封面翻转动画 ═══
 
@@ -295,208 +306,6 @@ const handleAlbumCoverClick = () => {
   }
 }
 
-// ═══ 封面克隆工具：用于共享元素过渡动画 ═══
-
-/** 创建封面克隆 DOM 元素（固定定位，用于飞行动画） */
-const createCoverClone = (rect: DOMRect, borderRadius: string) => {
-  const clone = document.createElement('div')
-  clone.className = 'hero-clone-cover'
-  clone.style.cssText = `
-    position: fixed; z-index: 9999;
-    width: ${rect.width}px; height: ${rect.height}px;
-    left: ${rect.left}px; top: ${rect.top}px;
-    border-radius: ${borderRadius};
-    background-image: ${currentSong.value?.cover ? `url(${currentSong.value.cover}?param=320x320)` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
-    background-size: cover; background-position: center;
-    pointer-events: none;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-  `
-  document.body.appendChild(clone)
-  return clone
-}
-
-/** 清理所有遗留的封面克隆元素 */
-const cleanupClones = () => {
-  document.querySelectorAll('.hero-clone-cover').forEach(el => el.remove())
-}
-
-// ═══ 抽屉动画：共享元素过渡 ═══
-const openDrawer = async () => {
-  if (!drawerRef.value) return
-
-  // 获取 footer 中封面的位置
-  const footerCover = document.getElementById('footer-cover')
-
-  // 先显示抽屉但内容透明
-  gsap.set(drawerRef.value, { display: 'flex', opacity: 1 })
-
-  // 获取抽屉中目标元素
-  await nextTick()
-  const targetCover = drawerRef.value.querySelector('.album-cover') as HTMLElement
-  const targetSongInfo = drawerRef.value.querySelector('.song-info') as HTMLElement
-  // 获取黑胶唱片中心的 vinyl-label 元素
-  const vinylLabel = targetCover?.querySelector('.vinyl-label') as HTMLElement
-
-  // 如果能获取到 footer 元素，执行共享元素过渡
-  if (footerCover && targetCover && vinylLabel) {
-    const footerRect = footerCover.getBoundingClientRect()
-    const labelRect = vinylLabel.getBoundingClientRect()
-
-    // 创建封面克隆：从 footer 位置飞向黑胶中心
-    const coverClone = createCoverClone(footerRect, '8px')
-
-    // 隐藏原始 vinyl-label，但显示唱片外框
-    gsap.set(vinylLabel, { opacity: 0 })
-    gsap.set(targetSongInfo, { opacity: 0 })
-
-    // 背景先淡入
-    gsap.fromTo(
-      drawerRef.value,
-      { backgroundColor: 'rgba(0,0,0,0)' },
-      { backgroundColor: 'rgba(0,0,0,0.95)', duration: 0.5, ease: 'power2.out' }
-    )
-
-    // 封面克隆飞到 vinyl-label 位置（黑胶中心）
-    const tl = gsap.timeline({
-      onComplete: () => {
-        // 动画完成后，平滑过渡：克隆淡出，真实元素淡入
-        gsap.to(coverClone, {
-          opacity: 0,
-          duration: 0.2,
-          ease: 'power2.out',
-          onComplete: () => {
-            coverClone.remove()
-          }
-        })
-        gsap.to(vinylLabel, {
-          opacity: 1,
-          duration: 0.2,
-          ease: 'power2.out'
-        })
-        // 如果正在播放，启动旋转动画
-        if (isPlaying.value) {
-          vinylDiscRef.value?.startAlbumRotation()
-        }
-      }
-    })
-
-    tl.to(coverClone, {
-      width: labelRect.width,
-      height: labelRect.height,
-      left: labelRect.left,
-      top: labelRect.top,
-      borderRadius: '50%',
-      duration: 0.6,
-      ease: 'power3.out',
-    })
-
-    // 歌曲信息淡入
-    tl.fromTo(
-      targetSongInfo,
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' },
-      '-=0.3'
-    )
-
-    // 歌词入场
-    tl.fromTo(
-      '.lyric-line',
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, ease: 'power2.out' },
-      '-=0.2'
-    )
-  } else {
-    // 降级：普通动画
-    const tl = gsap.timeline({
-      onComplete: () => {
-        // 如果正在播放，启动旋转动画
-        if (isPlaying.value) {
-          vinylDiscRef.value?.startAlbumRotation()
-        }
-      }
-    })
-    tl.fromTo(
-      drawerRef.value,
-      { y: '-100%', opacity: 0 },
-      { y: '0%', opacity: 1, duration: 0.6, ease: 'power3.out' }
-    )
-    .fromTo(
-      '.album-cover',
-      { y: -60, opacity: 0, scale: 0.8 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out' },
-      '-=0.4'
-    )
-    .fromTo(
-      '.song-info',
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' },
-      '-=0.4'
-    )
-    .fromTo(
-      '.lyric-line',
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, stagger: 0.06, ease: 'power2.out' },
-      '-=0.3'
-    )
-  }
-}
-
-const closeDrawer = () => {
-  if (!drawerRef.value) return
-
-  // 停止旋转动画
-  vinylDiscRef.value?.stopAlbumRotation()
-  cleanupClones()
-
-  const footerCover = document.getElementById('footer-cover')
-  const targetCover = drawerRef.value.querySelector('.album-cover') as HTMLElement
-  const vinylLabel = targetCover?.querySelector('.vinyl-label') as HTMLElement
-
-  if (footerCover && targetCover && vinylLabel) {
-    const footerRect = footerCover.getBoundingClientRect()
-    const labelRect = vinylLabel.getBoundingClientRect()
-
-    // 创建封面克隆：从黑胶中心飞回 footer
-    const coverClone = createCoverClone(labelRect, '50%')
-
-    // 隐藏 vinyl-label
-    gsap.set(vinylLabel, { opacity: 0 })
-
-    // 立即隐藏抽屉背景，让克隆飞行更明显
-    gsap.to(drawerRef.value, {
-      opacity: 0,
-      duration: 0.3,
-      ease: 'power2.in',
-    })
-
-    // 封面从 vinyl-label 飞回 footer
-    gsap.to(coverClone, {
-      width: footerRect.width,
-      height: footerRect.height,
-      left: footerRect.left,
-      top: footerRect.top,
-      borderRadius: '8px',
-      duration: 0.5,
-      ease: 'power3.inOut',
-      onComplete: () => {
-        coverClone.remove()
-        state.isRendered = false
-      }
-    })
-  } else {
-    // 降级：普通关闭动画
-    gsap.to(drawerRef.value, {
-      y: '100%',
-      opacity: 0,
-      duration: 0.4,
-      ease: 'power3.in',
-      onComplete: () => {
-        state.isRendered = false
-      },
-    })
-  }
-}
-
 // ═══ Watchers ═══
 
 /** 抽屉开关：打开时初始化动画和背景，关闭时清理 */
@@ -504,7 +313,7 @@ watch(
   () => isOpen.value,
   async newVal => {
     if (newVal) {
-      state.isRendered = true
+      isRendered.value = true
       await nextTick()
       openDrawer()
       lyricsPositioned.value = false
@@ -1067,101 +876,6 @@ onUnmounted(() => {
   will-change: transform;
 }
 
-.vinyl-disc {
-  background: radial-gradient(circle at 50% 50%, #161616 0%, #0b0b0b 60%, #000 100%);
-}
-.vinyl-disc::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: repeating-radial-gradient(
-    circle at center,
-    rgba(255, 255, 255, 0.06) 0px,
-    rgba(255, 255, 255, 0.06) 1px,
-    transparent 3px
-  );
-  opacity: 0.25;
-  pointer-events: none;
-}
-.vinyl-disc::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: radial-gradient(
-    ellipse at 30% 15%,
-    rgba(255, 255, 255, 0.18),
-    rgba(255, 255, 255, 0.02) 40%,
-    transparent 60%
-  );
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-
-.vinyl-label {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.25);
-  position: relative;
-  overflow: hidden;
-}
-.vinyl-label::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: repeating-radial-gradient(
-    circle at center,
-    rgba(255, 255, 255, 0.12) 0px,
-    rgba(255, 255, 255, 0.12) 1px,
-    transparent 2px
-  );
-  opacity: 0.25;
-  pointer-events: none;
-}
-.vinyl-label::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 70%;
-  height: 70%;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  opacity: 0.6;
-}
-
-.spindle {
-  background: radial-gradient(circle at 30% 30%, #c9c9c9, #9a9a9a 60%, #6f6f6f);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.35);
-}
-
-.tonearm {
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
-}
-.arm-pivot {
-  background: conic-gradient(from 180deg at 50% 50%, #d7d7d7, #bdbdbd, #9f9f9f, #d7d7d7);
-}
-.arm-shaft {
-  background: linear-gradient(180deg, #d6d6d6 0%, #bfbfbf 40%, #9c9c9c 100%);
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
-}
-.counterweight {
-  background: radial-gradient(circle at 30% 30%, #bfbfbf, #8f8f8f 60%, #6f6f6f);
-}
-.headshell {
-  background: linear-gradient(135deg, #6b7280, #374151);
-}
-.cartridge {
-  background: linear-gradient(180deg, #8b8b8b, #5f5f5f);
-}
-.stylus {
-  background: linear-gradient(180deg, #e5e7eb, #9ca3af);
-}
-
 .lyrics-container {
   mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
   -webkit-mask-image: linear-gradient(
@@ -1213,16 +927,6 @@ onUnmounted(() => {
   .player-left-panel {
     width: 100%;
   }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 /* 拖动提示框动画 */
