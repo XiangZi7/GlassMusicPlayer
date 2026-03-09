@@ -132,7 +132,10 @@ onMounted(() => {
         <!-- ═══════ 推荐歌单 ═══════ -->
         <section v-if="recommendPlaylists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-6 flex items-baseline justify-between">
-            <h2 class="text-primary text-xl font-bold tracking-tight">
+            <h2 class="text-primary flex items-center gap-2.5 text-xl font-bold tracking-tight">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600">
+                <span class="icon-[mdi--playlist-star] h-5 w-5 text-white"></span>
+              </span>
               {{ t('home.recommendPlaylists') }}
             </h2>
           </div>
@@ -157,7 +160,10 @@ onMounted(() => {
         <!-- ═══════ 热门歌手 ═══════ -->
         <section v-if="artists.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-6 flex items-baseline justify-between">
-            <h2 class="text-primary text-xl font-bold tracking-tight">
+            <h2 class="text-primary flex items-center gap-2.5 text-xl font-bold tracking-tight">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600">
+                <span class="icon-[mdi--account-music] h-5 w-5 text-white"></span>
+              </span>
               {{ t('components.discover.hotArtists') }}
             </h2>
             <router-link
@@ -188,7 +194,10 @@ onMounted(() => {
         <!-- ═══════ 热门歌曲 ═══════ -->
         <section v-if="hotSongs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-6 flex items-baseline justify-between">
-            <h2 class="text-primary text-xl font-bold tracking-tight">
+            <h2 class="text-primary flex items-center gap-2.5 text-xl font-bold tracking-tight">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-blue-600">
+                <span class="icon-[mdi--music-note-plus] h-5 w-5 text-white"></span>
+              </span>
               {{ t('home.hotSongs') }}
             </h2>
             <router-link
@@ -220,7 +229,10 @@ onMounted(() => {
         <!-- ═══════ 推荐MV ═══════ -->
         <section v-if="mvs.length" v-scroll-in="{ direction: 'up', delay: 0.1 }">
           <div class="mb-6 flex items-baseline justify-between">
-            <h2 class="text-primary text-xl font-bold tracking-tight">
+            <h2 class="text-primary flex items-center gap-2.5 text-xl font-bold tracking-tight">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-rose-500 to-red-600">
+                <span class="icon-[mdi--video] h-5 w-5 text-white"></span>
+              </span>
               {{ t('components.discover.recommendMv') }}
             </h2>
             <router-link
