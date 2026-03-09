@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Header from './Header.vue'
+import Header from './header.vue'
 import Aside from './aside.vue'
-import Footer from './Footer.vue'
+import Footer from './footer.vue'
 
 import Aurora from '@/components/Background/Aurora.vue'
 import ColorBends from '@/components/Background/ColorBends.vue'
