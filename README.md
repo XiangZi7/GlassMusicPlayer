@@ -1,10 +1,8 @@
-🎵 **提示：** 旧项目已迁移至分支 👇
-[GlassMusicPlayer/GlassMusicPlayer-V1 分支](https://github.com/XiangZi7/GlassMusicPlayer/tree/GlassMusicPlayer-V1)
-[GlassMusicPlayer/kmmusic 分支](https://github.com/XiangZi7/GlassMusicPlayer/tree/kmmusic)
-
 <div align="center">
 
-## 🛠 技术栈
+# GlassMusicPlayer
+
+**一款基于毛玻璃设计的现代化音乐播放器**
 
 <p align="center">
 <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" />
@@ -13,6 +11,7 @@
 <img src="https://img.shields.io/badge/Pinia-Latest-FFD859?style=for-the-badge" />
 <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
 </p>
+
 <p align="center">
 <img src="https://img.shields.io/badge/Vue_Router-4-4FC08D?style=flat-square" />
 <img src="https://img.shields.io/badge/Vue_I18n-11-4FC08D?style=flat-square" />
@@ -33,14 +32,14 @@
   <a href="https://neteasecloudmusicapi.vercel.app/#/"><img alt="API文档" src="https://img.shields.io/badge/🔌%20API文档-接口参考-0284c7?style=for-the-badge"></a>
 </p>
 
+![预览图](images/home.png)
+
 </div>
 
+> [!TIP]
+> 旧版本已迁移至分支：[GlassMusicPlayer-V1](https://github.com/XiangZi7/GlassMusicPlayer/tree/GlassMusicPlayer-V1) | [kmmusic](https://github.com/XiangZi7/GlassMusicPlayer/tree/kmmusic)
 
-## 🤝 友情链接
-
-- [HotPulse](https://hotpulse.pages.dev/) - 全网热点聚合平台
-
-![预览图](images/home.png)
+---
 
 ## ✨ 核心特性
 
@@ -53,17 +52,12 @@
 
 ## 🎬 主要功能
 
-### 🎵 播放器
-黑胶唱片动画 · 唱臂联动 · 3D封面翻转切歌 · 共享元素过渡 · 实时音频可视化 · 音质选择 · 歌词同步 · 进度拖拽 · 路由过渡动画
-
-### 🏠 发现音乐
-首页推荐 · 排行榜 · 艺术家 · 新碟 · 歌单
-
-### 🔍 搜索
-热门搜索 · 搜索历史 · 实时联想 · 歌曲/歌单/MV/艺术家
-
-### 📱 移动端优化
-底部导航 · 全屏播放器抽屉 · 滑动切换 · 触控手势
+| 模块 | 功能亮点 |
+|------|---------|
+| 🎵 **播放器** | 黑胶唱片动画 · 唱臂联动 · 3D封面翻转切歌 · 共享元素过渡 · 实时音频可视化 · 音质选择 · 歌词同步 · 进度拖拽 |
+| 🏠 **发现音乐** | 首页推荐 · 排行榜 · 艺术家 · 新碟 · 歌单 |
+| 🔍 **搜索** | 热门搜索 · 搜索历史 · 实时联想 · 歌曲/歌单/MV/艺术家 |
+| 📱 **移动端** | 底部导航 · 全屏播放器抽屉 · 滑动切换 · 触控手势 |
 
 <details>
 <summary><strong>📋 查看完整功能列表</strong></summary>
@@ -90,7 +84,7 @@
 
 </details>
 
-<br/>
+---
 
 ## 📦 快速开始
 
@@ -147,81 +141,100 @@ VITE_APP_BASE_API = 'https://your-api-domain.com'
 > - 所有 `.env.*`（除 `.env.example`）已被 `.gitignore` 忽略，不会提交到仓库
 > - 变量必须以 `VITE_` 开头才能在客户端代码中使用
 
-<br/>
+### 📜 可用脚本
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm dev` | 启动开发服务器 |
+| `pnpm build` | 构建生产环境产物 |
+| `pnpm build:test` | 构建测试环境产物 |
+| `pnpm preview` | 本地预览生产构建 |
+| `pnpm lint` | ESLint 检查并自动修复 |
+| `pnpm format` | Prettier 格式化代码 |
+
+---
 
 ## 📷 项目截图
 
-### 桌面端
-
-<table>
-  <tr>
-    <td><img src="images/image-77.png" alt="桌面端截图 77" width="100%"></td>
-    <td><img src="images/image-78.png" alt="桌面端截图 78" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-79.png" alt="桌面端截图 79" width="100%"></td>
-    <td><img src="images/image.png" alt="桌面端截图 0" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-1.png" alt="桌面端截图 1" width="100%"></td>
-    <td><img src="images/image-2.png" alt="桌面端截图 2" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-20.png" alt="桌面端截图 20" width="100%"></td>
-    <td><img src="images/image-21.png" alt="桌面端截图 21" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-3.png" alt="桌面端截图 3" width="100%"></td>
-    <td><img src="images/image-4.png" alt="桌面端截图 4" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-5.png" alt="桌面端截图 5" width="100%"></td>
-    <td><img src="images/image-6.png" alt="桌面端截图 6" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-7.png" alt="桌面端截图 7" width="100%"></td>
-    <td><img src="images/image-8.png" alt="桌面端截图 8" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-9.png" alt="桌面端截图 9" width="100%"></td>
-    <td><img src="images/image-10.png" alt="桌面端截图 10" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-11.png" alt="桌面端截图 11" width="100%"></td>
-    <td><img src="images/image-12.png" alt="桌面端截图 12" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/image-13.png" alt="桌面端截图 13" width="100%"></td>
-    <td><img src="images/image-14.png" alt="桌面端截图 14" width="100%"></td>
-  </tr>
-</table>
-
-### 移动端
-
-<table>
-  <tr>
-    <td><img src="images/mobile/image-1.jpg" alt="移动端截图 1" width="100%"></td>
-    <td><img src="images/mobile/image-2.jpg" alt="移动端截图 2" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/mobile/image-11.jpg" alt="移动端截图 11" width="100%"></td>
-    <td><img src="images/mobile/image-4.jpg" alt="移动端截图 4" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/mobile/image-5.jpg" alt="移动端截图 5" width="100%"></td>
-    <td><img src="images/mobile/image-6.jpg" alt="移动端截图 6" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/mobile/image-7.jpg" alt="移动端截图 7" width="100%"></td>
-    <td><img src="images/mobile/image-8.jpg" alt="移动端截图 8" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="images/mobile/image-9.jpg" alt="移动端截图 9" width="100%"></td>
-    <td><img src="images/mobile/image-10.jpg" alt="移动端截图 10" width="100%"></td>
-  </tr>
-</table>
-
+<details>
+<summary><strong>🖥️ 桌面端</strong></summary>
 <br/>
+
+<table>
+  <tr>
+    <td><img src="images/image-77.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-78.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-79.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-1.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-2.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-20.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-21.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-3.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-4.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-5.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-6.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-7.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-8.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-9.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-10.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-11.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-12.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/image-13.png" alt="桌面端截图" width="100%"></td>
+    <td><img src="images/image-14.png" alt="桌面端截图" width="100%"></td>
+  </tr>
+</table>
+
+</details>
+
+<details>
+<summary><strong>📱 移动端</strong></summary>
+<br/>
+
+<table>
+  <tr>
+    <td><img src="images/mobile/image-1.jpg" alt="移动端截图" width="100%"></td>
+    <td><img src="images/mobile/image-2.jpg" alt="移动端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-11.jpg" alt="移动端截图" width="100%"></td>
+    <td><img src="images/mobile/image-4.jpg" alt="移动端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-5.jpg" alt="移动端截图" width="100%"></td>
+    <td><img src="images/mobile/image-6.jpg" alt="移动端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-7.jpg" alt="移动端截图" width="100%"></td>
+    <td><img src="images/mobile/image-8.jpg" alt="移动端截图" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="images/mobile/image-9.jpg" alt="移动端截图" width="100%"></td>
+    <td><img src="images/mobile/image-10.jpg" alt="移动端截图" width="100%"></td>
+  </tr>
+</table>
+
+</details>
+
+---
 
 ## ❓ 常见问题
 
@@ -244,13 +257,13 @@ VITE_APP_BASE_API = 'https://your-api-domain.com'
 使用 [网易云音乐 API](https://neteasecloudmusicapi.vercel.app/#/)（可能需魔法上网）
 </details>
 
-<br/>
+---
 
 ## ⚠️ 免责声明
 
 本项目仅用于学习和研究目的。使用该项目的用户需自行承担相关风险。本项目所使用的相关 API 和数据源均为第三方提供，使用时请遵循相关法律法规及第三方的使用条款。**本项目不得用于任何商业目的**，我们不对任何由于使用本项目而引起的直接或间接的损失或法律责任负责。
 
-<br/>
+---
 
 ## 💬 交流与支持
 
@@ -267,13 +280,15 @@ VITE_APP_BASE_API = 'https://your-api-domain.com'
 </tr>
 </table>
 
-<br/>
+## 🤝 友情链接
+
+- [HotPulse](https://hotpulse.pages.dev/) - 全网热点聚合平台
 
 ## 📈 Star 趋势
 
 [![Stargazers over time](https://starchart.cc/XiangZi7/KM-Music-Player.svg?variant=adaptive)](https://starchart.cc/XiangZi7/KM-Music-Player)
 
-<br/>
+---
 
 <div align="center">
 
