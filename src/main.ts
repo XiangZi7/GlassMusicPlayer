@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 
 // Global style
-import './style/index.scss'
+import './style/base.scss'
 // router
 import router from './routers'
 
