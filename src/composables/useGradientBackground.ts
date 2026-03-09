@@ -42,15 +42,20 @@ export function useGradientBackground(options: GradientBackgroundOptions) {
   let bgBreathingTweens: gsap.core.Tween[] = []
 
   /**
+   * 构建带透明度渐变的背景
+   */
+  const buildGradient = (gradient: string[]) => {
+    const top = gradient[0]
+    const main = gradient[1]
+    return `linear-gradient(to bottom, ${top}b3 0%, ${main}99 20%, ${main}73 40%, ${main}4d 60%, ${main}26 80%, transparent 100%)`
+  }
+
+  /**
    * 生成背景A层样式
    */
   const bgAStyle = computed(() => {
     if (state.bgAGradient.length === 0) return {}
-    const topColor = state.bgAGradient[0]
-    const mainColor = state.bgAGradient[1]
-    return {
-      backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`,
-    }
+    return { backgroundImage: buildGradient(state.bgAGradient) }
   })
 
   /**
@@ -58,11 +63,7 @@ export function useGradientBackground(options: GradientBackgroundOptions) {
    */
   const bgBStyle = computed(() => {
     if (state.bgBGradient.length === 0) return {}
-    const topColor = state.bgBGradient[0]
-    const mainColor = state.bgBGradient[1]
-    return {
-      backgroundImage: `linear-gradient(to bottom, ${topColor} 0%, ${mainColor} 30%, ${mainColor} 65%, #000 100%)`,
-    }
+    return { backgroundImage: buildGradient(state.bgBGradient) }
   })
 
   /**
@@ -136,11 +137,7 @@ export function useGradientBackground(options: GradientBackgroundOptions) {
             scale: 1.5,
             duration: 1.2,
             ease: 'power2.out',
-            onComplete: () => {
-              if (isPlaying.value && isOpen.value) {
-                startBackgroundBreathing()
-              }
-            },
+           
           })
         }
         state.bgActive = 'A'
@@ -164,11 +161,6 @@ export function useGradientBackground(options: GradientBackgroundOptions) {
           scale: 1.5,
           duration: 1.4,
           ease: 'power2.inOut',
-          onComplete: () => {
-            if (isPlaying.value && isOpen.value) {
-              startBackgroundBreathing()
-            }
-          },
         })
       }
 

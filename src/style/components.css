@@ -57,7 +57,8 @@
   .glass-button {
     background: var(--glass-interactive-bg);
     border-radius: 12px;
-    transition: background 0.25s var(--glass-ease, ease),
+    transition:
+      background 0.25s var(--glass-ease, ease),
       box-shadow 0.25s var(--glass-ease, ease),
       transform 0.25s var(--glass-ease, ease);
     box-shadow: var(--glass-shadow-sm), var(--glass-shadow-inset);
@@ -68,7 +69,8 @@
   .glass-button:hover {
     background: var(--glass-interactive-hover);
     transform: translateY(-1px);
-    box-shadow: var(--glass-shadow-md),
+    box-shadow:
+      var(--glass-shadow-md),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 

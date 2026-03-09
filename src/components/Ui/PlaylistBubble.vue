@@ -28,10 +28,8 @@ const open = computed({
 const triggerRef = ref<HTMLElement>()
 const bubbleRef = ref<HTMLElement>()
 const bubblePosition = ref({ top: 0, left: 0 })
-// 标记位置是否已计算完成，避免首次打开时从(0,0)位置移动过来的割裂感
 const positionReady = ref(false)
 
-// 计算气泡的绝对位置
 const updateBubblePosition = () => {
   if (!triggerRef.value) return
 
@@ -64,13 +62,11 @@ const updateBubblePosition = () => {
   bubblePosition.value = { top, left }
 }
 
-// 监听打开状态，更新位置
 watch(open, isOpen => {
   if (isOpen) {
     positionReady.value = false
     nextTick(() => {
       updateBubblePosition()
-      // 等待下一帧后再标记为ready，确保位置已应用
       requestAnimationFrame(() => {
         positionReady.value = true
       })
@@ -176,7 +172,6 @@ const totalDuration = computed(() => {
 </script>
 
 <template>
-  <!-- 播放列表气泡 -->
   <div ref="triggerRef" class="relative inline-block">
     <div @click.stop="toggle" class="flex items-center justify-center">
       <slot name="trigger"></slot>
@@ -193,29 +188,29 @@ const totalDuration = computed(() => {
             <slot></slot>
           </template>
           <template v-else>
-            <div
-              class="playlist-bubble w-[360px] overflow-hidden rounded-xl shadow-2xl lg:w-[420px]"
-            >
-              <div class="bubble-header flex items-center justify-between px-4 py-3">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-pink-500 to-purple-600"
-                  >
-                    <span class="icon-[mdi--playlist-music] h-5 w-5 text-white"></span>
+            <div class="playlist-bubble w-[400px] overflow-hidden rounded-2xl lg:w-[460px]">
+
+              <!-- ═══ Header ═══ -->
+              <div class="bubble-header flex items-center justify-between px-5 py-4">
+                <div class="flex items-center gap-4">
+                  <div class="header-icon flex h-11 w-11 items-center justify-center rounded-xl">
+                    <span class="icon-[mdi--playlist-music] h-6 w-6 text-white"></span>
                   </div>
                   <div>
-                    <h4 class="bubble-title text-sm font-semibold">
+                    <h4 class="bubble-title text-base font-bold">
                       {{ $t('playlistBubble.title') }}
                     </h4>
-                    <p class="bubble-subtitle text-xs">
-                      {{ playlist.length }} 首 · {{ formatDuration(totalDuration) }}
+                    <p class="bubble-subtitle mt-0.5 text-sm">
+                      {{ playlist.length }} {{ $t('playlistBubble.tracks', '首') }}
+                      <span class="mx-1 opacity-30">|</span>
+                      {{ formatDuration(totalDuration) }}
                     </p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
-                  size="icon-sm"
-                  rounded="lg"
+                  size="icon-md"
+                  rounded="full"
                   icon="icon-[mdi--close]"
                   icon-class="h-5 w-5"
                   class="bubble-close-btn"
@@ -223,74 +218,54 @@ const totalDuration = computed(() => {
                 />
               </div>
 
-              <div class="bubble-toolbar flex items-center gap-2 px-4 py-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rounded="lg"
-                  icon="icon-[mdi--checkbox-multiple-outline]"
-                  icon-class="h-4 w-4"
-                  class="toolbar-btn"
-                  @click="selectAll"
-                >
-                  全选
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rounded="lg"
-                  icon="icon-[mdi--playlist-plus]"
-                  icon-class="h-4 w-4"
-                  class="toolbar-btn"
-                  :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
+              <!-- ═══ Toolbar ═══ -->
+              <div class="bubble-toolbar flex items-center gap-1.5 px-4 py-2">
+                <button class="tb-btn" @click="selectAll">
+                  <span class="icon-[mdi--checkbox-multiple-outline] h-5 w-5"></span>
+                  <span>{{ $t('playlistBubble.selectAll', '全选') }}</span>
+                </button>
+                <button
+                  class="tb-btn"
                   :disabled="selectedCount === 0"
                   :title="$t('playlistBubble.queueNextSelected')"
                   @click="doQueueNextSelected"
                 >
-                  下一首播放
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rounded="lg"
-                  icon="icon-[mdi--delete-outline]"
-                  icon-class="h-4 w-4"
-                  class="toolbar-btn toolbar-btn-delete"
-                  :class="{ 'cursor-not-allowed opacity-40': selectedCount === 0 }"
+                  <span class="icon-[mdi--playlist-plus] h-5 w-5"></span>
+                  <span>{{ $t('playlistBubble.queueNext', '下一首播放') }}</span>
+                </button>
+                <button
+                  class="tb-btn tb-btn--danger"
                   :disabled="selectedCount === 0"
                   :title="$t('playlistBubble.deleteSelected')"
                   @click="doDeleteSelected"
                 >
-                  删除
-                  <span v-if="selectedCount > 0" class="selected-badge  rounded px-1.5">{{
-                    selectedCount
-                  }}</span>
-                </Button>
+                  <span class="icon-[mdi--delete-outline] h-5 w-5"></span>
+                  <span>{{ $t('playlistBubble.delete', '删除') }}</span>
+                  <span v-if="selectedCount > 0" class="selected-badge">{{ selectedCount }}</span>
+                </button>
                 <div class="flex-1"></div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  rounded="lg"
-                  icon="icon-[mdi--delete-sweep]"
-                  icon-class="h-4 w-4"
-                  class="toolbar-btn-clear"
+                <button
+                  class="tb-icon-btn"
                   :title="$t('playlistBubble.clearAll')"
                   @click="doClearAll"
-                />
+                >
+                  <span class="icon-[mdi--delete-sweep] h-5 w-5"></span>
+                </button>
               </div>
 
+              <!-- ═══ Song List ═══ -->
               <div
                 v-if="playlist.length"
-                class="bubble-list custom-scrollbar max-h-[400px] overflow-y-auto"
+                class="bubble-list custom-scrollbar max-h-[440px] overflow-y-auto py-1.5"
               >
                 <div
                   v-for="(s, i) in playlist"
                   :key="s.id || i"
-                  class="playlist-item group relative flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all"
+                  class="playlist-item group relative flex cursor-pointer items-center gap-3.5 px-4 py-2.5 transition-all duration-150"
                   :class="{
                     'item-current': isCurrent(s),
-                    'bg-pink-500/20': dragOverIndex === i && draggingIndex !== i,
-                    'opacity-50': draggingIndex === i,
+                    'item-dragover': dragOverIndex === i && draggingIndex !== i,
+                    'item-dragging': draggingIndex === i,
                   }"
                   draggable="true"
                   @dragstart="onDragStart(i)"
@@ -300,43 +275,46 @@ const totalDuration = computed(() => {
                   @dragend="onDragEnd"
                   @dblclick.stop="playByIndex(i)"
                 >
-                  <div class="flex w-6 shrink-0 items-center justify-center">
-                    <input
-                      type="checkbox"
-                      :checked="selected[s.id as any]"
-                      class="playlist-checkbox h-4 w-4 cursor-pointer rounded border-2 bg-transparent transition-all checked:border-pink-500 checked:bg-pink-500"
-                      @change="toggleSelect(s.id as any)"
-                      @click.stop
-                    />
+                  <!-- Drag Handle -->
+                  <div class="drag-handle shrink-0 cursor-grab opacity-0 transition-opacity duration-200 group-hover:opacity-60">
+                    <span class="icon-[mdi--menu] block h-5 w-5"></span>
                   </div>
 
-                  <div class="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
+                  <!-- Checkbox -->
+                  <input
+                    type="checkbox"
+                    :checked="selected[s.id as any]"
+                    class="playlist-checkbox shrink-0"
+                    @change="toggleSelect(s.id as any)"
+                    @click.stop
+                  />
+
+                  <!-- Cover -->
+                  <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
                     <img
                       v-if="s.cover"
                       :src="s.cover + '?param=100y100'"
                       alt=""
                       class="h-full w-full object-cover"
                     />
-                    <div
-                      v-else
-                      class="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-500 to-purple-600"
-                    >
-                      <span class="icon-[mdi--music-note] h-5 w-5 text-white"></span>
+                    <div v-else class="cover-fallback flex h-full w-full items-center justify-center">
+                      <span class="icon-[mdi--music-note] h-6 w-6 text-white/70"></span>
                     </div>
                     <div
                       v-if="isCurrent(s)"
-                      class="absolute inset-0 flex items-center justify-center bg-black/50"
+                      class="absolute inset-0 flex items-center justify-center bg-black/40"
                     >
-                      <div v-if="isPlaying" class="playing-bars flex items-end gap-0.5">
+                      <div v-if="isPlaying" class="playing-bars flex items-end gap-[3px]">
                         <span class="bar"></span>
                         <span class="bar"></span>
                         <span class="bar"></span>
                         <span class="bar"></span>
                       </div>
-                      <span v-else class="icon-[mdi--pause] h-5 w-5 text-white"></span>
+                      <span v-else class="icon-[mdi--pause] h-6 w-6 text-white"></span>
                     </div>
                   </div>
 
+                  <!-- Song Info -->
                   <div class="min-w-0 flex-1">
                     <p
                       class="song-name truncate text-sm font-medium"
@@ -344,52 +322,47 @@ const totalDuration = computed(() => {
                     >
                       {{ s.name }}
                     </p>
-                    <p class="song-artist truncate text-xs">{{ s.artist }}</p>
+                    <p class="song-artist mt-1 truncate text-xs">{{ s.artist }}</p>
                   </div>
 
+                  <!-- Right: Duration + Actions -->
                   <div class="flex shrink-0 items-center">
-                    <span class="song-duration mr-2 text-xs">{{ formatDuration(s.duration) }}</span>
-                    <div
-                      class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="none"
-                        rounded="lg"
-                        icon="icon-[mdi--playlist-plus]"
-                        icon-class="h-4 w-4"
-                        class="action-btn p-1.5"
+                    <span class="song-duration text-xs tabular-nums transition-opacity duration-200 group-hover:opacity-0">
+                      {{ formatDuration(s.duration) }}
+                    </span>
+                    <div class="item-actions absolute right-4 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                      <button
+                        class="item-action-btn"
                         :title="$t('playlistBubble.actions.queueNext')"
                         @click.stop="queueNext(s.id as any)"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="none"
-                        rounded="lg"
-                        icon="icon-[mdi--delete-outline]"
-                        icon-class="h-4 w-4"
-                        class="action-btn action-btn-delete p-1.5"
+                      >
+                        <span class="icon-[mdi--playlist-plus] h-5 w-5"></span>
+                      </button>
+                      <button
+                        class="item-action-btn item-action-btn--danger"
                         :title="$t('playlistBubble.actions.delete')"
                         @click.stop="removeSong(s.id as any)"
-                      />
+                      >
+                        <span class="icon-[mdi--delete-outline] h-5 w-5"></span>
+                      </button>
                     </div>
                   </div>
-
-                  <div
-                    class="drag-handle absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <span class="icon-[mdi--drag-vertical] h-full w-full"></span>
-                  </div>
                 </div>
               </div>
 
-              <div v-else class="empty-state flex flex-col items-center justify-center py-16">
-                <div class="empty-icon mb-3 rounded-full p-4">
-                  <span class="icon-[mdi--playlist-remove] h-10 w-10"></span>
+              <!-- ═══ Empty State ═══ -->
+              <div v-else class="flex flex-col items-center justify-center py-16">
+                <div class="empty-icon mb-5 flex h-20 w-20 items-center justify-center rounded-full">
+                  <span class="icon-[mdi--playlist-music-outline] h-10 w-10"></span>
                 </div>
-                <p class="empty-text text-sm">播放列表为空</p>
-                <p class="empty-hint mt-1 text-xs">双击歌曲即可添加到播放列表</p>
+                <p class="empty-text text-sm font-medium">
+                  {{ $t('playlistBubble.empty', '播放列表为空') }}
+                </p>
+                <p class="empty-hint mt-2 text-xs">
+                  {{ $t('playlistBubble.emptyHint', '双击歌曲即可添加到播放列表') }}
+                </p>
               </div>
+
             </div>
           </template>
         </div>
@@ -399,15 +372,28 @@ const totalDuration = computed(() => {
 </template>
 
 <style scoped>
+/* ═══════════════════════════════════
+   Container
+   ═══════════════════════════════════ */
 .playlist-bubble {
   background: var(--glass-bg-overlay);
-  backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-dropdown-blur)) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) saturate(150%);
   border: 1px solid var(--glass-border-default);
+  box-shadow: var(--glass-shadow-xl);
 }
 
+/* ═══════════════════════════════════
+   Header
+   ═══════════════════════════════════ */
 .bubble-header {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15));
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.header-icon {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
 }
 
 .bubble-title {
@@ -415,55 +401,92 @@ const totalDuration = computed(() => {
 }
 
 .bubble-subtitle {
-  color: var(--glass-text-primary);
-  opacity: 0.6;
+  color: var(--glass-text-secondary);
 }
 
 .bubble-close-btn {
-  color: var(--glass-text-primary);
-  opacity: 0.6;
+  color: var(--glass-text-muted);
 }
 
 .bubble-close-btn:hover {
   background: var(--glass-interactive-hover-muted);
-  color: var(--glass-interactive-text-hover);
-  opacity: 1;
+  color: var(--glass-text-contrast);
 }
 
+/* ═══════════════════════════════════
+   Toolbar
+   ═══════════════════════════════════ */
 .bubble-toolbar {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--glass-text-secondary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tb-btn:hover {
   background: var(--glass-interactive-hover-muted);
-  border-bottom: 1px solid var(--glass-border-default);
+  color: var(--glass-text-contrast);
 }
 
-.toolbar-btn {
-  color: var(--glass-text-primary);
-  opacity: 0.7;
+.tb-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
-.toolbar-btn:hover {
-  background: var(--glass-interactive-hover-muted);
-  color: var(--glass-interactive-text-hover);
-  opacity: 1;
+.tb-btn:disabled:hover {
+  background: transparent;
+  color: var(--glass-text-secondary);
 }
 
-.toolbar-btn-delete:hover {
+.tb-btn--danger:not(:disabled):hover {
   color: #f87171;
 }
 
-.toolbar-btn-clear {
-  color: var(--glass-text-primary);
-  opacity: 0.5;
+.tb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--glass-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.toolbar-btn-clear:hover {
+.tb-icon-btn:hover {
   background: var(--glass-interactive-hover-muted);
   color: #f87171;
 }
 
 .selected-badge {
-  background: var(--glass-interactive-hover-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: white;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  border-radius: 10px;
 }
 
+/* ═══════════════════════════════════
+   Song List
+   ═══════════════════════════════════ */
 .bubble-list {
   background: var(--glass-bg-card);
 }
@@ -476,10 +499,55 @@ const totalDuration = computed(() => {
   background: var(--glass-interactive-hover-muted);
 }
 
+.playlist-item.item-current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #ec4899, #8b5cf6);
+}
+
+.playlist-item.item-dragover {
+  background: rgba(236, 72, 153, 0.08);
+  box-shadow: inset 0 -2px 0 #ec4899;
+}
+
+.playlist-item.item-dragging {
+  opacity: 0.35;
+}
+
+/* ═══════════════════════════════════
+   Drag Handle
+   ═══════════════════════════════════ */
+.drag-handle {
+  color: var(--glass-text-muted);
+}
+
+/* ═══════════════════════════════════
+   Checkbox
+   ═══════════════════════════════════ */
 .playlist-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  border-color: var(--glass-border-default);
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--glass-border-strong);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.playlist-checkbox:hover {
+  border-color: #ec4899;
+}
+
+.playlist-checkbox:checked {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
 }
 
 .playlist-checkbox:checked::after {
@@ -493,103 +561,104 @@ const totalDuration = computed(() => {
   background-repeat: no-repeat;
 }
 
+/* ═══════════════════════════════════
+   Cover
+   ═══════════════════════════════════ */
+.cover-fallback {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.6), rgba(139, 92, 246, 0.6));
+}
+
+/* ═══════════════════════════════════
+   Song Text
+   ═══════════════════════════════════ */
 .song-name {
   color: var(--glass-text-contrast);
 }
 
 .song-name-active {
-  color: #ec4899;
+  background: linear-gradient(135deg, #ec4899, #a855f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
 }
 
 .song-artist {
-  color: var(--glass-text-primary);
-  opacity: 0.5;
+  color: var(--glass-text-muted);
 }
 
 .song-duration {
-  color: var(--glass-text-primary);
-  opacity: 0.4;
+  color: var(--glass-text-muted);
 }
 
-.action-btn {
-  color: var(--glass-text-primary);
-  opacity: 0.6;
+/* ═══════════════════════════════════
+   Item Actions
+   ═══════════════════════════════════ */
+.item-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--glass-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.action-btn:hover {
+.item-action-btn:hover {
   background: var(--glass-interactive-hover-muted);
-  color: var(--glass-interactive-text-hover);
-  opacity: 1;
+  color: var(--glass-text-contrast);
 }
 
-.action-btn-delete:hover {
+.item-action-btn--danger:hover {
   color: #f87171;
 }
 
-.drag-handle span {
-  color: var(--glass-text-primary);
-  opacity: 0.3;
-}
-
-.empty-state {
-  color: var(--glass-text-primary);
-}
-
+/* ═══════════════════════════════════
+   Empty State
+   ═══════════════════════════════════ */
 .empty-icon {
   background: var(--glass-interactive-hover-muted);
-}
-
-.empty-icon span {
-  color: var(--glass-text-primary);
-  opacity: 0.2;
+  color: var(--glass-text-muted);
 }
 
 .empty-text {
-  color: var(--glass-text-primary);
-  opacity: 0.4;
+  color: var(--glass-text-secondary);
 }
 
 .empty-hint {
-  color: var(--glass-text-primary);
-  opacity: 0.3;
+  color: var(--glass-text-muted);
 }
 
+/* ═══════════════════════════════════
+   Playing Bars
+   ═══════════════════════════════════ */
 .playing-bars .bar {
   width: 3px;
-  height: 12px;
-  background: #ec4899;
   border-radius: 2px;
+  background: linear-gradient(180deg, #ec4899, #a855f6);
   animation: playing 0.8s ease-in-out infinite;
 }
 
-.playing-bars .bar:nth-child(1) {
-  animation-delay: 0s;
-}
-.playing-bars .bar:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.playing-bars .bar:nth-child(3) {
-  animation-delay: 0.4s;
-}
-.playing-bars .bar:nth-child(4) {
-  animation-delay: 0.6s;
-}
+.playing-bars .bar:nth-child(1) { height: 10px; animation-delay: 0s; }
+.playing-bars .bar:nth-child(2) { height: 16px; animation-delay: 0.15s; }
+.playing-bars .bar:nth-child(3) { height: 12px; animation-delay: 0.3s; }
+.playing-bars .bar:nth-child(4) { height: 14px; animation-delay: 0.45s; }
 
 @keyframes playing {
-  0%,
-  100% {
-    height: 4px;
-  }
-  50% {
-    height: 16px;
-  }
+  0%, 100% { height: 4px; }
+  50% { height: 18px; }
 }
 
+/* ═══════════════════════════════════
+   Transition
+   ═══════════════════════════════════ */
 .bubble-enter-active,
 .bubble-leave-active {
   transition:
-    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bubble-enter-from,
@@ -598,12 +667,14 @@ const totalDuration = computed(() => {
   transform: translateY(10px) scale(0.95);
 }
 
-/* 位置计算完成前隐藏元素，避免从(0,0)位置移动的割裂感 */
 .bubble-positioning {
   visibility: hidden !important;
   pointer-events: none;
 }
 
+/* ═══════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════ */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

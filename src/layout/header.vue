@@ -83,16 +83,18 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- Logo -->
       <div class="flex items-center gap-2.5">
         <img src="/logo.svg" alt="logo" class="w-9" />
-        <h1 class="text-primary text-xl font-bold ">Glass Music</h1>
+        <h1 class="text-primary text-xl font-bold">Glass Music</h1>
       </div>
 
       <!-- 前进/后退按钮组 -->
-      <div class="hidden items-center overflow-hidden rounded-[10px] border border-glass-subtle md:flex">
+      <div
+        class="border-glass-subtle hidden items-center overflow-hidden rounded-[10px] border md:flex"
+      >
         <Button
           variant="ghost"
           size="none"
           rounded="none"
-          class="h-[30px] w-8 justify-center border-r border-glass-subtle"
+          class="border-glass-subtle h-[30px] w-8 justify-center border-r"
           aria-label="back"
           @click="router.back()"
         >
@@ -114,10 +116,26 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <nav class="hidden items-center gap-3 xl:flex">
         <Button
           v-for="link in [
-            { href: 'https://github.com/XiangZi7/GlassMusicPlayer', icon: 'icon-[mdi--github]', label: t('layout.nav.repo') },
-            { href: 'https://miraitv.pages.dev', icon: 'icon-[mdi--movie-open-play]', label: t('layout.nav.movies') },
-            { href: 'https://gm-doc.pages.dev', icon: 'icon-[mdi--text-box-outline]', label: t('layout.nav.projectDocs') },
-            { href: 'https://gmpd.netlify.app', icon: 'icon-[mdi--text-box-outline]', label: t('layout.nav.backupDocs') },
+            {
+              href: 'https://github.com/XiangZi7/GlassMusicPlayer',
+              icon: 'icon-[mdi--github]',
+              label: t('layout.nav.repo'),
+            },
+            {
+              href: 'https://miraitv.pages.dev',
+              icon: 'icon-[mdi--movie-open-play]',
+              label: t('layout.nav.movies'),
+            },
+            {
+              href: 'https://gm-doc.pages.dev',
+              icon: 'icon-[mdi--text-box-outline]',
+              label: t('layout.nav.projectDocs'),
+            },
+            {
+              href: 'https://gmpd.netlify.app',
+              icon: 'icon-[mdi--text-box-outline]',
+              label: t('layout.nav.backupDocs'),
+            },
           ]"
           :key="link.href"
           :href="link.href"
@@ -125,7 +143,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           rel="noopener noreferrer"
           size="none"
           rounded="lg"
-          class="nav-ext-link gap-1.5 px-4 py-1.5 text-sm font-medium  transition-opacity hover:opacity-90"
+          class="nav-ext-link gap-1.5 px-4 py-1.5 text-sm font-medium transition-opacity hover:opacity-90"
           :title="link.label"
         >
           <span :class="[link.icon, 'h-4 w-4']"></span>
@@ -139,15 +157,15 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
       <!-- 搜索框 -->
       <div
         ref="rootRef"
-        class="hidden items-center gap-2 rounded-[10px] bg-button-glass px-3 py-1.5 transition-all duration-300 lg:flex"
+        class="bg-button-glass hidden items-center gap-2 rounded-[10px] px-3 py-1.5 transition-all duration-300 lg:flex"
         :class="[
           searchFocused
-            ? 'min-w-80 border border-glass ring-1 ring-white/5'
+            ? 'border-glass min-w-80 border ring-1 ring-white/5'
             : 'min-w-60 border border-transparent',
         ]"
       >
         <span
-          class="icon-[mdi--magnify] h-4 w-4 shrink-0 text-primary transition-opacity duration-200"
+          class="icon-[mdi--magnify] text-primary h-4 w-4 shrink-0 transition-opacity duration-200"
           :class="searchFocused || searchQuery ? 'opacity-65' : 'opacity-35'"
         ></span>
         <input
@@ -157,7 +175,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
           @blur="onSearchBlur"
           type="text"
           :placeholder="t('common.search.placeholder')"
-          class="min-w-0 flex-1 bg-transparent text-[13px] font-[450] text-primary outline-none placeholder:font-normal placeholder:text-primary/35"
+          class="text-primary placeholder:text-primary/35 min-w-0 flex-1 bg-transparent text-[13px] font-[450] outline-none placeholder:font-normal"
         />
         <Transition name="fade-scale">
           <Button
@@ -187,7 +205,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
               <li
                 v-for="opt in searchHistory"
                 :key="opt"
-                class="group relative flex cursor-pointer items-center rounded-[10px] px-2.5 py-2 text-[13px] text-glass-contrast transition-colors hover:bg-hover-glass"
+                class="group text-glass-contrast hover:bg-hover-glass relative flex cursor-pointer items-center rounded-[10px] px-2.5 py-2 text-[13px] transition-colors"
                 @mousedown.prevent="selectHistory(opt)"
               >
                 <span class="icon-[mdi--history] mr-2.5 h-3.5 w-3.5 shrink-0 opacity-40"></span>
@@ -272,7 +290,9 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 /* 搜索清除按钮动画 */
 .fade-scale-enter-active,
 .fade-scale-leave-active {
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 .fade-scale-enter-from,
 .fade-scale-leave-to {
@@ -282,10 +302,14 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
 
 /* 历史下拉动画 */
 .dropdown-enter-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .dropdown-leave-active {
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 .dropdown-enter-from {
   opacity: 0;

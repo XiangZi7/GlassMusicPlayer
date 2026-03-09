@@ -147,7 +147,6 @@ const {
   bgAStyle,
   bgBStyle,
   activeGradient,
-  startBackgroundBreathing,
   stopBackgroundBreathing,
   setBackgroundGradient,
 } = useGradientBackground({
@@ -319,9 +318,6 @@ watch(
       lyricsPositioned.value = false
       updateCurrentLyric(true)
       setBackgroundGradient(currentSong.value?.cover)
-      if (isPlaying.value) {
-        startBackgroundBreathing()
-      }
     } else {
       closeDrawer()
       stopBackgroundBreathing()
@@ -334,9 +330,6 @@ watch(
   isPlaying,
   playing => {
     if (playing) {
-      if (isOpen.value) {
-        startBackgroundBreathing()
-      }
       if (isAnalyserInitialized.value) {
         startAnalyser()
         resumeAnalyser()
@@ -440,7 +433,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:px-6 lg:pt-5">
+    <div
+      class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4 lg:px-6 lg:pt-5"
+    >
       <div class="flex items-center gap-2">
         <div class="glass-toolbar flex items-center gap-0.5 rounded-xl p-1">
           <Button
@@ -524,7 +519,7 @@ onUnmounted(() => {
             variant="ghost"
             size="icon-sm"
             rounded="lg"
-            :class="{ 'text-yellow-300/80 bg-white/12': !useCoverBg }"
+            :class="{ 'bg-white/12 text-yellow-300/80': !useCoverBg }"
             @click="useCoverBg = !useCoverBg"
             :title="t('player.toggleBg')"
           >
@@ -541,7 +536,7 @@ onUnmounted(() => {
             variant="ghost"
             size="icon-sm"
             rounded="lg"
-            :class="{ 'text-cyan-300/80 bg-white/12': audioVisualizer.enabledInDrawer }"
+            :class="{ 'bg-white/12 text-cyan-300/80': audioVisualizer.enabledInDrawer }"
             @click="settingsStore.setAudioVisualizerDrawer(!audioVisualizer.enabledInDrawer)"
             title="切换频谱显示"
             icon="icon-[mdi--waveform]"
@@ -612,7 +607,7 @@ onUnmounted(() => {
           <div
             ref="circularCoverRef"
             class="circular-cover absolute top-1/2 left-1/2 aspect-square w-1/2 -translate-x-1/2 -translate-y-1/2 scale-80 cursor-pointer overflow-hidden rounded-full"
-            style="perspective: 1000px; transform-style: preserve-3d;"
+            style="perspective: 1000px; transform-style: preserve-3d"
             @click="handleAlbumCoverClick"
           >
             <img
@@ -620,7 +615,7 @@ onUnmounted(() => {
               :src="state.circularCover + '?param=320x320'"
               :alt="currentSong?.name"
               class="h-full w-full object-cover"
-              style="backface-visibility: hidden;"
+              style="backface-visibility: hidden"
             />
             <div v-else class="h-full w-full bg-linear-to-br from-blue-500 to-purple-600"></div>
           </div>
@@ -641,7 +636,9 @@ onUnmounted(() => {
 
       <!-- 歌曲信息（两种模式共享） -->
       <div class="song-info mb-4 text-center lg:mb-6">
-        <h2 class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl">
+        <h2
+          class="song-title text-primary mb-1 line-clamp-1 text-xl font-bold sm:text-2xl lg:text-3xl"
+        >
           {{ currentSong?.name || t('player.unknownSong') }}
         </h2>
         <p class="text-primary/60 text-sm sm:text-base lg:text-lg">
@@ -668,7 +665,7 @@ onUnmounted(() => {
           rounded="full"
           size="none"
           class="ctrl-btn h-10 w-10 justify-center"
-          :class="{ 'text-pink-400! bg-pink-500/15': playMode !== 'list' }"
+          :class="{ 'bg-pink-500/15 text-pink-400!': playMode !== 'list' }"
           @click="togglePlayMode"
         >
           <span :class="playModeIconClass" class="h-5 w-5" />
@@ -769,10 +766,8 @@ onUnmounted(() => {
             :key="index"
             class="lyric-line text-center transition-all duration-500"
             :class="{
-              current:
-                index === (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
-              'text-primary/40':
-                index !== (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
+              current: index === (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
+              'text-primary/40': index !== (lyricsDragging ? dragPreviewIndex : currentLyricIndex),
             }"
           >
             <p class="lyric-text pointer-events-none">{{ line.ori }}</p>
@@ -787,9 +782,11 @@ onUnmounted(() => {
         </div>
 
         <!-- 歌词中心指示线 -->
-        <div class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 flex items-center">
-          <div class="center-line h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
-        </div>
+        <!-- <div class="pointer-events-none absolute top-1/2 right-0 left-0 -z-10 flex items-center">
+          <div
+            class="center-line h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+          ></div>
+        </div> -->
 
         <!-- 拖动时显示的时间和歌词提示 -->
         <Transition name="fade-scale">
@@ -798,13 +795,22 @@ onUnmounted(() => {
             class="drag-preview pointer-events-none absolute top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-black/85 px-6 py-4 shadow-2xl backdrop-blur-xl"
           >
             <div class="mb-3 flex items-center justify-center gap-3">
-              <span class="text-primary text-2xl font-bold tabular-nums">{{ dragPreviewInfo.time }}</span>
+              <span class="text-primary text-2xl font-bold tabular-nums">{{
+                dragPreviewInfo.time
+              }}</span>
               <span class="text-primary/25">/</span>
-              <span class="text-lg tabular-nums text-white/40">{{ dragPreviewInfo.totalDuration }}</span>
+              <span class="text-lg text-white/40 tabular-nums">{{
+                dragPreviewInfo.totalDuration
+              }}</span>
             </div>
             <div class="max-w-md text-center">
-              <p class="text-primary mb-1.5 text-base font-medium leading-relaxed">{{ dragPreviewInfo.lyric.ori }}</p>
-              <p v-if="dragPreviewInfo.showTrans && dragPreviewInfo.lyric.tran" class="text-primary/50 text-sm">
+              <p class="text-primary mb-1.5 text-base leading-relaxed font-medium">
+                {{ dragPreviewInfo.lyric.ori }}
+              </p>
+              <p
+                v-if="dragPreviewInfo.showTrans && dragPreviewInfo.lyric.tran"
+                class="text-primary/50 text-sm"
+              >
                 {{ dragPreviewInfo.lyric.tran }}
               </p>
             </div>
@@ -894,29 +900,23 @@ onUnmounted(() => {
 
 .lyric-line {
   line-height: 1.8;
-  padding: 0.75rem 1.5rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  margin-bottom: 0.25rem;
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   white-space: pre-line;
 }
 
 .lyric-line.current {
   @apply text-primary;
-  transform: scale(1.08);
   text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-  background: linear-gradient(
-    135deg,
-    rgba(236, 72, 153, 0.08),
-    rgba(139, 92, 246, 0.08)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(139, 92, 246, 0.08));
+  transform: scale(1.06);
 }
 .lyric-line.current .lyric-text {
   @apply text-xl font-semibold lg:text-2xl;
 }
 .lyric-line.current .lyric-sub {
-  @apply text-primary/65 mt-1 text-sm lg:text-base;
+  @apply text-primary/60 mt-1 text-sm lg:text-base;
 }
 
 .lyric-sub {

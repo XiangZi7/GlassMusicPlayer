@@ -1,12 +1,7 @@
 @layer utilities {
   /* ═══════ 遮罩 ═══════ */
   .bottom-mask-gradient {
-    background: linear-gradient(
-      to top,
-      var(--glass-bg-mask),
-      var(--glass-bg-mask),
-      transparent
-    );
+    background: linear-gradient(to top, var(--glass-bg-mask), var(--glass-bg-mask), transparent);
   }
 
   .mask-glass {
@@ -164,12 +159,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.15),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }
