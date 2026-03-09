@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Header from './header.vue'
+import Header from './Header.vue'
 import Aside from './aside.vue'
-import Footer from './footer.vue'
+import Footer from './Footer.vue'
 
 import Aurora from '@/components/Background/Aurora.vue'
 import ColorBends from '@/components/Background/ColorBends.vue'
@@ -74,7 +74,7 @@ const currentBackgroundProps = computed(() => backgroundPropsMap.value[currentBa
       />
     </div>
     <!-- 主容器 -->
-    <div class="z-50 flex w-full flex-col px-36 py-6">
+    <div class="z-50 flex w-full flex-col px-36 py-6 backdrop-blur-md backdrop-filter">
       <div class="glass-container flex flex-1 flex-col overflow-hidden">
         <!-- 头部区域 -->
         <Header />

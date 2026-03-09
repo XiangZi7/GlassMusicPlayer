@@ -198,7 +198,7 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocClick))
                   rounded="lg"
                   icon="icon-[mdi--close]"
                   icon-class="h-3.5 w-3.5 text-glass-contrast"
-                  class="absolute top-1/2 right-2 h-5.5 w-5.5 -translate-y-1/2 justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-50 hover:!opacity-80"
+                  class="absolute top-1/2 right-2 h-5.5 w-5.5 -translate-y-1/2 justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-50 hover:opacity-80!"
                   :title="t('common.delete')"
                   @mousedown.stop.prevent="globalStore.removeSearchHistory(opt)"
                 />

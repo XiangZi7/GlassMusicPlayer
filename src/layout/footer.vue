@@ -71,8 +71,6 @@ const { showQueue, currentLyricIndex } = toRefs(state)
 
 // 封面容器引用
 const coverRef = ref<HTMLElement | null>(null)
-const coverFrontRef = ref<HTMLElement | null>(null)
-const coverBackRef = ref<HTMLElement | null>(null)
 
 // 计算可视化器渐变颜色
 const visualizerGradient = computed(() => {
