@@ -94,7 +94,7 @@
 
 ## 📦 快速开始
 
-> **环境要求：** Node.js >= 22
+> **环境要求：** Node.js >= 22，pnpm >= 10
 
 ```bash
 # 克隆项目
@@ -104,12 +104,48 @@ cd GlassMusicPlayer
 # 安装依赖
 pnpm install
 
-# 配置环境变量 (.env 文件)
-VITE_APP_BASE_API = '你的网易云接口地址'
+# 配置环境变量
+cp .env.example .env
 
 # 启动开发服务器
 pnpm dev
 ```
+
+### 🔧 环境变量配置
+
+项目提供了 `.env.example` 模板文件，请根据需要复制并修改：
+
+```bash
+# 开发环境
+cp .env.example .env.development
+
+# 生产环境
+cp .env.example .env.production
+```
+
+**`.env.development` 示例：**
+
+```ini
+VITE_USER_NODE_ENV = development
+VITE_PUBLIC_PATH = /
+VITE_ROUTER_MODE = history
+VITE_APP_BASE_API = 'http://localhost:3000'
+```
+
+**`.env.production` 示例：**
+
+```ini
+VITE_USER_NODE_ENV = production
+VITE_PUBLIC_PATH = /
+# 静态托管（如 GitHub Pages）建议使用 hash 模式
+VITE_ROUTER_MODE = hash
+VITE_APP_BASE_API = 'https://your-api-domain.com'
+```
+
+> [!NOTE]
+> - `.env` 为通用配置，`.env.development` / `.env.production` 为特定环境配置，优先级更高
+> - 所有 `.env.*`（除 `.env.example`）已被 `.gitignore` 忽略，不会提交到仓库
+> - 变量必须以 `VITE_` 开头才能在客户端代码中使用
 
 <br/>
 
