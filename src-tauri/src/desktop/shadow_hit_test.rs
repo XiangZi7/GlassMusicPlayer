@@ -166,7 +166,24 @@ pub(crate) fn add_window(window: &WebviewWindow, inset: f64) -> tauri::Result<()
                     != 0,
             });
         });
+        refresh();
     })
+}
+
+/// 窗口出现、移动或缩放后校准静止鼠标的位置，首个点击也按新边界处理。
+pub(crate) fn refresh() {
+    let mut point = POINT::default();
+    // 安全：坐标由当前 UI 线程在栈上持有。
+    if unsafe { GetCursorPos(&mut point) } == 0 {
+        return;
+    }
+    HIT_TEST.with(|state| {
+        if let Ok(state) = state.try_borrow() {
+            for window in &state.windows {
+                update_hit_test(window, point);
+            }
+        }
+    });
 }
 
 /// 窗口销毁后释放对应状态；最后一个窗口退出时卸载原生钩子。

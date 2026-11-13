@@ -100,6 +100,16 @@ pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     if matches!(event, WindowEvent::Destroyed) {
         super::shadow_hit_test::remove_window(window);
     }
+    #[cfg(target_os = "windows")]
+    if matches!(
+        event,
+        WindowEvent::Moved(_)
+            | WindowEvent::Resized(_)
+            | WindowEvent::ScaleFactorChanged { .. }
+            | WindowEvent::Focused(true)
+    ) {
+        super::shadow_hit_test::refresh();
+    }
     if window.label() == "main" && matches!(event, WindowEvent::CloseRequested { .. }) {
         window.app_handle().exit(0);
     }
