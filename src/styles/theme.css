@@ -1,0 +1,43 @@
+@theme {
+  --color-page: var(--bg);
+  --color-page2: var(--bg2);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-cardline: var(--card-line);
+  --color-accent: var(--accent);
+  --font-sans:
+    'Manrope Variable', 'Noto Sans SC Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+
+:root {
+  --bg: #ececea;
+  --bg2: #e2e2de;
+  --ink: #141412;
+  --ink2: #5c5c56;
+  --line: #d4d4cc;
+  --card: #f7f7f4;
+  --card-line: #ddddd6;
+  --accent: #ff4d00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0c0e;
+    --bg2: #131316;
+    --ink: #f2f2ee;
+    --ink2: #a3a39b;
+    --line: #26262a;
+    --card: #161619;
+    --card-line: #26262a;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .verdict {
+    background: #f5f3ee;
+    color: #141412;
+  }
+}

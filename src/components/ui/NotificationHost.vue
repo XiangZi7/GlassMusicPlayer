@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { notification } from "@/services/notification";
+import { notification } from '@/services/notification'
 </script>
 
 <template>

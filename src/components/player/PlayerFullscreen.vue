@@ -1,17 +1,64 @@
 <script setup lang="ts">
-import BaseButton from "@/components/ui/BaseButton.vue";
-import QueueList from '@/components/player/QueueList.vue';
+import BaseButton from '@/components/ui/BaseButton.vue'
+import QueueList from '@/components/player/QueueList.vue'
+// 原稿粒子参数逐项保留：横坐标、周期、负延迟和直径。
+const dust = [
+  [6, 21, 3, 3],
+  [14, 26, 11, 2],
+  [23, 19, 6, 3.5],
+  [31, 24, 15, 2],
+  [42, 18, 1, 3],
+  [50, 27, 19, 2],
+  [58, 22, 8, 3],
+  [67, 20, 13, 2.5],
+  [76, 25, 4, 3],
+  [85, 19, 17, 2],
+]
 </script>
 
 <template>
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
-  <div class="fs" data-fs aria-label="全屏播放页">
-    <div class="fs-bg" data-fs-bg></div>
-    <div class="fs-shade"></div>
-    <div class="fs-top">
-      <div class="fs-topleft">
+  <div
+    class="fs absolute inset-0 z-[30] hidden flex-col overflow-hidden"
+    data-fs
+    aria-label="全屏播放页"
+  >
+    <div
+      class="fs-bg"
+      data-fs-bg
+    ></div>
+    <div
+      class="fs-amb"
+      aria-hidden="true"
+    >
+      <i class="amb a1" /><i class="amb a2" /><i class="amb a3" />
+    </div>
+    <div class="fs-shade absolute inset-0 z-[1]"></div>
+    <div
+      class="fs-grain"
+      aria-hidden="true"
+    />
+    <div
+      class="fs-dust"
+      aria-hidden="true"
+    >
+      <i
+        v-for="(particle, index) in dust"
+        :key="index"
+        :style="{
+          '--dx': particle[0] + '%',
+          '--dd': particle[1] + 's',
+          '--dl': '-' + particle[2] + 's',
+          '--ds': particle[3] + 'px',
+        }"
+      />
+    </div>
+    <div
+      class="fs-top relative z-[3] flex items-center justify-between p-[16px_20px_2px]"
+    >
+      <div class="fs-topleft flex min-w-[0] items-center gap-[12px]">
         <BaseButton
-          class="fs-topbtn"
+          class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
           data-stage-toggle
           aria-label="关闭全屏播放"
           ><svg
@@ -22,23 +69,36 @@ import QueueList from '@/components/player/QueueList.vue';
             stroke-linecap="round"
           >
             <path d="M6 9l6 6 6-6" /></svg></BaseButton
-        ><span class="fs-specmono" data-fs-spec>FLAC · 24-BIT</span>
+        ><span
+          class="fs-specmono overflow-hidden font-mono text-[10.5px] font-bold tracking-[.1em] text-ellipsis whitespace-nowrap opacity-[.6]"
+          data-fs-spec
+          >FLAC · 24-BIT</span
+        >
       </div>
-      <span class="fs-toptitle">正在播放 · NOW PLAYING</span>
-      <div class="fs-topright">
+      <span
+        class="fs-toptitle text-[11px] font-extrabold tracking-[.16em] opacity-[.65]"
+        >正在播放 · NOW PLAYING</span
+      >
+      <div class="fs-topright flex flex-none items-center gap-[8px]">
         <div
-          class="fs-weather"
+          class="fs-weather flex items-center gap-[6px] rounded-full p-[5px_11px_5px_7px] whitespace-nowrap text-white"
           role="img"
           aria-label="本地天气：夜晚多云，19度，演示数据"
           title="本地天气 · 演示数据"
         >
           <svg
-            class="wx-icon wx-icon-sm"
+            class="wx-icon wx-icon-sm h-[23px] w-[23px] flex-none overflow-visible"
             viewBox="0 0 36 36"
             fill="none"
             aria-hidden="true"
           >
-            <circle class="wx-star" cx="7.5" cy="6.5" r="1.3" fill="#FFE9A8" />
+            <circle
+              class="wx-star"
+              cx="7.5"
+              cy="6.5"
+              r="1.3"
+              fill="#FFE9A8"
+            />
             <circle
               class="wx-star s2"
               cx="14.5"
@@ -57,9 +117,17 @@ import QueueList from '@/components/player/QueueList.vue';
                 fill="rgba(255,255,255,.94)"
               />
             </g></svg
-          ><span class="wx-temp">19°</span><span class="wx-cond">多云</span>
+          ><span
+            class="wx-temp text-[15px] leading-[1] font-extrabold tracking-[-.01em]"
+            >19°</span
+          ><span class="wx-cond text-[12px] leading-[1] font-bold opacity-[.85]"
+            >多云</span
+          >
         </div>
-        <BaseButton class="fs-topbtn" data-fsq-toggle aria-label="播放队列"
+        <BaseButton
+          class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
+          data-fsq-toggle
+          aria-label="播放队列"
           ><svg
             viewBox="0 0 24 24"
             fill="none"
@@ -78,21 +146,61 @@ import QueueList from '@/components/player/QueueList.vue';
         ></BaseButton>
       </div>
     </div>
-    <div class="fs-giant" data-fs-giant aria-hidden="true">NEON COAST</div>
-    <div class="fs-side" aria-hidden="true">NOW PLAYING — AURA PLAYER</div>
-    <div class="fs-main">
-      <div class="fs-coverwrap">
-        <div class="fs-coverkb">
-          <img class="fs-cover" data-cover alt="专辑封面" />
+    <div
+      class="fs-giant pointer-events-none absolute top-[9%] left-[-12px] z-[1] text-[clamp(96px,13.5vw,172px)] leading-[1] font-extrabold tracking-[-.02em] whitespace-nowrap text-transparent opacity-[.5]"
+      data-fs-giant
+      aria-hidden="true"
+    >
+      NEON COAST
+    </div>
+    <div
+      class="fs-side pointer-events-none absolute top-[50%] left-[16px] z-[3] text-[10px] font-extrabold tracking-[.34em] whitespace-nowrap opacity-[.5]"
+      aria-hidden="true"
+    >
+      NOW PLAYING — AURA PLAYER
+    </div>
+    <div
+      class="fs-main relative z-[3] flex min-h-[0] flex-1 items-center p-[6px_46px_4px_58px]"
+    >
+      <div class="fs-coverwrap relative w-[min(328px,100%)]">
+        <div class="fs-coverkb relative">
+          <img
+            class="fs-cover"
+            data-cover
+            alt="专辑封面"
+          />
         </div>
-        <img class="fs-reflect" data-cover alt="" aria-hidden="true" />
+        <img
+          class="fs-reflect mt-[8px] block h-[46px] w-full rounded-[22px] object-cover opacity-[.26]"
+          data-cover
+          alt=""
+          aria-hidden="true"
+        />
+        <div
+          class="fs-sheen"
+          aria-hidden="true"
+        >
+          <i />
+        </div>
       </div>
-      <div class="fs-titleblock">
-        <div class="fs-kicker" data-fs-spec>FLAC · 24-BIT</div>
+      <div
+        class="fs-titleblock pointer-events-none relative z-[4] ml-[-58px] max-w-[400px] min-w-[0]"
+      >
+        <div
+          class="fs-kicker overflow-hidden font-mono text-[10.5px] font-bold tracking-[.14em] text-ellipsis whitespace-nowrap opacity-[.62]"
+          data-fs-spec
+        >
+          FLAC · 24-BIT
+        </div>
         <h4 data-title></h4>
         <p data-artist></p>
-        <div class="fs-titleactions">
-          <BaseButton class="heart" data-like aria-label="收藏"
+        <div
+          class="fs-titleactions pointer-events-auto mt-[14px] flex items-center gap-[6px]"
+        >
+          <BaseButton
+            class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-like
+            aria-label="收藏"
             ><svg
               viewBox="0 0 24 24"
               fill="none"
@@ -106,21 +214,47 @@ import QueueList from '@/components/player/QueueList.vue';
         </div>
       </div>
       <div class="fs-lyrcol">
-        <div class="fs-lyrhead"><span>歌词 · LYRICS</span></div>
-        <div class="fs-lyrics" data-fs-lyrics></div>
+        <div
+          class="fs-lyrhead mb-[6px] flex flex-none items-center justify-between gap-[10px] p-[0_2px_10px]"
+        >
+          <span>歌词 · LYRICS</span>
+        </div>
+        <div
+          class="fs-lyrics mt-[16px] min-h-[0] flex-1 overflow-y-auto p-[4px_6px_4px_0]"
+          data-fs-lyrics
+        ></div>
         <BaseButton
-          class="fs-lyrseek"
+          class="fs-lyrseek pointer-events-none absolute top-[50%] left-[12px] z-[6] flex cursor-pointer items-center gap-[9px] rounded-full p-[7px_12px_7px_11px] text-white opacity-[0]"
           data-lyrseek
           aria-label="跳到定位的这句歌词"
-          ><span class="fs-lyrseek-t" data-lyrseek-t>0:00</span
-          ><span class="fs-lyrseek-go">▶ 跳到这句</span></BaseButton
+          ><span
+            class="fs-lyrseek-t font-mono text-[12px] leading-[1] font-bold"
+            data-lyrseek-t
+            >0:00</span
+          ><span
+            class="fs-lyrseek-go text-[11.5px] leading-[1] font-extrabold whitespace-nowrap opacity-[.85]"
+            >▶ 跳到这句</span
+          ></BaseButton
         >
       </div>
-      <div class="fs-index" data-fsnum aria-hidden="true">01 / 04</div>
+      <div
+        class="fs-index pointer-events-none absolute right-[30px] bottom-[8px] z-[2] text-[64px] leading-[1] font-extrabold tracking-[-.02em] text-transparent opacity-[.55]"
+        data-fsnum
+        aria-hidden="true"
+      >
+        01 / 04
+      </div>
     </div>
-    <div class="fs-dock">
-      <div class="fs-dock-top">
-        <span class="dock-time" data-cur>0:00</span
+    <div
+      class="fs-dock relative z-[3] m-[0_auto_20px] flex w-[min(880px,calc(100%_-_48px))] flex-none flex-col gap-[9px] rounded-[28px] p-[13px_20px_12px]"
+    >
+      <div
+        class="fs-dock-top flex items-center gap-[12px] font-mono text-[11px]"
+      >
+        <span
+          class="dock-time w-[38px] flex-none"
+          data-cur
+          >0:00</span
         ><input
           type="range"
           data-seek
@@ -128,15 +262,26 @@ import QueueList from '@/components/player/QueueList.vue';
           max="1000"
           value="0"
           aria-label="播放进度"
-        /><span class="dock-time rem" data-remain>-0:00</span>
+        /><span
+          class="dock-time rem w-[38px] flex-none"
+          data-remain
+          >-0:00</span
+        >
       </div>
-      <div class="fs-dock-main">
-        <div class="dock-left">
-          <img class="dock-cover" data-cover alt="专辑封面" />
-          <div class="dock-meta">
+      <div class="fs-dock-main flex items-center gap-[14px]">
+        <div class="dock-left flex min-w-[0] flex-1 items-center gap-[11px]">
+          <img
+            class="dock-cover h-[44px] w-[44px] flex-none rounded-[10px] object-cover"
+            data-cover
+            alt="专辑封面"
+          />
+          <div class="dock-meta min-w-[0]">
             <b data-title></b><span data-artist></span>
           </div>
-          <BaseButton class="heart" data-like aria-label="收藏"
+          <BaseButton
+            class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-like
+            aria-label="收藏"
             ><svg
               viewBox="0 0 24 24"
               fill="none"
@@ -148,8 +293,13 @@ import QueueList from '@/components/player/QueueList.vue';
               /></svg
           ></BaseButton>
         </div>
-        <div class="fs-controls dock-controls">
-          <BaseButton class="ctl small" data-shuffle aria-label="随机播放"
+        <div
+          class="fs-controls dock-controls m-0 flex flex-none items-center justify-center gap-[10px]"
+        >
+          <BaseButton
+            class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-shuffle
+            aria-label="随机播放"
             ><svg
               viewBox="0 0 24 24"
               fill="none"
@@ -160,20 +310,35 @@ import QueueList from '@/components/player/QueueList.vue';
             >
               <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></svg
           ></BaseButton>
-          <BaseButton class="ctl" data-prev aria-label="上一首"
-            ><svg viewBox="0 0 24 24" fill="currentColor">
+          <BaseButton
+            class="ctl grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-prev
+            aria-label="上一首"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
               <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg
           ></BaseButton>
           <BaseButton
-            class="playbtn"
+            class="playbtn relative grid h-[48px] w-[48px] flex-none place-items-center rounded-full border-none"
             data-play
             aria-label="播放或暂停"
           ></BaseButton>
-          <BaseButton class="ctl" data-next aria-label="下一首"
-            ><svg viewBox="0 0 24 24" fill="currentColor">
+          <BaseButton
+            class="ctl grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-next
+            aria-label="下一首"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
               <path d="M14.5 5H17v14h-2.5zM5 5v14l9.5-7z" /></svg
           ></BaseButton>
-          <BaseButton class="ctl small" data-repeat aria-label="循环播放"
+          <BaseButton
+            class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-repeat
+            aria-label="循环播放"
             ><svg
               viewBox="0 0 24 24"
               fill="none"
@@ -188,14 +353,27 @@ import QueueList from '@/components/player/QueueList.vue';
           ></BaseButton>
         </div>
 
-        <div class="dock-right">
-          <div class="dock-nextwrap">
-            <div class="dock-next">
+        <div
+          class="dock-right flex min-w-[0] flex-1 items-center justify-end gap-[9px]"
+        >
+          <div
+            class="dock-nextwrap flex max-w-[134px] min-w-[0] flex-none flex-col items-start gap-[4px]"
+          >
+            <div
+              class="dock-next flex max-w-[118px] min-w-[0] flex-col gap-[1px]"
+            >
               <span>下一首</span><b data-next-title></b>
             </div>
-            <span class="quality-badge" data-meta1>FLAC · 24-BIT</span>
+            <span
+              class="quality-badge rounded-full p-[5px_8px] font-mono text-[9.5px] leading-[1] font-bold tracking-[.05em] whitespace-nowrap"
+              data-meta1
+              >FLAC · 24-BIT</span
+            >
           </div>
-          <BaseButton class="ctl small" data-fsq-toggle aria-label="播放队列"
+          <BaseButton
+            class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+            data-fsq-toggle
+            aria-label="播放队列"
             ><svg
               viewBox="0 0 24 24"
               fill="none"
@@ -212,7 +390,7 @@ import QueueList from '@/components/player/QueueList.vue';
                 stroke="none"
               /></svg></BaseButton
           ><BaseButton
-            class="ctl small"
+            class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
             data-device
             aria-label="输出设备：桌面音箱"
             title="输出设备 · 桌面音箱"
@@ -223,10 +401,18 @@ import QueueList from '@/components/player/QueueList.vue';
               stroke-width="2"
               stroke-linecap="round"
             >
-              <rect x="3" y="4" width="18" height="12" rx="2" />
+              <rect
+                x="3"
+                y="4"
+                width="18"
+                height="12"
+                rx="2"
+              />
               <path d="M8 20h8M12 16v4" /></svg
           ></BaseButton>
-          <div class="fs-vol">
+          <div
+            class="fs-vol flex flex-none items-center gap-[8px] opacity-[.9]"
+          >
             <BaseButton
               class="volbtn"
               data-volbtn
@@ -256,11 +442,22 @@ import QueueList from '@/components/player/QueueList.vue';
         </div>
       </div>
     </div>
-    <div class="fs-queue">
-      <div class="fs-queue-head">
+    <div
+      class="fs-queue absolute top-[66px] right-[16px] z-[4] hidden max-h-[calc(100%_-_86px)] w-[302px] max-w-[calc(100%_-_32px)] overflow-y-auto rounded-[18px] p-[12px]"
+    >
+      <div
+        class="fs-queue-head m-[2px_4px_10px] flex items-center justify-between text-[12px] font-extrabold tracking-[.1em]"
+      >
         <span>播放队列 · QUEUE</span
-        ><span class="q-radio-chip" data-radio-chip hidden>电台续播中</span
-        ><BaseButton class="fs-topbtn" data-fsq-toggle aria-label="关闭队列"
+        ><span
+          class="q-radio-chip rounded-full p-[3px_8px] text-[9.5px] font-extrabold tracking-[.06em] whitespace-nowrap text-white"
+          data-radio-chip
+          hidden
+          >电台续播中</span
+        ><BaseButton
+          class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
+          data-fsq-toggle
+          aria-label="关闭队列"
           ><svg
             viewBox="0 0 24 24"
             fill="none"

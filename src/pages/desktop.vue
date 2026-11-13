@@ -8,34 +8,34 @@ import {
   toRefs,
   useTemplateRef,
   watch,
-} from "vue";
-import { useRoute } from "vue-router";
-import { isTauri } from "@tauri-apps/api/core";
-import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import BaseButton from "@/components/ui/BaseButton.vue";
-import { formatTime } from "@/utils/format";
+} from 'vue'
+import { useRoute } from 'vue-router'
+import { isTauri } from '@tauri-apps/api/core'
+import { emitTo, listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import { formatTime } from '@/utils/format'
 import {
   animateSourceDesktop,
   animateSourceLyric,
-} from "@/services/player/desktop-motion";
-import type { SourceAction, SourceSnapshot } from "@/types/prototype";
+} from '@/services/player/desktop-motion'
+import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 
-const route = useRoute();
-const root = useTemplateRef<HTMLElement>("root");
-const mode = computed(() => String(route.params.mode));
+const route = useRoute()
+const root = useTemplateRef<HTMLElement>('root')
+const mode = computed(() => String(route.params.mode))
 // 响应式状态：小窗只接收原稿快照，不创建另一套播放器或改写原稿卡片。
 const state = reactive({
   // 原稿主窗口的曲目、歌词和音量。
   snapshot: {
     track: {
-      title: "",
-      artist: "",
-      album: "",
-      cover: "",
+      title: '',
+      artist: '',
+      album: '',
+      cover: '',
       dur: 0,
-      q: "",
-      glow: "",
+      q: '',
+      glow: '',
     },
     playing: false,
     time: 0,
@@ -49,132 +49,177 @@ const state = reactive({
     index: -1,
     direction: 1,
   } as SourceSnapshot,
-});
-const { snapshot } = toRefs(state);
-const track = computed(() => state.snapshot.track);
+})
+const { snapshot } = toRefs(state)
+const track = computed(() => state.snapshot.track)
 const previousLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex - 1] || "",
-);
+  () => state.snapshot.lyrics[state.snapshot.lyricIndex - 1] || ''
+)
 const currentLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex] || "",
-);
+  () => state.snapshot.lyrics[state.snapshot.lyricIndex] || ''
+)
 const nextLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex + 1] || "",
-);
+  () => state.snapshot.lyrics[state.snapshot.lyricIndex + 1] || ''
+)
 const progress = computed(
   () =>
-    `${track.value.dur ? Math.min(100, (state.snapshot.time / track.value.dur) * 100) : 0}%`,
-);
-let unlisten: UnlistenFn | undefined;
-let disposed = false;
+    `${track.value.dur ? Math.min(100, (state.snapshot.time / track.value.dur) * 100) : 0}%`
+)
+let unlisten: UnlistenFn | undefined
+let disposed = false
 
 // 原稿小窗操作定向交回主窗口，继续调用原来的播放、切歌与收藏方法。
-function sendAction(type: SourceAction["type"], value?: number): void {
-  if (isTauri()) void emitTo("main", "player-action", { type, value });
+function sendAction(type: SourceAction['type'], value?: number): void {
+  if (isTauri()) void emitTo('main', 'player-action', { type, value })
 }
 // 原稿进度条点击时换算为歌曲的相对位置。
 function seekNative(event: MouseEvent): void {
-  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-  sendAction("seek", (event.clientX - bounds.left) / bounds.width);
+  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  sendAction('seek', (event.clientX - bounds.left) / bounds.width)
 }
 // 原稿音量滑块继续控制主窗口的统一音量。
 function setNativeVolume(event: Event): void {
-  sendAction("volume", Number((event.target as HTMLInputElement).value));
+  sendAction('volume', Number((event.target as HTMLInputElement).value))
 }
 // 原稿迷你卡片的打开主窗口入口恢复主窗口并收起当前迷你窗口。
 async function focusMain(): Promise<void> {
-  sendAction("focus");
-  if (isTauri()) await getCurrentWindow().close();
+  sendAction('focus')
+  if (isTauri()) await getCurrentWindow().close()
 }
 watch(
   () => state.snapshot.locked,
-  (locked) => {
-    if (isTauri() && mode.value === "lyrics")
-      void getCurrentWindow().setIgnoreCursorEvents(locked);
-  },
-);
+  locked => {
+    if (isTauri() && mode.value === 'lyrics')
+      void getCurrentWindow().setIgnoreCursorEvents(locked)
+  }
+)
 watch(
   () => state.snapshot,
   async (current, previous) => {
-    await nextTick();
-    if (!root.value) return;
+    await nextTick()
+    if (!root.value) return
     if (previous.index >= 0 && current.index !== previous.index) {
       animateSourceDesktop(
         root.value,
         current.direction,
         previous.track,
-        current.motion,
-      );
+        current.motion
+      )
     } else if (current.lyricIndex !== previous.lyricIndex) {
-      animateSourceLyric(root.value, current.motion);
+      animateSourceLyric(root.value, current.motion)
     }
-  },
-);
-onMounted(async () => {
-  if (!isTauri()) return;
-  const stop = await listen<SourceSnapshot>("player-snapshot", (event) => {
-    state.snapshot = event.payload;
-  });
-  if (disposed) {
-    stop();
-    return;
   }
-  unlisten = stop;
-  await emitTo("main", "player-ready");
-});
+)
+onMounted(async () => {
+  if (!isTauri()) return
+  const stop = await listen<SourceSnapshot>('player-snapshot', event => {
+    state.snapshot = event.payload
+  })
+  if (disposed) {
+    stop()
+    return
+  }
+  unlisten = stop
+  await emitTo('main', 'player-ready')
+})
 onUnmounted(() => {
-  disposed = true;
-  unlisten?.();
+  disposed = true
+  unlisten?.()
   root.value
     ?.getAnimations({ subtree: true })
-    .forEach((animation) => animation.cancel());
-});
+    .forEach(animation => animation.cancel())
+})
 </script>
 
 <template>
   <!-- 原稿桌面表面：仅适配为独立原生窗口，内部 DOM、SVG 和类名保持一致。 -->
-  <div ref="root" id="desk" class="desk native-desktop">
-    <div v-if="mode === 'lyrics'" class="desk-lyr" id="deskLyr">
-      <div class="desk-lyr-head" id="deskLyrHead" data-tauri-drag-region>
-        <span aria-hidden="true">⠿</span><span>桌面歌词 · AURA</span
-        ><span class="desk-lyr-state" id="deskLyrState">{{
-          snapshot.locked ? "已锁定" : "可拖动"
-        }}</span>
-      </div>
-      <div class="desk-lyr-prev" data-desk-prev>{{ previousLyric }}</div>
+  <div
+    ref="root"
+    id="desk"
+    class="desk native-desktop border-line relative h-[400px] overflow-hidden rounded-[20px] border text-left"
+  >
+    <div
+      v-if="mode === 'lyrics'"
+      class="desk-lyr absolute top-[24px] left-[26px] z-[3] w-[min(440px,calc(100%_-_52px))] rounded-[16px] p-[12px_16px_13px] text-white"
+      id="deskLyr"
+    >
       <div
-        class="desk-lyr-cur"
+        class="desk-lyr-head mb-[8px] flex cursor-grab items-center gap-[8px] text-[10.5px] font-extrabold tracking-[.1em] opacity-[.75] select-none"
+        id="deskLyrHead"
+        data-tauri-drag-region
+      >
+        <span aria-hidden="true">⠿</span><span>桌面歌词 · AURA</span
+        ><span
+          class="desk-lyr-state ml-auto font-mono text-[10px] tracking-normal"
+          id="deskLyrState"
+          >{{ snapshot.locked ? '已锁定' : '可拖动' }}</span
+        >
+      </div>
+      <div
+        class="desk-lyr-prev"
+        data-desk-prev
+      >
+        {{ previousLyric }}
+      </div>
+      <div
+        class="desk-lyr-cur m-[3px_0] overflow-hidden text-[21px] leading-[1.45] font-extrabold tracking-[.01em] text-ellipsis whitespace-nowrap"
         data-desk-cur
         :style="{ fontSize: `${snapshot.fontSize}px` }"
       >
         {{ currentLyric }}
       </div>
-      <div class="desk-lyr-next" data-desk-next>{{ nextLyric }}</div>
-      <div class="desk-lyr-prog">
-        <i data-desk-prog :style="{ width: progress }"></i>
+      <div
+        class="desk-lyr-next"
+        data-desk-next
+      >
+        {{ nextLyric }}
       </div>
-      <div class="desk-lyr-meta">
+      <div
+        class="desk-lyr-prog mt-[9px] h-[3px] overflow-hidden rounded-[99px]"
+      >
+        <i
+          data-desk-prog
+          :style="{ width: progress }"
+        ></i>
+      </div>
+      <div
+        class="desk-lyr-meta mt-[7px] flex justify-between gap-[10px] font-mono text-[10.5px] opacity-[.55]"
+      >
         <span data-desk-title>{{ track.title }}</span><span data-desk-time
           >{{ formatTime(snapshot.time) }} / {{ formatTime(track.dur) }}</span
         >
       </div>
     </div>
-    <div v-else-if="mode === 'mini'" class="tray-pop" id="trayPop">
-      <div class="tray-pop-head">
-        <span>正在播放 · AURA PLAYER</span
-        ><BaseButton type="button" data-desk-open @click="focusMain"
+    <div
+      v-else-if="mode === 'mini'"
+      class="tray-pop absolute right-[12px] bottom-[56px] z-[6] w-[324px] max-w-[calc(100%_-_24px)] rounded-[18px] p-[14px] text-white"
+      id="trayPop"
+    >
+      <div
+        class="tray-pop-head mb-[11px] flex items-center justify-between text-[11px] font-extrabold tracking-[.1em]"
+      >
+        <span>正在播放 · AURA PLAYER</span><!-- 页面操作按钮：打开主窗口。 -->
+        <BaseButton
+          type="button"
+          data-desk-open
+          @click="focusMain"
           >打开主窗口</BaseButton
         >
       </div>
-      <div class="tray-pop-main">
-        <img :src="track.cover" data-desk-cover alt="专辑封面" />
-        <div class="tray-pop-txt">
+      <div class="tray-pop-main flex items-center gap-[11px]">
+        <img
+          :src="track.cover"
+          data-desk-cover
+          alt="专辑封面"
+        />
+        <div class="tray-pop-txt min-w-[0] flex-1">
           <b data-desk-title>{{ track.title }}</b><span data-desk-artist
             >{{ track.artist }} · {{ track.album }}</span
           >
         </div>
+        <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
-          class="heart"
+          class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
           data-desk-like
           :class="{ liked: snapshot.liked }"
           @click="sendAction('like')"
@@ -190,41 +235,77 @@ onUnmounted(() => {
             /></svg
         ></BaseButton>
       </div>
-      <div class="tray-prog" data-desk-seekbar @click="seekNative">
-        <i data-desk-prog :style="{ width: progress }"></i>
+      <div
+        class="tray-prog m-[12px_0_10px] h-[5px] cursor-pointer overflow-hidden rounded-[99px]"
+        data-desk-seekbar
+        @click="seekNative"
+      >
+        <i
+          data-desk-prog
+          :style="{ width: progress }"
+        ></i>
       </div>
-      <div class="tray-pop-ctl">
+      <div class="tray-pop-ctl flex items-center gap-[5px]">
+        <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           type="button"
           data-desk-prev-btn
           @click="sendAction('previous')"
           aria-label="上一首"
-          ><svg viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg
         ></BaseButton>
+        <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           type="button"
           class="tray-play"
           data-desk-play
           @click="sendAction('toggle')"
           aria-label="播放或暂停"
-          ><svg v-if="snapshot.playing" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" /></svg
-          ><svg v-else viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            v-if="snapshot.playing"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <rect
+              x="6"
+              y="5"
+              width="4"
+              height="14"
+              rx="1"
+            />
+            <rect
+              x="14"
+              y="5"
+              width="4"
+              height="14"
+              rx="1"
+            /></svg
+          ><svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M8 5.5v13l11-6.5z" /></svg
         ></BaseButton>
+        <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           type="button"
           data-desk-next-btn
           @click="sendAction('next')"
           aria-label="下一首"
-          ><svg viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M14.5 5H17v14h-2.5zM5 5v14l9.5-7z" /></svg
         ></BaseButton>
         <input
           type="range"
-          class="vol tray-vol"
+          class="vol tray-vol ml-[6px] flex-1"
           id="trayVol"
           min="0"
           max="100"
@@ -235,41 +316,84 @@ onUnmounted(() => {
         />
       </div>
     </div>
-    <div v-else class="desk-smtc" id="deskSmtc">
-      <span class="smtc-tag">系统媒体控制 · SMTC</span>
-      <img :src="track.cover" data-desk-cover alt="专辑封面" />
-      <div class="smtc-txt">
+    <div
+      v-else
+      class="desk-smtc absolute top-[26px] right-[22px] z-[3] flex w-[min(368px,calc(100%_-_44px))] items-center gap-[12px] rounded-[16px] p-[12px_14px] text-white"
+      id="deskSmtc"
+    >
+      <span
+        class="smtc-tag absolute top-[-9px] left-[12px] rounded-[99px] bg-white p-[2px_8px] text-[9px] font-extrabold tracking-[.08em]"
+        >系统媒体控制 · SMTC</span
+      >
+      <img
+        :src="track.cover"
+        data-desk-cover
+        alt="专辑封面"
+      />
+      <div class="smtc-txt min-w-[0] flex-1">
         <b data-desk-title>{{ track.title }}</b><span data-desk-artist
           >{{ track.artist }} · {{ track.album }}</span
         >
-        <div class="smtc-prog">
-          <i data-desk-prog :style="{ width: progress }"></i>
+        <div class="smtc-prog mt-[8px] h-[3px] overflow-hidden rounded-[99px]">
+          <i
+            data-desk-prog
+            :style="{ width: progress }"
+          ></i>
         </div>
       </div>
-      <div class="smtc-btns">
+      <div class="smtc-btns flex flex-none items-center gap-[4px]">
+        <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           type="button"
           data-desk-prev-btn
           @click="sendAction('previous')"
           aria-label="上一首"
-          ><svg viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg></BaseButton
-        ><BaseButton
+        ><!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
+        <BaseButton
           type="button"
           data-desk-play
           @click="sendAction('toggle')"
           aria-label="播放或暂停"
-          ><svg v-if="snapshot.playing" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" /></svg
-          ><svg v-else viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            v-if="snapshot.playing"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <rect
+              x="6"
+              y="5"
+              width="4"
+              height="14"
+              rx="1"
+            />
+            <rect
+              x="14"
+              y="5"
+              width="4"
+              height="14"
+              rx="1"
+            /></svg
+          ><svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M8 5.5v13l11-6.5z" /></svg></BaseButton
-        ><BaseButton
+        ><!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
+        <BaseButton
           type="button"
           data-desk-next-btn
           @click="sendAction('next')"
           aria-label="下一首"
-          ><svg viewBox="0 0 24 24" fill="currentColor">
+          ><svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M14.5 5H17v14h-2.5zM5 5v14l9.5-7z" /></svg
         ></BaseButton>
       </div>

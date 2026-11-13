@@ -1,12 +1,12 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    type?: "button" | "submit" | "reset";
-    loading?: boolean;
-    disabled?: boolean;
+    type?: 'button' | 'submit' | 'reset'
+    loading?: boolean
+    disabled?: boolean
   }>(),
-  { type: "button", loading: false, disabled: false },
-);
+  { type: 'button', loading: false, disabled: false }
+)
 </script>
 
 <template>

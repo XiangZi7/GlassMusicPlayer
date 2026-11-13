@@ -1,54 +1,55 @@
 # Mirai Music
 
-将 `ui/music-player-glass-vs-minimal.html` 的播放器原稿直接迁入 Tauri 2 + Vue 3 + TypeScript，使用原稿保留的 Tailwind CSS v4 源码。
-
-## 迁移边界
-
-- 主内容区域的 DOM、类名、文案、SVG、布局尺寸、材质与动画取自原稿，未重新设计。
-- 桌面应用只显示一个播放器窗口；去掉网页上的对比说明与第二个对比窗口。主窗口默认是原稿 A 毛玻璃，设置仍可切换液态玻璃。
-- 仅将外层演示窗口适配为铺满 Tauri 视口，并将窗口按钮、桌面入口接入原生窗口。
-- 标题栏按 Windows 桌面习惯适配：去掉红黄绿装饰，使用标准窗口图标和完整点击区域，最大化时同步还原图标；顶栏搜索字号固定为 13px，宽度随窗口调整。
-- 原稿交互脚本保留在 `src/pages/index/source-player.js`，封装挂载、销毁和桌面状态通信。内页、历史导航、歌词、队列、设置、平台对接演示与动画继续使用原逻辑，没有另写一套行为。
-- 原稿的演示边界不变：歌曲不包含真实音源；平台授权、天气、下载与上传曲库仍按原稿演示流程运行。
+将 `ui/music-player-glass-vs-minimal.html` 的原稿迁入 Tauri 2、Vue 3、TypeScript 和 Tailwind CSS v4。原稿的文案、图片、字体、玻璃材质和动画参数保留，标题栏按 Windows 调整。
 
 ## 代码组织
 
 ```text
 src/
-  pages/index/
-    index.vue                 # 原稿单窗口首页宿主
-    components/source-*.vue   # 原稿标题栏、侧栏、内容区、右栏、全屏和底栏
-    source-player.js          # 原稿交互脚本与必要宿主适配
-    source-player.d.ts        # Vue / Tauri 适配接口
-    source-pagination.ts     # 原稿分页接入公共 Vue 组件
-  pages/desktop.vue           # 原稿歌词窗、迷你卡片和媒体控制卡片
-  components/ui/
-    BaseButton.vue            # 保留原视觉的公共按钮
-    SlidingTabs.vue           # 原稿 Tabs、排序和设置分段控件
-    PaginationBar.vue         # 原稿分页 DOM、SVG 与滑动胶囊
-  styles/main.css             # 原 HTML 内嵌的 Tailwind v4 源码
-  services/desktop.ts         # Tauri 窗口调用
-  types/prototype.ts          # 原稿与桌面窗口共用类型
+  layouts/player-layout.vue        # 公共播放器宿主、路由缓存和桌面通信
+  pages/index/index.vue            # 首页推荐和歌曲列表
+  pages/index/components/          # 首页专用主打横幅
+  pages/library/index.vue          # 音乐库
+  pages/library/components/        # 音乐库专用智能歌单
+  pages/search.vue                 # 其余独立页面按业务名直接放置
+  pages/desktop.vue                # 独立歌词、迷你播放器和媒体卡片
+  components/player/               # 跨页面播放器布局、曲目列表、队列及业务标签
+  components/ui/                   # 公共按钮、v-model 标签条、分页和通知
+  composables/usePlayer.ts         # 类型化播放器上下文
+  composables/useSlidingPill.ts    # 标签和分页共用的原稿 FLIP 定位
+  stores/player.ts                 # Pinia 中的唯一播放、队列和页面状态
+  constants/music.ts               # 原稿曲库、歌词和演示数据
+  services/player/runtime.js       # 原稿播放时序、歌词跟随与动画协调
+  services/player/fullscreen-motion.js # 原稿全屏分层切歌动画
+  services/player/desktop-motion.js # 原稿桌面切歌与歌词动画
+  services/desktop.ts              # Tauri 原生窗口调用
+  styles/main.css                  # Tailwind 入口与宿主尺寸
+  styles/theme.css                 # 原稿颜色和本地字体令牌
+  styles/player-effects.css        # 玻璃材质、状态覆盖、伪元素及原始动画
 src-tauri/src/
-  lib.rs                      # 模块导出
-  app.rs                      # 插件、命令注册与生命周期组装
-  desktop/windows.rs          # 桌面窗口类型、配置、创建、恢复和退出
+  lib.rs                          # 模块入口
+  app.rs                          # 插件、命令和生命周期组装
+  desktop/windows.rs              # 桌面窗口配置、创建、恢复和退出
 ```
 
-公共组件沿用原来的类名和 DOM 钩子。原稿交互通过这些钩子管理状态，分页保留原来的 FLIP 胶囊动画。源码导入使用 `@/`，新增的宿主方法带中文用途注释。原稿脚本和样式保留原格式，便于与 `ui/` 对照。
+每个完整页面有真实 Vue Router 路由，切页保留播放和表单状态。需要私有组件的首页和音乐库使用 `pages/业务名/index.vue` 与就近的 `components/`；其余页面直接使用 `pages/业务名.vue`。歌曲、队列、导入、上传、下载和自建歌单由 Vue 列表渲染，公共标签与分页提供 `v-model`。
 
-字体沿用原网页的 Manrope、Noto Sans SC 与 JetBrains Mono，以本地字体包随应用打包。字体授权见 `public/font-licenses/`。原稿的五张图片已从内嵌数据提取为 `public/images/` 中的同一份 WebP 文件。
+布局、尺寸、间距和常规排版使用模板中的 Tailwind utilities。复杂玻璃材质、主题覆盖、CSS 变量变换及动画保留原 CSS 级联。切歌继续使用原 Web Animations 关键帧、延迟和曲线；保留旧封面幽灵、连续切歌取消、歌词跟随、光带、视差和减少动态效果设置。
 
-## 运行与构建
+Windows 标题栏移除红黄绿装饰，使用最小化、最大化/还原、关闭按钮；顶栏搜索为 13px，宽度随窗口调整。原网页的 Manrope、Noto Sans SC 和 JetBrains Mono 本地打包，授权在 `public/font-licenses/`。五张原图以相同 WebP 数据保存在 `public/images/`。
+
+原稿演示边界保留：歌曲没有真实音源；平台授权、天气、下载和上传曲库使用原稿演示流程。
+
+## 运行和验证
 
 ```sh
 pnpm install
-pnpm dev
 pnpm tauri dev
 pnpm build
+pnpm check:motion
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 pnpm tauri build --debug --no-bundle
 ```
 
-Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。桌面开发需 Rust、Visual Studio C++ 构建工具和 WebView2。
+`check:motion` 与 `ui/` 原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。前端单独预览可用 `pnpm dev --port 4183`；Tauri 开发默认使用 1420，请勿重复启动同端口服务。Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。

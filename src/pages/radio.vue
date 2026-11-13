@@ -1,26 +1,87 @@
 <script setup lang="ts">
-import BaseButton from '@/components/ui/BaseButton.vue';
+import { toRefs } from 'vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import { computed } from 'vue'
+import TrackSuggestion from '@/components/player/TrackSuggestion.vue'
+import { usePlayer } from '@/composables/usePlayer'
+const { state, tracks } = usePlayer()
+const track = computed(() => tracks[state.idx]!)
+const upcoming = computed(() => {
+  const queue = state.queue || []
+  const position = queue.indexOf(state.idx)
+  return queue.slice(position + 1, position + 13)
+})
+// 推荐标签按原稿种子的专辑和歌手判定。
+function tag(index: number): string {
+  const seed = tracks[state.radioSeed ?? state.idx]!
+  return tracks[index]!.album === seed.album
+    ? '同专辑'
+    : tracks[index]!.artist === seed.artist
+      ? '同歌手'
+      : '相似推荐'
+}
+const { radioOn } = toRefs(state)
 </script>
 
 <template>
-<!-- radio 页面：保留原稿内容区域与交互顺序。 -->
-<div class="page-panel" data-panel="radio">
-      <div class="pg-head">
-        <h3>歌曲电台</h3>
-        <p>
-          以正在播放的这首歌为种子 —
-          先排同专辑、再同歌手，其余按相似度排队续播；播到队尾不会停，电台会继续往后续。开启后队列头会亮起「电台续播中」，队列顺序就是电台的播放顺序，照样可以拖拽调整。
-        </p>
-      </div>
-      <div class="radio-seed" data-radio-seed></div>
-      <div class="pl-actions" style="margin-top: 12px">
-        <BaseButton class="banner-play" data-radio-toggle>开始电台</BaseButton
-        ><span data-radio-status></span>
-      </div>
-      <div class="pg-secttl">接下来 · 电台队列</div>
-      <div
-        data-radio-list
-        style="display: flex; flex-direction: column; gap: 5px"
-      ></div>
+  <!-- radio 页面：保留原稿内容区域与交互顺序。 -->
+  <div
+    class="page-panel hidden"
+    data-panel="radio"
+  >
+    <div class="pg-head">
+      <h3>歌曲电台</h3>
+      <p>
+        以正在播放的这首歌为种子 —
+        先排同专辑、再同歌手，其余按相似度排队续播；播到队尾不会停，电台会继续往后续。开启后队列头会亮起「电台续播中」，队列顺序就是电台的播放顺序，照样可以拖拽调整。
+      </p>
     </div>
+    <div class="radio-seed">
+      <img
+        :src="track.cover"
+        alt=""
+      />
+      <div class="rseed-txt">
+        <b>{{ track.title }}</b><span
+          >{{ track.artist }} · {{ track.album }}</span
+        >
+      </div>
+      <span class="rseed-tag">种子 · SEED</span>
+    </div>
+    <div
+      class="pl-actions mt-[14px] flex items-center gap-[12px]"
+      style="margin-top: 12px"
+    >
+      <!-- 页面操作按钮：开始电台。 -->
+      <BaseButton
+        class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
+        data-radio-toggle
+        >开始电台</BaseButton
+      ><span data-radio-status></span>
+    </div>
+    <div
+      class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
+    >
+      接下来 · 电台队列
+    </div>
+    <div class="flex flex-col gap-[5px]">
+      <!-- 电台曲目建议组件：保留下一首播放和相似标签。 --><TrackSuggestion
+        v-for="(index, position) in upcoming"
+        :key="position"
+        :index="index"
+        :meta="tag(index)"
+        show-album
+      />
+      <div
+        v-if="!upcoming.length"
+        class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
+      >
+        队列到这里就结束了{{
+          radioOn
+            ? ' — 电台会在播完前自动续上新的一批'
+            : '，开启电台后会自动续播'
+        }}。
+      </div>
+    </div>
+  </div>
 </template>

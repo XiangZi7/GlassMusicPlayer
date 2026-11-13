@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import BaseButton from "@/components/ui/BaseButton.vue";
-import QueueList from '@/components/player/QueueList.vue';
+import BaseButton from '@/components/ui/BaseButton.vue'
+import QueueList from '@/components/player/QueueList.vue'
 </script>
 
 <template>
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
-  <aside class="right">
-    <div class="right-head">
+  <aside class="right min-h-[0] overflow-y-auto p-[16px_16px_18px]">
+    <div
+      class="right-head mb-[12px] flex items-center justify-between text-[11px] font-extrabold tracking-[.11em] opacity-[.9]"
+    >
       <span>正在播放</span><span data-meta2>TRACK 01 / 04</span
       ><BaseButton
-        class="np-head-btn"
+        class="np-head-btn ml-[9px] hidden h-[26px] w-[26px] flex-none place-items-center rounded-full p-0 text-inherit"
         data-np-toggle
         aria-label="收起正在播放面板"
         title="收起面板"
@@ -24,16 +26,26 @@ import QueueList from '@/components/player/QueueList.vue';
           <path d="M5.5 9.5L12 16l6.5-6.5" /></svg
       ></BaseButton>
     </div>
-    <div class="r-coverwrap">
-      <div class="r-glow" data-glow></div>
-      <img class="r-cover" data-cover alt="专辑封面" />
+    <div class="r-coverwrap relative w-full">
+      <div
+        class="r-glow absolute inset-[14%_8%_-6%] z-[-1] rounded-full opacity-[.55]"
+        data-glow
+      ></div>
+      <img
+        class="r-cover aspect-square w-full rounded-[20px] object-cover"
+        data-cover
+        alt="专辑封面"
+      />
     </div>
-    <div class="r-ttl">
+    <div class="r-ttl mt-[14px] flex items-start justify-between gap-[10px]">
       <div>
         <h4 data-title></h4>
         <p data-artist></p>
       </div>
-      <BaseButton class="heart" data-like aria-label="收藏"
+      <BaseButton
+        class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+        data-like
+        aria-label="收藏"
         ><svg
           viewBox="0 0 24 24"
           fill="none"
@@ -45,27 +57,45 @@ import QueueList from '@/components/player/QueueList.vue';
           /></svg
       ></BaseButton>
     </div>
-    <div class="subrow">
+    <div class="subrow mt-[12px] flex gap-[7px]">
       <BaseButton data-lyricbtn>歌词</BaseButton
       ><BaseButton data-airbtn>输出 · 桌面音箱</BaseButton>
     </div>
-    <div class="lyricbox" data-lyric>
+    <div
+      class="lyricbox mt-[12px] hidden p-[13px_14px] text-[13px] leading-[1.95] font-semibold"
+      data-lyric
+    >
       <div class="dim">城市把灯都调成了慢动作</div>
       <div>而你刚好路过我的副歌</div>
       <div class="dim">晚风替我说完那句抱歉</div>
       <div class="dim">我们就不再绕远了</div>
     </div>
-    <div class="secttl q-secttl">
+    <div
+      class="secttl q-secttl m-[18px_2px_8px] flex items-center gap-[8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
+    >
       <span>接下来播放 · QUEUE</span
-      ><span class="q-radio-chip" data-radio-chip hidden>电台续播中</span
-      ><BaseButton class="q-radio-btn" data-radio-quick type="button"
+      ><span
+        class="q-radio-chip rounded-full p-[3px_8px] text-[9.5px] font-extrabold tracking-[.06em] whitespace-nowrap text-white"
+        data-radio-chip
+        hidden
+        >电台续播中</span
+      ><BaseButton
+        class="q-radio-btn ml-auto flex-none rounded-full p-[4px_10px] text-[10.5px] font-extrabold whitespace-nowrap text-inherit"
+        data-radio-quick
+        type="button"
         >开启电台</BaseButton
       >
     </div>
     <QueueList />
-    <BaseButton class="np-expand" data-np-toggle aria-label="展开正在播放面板"
+    <BaseButton
+      class="np-expand hidden"
+      data-np-toggle
+      aria-label="展开正在播放面板"
       ><span>正在播放</span
-      ><span class="np-expand-meta" data-meta2>TRACK 01 / 04</span
+      ><span
+        class="np-expand-meta"
+        data-meta2
+        >TRACK 01 / 04</span
       ><svg
         viewBox="0 0 24 24"
         fill="none"

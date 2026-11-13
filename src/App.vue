@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NotificationHost from "@/components/ui/NotificationHost.vue";
+import NotificationHost from '@/components/ui/NotificationHost.vue'
 </script>
 
 <template>

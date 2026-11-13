@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, shallowRef } from "vue";
-import { isTauri } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { UnlistenFn } from "@tauri-apps/api/event";
-import BaseButton from "@/components/ui/BaseButton.vue";
-import { controlWindow } from "@/services/desktop";
+import { computed, onMounted, onUnmounted, shallowRef } from 'vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import type { UnlistenFn } from '@tauri-apps/api/event'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import { controlWindow } from '@/services/desktop'
 
 // 当前原生窗口是否最大化，用于同步最大化与还原图标。
-const isMaximized = shallowRef(false);
+const isMaximized = shallowRef(false)
 const windowControls = computed(
   () =>
     [
-      { action: "minimize", label: "最小化窗口", title: "最小化" },
+      { action: 'minimize', label: '最小化窗口', title: '最小化' },
       {
-        action: "maximize",
-        label: isMaximized.value ? "还原窗口" : "最大化窗口",
-        title: isMaximized.value ? "还原" : "最大化",
+        action: 'maximize',
+        label: isMaximized.value ? '还原窗口' : '最大化窗口',
+        title: isMaximized.value ? '还原' : '最大化',
       },
-      { action: "close", label: "关闭窗口", title: "关闭" },
-    ] as const,
-);
-let stopResize: UnlistenFn | undefined;
-let disposed = false;
+      { action: 'close', label: '关闭窗口', title: '关闭' },
+    ] as const
+)
+let stopResize: UnlistenFn | undefined
+let disposed = false
 
 // 启动或窗口尺寸变化时读取系统状态，兼容标题栏双击和系统贴靠操作。
 async function syncWindowState(): Promise<void> {
-  if (!isTauri()) return;
+  if (!isTauri()) return
   try {
-    const maximized = await getCurrentWindow().isMaximized();
-    if (!disposed) isMaximized.value = maximized;
+    const maximized = await getCurrentWindow().isMaximized()
+    if (!disposed) isMaximized.value = maximized
   } catch {
     // 系统状态查询失败时保留现有图标，窗口操作失败由公共通知统一反馈。
   }
@@ -36,33 +36,38 @@ async function syncWindowState(): Promise<void> {
 
 // 统一执行 Windows 标题栏操作，最大化或还原后同步系统状态。
 async function handleWindowControl(
-  action: "minimize" | "maximize" | "close",
+  action: 'minimize' | 'maximize' | 'close'
 ): Promise<void> {
-  await controlWindow(action);
-  if (action === "maximize") await syncWindowState();
+  await controlWindow(action)
+  if (action === 'maximize') await syncWindowState()
 }
 
 // 在组件挂载后监听原生窗口尺寸，卸载期间完成的订阅立即释放。
 onMounted(async () => {
-  if (!isTauri()) return;
-  await syncWindowState();
-  const stop = await getCurrentWindow().onResized(syncWindowState);
-  if (disposed) stop();
-  else stopResize = stop;
-});
+  if (!isTauri()) return
+  await syncWindowState()
+  const stop = await getCurrentWindow().onResized(syncWindowState)
+  if (disposed) stop()
+  else stopResize = stop
+})
 
 // 释放原生窗口监听，避免页面重载后重复订阅。
 onUnmounted(() => {
-  disposed = true;
-  stopResize?.();
-});
+  disposed = true
+  stopResize?.()
+})
 </script>
 
 <template>
   <!-- Windows 标题栏：保留原稿搜索和导航钩子，移除 macOS 红黄绿装饰。 -->
-  <div class="win-chrome windows-titlebar" data-tauri-drag-region>
-    <div class="chrome-nav">
-      <BaseButton data-nav-back aria-label="后退"
+  <div
+    class="win-chrome windows-titlebar relative z-[5] flex h-[42px] flex-none items-center gap-[14px] p-[0_16px]"
+    data-tauri-drag-region
+  >
+    <div class="chrome-nav flex flex-none items-center gap-[4px]">
+      <BaseButton
+        data-nav-back
+        aria-label="后退"
         ><svg
           viewBox="0 0 24 24"
           fill="none"
@@ -72,7 +77,9 @@ onUnmounted(() => {
           stroke-linejoin="round"
         >
           <path d="M14.5 5.5L8 12l6.5 6.5" /></svg></BaseButton
-      ><BaseButton data-nav-fwd aria-label="前进"
+      ><BaseButton
+        data-nav-fwd
+        aria-label="前进"
         ><svg
           viewBox="0 0 24 24"
           fill="none"
@@ -84,18 +91,30 @@ onUnmounted(() => {
           <path d="M9.5 5.5L16 12l-6.5 6.5" /></svg
       ></BaseButton>
     </div>
-    <span aria-hidden="true" class="h-3.5 w-px shrink-0 bg-white/10"></span>
-    <div class="chrome-title" data-chrome-title data-tauri-drag-region>
+    <span
+      aria-hidden="true"
+      class="h-3.5 w-px shrink-0 bg-white/10"
+    ></span>
+    <div
+      class="chrome-title flex-1 text-center text-[12.5px] font-bold tracking-[.02em] opacity-[.85]"
+      data-chrome-title
+      data-tauri-drag-region
+    >
       首页
     </div>
-    <label class="chrome-search"
+    <label
+      class="chrome-search ml-auto flex h-[30px] w-[196px] flex-none items-center gap-[7px] rounded-full p-[0_12px_0_10px] text-inherit"
       ><svg
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         stroke-width="2.4"
       >
-        <circle cx="11" cy="11" r="7" />
+        <circle
+          cx="11"
+          cy="11"
+          r="7"
+        />
         <path d="M20 20l-3.5-3.5" /></svg
       ><input
         type="text"
@@ -106,14 +125,31 @@ onUnmounted(() => {
         spellcheck="false"
     /></label>
     <div
-      class="weather-pill"
+      class="weather-pill flex min-h-[34px] items-center gap-[7px] rounded-full p-[4px_12px_4px_7px] whitespace-nowrap text-white"
       role="img"
       aria-label="本地天气：夜晚多云，19度，演示数据"
       title="本地天气 · 演示数据，正式版接定位与天气接口后为实时"
     >
-      <svg class="wx-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-        <circle class="wx-star" cx="7.5" cy="6.5" r="1.3" fill="#FFE9A8" />
-        <circle class="wx-star s2" cx="14.5" cy="3.6" r=".9" fill="#ffffff" />
+      <svg
+        class="wx-icon h-[29px] w-[29px] flex-none overflow-visible"
+        viewBox="0 0 36 36"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          class="wx-star"
+          cx="7.5"
+          cy="6.5"
+          r="1.3"
+          fill="#FFE9A8"
+        />
+        <circle
+          class="wx-star s2"
+          cx="14.5"
+          cy="3.6"
+          r=".9"
+          fill="#ffffff"
+        />
         <path
           class="wx-moon"
           d="M24.6 3.4a8.2 8.2 0 1 0 7.9 11.9A9.6 9.6 0 0 1 24.6 3.4z"
@@ -125,7 +161,12 @@ onUnmounted(() => {
             fill="rgba(255,255,255,.94)"
           />
         </g></svg
-      ><span class="wx-temp">19°</span><span class="wx-cond">多云</span>
+      ><span
+        class="wx-temp text-[15px] leading-[1] font-extrabold tracking-[-.01em]"
+        >19°</span
+      ><span class="wx-cond text-[12px] leading-[1] font-bold opacity-[.85]"
+        >多云</span
+      >
     </div>
     <!-- Windows 窗口操作区：公共按钮组件提供完整点击区域与键盘焦点。 -->
     <div
@@ -155,7 +196,10 @@ onUnmounted(() => {
           aria-hidden="true"
           class="pointer-events-none"
         >
-          <path d="M0 5.5h10" stroke="currentColor" />
+          <path
+            d="M0 5.5h10"
+            stroke="currentColor"
+          />
         </svg>
         <svg
           v-else-if="control.action === 'maximize' && isMaximized"
@@ -166,7 +210,10 @@ onUnmounted(() => {
           aria-hidden="true"
           class="pointer-events-none"
         >
-          <path d="M3.5 3.5v-2h7v7h-2m-7-5h7v7h-7z" stroke="currentColor" />
+          <path
+            d="M3.5 3.5v-2h7v7h-2m-7-5h7v7h-7z"
+            stroke="currentColor"
+          />
         </svg>
         <svg
           v-else-if="control.action === 'maximize'"
@@ -177,7 +224,13 @@ onUnmounted(() => {
           aria-hidden="true"
           class="pointer-events-none"
         >
-          <rect x=".5" y=".5" width="9" height="9" stroke="currentColor" />
+          <rect
+            x=".5"
+            y=".5"
+            width="9"
+            height="9"
+            stroke="currentColor"
+          />
         </svg>
         <svg
           v-else
@@ -188,7 +241,10 @@ onUnmounted(() => {
           aria-hidden="true"
           class="pointer-events-none"
         >
-          <path d="m1 1 8 8m0-8L1 9" stroke="currentColor" />
+          <path
+            d="m1 1 8 8m0-8L1 9"
+            stroke="currentColor"
+          />
         </svg>
       </BaseButton>
     </div>

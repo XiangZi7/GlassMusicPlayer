@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "format": "prettier --write \"src/**/*.{vue,ts,js,jsx,html,css,scss,md}\"",
+    "check:motion": "node scripts/check-motion.mjs"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
@@ -17,11 +19,9 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "@vueuse/core": "^15.0.0",
-    "gsap": "^3.15.1",
     "pinia": "^4.1.0",
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.5",
     "vue": "^3.5.13",
     "vue-i18n": "^11.4.19",

@@ -1,4 +1,0 @@
-import fs from 'node:fs';
-const files=fs.readdirSync('src/pages').filter(f=>f.endsWith('.vue')).map(f=>'src/pages/'+f).concat('src/pages/index/index.vue');
-for(const file of files){let s=fs.readFileSync(file,'utf8');for(const name of ['BaseButton','SlidingTabs','computed','formatTime']){if((s.match(new RegExp('\\b'+name+'\\b','g'))||[]).length===1){s=s.replace(new RegExp('import[^\\n]*\\b'+name+'\\b[^\\n]*\\n'),'');}}s=s.replace(/const \{state,tracks,controller\}=usePlayer\(\);/,()=>{const names=['state','tracks','controller'].filter(name=>(s.match(new RegExp('\\b'+name+'\\b','g'))||[]).length>1);return 'const {'+names.join(',')+'}=usePlayer();';});fs.writeFileSync(file,s);}
-let s=fs.readFileSync('src/services/player/runtime.js','utf8').replaceAll('buildPills();','');s=s.replace(/    var ul=p.querySelector[\s\S]*?(?=    var ue=)/,'');fs.writeFileSync('src/services/player/runtime.js',s);
