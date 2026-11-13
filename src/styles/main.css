@@ -1,0 +1,296 @@
+@import "tailwindcss" source(none);
+@source "../";
+
+@theme {
+  --font-sans:
+    "Manrope Variable", "Noto Sans SC Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --color-muted: #9696a4;
+  --color-surface: #111117;
+  --color-accent: #c3c6ff;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  html,
+  body,
+  #app {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    @apply overflow-hidden bg-surface font-sans text-white;
+  }
+  button,
+  a,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  summary,
+  a,
+  input[type="range"] {
+    @apply cursor-pointer;
+  }
+  button:disabled {
+    @apply cursor-default opacity-35;
+  }
+  button,
+  a,
+  input,
+  select,
+  summary {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+  }
+  input[type="range"] {
+    accent-color: #d8d9ef;
+  }
+  dialog::backdrop {
+    background: rgb(0 0 0 / 0.65);
+    backdrop-filter: blur(8px);
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgb(255 255 255 / 0.065);
+    backdrop-filter: blur(24px) saturate(1.12);
+  }
+  .sliding-pill {
+    background: rgb(255 255 255 / 0.17);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+    transition:
+      transform 0.5s cubic-bezier(0.22, 1.12, 0.36, 1),
+      top 0.5s cubic-bezier(0.22, 1.12, 0.36, 1),
+      height 0.3s;
+  }
+  .icon-button {
+    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-full text-white/65 transition-colors hover:bg-white/10 hover:text-white;
+  }
+  .primary-button {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-extrabold text-zinc-950 transition hover:bg-white/85 active:scale-[.98];
+  }
+  .secondary-button {
+    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 text-xs font-bold text-white/80 transition hover:bg-white/10;
+  }
+  .text-field {
+    @apply block min-h-11 w-full rounded-xl border border-white/12 bg-white/5 px-4 text-sm text-white placeholder:text-muted/70 focus:border-accent/50;
+  }
+  .section-label {
+    @apply text-[10px] font-extrabold tracking-[.12em] text-white/40;
+  }
+  .sidebar-action {
+    @apply relative flex min-h-10 items-center gap-3 rounded-xl px-3 text-left text-xs font-semibold text-white/75 hover:bg-white/5 hover:text-white;
+  }
+  .page-heading {
+    @apply text-[26px] font-extrabold tracking-tight;
+  }
+  .page-description {
+    @apply mt-2 text-xs leading-6 text-muted;
+  }
+  .section-heading {
+    @apply mb-4 mt-7 flex items-center justify-between gap-3 text-sm font-extrabold;
+  }
+  .menu-item {
+    @apply block min-h-9 w-full rounded-lg px-3 text-left hover:bg-white/10;
+  }
+  .track-grid {
+    @apply grid grid-cols-[28px_minmax(0,1fr)_24%_40px_30px_30px] items-center gap-x-2;
+  }
+  .setting-row {
+    @apply flex min-h-20 flex-wrap items-center justify-between gap-4 border-b border-white/7 py-4 last:border-0;
+  }
+}
+
+/* 专辑氛围贯穿窗口，列表主区域保持深色以保证阅读对比。 */
+.app-shell {
+  isolation: isolate;
+  background: #12121a;
+}
+.app-background {
+  position: absolute;
+  z-index: -2;
+  inset: -100px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(70px) brightness(0.38) saturate(0.6);
+  transition: background-image 0.6s;
+}
+.app-shell::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(
+    130deg,
+    rgb(14 17 30 / 0.35),
+    rgb(17 14 25 / 0.65)
+  );
+  pointer-events: none;
+}
+.liquid .glass {
+  background: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 0.105),
+    rgb(255 255 255 / 0.025)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.15),
+    inset 0 -1px 0 rgb(255 255 255 / 0.035);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+.liquid .sliding-pill {
+  background: linear-gradient(
+    130deg,
+    rgb(255 255 255 / 0.24),
+    rgb(255 255 255 / 0.08)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 3px 12px rgb(0 0 0 / 0.14);
+}
+.liquid .main-content {
+  background: rgb(13 17 19 / 0.94);
+}
+.main-content {
+  background: rgb(17 17 23 / 0.97);
+}
+.main-content > * {
+  animation: page-in 0.3s ease-out;
+}
+.weather-cloud {
+  animation: cloud-drift 5s ease-in-out infinite alternate;
+}
+.weather-star {
+  animation: star-glow 3s ease-in-out infinite alternate;
+}
+.equalizer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  color: var(--color-accent);
+}
+.equalizer i {
+  width: 2px;
+  height: 12px;
+  background: currentColor;
+  border-radius: 2px;
+  animation: equalize 0.8s ease-in-out infinite alternate;
+}
+.equalizer i:nth-child(2) {
+  animation-delay: -0.4s;
+  height: 7px;
+}
+.equalizer i:nth-child(3) {
+  animation-delay: -0.2s;
+  height: 16px;
+}
+.stage-enter-active,
+.stage-leave-active {
+  transition:
+    opacity 0.35s,
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.stage-enter-from,
+.stage-leave-to {
+  opacity: 0;
+  transform: translateY(45px) scale(0.97);
+}
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 0.2s,
+    margin-bottom 0.2s;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  margin-bottom: -8px;
+}
+.cover-enter-active,
+.cover-leave-active {
+  transition:
+    opacity 0.55s,
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cover-leave-active {
+  position: absolute;
+  inset: 0;
+}
+.cover-enter-from {
+  opacity: 0;
+  transform: translateX(36px) scale(0.96);
+}
+.cover-leave-to {
+  opacity: 0;
+  transform: translateX(-28px) scale(0.96);
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cloud-drift {
+  to {
+    transform: translateX(2px);
+  }
+}
+@keyframes star-glow {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes equalize {
+  to {
+    transform: scaleY(0.35);
+  }
+}
+@keyframes ambient-drift {
+  to {
+    transform: translate(8%, -6%) scale(1.13) rotate(12deg);
+  }
+}
+@keyframes cover-breathe {
+  to {
+    transform: scale(1.035) translateY(-3px);
+  }
+}
+.calm *,
+.calm *::before,
+.calm *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (max-width: 950px) {
+  .track-grid {
+    grid-template-columns: 24px minmax(0, 1fr) 20% 36px 26px 26px;
+    gap: 5px;
+  }
+}

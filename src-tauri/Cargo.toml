@@ -1,7 +1,7 @@
 [package]
 name = "miraimusic"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Mirai Music glass desktop music player"
 authors = ["you"]
 edition = "2024"
 

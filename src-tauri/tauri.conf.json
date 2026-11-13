@@ -12,9 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "miraimusic",
-        "width": 800,
-        "height": 600
+        "title": "Mirai Music",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 620,
+        "decorations": false,
+        "dragDropEnabled": false,
+        "center": true
       }
     ],
     "security": {
