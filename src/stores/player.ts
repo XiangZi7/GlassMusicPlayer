@@ -36,6 +36,27 @@ export type PlayerPage =
   | 'radio'
 export type SortMode = 'def' | 'title' | 'artist' | 'dur'
 
+// 设置弹窗重置和播放器首次启动共用原稿默认值，每次返回独立对象。
+export function createDefaultSettings() {
+  return {
+    gapless: true,
+    crossfadeOn: true,
+    normalize: false,
+    weather: true,
+    motion: true,
+    glassStyle: 'match',
+    crossfade: 6,
+    quality: 'FLAC · 24-BIT',
+    output: '桌面音箱',
+    eq: '流行',
+    sleep: '关闭',
+    deskLyrics: true,
+    deskLock: false,
+    trayMini: true,
+    smtc: false,
+  }
+}
+
 // 原稿播放器状态：保持初始曲目、42 秒进度和所有演示设置。
 export const usePlayerStore = defineStore('player', () => {
   const state = reactive({
@@ -57,23 +78,7 @@ export const usePlayerStore = defineStore('player', () => {
     playlistIdx: 0,
     /** 全局搜索词。 */ query: '',
     /** 最近播放记录。 */ recent: [] as number[],
-    /** 原稿播放、外观及桌面窗口设置。 */ settings: {
-      gapless: true,
-      crossfadeOn: true,
-      normalize: false,
-      weather: true,
-      motion: true,
-      glassStyle: 'match',
-      crossfade: 6,
-      quality: 'FLAC · 24-BIT',
-      output: '桌面音箱',
-      eq: '流行',
-      sleep: '关闭',
-      deskLyrics: true,
-      deskLock: false,
-      trayMini: true,
-      smtc: false,
-    },
+    /** 原稿播放、外观及桌面窗口设置。 */ settings: createDefaultSettings(),
     /** 平台连接状态和导入选择。 */ platforms: {
       netease: false,
       kugou: false,

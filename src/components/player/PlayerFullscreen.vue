@@ -55,8 +55,12 @@ const dust = [
     </div>
     <div
       class="fs-top relative z-[3] flex items-center justify-between p-[16px_20px_2px]"
+      data-tauri-drag-region
     >
-      <div class="fs-topleft flex min-w-[0] items-center gap-[12px]">
+      <div
+        class="fs-topleft flex min-w-[0] items-center gap-[12px]"
+        data-tauri-drag-region
+      >
         <BaseButton
           class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
           data-stage-toggle
@@ -72,14 +76,19 @@ const dust = [
         ><span
           class="fs-specmono overflow-hidden font-mono text-[10.5px] font-bold tracking-[.1em] text-ellipsis whitespace-nowrap opacity-[.6]"
           data-fs-spec
+          data-tauri-drag-region
           >FLAC · 24-BIT</span
         >
       </div>
       <span
         class="fs-toptitle text-[11px] font-extrabold tracking-[.16em] opacity-[.65]"
+        data-tauri-drag-region
         >正在播放 · NOW PLAYING</span
       >
-      <div class="fs-topright flex flex-none items-center gap-[8px]">
+      <div
+        class="fs-topright flex flex-none items-center gap-[8px]"
+        data-tauri-drag-region
+      >
         <div
           class="fs-weather flex items-center gap-[6px] rounded-full p-[5px_11px_5px_7px] whitespace-nowrap text-white"
           role="img"

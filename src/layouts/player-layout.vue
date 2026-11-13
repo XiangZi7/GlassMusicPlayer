@@ -79,6 +79,27 @@ function publishSettings(): void {
 
 // 窗口间仅接受已存在且类型相同的设置字段，防止无效值污染播放状态。
 function applySettingsAction(action: SettingsAction): void {
+  if (action.kind === 'apply') {
+    const incoming = action.settings
+    if (
+      !incoming ||
+      typeof action.npOpen !== 'boolean' ||
+      (Object.keys(state.settings) as (keyof PlayerSettings)[]).some(
+        key => typeof incoming[key] !== typeof state.settings[key]
+      ) ||
+      !Number.isFinite(incoming.crossfade) ||
+      incoming.crossfade < 0 ||
+      incoming.crossfade > 12
+    )
+      return
+    for (const key of Object.keys(state.settings) as (keyof PlayerSettings)[]) {
+      Object.assign(state.settings, { [key]: incoming[key] })
+    }
+    state.npOpen = action.npOpen
+    player.value?.render()
+    publishSettings()
+    return
+  }
   if (action.kind === 'panel') {
     if (typeof action.value === 'boolean') setNowPlaying(action.value)
     return

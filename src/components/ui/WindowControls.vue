@@ -6,6 +6,8 @@ import type { UnlistenFn } from '@tauri-apps/api/event'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { controlWindow } from '@/services/desktop'
 
+const props = defineProps<{ closeOnly?: boolean }>()
+
 // 当前原生窗口是否最大化，用于同步最大化与还原图标。
 const isMaximized = shallowRef(false)
 const windowControls = computed(
@@ -18,7 +20,11 @@ const windowControls = computed(
         title: isMaximized.value ? '还原' : '最大化',
       },
       { action: 'close', label: '关闭窗口', title: '关闭' },
-    ] as const
+    ].filter(control => !props.closeOnly || control.action === 'close') as {
+      action: 'minimize' | 'maximize' | 'close'
+      label: string
+      title: string
+    }[]
 )
 let stopResize: UnlistenFn | undefined
 let disposed = false

@@ -7,6 +7,9 @@ export interface SettingsSnapshot {
   track: SourceTrack
 }
 
+export type SettingsSection =
+  'general' | 'audio' | 'appearance' | 'desktop' | 'shortcuts' | 'about'
+
 export type SettingsAction =
   | {
       kind: 'setting'
@@ -14,3 +17,4 @@ export type SettingsAction =
       value: PlayerSettings[keyof PlayerSettings]
     }
   | { kind: 'panel'; value: boolean }
+  | { kind: 'apply'; settings: PlayerSettings; npOpen: boolean }
