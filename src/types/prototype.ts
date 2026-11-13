@@ -6,6 +6,7 @@ export interface SourceTrack {
   cover: string;
   q: string;
   glow: string;
+  mine?: boolean;
 }
 
 export interface SourceSnapshot {

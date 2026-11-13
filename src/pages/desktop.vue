@@ -18,7 +18,7 @@ import { formatTime } from "@/utils/format";
 import {
   animateSourceDesktop,
   animateSourceLyric,
-} from "@/pages/index/source-desktop-animation";
+} from "@/services/player/desktop-motion";
 import type { SourceAction, SourceSnapshot } from "@/types/prototype";
 
 const route = useRoute();

@@ -1,120 +1,51 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, useTemplateRef } from "vue";
-import { isTauri } from "@tauri-apps/api/core";
-import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import BaseButton from "@/components/ui/BaseButton.vue";
-import SourceTitlebar from "@/pages/index/components/source-titlebar.vue";
-import SourceSidebar from "@/pages/index/components/source-sidebar.vue";
-import SourceContent from "@/pages/index/components/source-content.vue";
-import SourceNowPlaying from "@/pages/index/components/source-now-playing.vue";
-import SourceFullscreen from "@/pages/index/components/source-fullscreen.vue";
-import SourcePlayerBar from "@/pages/index/components/source-player-bar.vue";
-import SourceDesktopSurfaces from "@/pages/index/components/source-desktop-surfaces.vue";
-import { mountSourcePlayer } from "@/pages/index/source-player";
-import { openDesktop } from "@/services/desktop";
-import type {
-  SourceAction,
-  SourcePlayer,
-  SourceSnapshot,
-} from "@/types/prototype";
-
-const root = useTemplateRef<HTMLElement>("root");
-const unlisteners: UnlistenFn[] = [];
-let player: SourcePlayer | undefined;
-let disposed = false;
-
-// 原稿状态只向独立小窗发布快照，主界面继续由原稿逻辑更新。
-function publishSnapshot(snapshot: SourceSnapshot): void {
-  if (isTauri()) void emit("player-snapshot", snapshot);
-}
-
-// 保留原稿的三个桌面入口，将对应表面放入 Tauri 独立窗口。
-function openSourceDesktop(mode: "mini" | "lyr" | "media"): void {
-  void openDesktop(mode === "lyr" ? "lyrics" : mode);
-}
-
-// 桌面窗口的动作交回原稿控制器执行，避免产生不同步的第二套状态。
-async function handleAction(action: SourceAction): Promise<void> {
-  if (action.type === "focus" && isTauri()) {
-    await getCurrentWindow().show();
-    await getCurrentWindow().setFocus();
-    return;
-  }
-  player?.dispatch(action);
-}
-
-onMounted(async () => {
-  if (!root.value) return;
-  player = mountSourcePlayer(root.value, {
-    onStateChange: publishSnapshot,
-    onDesktop: openSourceDesktop,
-  });
-  if (!isTauri()) return;
-  const callbacks = await Promise.all([
-    listen<SourceAction>("player-action", (event) => {
-      void handleAction(event.payload);
-    }),
-    listen("player-ready", () => {
-      if (player) publishSnapshot(player.getSnapshot());
-    }),
-  ]);
-  if (disposed) callbacks.forEach((stop) => stop());
-  else unlisteners.push(...callbacks);
-});
-onUnmounted(() => {
-  disposed = true;
-  unlisteners.forEach((stop) => stop());
-  player?.destroy();
-});
+import BaseButton from '@/components/ui/BaseButton.vue';
+import FeaturedBanner from '@/pages/index/components/featured-banner.vue';
+import {computed} from 'vue';
+import TrackList from '@/components/player/TrackList.vue';
+import {usePlayer} from '@/composables/usePlayer';
+const {state,tracks,controller}=usePlayer();
+const allIndices=computed(()=>tracks.map((_,index)=>index));
+const albumIndicesForCards=computed(()=>tracks.map((_,i)=>i).filter(i=>tracks.findIndex(t=>t.album===tracks[i]!.album)===i));
 </script>
-
 <template>
-  <!-- 原稿单窗口宿主：仅去除设计稿说明区与第二个对比窗口。 -->
-  <div ref="root" class="native-player">
-    <section id="colA" class="col">
-      <div class="glass-win">
-        <div class="win" data-player>
-          <div class="win-bg" data-bg></div>
-          <div class="win-veil"></div>
-          <!-- 原稿标题栏组件：保留原尺寸与布局，仅接入真实窗口按钮。 -->
-          <SourceTitlebar />
-          <div class="win-body">
-            <!-- 原稿侧栏组件：导航、歌单与桌面入口。 -->
-            <SourceSidebar />
-            <!-- 原稿内容组件：原样保留首页与全部内页。 -->
-            <SourceContent />
-            <BaseButton
-              class="np-toggle"
-              data-np-toggle
-              aria-expanded="true"
-              aria-label="收起正在播放面板"
-              title="收起正在播放面板"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M9.5 5.5L16 12l-6.5 6.5" /></svg
-            ></BaseButton>
-            <!-- 原稿右栏组件：正在播放、歌词与队列。 -->
-            <SourceNowPlaying />
-          </div>
-          <!-- 原稿全屏组件：完整保留歌词、封面与原有动效。 -->
-          <SourceFullscreen />
-          <!-- 原稿底栏组件：原进度线、频峰背景与歌词胶囊。 -->
-          <SourcePlayerBar />
+<!-- 首页内容区：推荐专辑、曲库列表与分页。 -->
+<div class="home-content">
+    <div class="main-top">
+      <div>
+        <h3>晚上好</h3>
+        <p>继续听 Night Drive · 上次听到第 2 首</p>
+      </div>
+      <div class="main-top-right">
+        <div class="main-chips">
+          <BaseButton class="on">全部</BaseButton><BaseButton>专辑</BaseButton
+          ><BaseButton>歌手</BaseButton>
         </div>
       </div>
-    </section>
-    <!-- 原稿演示辅助表面：保留同步钩子，不占用桌面应用可见布局。 -->
-    <div hidden aria-hidden="true">
-      <div id="trackPills"></div>
-      <BaseButton id="syncPlay" />
-      <SourceDesktopSurfaces />
     </div>
-  </div>
+    <!-- 首页主打横幅组件：展示当前主打、叠层封面与视差。 -->
+<FeaturedBanner />
+    <div class="feat-head">
+      <h5>为你推荐</h5>
+      <span>专辑 · 点击即播</span>
+    </div>
+    <!-- 推荐专辑组件区：按原稿点击封面即播。 -->
+<div class="feat-grid"><BaseButton v-for="index in albumIndicesForCards" :key="index" class="feat" :class="{on:tracks[index]!.album===tracks[state.idx]!.album}" :data-ti="index" @click="controller()?.selectTrack(index,true)"><img :src="tracks[index]!.cover" :alt="tracks[index]!.album+' 封面'"><b>{{tracks[index]!.album}}</b><span>{{tracks[index]!.artist}}</span></BaseButton></div>
+    <div class="table-head">
+      <span>#</span><span>标题</span><span>专辑</span
+      ><span style="text-align: right">时长</span><span></span>
+    </div>
+    <!-- 歌曲列表组件：统一曲目选择、排序、分页及播放状态。 -->
+<TrackList :indices="allIndices" list-key="home" />
+    <p
+      style="
+        font-size: 12px;
+        opacity: 0.5;
+        line-height: 1.7;
+        margin: 14px 2px 0;
+      "
+    >
+      主区故意用不透明纯色：桌面一屏要放十几行歌，玻璃铺到这里文字就糊了。这是两版共同的底线，差别只在侧边栏、右栏和播放栏。
+    </p>
+    </div>
 </template>

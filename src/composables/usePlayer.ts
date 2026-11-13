@@ -1,0 +1,32 @@
+import { inject, type InjectionKey } from 'vue';
+import type { SourcePlayer, SourceTrack } from '@/types/prototype';
+import type { PlayerPage, PlayerState } from '@/stores/player';
+
+export interface PlayerController extends SourcePlayer {
+  refresh(): void;
+  navigate(page: PlayerPage, index?: number, fromRoute?: boolean): void;
+  selectTrack(index: number, autoplay?: boolean, direction?: number): void;
+  setQuery(query: string): void;
+  playSmart(kind: string): void;
+  smartList(kind: string): number[];
+  smartMeta(kind: string, index: number): string;
+  playNext(index: number): void;
+  moveQueue(from: number, to: number): void;
+  render(): void;
+  addUploadToLibrary(index: number): void;
+}
+
+export interface PlayerContext {
+  state: PlayerState;
+  tracks: SourceTrack[];
+  controller: () => PlayerController | undefined;
+}
+
+export const playerKey: InjectionKey<PlayerContext> = Symbol('player');
+
+// 页面和公共播放器组件读取同一个 Pinia 状态与原稿控制器。
+export function usePlayer(): PlayerContext {
+  const player = inject(playerKey);
+  if (!player) throw new Error('播放器组件必须位于 PlayerLayout 内。');
+  return player;
+}
