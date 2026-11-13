@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Windo
 pub(crate) enum DesktopWindowKind {
     Lyrics,
     Mini,
+    Media,
 }
 
 /// 一种桌面窗口的固定尺寸和标题，集中维护以保持原生窗口行为一致。
@@ -38,6 +39,14 @@ impl DesktopWindowKind {
                 height: 300.0,
                 min_width: 340.0,
                 min_height: 280.0,
+            },
+            Self::Media => DesktopWindowOptions {
+                label: "media",
+                title: "Mirai · 系统媒体控制",
+                width: 480.0,
+                height: 180.0,
+                min_width: 420.0,
+                min_height: 160.0,
             },
         }
     }

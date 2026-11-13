@@ -1,48 +1,25 @@
 <script setup lang="ts">
 import BaseButton from "@/components/ui/BaseButton.vue";
-import { computed } from "vue";
-
-const props = defineProps<{
-  options: { value: string; label: string }[];
-  label: string;
+defineProps<{
+  options: { label: string; value: string }[];
+  hook: string;
+  kind?: "tabs" | "segment";
 }>();
-const model = defineModel<string>({ required: true });
-const activeIndex = computed(() =>
-  Math.max(
-    0,
-    props.options.findIndex((option) => option.value === model.value),
-  ),
-);
 </script>
 
 <template>
-  <div
-    class="glass relative inline-grid max-w-full gap-1 rounded-full border border-white/10 p-1 text-xs font-bold"
-    :style="{
-      gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
-    }"
-    role="group"
-    :aria-label="label"
-  >
-    <span
-      class="sliding-pill pointer-events-none absolute inset-y-1 left-1 rounded-full"
-      :style="{
-        width: `calc((100% - 8px) / ${options.length})`,
-        transform: `translateX(${activeIndex * 100}%)`,
-      }"
-    />
+  <!-- 保留原稿标签条的 DOM 与滑动胶囊，由原稿导航逻辑切换当前项。 -->
+  <div>
     <BaseButton
       v-for="option in options"
       :key="option.value"
-      type="button"
-      class="relative z-10 min-h-8 truncate rounded-full px-3 transition-colors"
-      :class="
-        model === option.value ? 'text-white' : 'text-muted hover:text-white'
-      "
-      :aria-pressed="model === option.value"
-      @click="model = option.value"
+      v-bind="{ [hook]: option.value }"
+      >{{ option.label }}</BaseButton
     >
-      {{ option.label }}
-    </BaseButton>
+    <span
+      class="tab-pill"
+      :class="{ 'seg-pill': kind === 'segment' }"
+      aria-hidden="true"
+    />
   </div>
 </template>

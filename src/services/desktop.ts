@@ -20,7 +20,9 @@ export async function controlWindow(
 }
 
 // 打开置顶的独立桌面歌词窗或迷你播放器，重复点击时聚焦现有窗口。
-export async function openDesktop(mode: "lyrics" | "mini"): Promise<void> {
+export async function openDesktop(
+  mode: "lyrics" | "mini" | "media",
+): Promise<void> {
   if (!isTauri()) {
     notify("独立歌词窗和迷你播放器请在 Tauri 桌面应用中打开");
     return;

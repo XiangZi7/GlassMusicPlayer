@@ -1,0 +1,38 @@
+export interface SourceTrack {
+  title: string;
+  artist: string;
+  album: string;
+  dur: number;
+  cover: string;
+  q: string;
+  glow: string;
+}
+
+export interface SourceSnapshot {
+  track: SourceTrack;
+  playing: boolean;
+  time: number;
+  volume: number;
+  liked: boolean;
+  lyrics: string[];
+  lyricIndex: number;
+  motion: boolean;
+  fontSize: number;
+  locked: boolean;
+}
+
+export interface SourceAction {
+  type: "toggle" | "next" | "previous" | "like" | "volume" | "seek" | "focus";
+  value?: number;
+}
+
+export interface SourcePlayer {
+  getSnapshot(): SourceSnapshot;
+  dispatch(action: SourceAction): void;
+  destroy(): void;
+}
+
+export interface SourcePlayerOptions {
+  onStateChange?: (snapshot: SourceSnapshot) => void;
+  onDesktop?: (mode: "mini" | "lyr" | "media") => void;
+}

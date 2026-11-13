@@ -1,78 +1,120 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted, useTemplateRef } from "vue";
+import { isTauri } from "@tauri-apps/api/core";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import BaseButton from "@/components/ui/BaseButton.vue";
-import { computed } from "vue";
-import { useRouter } from "vue-router";
-import FeaturedBanner from "@/pages/index/components/featured-banner.vue";
-import MusicCards from "@/components/music/MusicCards.vue";
-import TrackList from "@/components/music/TrackList.vue";
-import { usePlayerStore } from "@/stores/player";
-const player = usePlayerStore();
-const router = useRouter();
-const greeting = computed(() => {
-  const hour = new Date().getHours();
-  return hour < 6
-    ? "夜深了"
-    : hour < 12
-      ? "早上好"
-      : hour < 18
-        ? "下午好"
-        : "晚上好";
+import SourceTitlebar from "@/pages/index/components/source-titlebar.vue";
+import SourceSidebar from "@/pages/index/components/source-sidebar.vue";
+import SourceContent from "@/pages/index/components/source-content.vue";
+import SourceNowPlaying from "@/pages/index/components/source-now-playing.vue";
+import SourceFullscreen from "@/pages/index/components/source-fullscreen.vue";
+import SourcePlayerBar from "@/pages/index/components/source-player-bar.vue";
+import SourceDesktopSurfaces from "@/pages/index/components/source-desktop-surfaces.vue";
+import { mountSourcePlayer } from "@/pages/index/source-player";
+import { openDesktop } from "@/services/desktop";
+import type {
+  SourceAction,
+  SourcePlayer,
+  SourceSnapshot,
+} from "@/types/prototype";
+
+const root = useTemplateRef<HTMLElement>("root");
+const unlisteners: UnlistenFn[] = [];
+let player: SourcePlayer | undefined;
+let disposed = false;
+
+// 原稿状态只向独立小窗发布快照，主界面继续由原稿逻辑更新。
+function publishSnapshot(snapshot: SourceSnapshot): void {
+  if (isTauri()) void emit("player-snapshot", snapshot);
+}
+
+// 保留原稿的三个桌面入口，将对应表面放入 Tauri 独立窗口。
+function openSourceDesktop(mode: "mini" | "lyr" | "media"): void {
+  void openDesktop(mode === "lyr" ? "lyrics" : mode);
+}
+
+// 桌面窗口的动作交回原稿控制器执行，避免产生不同步的第二套状态。
+async function handleAction(action: SourceAction): Promise<void> {
+  if (action.type === "focus" && isTauri()) {
+    await getCurrentWindow().show();
+    await getCurrentWindow().setFocus();
+    return;
+  }
+  player?.dispatch(action);
+}
+
+onMounted(async () => {
+  if (!root.value) return;
+  player = mountSourcePlayer(root.value, {
+    onStateChange: publishSnapshot,
+    onDesktop: openSourceDesktop,
+  });
+  if (!isTauri()) return;
+  const callbacks = await Promise.all([
+    listen<SourceAction>("player-action", (event) => {
+      void handleAction(event.payload);
+    }),
+    listen("player-ready", () => {
+      if (player) publishSnapshot(player.getSnapshot());
+    }),
+  ]);
+  if (disposed) callbacks.forEach((stop) => stop());
+  else unlisteners.push(...callbacks);
+});
+onUnmounted(() => {
+  disposed = true;
+  unlisteners.forEach((stop) => stop());
+  player?.destroy();
 });
 </script>
 
 <template>
-  <div>
-    <!-- 首页问候区：继续播放信息与专辑、歌手快捷入口。 -->
-    <header class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="page-heading">{{ greeting }}</h1>
-        <p class="mt-2 text-[11px] text-muted">
-          继续听 {{ player.currentTrack.album }} · 让喜欢的旋律陪着你
-        </p>
+  <!-- 原稿单窗口宿主：仅去除设计稿说明区与第二个对比窗口。 -->
+  <div ref="root" class="native-player">
+    <section id="colA" class="col">
+      <div class="glass-win">
+        <div class="win" data-player>
+          <div class="win-bg" data-bg></div>
+          <div class="win-veil"></div>
+          <!-- 原稿标题栏组件：保留原尺寸与布局，仅接入真实窗口按钮。 -->
+          <SourceTitlebar />
+          <div class="win-body">
+            <!-- 原稿侧栏组件：导航、歌单与桌面入口。 -->
+            <SourceSidebar />
+            <!-- 原稿内容组件：原样保留首页与全部内页。 -->
+            <SourceContent />
+            <BaseButton
+              class="np-toggle"
+              data-np-toggle
+              aria-expanded="true"
+              aria-label="收起正在播放面板"
+              title="收起正在播放面板"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9.5 5.5L16 12l-6.5 6.5" /></svg
+            ></BaseButton>
+            <!-- 原稿右栏组件：正在播放、歌词与队列。 -->
+            <SourceNowPlaying />
+          </div>
+          <!-- 原稿全屏组件：完整保留歌词、封面与原有动效。 -->
+          <SourceFullscreen />
+          <!-- 原稿底栏组件：原进度线、频峰背景与歌词胶囊。 -->
+          <SourcePlayerBar />
+        </div>
       </div>
-      <div class="flex gap-2">
-        <BaseButton variant="primary" class="min-h-8 px-3 text-[10px]"
-          >全部</BaseButton
-        ><BaseButton
-          variant="secondary"
-          class="min-h-8 px-3 text-[10px]"
-          @click="router.push('/library/albums')"
-        >
-          专辑</BaseButton
-        ><BaseButton
-          variant="secondary"
-          class="min-h-8 px-3 text-[10px]"
-          @click="router.push('/library/artists')"
-        >
-          歌手
-        </BaseButton>
-      </div>
-    </header>
-    <!-- 首页主打区：分层立绘横幅组件，复用原稿本地素材。 -->
-    <FeaturedBanner />
-    <div class="section-heading">
-      <h2>为你推荐</h2>
-      <span class="text-[10px] font-medium text-muted">专辑 · 点击即播</span>
+    </section>
+    <!-- 原稿演示辅助表面：保留同步钩子，不占用桌面应用可见布局。 -->
+    <div hidden aria-hidden="true">
+      <div id="trackPills"></div>
+      <BaseButton id="syncPlay" />
+      <SourceDesktopSurfaces />
     </div>
-    <!-- 首页推荐区：专辑卡片组件，点击后播放该专辑。 -->
-    <MusicCards
-      :tracks="player.albums.filter((track) => track.source === 'demo')"
-      @select="
-        (album) =>
-          player.playAll(
-            player.tracks.filter((track) => track.album === album.album),
-          )
-      "
-    />
-    <div class="section-heading">
-      <h2>值得再听一遍</h2>
-      <RouterLink
-        to="/library"
-        class="text-[10px] font-medium text-muted hover:text-white"
-        >全部歌曲 →</RouterLink
-      >
-    </div>
-    <!-- 首页歌曲区：统一歌曲列表，提供分页、收藏及歌单操作。 -->
-    <TrackList :tracks="player.tracks" />
   </div>
 </template>
