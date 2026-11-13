@@ -10,6 +10,7 @@ export function mountSourcePlayer(root, options = {}) {
   const intervals = new Set();
   const frames = new Set();
   let destroyed = false;
+  let nativeDirection = 1;
 
   // 将原稿查询限定在当前页面，避免影响独立桌面窗口或其他 Vue 视图。
   const document = {
@@ -331,7 +332,7 @@ function syncDesk(){
 }
 // 将原稿桌面功能入口接入对应的 Tauri 独立窗口。
 function handleUtil(u){
-  if(options.onDesktop){options.onDesktop(u);return;}
+  if(options.onDesktop){ if(u === "lyr"){ state.settings.deskLock=false; render(); } options.onDesktop(u);return;}
 
   var sec=document.getElementById("deskSection"); if(!sec)return;
   if(u==="mini"){ var pop=document.getElementById("trayPop"); if(pop)pop.hidden=false; sec.scrollIntoView({behavior:"smooth",block:"center"}); }
@@ -1244,7 +1245,7 @@ function animateDeskTrackChange(dir,oldTr){
   desk._xAnims=anims;
 }
 // 按原稿规则切歌并同步封面、歌词和播放队列。
-function selectTrack(i,autoplay,dir){ var old=state.idx; ensureQueue(); if(state.queue.indexOf(i)===-1){ state.queue=TRACKS.map(function(t,k){return k;}); buildLists(); } state.idx=i;state.t=0;state.recent=[i].concat(state.recent.filter(function(x){return x!==i;}));render(); if(autoplay)setPlaying(true); if(i!==old){ var d=dir||(i>old?1:-1); animateFsTrackChange(d,TRACKS[old]); animateDeskTrackChange(d,TRACKS[old]); } }
+function selectTrack(i,autoplay,dir){ var old=state.idx; nativeDirection=dir||(i>old?1:-1); ensureQueue(); if(state.queue.indexOf(i)===-1){ state.queue=TRACKS.map(function(t,k){return k;}); buildLists(); } state.idx=i;state.t=0;state.recent=[i].concat(state.recent.filter(function(x){return x!==i;}));render(); if(autoplay)setPlaying(true); if(i!==old){ var d=dir||(i>old?1:-1); animateFsTrackChange(d,TRACKS[old]); animateDeskTrackChange(d,TRACKS[old]); } }
 // 原稿交互：保留 nextTrack 对应的界面行为与调用规则。
 function nextTrack(){ ensureQueue(); var q=state.queue,p=q.indexOf(state.idx);
   if(state.shuffle){ if(q.length>1){ var n=p; while(n===p)n=Math.floor(Math.random()*q.length); selectTrack(q[n],true,1); } return; }
@@ -1647,7 +1648,7 @@ buildPills();buildLists();render();
     const lyrics = lines.map(line => line.o);
     let lyricIndex = 0;
     lines.forEach((line, index) => { if(line.t <= state.t + .001) lyricIndex = index; });
-    return { track, playing: state.playing, time: state.t, volume: effVol(), liked: !!state.liked[state.idx], lyrics, lyricIndex, motion: state.settings.motion, fontSize: deskFont, locked: state.settings.deskLock };
+    return { track, playing: state.playing, time: state.t, volume: effVol(), liked: !!state.liked[state.idx], lyrics, lyricIndex, motion: state.settings.motion, fontSize: deskFont, locked: state.settings.deskLock, index: state.idx, direction: nativeDirection };
   }
   // 独立窗口的操作仍交给原稿方法执行，不引入另一套播放或页面逻辑。
   function dispatch(action) {
@@ -1665,6 +1666,7 @@ buildPills();buildLists();render();
     timeouts.forEach(id => nativeWindow.clearTimeout(id));
     intervals.forEach(id => nativeWindow.clearInterval(id));
     frames.forEach(id => nativeWindow.cancelAnimationFrame(id));
+    root.getAnimations({subtree:true}).forEach(animation => animation.cancel());
     clearSourcePaginations();
     nativeDocument.body.classList.remove('wx-off', 'calm');
   }

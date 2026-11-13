@@ -19,6 +19,8 @@ export interface SourceSnapshot {
   motion: boolean;
   fontSize: number;
   locked: boolean;
+  index: number;
+  direction: number;
 }
 
 export interface SourceAction {

@@ -1,3 +1,4 @@
 # 原稿直接迁入的脚本与 Tailwind 源码保留原格式，便于与 ui/ 文件核对。
 src/pages/index/source-player.js
 src/styles/main.css
+src/pages/index/source-desktop-animation.js

@@ -1,14 +1,28 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, toRefs, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  toRefs,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { useRoute } from "vue-router";
 import { isTauri } from "@tauri-apps/api/core";
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import BaseButton from "@/components/ui/BaseButton.vue";
 import { formatTime } from "@/utils/format";
+import {
+  animateSourceDesktop,
+  animateSourceLyric,
+} from "@/pages/index/source-desktop-animation";
 import type { SourceAction, SourceSnapshot } from "@/types/prototype";
 
 const route = useRoute();
+const root = useTemplateRef<HTMLElement>("root");
 const mode = computed(() => String(route.params.mode));
 // 响应式状态：小窗只接收原稿快照，不创建另一套播放器或改写原稿卡片。
 const state = reactive({
@@ -32,6 +46,8 @@ const state = reactive({
     motion: true,
     fontSize: 21,
     locked: false,
+    index: -1,
+    direction: 1,
   } as SourceSnapshot,
 });
 const { snapshot } = toRefs(state);
@@ -77,6 +93,23 @@ watch(
       void getCurrentWindow().setIgnoreCursorEvents(locked);
   },
 );
+watch(
+  () => state.snapshot,
+  async (current, previous) => {
+    await nextTick();
+    if (!root.value) return;
+    if (previous.index >= 0 && current.index !== previous.index) {
+      animateSourceDesktop(
+        root.value,
+        current.direction,
+        previous.track,
+        current.motion,
+      );
+    } else if (current.lyricIndex !== previous.lyricIndex) {
+      animateSourceLyric(root.value, current.motion);
+    }
+  },
+);
 onMounted(async () => {
   if (!isTauri()) return;
   const stop = await listen<SourceSnapshot>("player-snapshot", (event) => {
@@ -92,12 +125,15 @@ onMounted(async () => {
 onUnmounted(() => {
   disposed = true;
   unlisten?.();
+  root.value
+    ?.getAnimations({ subtree: true })
+    .forEach((animation) => animation.cancel());
 });
 </script>
 
 <template>
   <!-- 原稿桌面表面：仅适配为独立原生窗口，内部 DOM、SVG 和类名保持一致。 -->
-  <div class="desk native-desktop">
+  <div ref="root" id="desk" class="desk native-desktop">
     <div v-if="mode === 'lyrics'" class="desk-lyr" id="deskLyr">
       <div class="desk-lyr-head" id="deskLyrHead" data-tauri-drag-region>
         <span aria-hidden="true">⠿</span><span>桌面歌词 · AURA</span
@@ -118,8 +154,7 @@ onUnmounted(() => {
         <i data-desk-prog :style="{ width: progress }"></i>
       </div>
       <div class="desk-lyr-meta">
-        <span data-desk-title>{{ track.title }}</span
-        ><span data-desk-time
+        <span data-desk-title>{{ track.title }}</span><span data-desk-time
           >{{ formatTime(snapshot.time) }} / {{ formatTime(track.dur) }}</span
         >
       </div>
@@ -134,8 +169,9 @@ onUnmounted(() => {
       <div class="tray-pop-main">
         <img :src="track.cover" data-desk-cover alt="专辑封面" />
         <div class="tray-pop-txt">
-          <b data-desk-title>{{ track.title }}</b
-          ><span data-desk-artist>{{ track.artist }} · {{ track.album }}</span>
+          <b data-desk-title>{{ track.title }}</b><span data-desk-artist
+            >{{ track.artist }} · {{ track.album }}</span
+          >
         </div>
         <BaseButton
           class="heart"
@@ -203,8 +239,9 @@ onUnmounted(() => {
       <span class="smtc-tag">系统媒体控制 · SMTC</span>
       <img :src="track.cover" data-desk-cover alt="专辑封面" />
       <div class="smtc-txt">
-        <b data-desk-title>{{ track.title }}</b
-        ><span data-desk-artist>{{ track.artist }} · {{ track.album }}</span>
+        <b data-desk-title>{{ track.title }}</b><span data-desk-artist
+          >{{ track.artist }} · {{ track.album }}</span
+        >
         <div class="smtc-prog">
           <i data-desk-prog :style="{ width: progress }"></i>
         </div>
