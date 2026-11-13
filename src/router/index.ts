@@ -63,11 +63,6 @@ export const router = createRouter({
           meta: { playerPage: 'radio' },
         },
         {
-          path: 'settings',
-          component: () => import('@/pages/settings.vue'),
-          meta: { playerPage: 'settings' },
-        },
-        {
           path: 'connect',
           component: () => import('@/pages/connect.vue'),
           meta: { playerPage: 'connect' },
@@ -88,6 +83,10 @@ export const router = createRouter({
           meta: { playerPage: 'hub' },
         },
       ],
+    },
+    {
+      path: '/settings',
+      component: () => import('@/pages/settings/index.vue'),
     },
     { path: '/desktop/:mode', component: () => import('@/pages/desktop.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },

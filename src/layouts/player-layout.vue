@@ -2,6 +2,7 @@
 import { toRefs } from 'vue'
 import {
   KeepAlive,
+  computed,
   nextTick,
   onMounted,
   onUnmounted,
@@ -13,7 +14,7 @@ import {
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useMutationObserver } from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
-import { emit, listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { emit, emitTo, listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTitlebar from '@/components/player/PlayerTitlebar.vue'
@@ -22,12 +23,19 @@ import PlayerNowPlaying from '@/components/player/PlayerNowPlaying.vue'
 import PlayerFullscreen from '@/components/player/PlayerFullscreen.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { playerKey, type PlayerController } from '@/composables/usePlayer'
-import { usePlayerStore, type PlayerPage } from '@/stores/player'
+import {
+  usePlayerStore,
+  type PlayerPage,
+  type PlayerSettings,
+} from '@/stores/player'
+import PlayerWindowFrame from '@/components/player/PlayerWindowFrame.vue'
 import { mountSourcePlayer } from '@/services/player/runtime'
-import { openDesktop } from '@/services/desktop'
+import { openDesktop, openSettingsWindow } from '@/services/desktop'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
+import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
-const root = useTemplateRef<HTMLElement>('root')
+const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
+const root = computed(() => frame.value?.element ?? null)
 const route = useRoute()
 const router = useRouter()
 const { state, tracks } = usePlayerStore()
@@ -35,7 +43,73 @@ const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
 let disposed = false
 
-provide(playerKey, { state, tracks, controller: () => player.value })
+provide(playerKey, {
+  state,
+  tracks,
+  controller: () => player.value,
+  setSetting,
+  setNowPlaying,
+})
+
+// 设置由主窗口统一应用，保留原稿材质、天气和动画等即时更新行为。
+function setSetting<K extends keyof PlayerSettings>(
+  key: K,
+  value: PlayerSettings[K]
+): void {
+  state.settings[key] = value
+  player.value?.render()
+}
+
+// 正在播放面板与原生设置弹窗共用同一展开状态。
+function setNowPlaying(open: boolean): void {
+  state.npOpen = open
+  player.value?.render()
+}
+
+// 独立弹窗打开或偏好改变时发布最新状态，不建立第二个播放时钟。
+function publishSettings(): void {
+  if (!isTauri()) return
+  const snapshot: SettingsSnapshot = {
+    settings: { ...state.settings },
+    npOpen: state.npOpen,
+    track: { ...tracks[state.idx]! },
+  }
+  void emitTo('settings', 'settings-snapshot', snapshot)
+}
+
+// 窗口间仅接受已存在且类型相同的设置字段，防止无效值污染播放状态。
+function applySettingsAction(action: SettingsAction): void {
+  if (action.kind === 'panel') {
+    if (typeof action.value === 'boolean') setNowPlaying(action.value)
+    return
+  }
+  if (
+    action.kind !== 'setting' ||
+    !Object.prototype.hasOwnProperty.call(state.settings, action.key) ||
+    typeof action.value !== typeof state.settings[action.key]
+  )
+    return
+  if (
+    action.key === 'crossfade' &&
+    (typeof action.value !== 'number' ||
+      !Number.isFinite(action.value) ||
+      action.value < 0 ||
+      action.value > 12)
+  )
+    return
+  setSetting(action.key, action.value)
+}
+
+// 桌面端打开原生设置窗口，浏览器预览使用相同设置界面。
+function openSettings(): void {
+  if (isTauri()) void openSettingsWindow()
+  else void router.push('/settings')
+}
+
+watch(() => [state.settings, state.npOpen, state.idx], publishSettings, {
+  deep: true,
+  flush: 'post',
+})
 
 // 路由缓存和组件热更新出现新控件时，只补绑定新节点，不重启播放或动画。
 useMutationObserver(
@@ -106,6 +180,7 @@ onMounted(async () => {
     onNavigate: navigate,
     onStateChange: publishSnapshot,
     onDesktop: openSourceDesktop,
+    onSettings: openSettings,
   })
   await syncRoute()
   if (!isTauri()) return
@@ -116,9 +191,14 @@ onMounted(async () => {
     listen('player-ready', () => {
       if (player.value) publishSnapshot(player.value.getSnapshot())
     }),
+    listen('settings-ready', publishSettings),
+    listen<SettingsAction>('settings-change', event =>
+      applySettingsAction(event.payload)
+    ),
   ])
   if (disposed) callbacks.forEach(stop => stop())
   else unlisteners.push(...callbacks)
+  publishSettings()
 })
 
 onUnmounted(() => {
@@ -126,66 +206,50 @@ onUnmounted(() => {
   unlisteners.forEach(stop => stop())
   player.value?.destroy()
 })
-const { page } = toRefs(state)
+const { page, idx, settings } = toRefs(state)
 </script>
 
 <template>
-  <!-- 公共播放器布局：切换页面时保持播放、全屏和桌面窗口连接。 -->
-  <div
-    ref="root"
-    class="native-player h-full w-full"
+  <!-- 公共原生窗口外框：复用圆角、阴影、背景和缩放入口。 -->
+  <PlayerWindowFrame
+    ref="frame"
+    :cover="tracks[idx]!.cover"
+    :glass-style="settings.glassStyle"
   >
-    <section
-      id="colA"
-      class="col h-full w-full"
+    <PlayerTitlebar />
+    <div
+      class="win-body relative z-[3] grid min-h-[0] flex-1 grid-cols-[228px_minmax(0,1fr)_296px]"
     >
-      <div class="glass-win h-full w-full">
-        <div
-          class="win relative flex h-[660px] flex-col overflow-hidden rounded-[18px] text-left text-white"
-          data-player
+      <PlayerSidebar />
+      <main
+        class="main min-w-[0] overflow-y-auto p-[18px_22px_20px]"
+        :class="{ 'show-page': page !== 'home' }"
+      >
+        <RouterView v-slot="{ Component }"
+          ><KeepAlive><component :is="Component" /></KeepAlive
+        ></RouterView>
+      </main>
+      <BaseButton
+        class="np-toggle absolute top-[14px] right-[282px] z-[9] grid h-[28px] w-[28px] place-items-center rounded-full p-0 text-white"
+        data-np-toggle
+        aria-expanded="true"
+        aria-label="收起正在播放面板"
+        title="收起正在播放面板"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          <div
-            class="win-bg absolute inset-[-50px] z-[0]"
-            data-bg
-          />
-          <div class="win-veil absolute inset-0 z-[1]" />
-          <PlayerTitlebar />
-          <div
-            class="win-body relative z-[3] grid min-h-[0] flex-1 grid-cols-[228px_minmax(0,1fr)_296px]"
-          >
-            <PlayerSidebar />
-            <main
-              class="main min-w-[0] overflow-y-auto p-[18px_22px_20px]"
-              :class="{ 'show-page': page !== 'home' }"
-            >
-              <RouterView v-slot="{ Component }"
-                ><KeepAlive><component :is="Component" /></KeepAlive
-              ></RouterView>
-            </main>
-            <BaseButton
-              class="np-toggle absolute top-[14px] right-[282px] z-[9] grid h-[28px] w-[28px] place-items-center rounded-full p-0 text-white"
-              data-np-toggle
-              aria-expanded="true"
-              aria-label="收起正在播放面板"
-              title="收起正在播放面板"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M9.5 5.5L16 12l-6.5 6.5" />
-              </svg>
-            </BaseButton>
-            <PlayerNowPlaying />
-          </div>
-          <PlayerFullscreen />
-          <PlayerBar />
-        </div>
-      </div>
-    </section>
-  </div>
+          <path d="M9.5 5.5L16 12l-6.5 6.5" />
+        </svg>
+      </BaseButton>
+      <PlayerNowPlaying />
+    </div>
+    <PlayerFullscreen />
+    <PlayerBar />
+  </PlayerWindowFrame>
 </template>

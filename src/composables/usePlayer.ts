@@ -1,6 +1,6 @@
 import { inject, type InjectionKey } from 'vue'
 import type { SourcePlayer, SourceTrack } from '@/types/prototype'
-import type { PlayerPage, PlayerState } from '@/stores/player'
+import type { PlayerPage, PlayerState, PlayerSettings } from '@/stores/player'
 
 export interface PlayerController extends SourcePlayer {
   bind(): void
@@ -21,6 +21,11 @@ export interface PlayerContext {
   state: PlayerState
   tracks: SourceTrack[]
   controller: () => PlayerController | undefined
+  setSetting: <K extends keyof PlayerSettings>(
+    key: K,
+    value: PlayerSettings[K]
+  ) => void
+  setNowPlaying: (open: boolean) => void
 }
 
 export const playerKey: InjectionKey<PlayerContext> = Symbol('player')

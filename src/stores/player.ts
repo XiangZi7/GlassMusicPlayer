@@ -116,3 +116,4 @@ export const usePlayerStore = defineStore('player', () => {
 })
 
 export type PlayerState = ReturnType<typeof usePlayerStore>['state']
+export type PlayerSettings = PlayerState['settings']

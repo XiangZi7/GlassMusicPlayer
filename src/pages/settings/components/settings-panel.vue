@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
+import { toRefs } from 'vue'
+import { usePlayer } from '@/composables/usePlayer'
+const { state, setSetting, setNowPlaying } = usePlayer()
+const { settings, npOpen } = toRefs(state)
+// 淡化滑块通过统一设置入口同步主窗口与原生设置弹窗。
+function updateCrossfade(event: Event): void {
+  setSetting('crossfade', Number((event.target as HTMLInputElement).value))
+}
 </script>
 
 <template>
   <!-- settings 页面：保留原稿内容区域与交互顺序。 -->
   <div
-    class="page-panel hidden"
+    class="page-panel active"
     data-panel="settings"
   >
     <div class="pg-head">
       <h3>设置</h3>
-      <p>播放、音质与界面偏好 — 修改即时生效，A、B 两窗口同步。</p>
+      <p>播放、音质与界面偏好 — 修改即时生效，与主播放器保持同步。</p>
     </div>
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
@@ -26,9 +34,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="gapless"
+          :class="{ on: settings.gapless }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.gapless"
+          @click="setSetting('gapless', !settings.gapless)"
           aria-label="无缝播放"
           ><i></i
         ></BaseButton>
@@ -40,9 +49,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="crossfadeOn"
+          :class="{ on: settings.crossfadeOn }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.crossfadeOn"
+          @click="setSetting('crossfadeOn', !settings.crossfadeOn)"
           aria-label="交叉淡化"
           ><i></i
         ></BaseButton>
@@ -52,7 +62,7 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
           <b>淡化时长</b
           ><span
             >交叉淡化持续的秒数 · 当前
-            <span data-set-val="crossfade">6 秒</span></span
+            <span>{{ settings.crossfade }} 秒</span></span
           >
         </div>
         <div class="set-slider w-[172px] flex-none">
@@ -61,8 +71,9 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
             min="0"
             max="12"
             step="1"
-            value="6"
-            data-set-range="crossfade"
+            :value="settings.crossfade"
+            :style="{ '--p': (settings.crossfade / 12) * 100 + '%' }"
+            @input="updateCrossfade"
             aria-label="交叉淡化时长"
           />
         </div>
@@ -74,9 +85,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="normalize"
+          :class="{ on: settings.normalize }"
           role="switch"
-          aria-checked="false"
+          :aria-checked="settings.normalize"
+          @click="setSetting('normalize', !settings.normalize)"
           aria-label="音量标准化"
           ><i></i
         ></BaseButton>
@@ -159,9 +171,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="weather"
+          :class="{ on: settings.weather }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.weather"
+          @click="setSetting('weather', !settings.weather)"
           aria-label="天气胶囊"
           ><i></i
         ></BaseButton>
@@ -173,9 +186,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="motion"
+          :class="{ on: settings.motion }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.motion"
+          @click="setSetting('motion', !settings.motion)"
           aria-label="界面动效"
           ><i></i
         ></BaseButton>
@@ -191,9 +205,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-np-switch
+          :class="{ on: npOpen }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="npOpen"
+          @click="setNowPlaying(!npOpen)"
           aria-label="正在播放面板"
           ><i></i
         ></BaseButton>
@@ -209,9 +224,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="deskLyrics"
+          :class="{ on: settings.deskLyrics }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.deskLyrics"
+          @click="setSetting('deskLyrics', !settings.deskLyrics)"
           aria-label="桌面歌词"
           ><i></i
         ></BaseButton>
@@ -226,9 +242,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="deskLock"
+          :class="{ on: settings.deskLock }"
           role="switch"
-          aria-checked="false"
+          :aria-checked="settings.deskLock"
+          @click="setSetting('deskLock', !settings.deskLock)"
           aria-label="桌面歌词锁定"
           ><i></i
         ></BaseButton>
@@ -244,9 +261,10 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
         <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
-          data-set-toggle="trayMini"
+          :class="{ on: settings.trayMini }"
           role="switch"
-          aria-checked="true"
+          :aria-checked="settings.trayMini"
+          @click="setSetting('trayMini', !settings.trayMini)"
           aria-label="托盘迷你播放器"
           ><i></i
         ></BaseButton>

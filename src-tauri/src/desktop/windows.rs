@@ -96,6 +96,10 @@ pub(crate) async fn open_desktop_window(
 
 /// 主窗口关闭时退出整个应用，避免独立小窗继续显示已经失效的播放状态。
 pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
+    #[cfg(target_os = "windows")]
+    if matches!(event, WindowEvent::Destroyed) {
+        super::shadow_hit_test::remove_window(window);
+    }
     if window.label() == "main" && matches!(event, WindowEvent::CloseRequested { .. }) {
         window.app_handle().exit(0);
     }

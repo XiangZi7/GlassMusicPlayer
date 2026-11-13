@@ -30,6 +30,7 @@ src-tauri/src/
   lib.rs                          # 模块入口
   app.rs                          # 插件、命令和生命周期组装
   desktop/windows.rs              # 桌面窗口配置、创建、恢复和退出
+  desktop/appearance.rs           # 原生系统版本检测与主窗口圆角、阴影
 ```
 
 每个完整页面有真实 Vue Router 路由，切页保留播放和表单状态。需要私有组件的首页和音乐库使用 `pages/业务名/index.vue` 与就近的 `components/`；其余页面直接使用 `pages/业务名.vue`。歌曲、队列、导入、上传、下载和自建歌单由 Vue 列表渲染，公共标签与分页提供 `v-model`。
@@ -37,6 +38,8 @@ src-tauri/src/
 布局、尺寸、间距和常规排版使用模板中的 Tailwind utilities。复杂玻璃材质、主题覆盖、CSS 变量变换及动画保留原 CSS 级联。切歌继续使用原 Web Animations 关键帧、延迟和曲线；保留旧封面幽灵、连续切歌取消、歌词跟随、光带、视差和减少动态效果设置。
 
 Windows 标题栏移除红黄绿装饰，使用最小化、最大化/还原、关闭按钮；顶栏搜索为 13px，宽度随窗口调整。原网页的 Manrope、Noto Sans SC 和 JetBrains Mono 本地打包，授权在 `public/font-licenses/`。五张原图以相同 WebP 数据保存在 `public/images/`。
+
+Windows 10 主窗口使用 8px 圆角、透明阴影留白和柔和外阴影，保持原内容区域的默认尺寸；最大化时取消留白、圆角与自绘阴影，还原后恢复。Windows 11 按原生构建号识别，使用系统圆角和阴影。透明区域内侧补有八方向缩放入口。
 
 原稿演示边界保留：歌曲没有真实音源；平台授权、天气、下载和上传曲库使用原稿演示流程。
 
@@ -52,4 +55,4 @@ cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 pnpm tauri build --debug --no-bundle
 ```
 
-`check:motion` 与 `ui/` 原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。前端单独预览可用 `pnpm dev --port 4183`；Tauri 开发默认使用 1420，请勿重复启动同端口服务。Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。
+`check:motion` 与 `ui/` 原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。前端单独预览可用 `pnpm dev --port 4183`；Tauri 开发使用 `127.0.0.1:1420`，避开 Windows 上 `localhost` 优先解析到已占用 IPv6 地址的情况。`pnpm tauri dev` 会自动启动 Vite，请勿同时运行另一个默认端口的 `pnpm dev`。Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。

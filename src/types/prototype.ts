@@ -38,4 +38,5 @@ export interface SourcePlayer {
 export interface SourcePlayerOptions {
   onStateChange?: (snapshot: SourceSnapshot) => void
   onDesktop?: (mode: 'mini' | 'lyr' | 'media') => void
+  onSettings?: () => void
 }

@@ -33,3 +33,12 @@ export async function openDesktop(
     notify('无法打开桌面窗口，请重试', 'error')
   }
 }
+
+// 设置使用独立的原生 Webview 窗口，重复点击只恢复并聚焦现有设置窗口。
+export async function openSettingsWindow(): Promise<void> {
+  try {
+    await invoke('open_settings_window')
+  } catch {
+    notify('无法打开设置窗口，请重试', 'error')
+  }
+}

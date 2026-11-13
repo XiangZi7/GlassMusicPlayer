@@ -452,6 +452,10 @@ export function mountSourcePlayer(root, options = {}) {
   }
   // 原稿交互：保留 setPage 对应的界面行为与调用规则。
   function setPage(pg, plIdx, viaNav) {
+    if (pg === 'settings' && !viaNav && options.onSettings) {
+      options.onSettings()
+      return
+    }
     state._util = null
     var np = typeof plIdx === 'number' ? plIdx : state.playlistIdx
     if (
