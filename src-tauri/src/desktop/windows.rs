@@ -94,6 +94,41 @@ pub(crate) async fn open_desktop_window(
     Ok(())
 }
 
+/// 用隐藏和恢复保留灵动岛拖动后的位置，首次打开时创建独立置顶窗口。
+#[tauri::command]
+pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("island") {
+        return if visible {
+            window.show()
+        } else {
+            window.hide()
+        }
+        .map_err(|error| format!("切换灵动岛显示状态失败：{error}"));
+    }
+    if !visible {
+        return Ok(());
+    }
+
+    WebviewWindowBuilder::new(
+        &app,
+        "island",
+        WebviewUrl::App("index.html#/desktop/island".into()),
+    )
+    .title("Mirai Music · 灵动岛")
+    .inner_size(320.0, 40.0)
+    .decorations(false)
+    .transparent(true)
+    .shadow(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .focused(false)
+    .resizable(false)
+    .center()
+    .build()
+    .map_err(|error| format!("创建灵动岛窗口失败：{error}"))?;
+    Ok(())
+}
+
 /// 主窗口关闭时退出整个应用，避免独立小窗继续显示已经失效的播放状态。
 pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     #[cfg(target_os = "windows")]

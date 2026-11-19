@@ -2,6 +2,19 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { notify } from '@/services/notification'
 
+// 串行应用显示状态，快速切换设置时以最后一次操作为准。
+let islandVisibility = Promise.resolve()
+export function setDesktopIsland(visible: boolean): Promise<void> {
+  islandVisibility = islandVisibility.then(async () => {
+    try {
+      await invoke('set_lyric_island', { visible })
+    } catch {
+      notify('无法切换桌面灵动岛，请重试', 'error')
+    }
+  })
+  return islandVisibility
+}
+
 // 执行自定义标题栏的真实窗口操作，浏览器预览时给出统一反馈。
 export async function controlWindow(
   action: 'minimize' | 'maximize' | 'close'

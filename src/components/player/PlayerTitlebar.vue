@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
+import PlayerSearchBox from '@/components/player/PlayerSearchBox.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 </script>
 
@@ -47,28 +48,7 @@ import WindowControls from '@/components/ui/WindowControls.vue'
     >
       首页
     </div>
-    <label
-      class="chrome-search ml-auto flex h-[30px] w-[196px] flex-none items-center gap-[7px] rounded-full p-[0_12px_0_10px] text-inherit"
-      ><svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.4"
-      >
-        <circle
-          cx="11"
-          cy="11"
-          r="7"
-        />
-        <path d="M20 20l-3.5-3.5" /></svg
-      ><input
-        type="text"
-        data-top-search
-        placeholder="搜索歌曲、专辑、歌手"
-        aria-label="搜索歌曲、专辑、歌手"
-        autocomplete="off"
-        spellcheck="false"
-    /></label>
+    <PlayerSearchBox variant="titlebar" />
     <div
       class="weather-pill flex min-h-[34px] items-center gap-[7px] rounded-full p-[4px_12px_4px_7px] whitespace-nowrap text-white"
       role="img"
@@ -151,7 +131,7 @@ import WindowControls from '@/components/ui/WindowControls.vue'
   font-size: 13px;
 }
 
-.windows-titlebar .chrome-search input {
+.windows-titlebar .chrome-search :deep(input) {
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -159,7 +139,7 @@ import WindowControls from '@/components/ui/WindowControls.vue'
   letter-spacing: 0;
 }
 
-.windows-titlebar .chrome-search svg {
+.windows-titlebar .chrome-search :deep(svg) {
   width: 14px;
   height: 14px;
 }

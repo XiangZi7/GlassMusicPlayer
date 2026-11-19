@@ -7,6 +7,9 @@ export interface PlayerController extends SourcePlayer {
   refresh(): void
   navigate(page: PlayerPage, index?: number, fromRoute?: boolean): void
   selectTrack(index: number, autoplay?: boolean, direction?: number): void
+  openStage(): void
+  playTracks(indices: number[], index: number): void
+  toggleRadio(): void
   setQuery(query: string): void
   playSmart(kind: string): void
   smartList(kind: string): number[]

@@ -30,7 +30,11 @@ import {
 } from '@/stores/player'
 import PlayerWindowFrame from '@/components/player/PlayerWindowFrame.vue'
 import { mountSourcePlayer } from '@/services/player/runtime'
-import { openDesktop, openSettingsWindow } from '@/services/desktop'
+import {
+  openDesktop,
+  openSettingsWindow,
+  setDesktopIsland,
+} from '@/services/desktop'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
@@ -38,7 +42,7 @@ const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
 const root = computed(() => frame.value?.element ?? null)
 const route = useRoute()
 const router = useRouter()
-const { state, tracks } = usePlayerStore()
+const { state, tracks, saveIslandPreferences } = usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
 let disposed = false
@@ -57,6 +61,8 @@ function setSetting<K extends keyof PlayerSettings>(
   value: PlayerSettings[K]
 ): void {
   state.settings[key] = value
+  if (key === 'lyricIsland' || key === 'lyricIslandDesktop')
+    saveIslandPreferences()
   player.value?.render()
 }
 
@@ -95,6 +101,7 @@ function applySettingsAction(action: SettingsAction): void {
     for (const key of Object.keys(state.settings) as (keyof PlayerSettings)[]) {
       Object.assign(state.settings, { [key]: incoming[key] })
     }
+    saveIslandPreferences()
     state.npOpen = action.npOpen
     player.value?.render()
     publishSettings()
@@ -137,7 +144,7 @@ useMutationObserver(
   root,
   mutations => {
     const controls =
-      '[data-play],[data-nav],[data-stage-toggle],[data-top-search],[data-seek],[data-conn-btn],[data-up-add],[data-banner-play],[data-nav-back],[data-set-toggle],[data-search-input]'
+      '[data-play],[data-nav],[data-stage-toggle],[data-top-search],[data-seek],[data-up-add],[data-banner-play],[data-nav-back],[data-set-toggle],[data-search-input]'
     if (
       mutations.some(change =>
         [...change.addedNodes].some(
@@ -174,14 +181,22 @@ function openSourceDesktop(mode: 'mini' | 'lyr' | 'media'): void {
 // 桌面小窗动作回到同一播放器，聚焦动作交给原生窗口。
 async function handleAction(action: SourceAction): Promise<void> {
   if (action.type === 'focus' && isTauri()) {
-    await getCurrentWindow().show()
-    await getCurrentWindow().setFocus()
+    const window = getCurrentWindow()
+    await window.unminimize()
+    await window.show()
+    await window.setFocus()
   } else player.value?.dispatch(action)
 }
 
 // 路由视图更新后再测量胶囊、歌词和横幅，防止读取已卸载节点。
 async function syncRoute(): Promise<void> {
   const page = (route.meta.playerPage || 'home') as PlayerPage
+  if (page === 'playlist' && typeof route.query.playlist === 'string') {
+    state.customPl =
+      state.imported.find(item => item.id === route.query.playlist) ?? null
+  } else if (state.customPl?.id) {
+    state.customPl = null
+  }
   const index =
     route.query.index === undefined
       ? state.playlistIdx
@@ -192,6 +207,13 @@ async function syncRoute(): Promise<void> {
 }
 
 watch(() => route.fullPath, syncRoute, { flush: 'post' })
+
+const desktopIslandVisible = computed(
+  () => state.settings.lyricIsland && state.settings.lyricIslandDesktop
+)
+watch(desktopIslandVisible, visible => {
+  if (isTauri()) void setDesktopIsland(visible)
+})
 
 onMounted(async () => {
   if (!root.value) return
@@ -217,9 +239,13 @@ onMounted(async () => {
       applySettingsAction(event.payload)
     ),
   ])
-  if (disposed) callbacks.forEach(stop => stop())
-  else unlisteners.push(...callbacks)
+  if (disposed) {
+    callbacks.forEach(stop => stop())
+    return
+  }
+  unlisteners.push(...callbacks)
   publishSettings()
+  if (desktopIslandVisible.value) void setDesktopIsland(true)
 })
 
 onUnmounted(() => {
@@ -228,6 +254,11 @@ onUnmounted(() => {
   player.value?.destroy()
 })
 const { page, idx, settings } = toRefs(state)
+const compactLibrary = computed(() =>
+  ['library', 'albums', 'artists', 'liked', 'recent', 'smart'].includes(
+    page.value
+  )
+)
 </script>
 
 <template>
@@ -240,6 +271,7 @@ const { page, idx, settings } = toRefs(state)
     <PlayerTitlebar />
     <div
       class="win-body relative z-[3] grid min-h-[0] flex-1 grid-cols-[228px_minmax(0,1fr)_296px]"
+      :class="{ 'library-layout': compactLibrary }"
     >
       <PlayerSidebar />
       <main

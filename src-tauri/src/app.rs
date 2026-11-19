@@ -7,6 +7,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             windows::open_desktop_window,
+            windows::set_lyric_island,
             settings::open_settings_window
         ])
         .setup(|app| appearance::create_main_window(app.handle()))

@@ -1,17 +1,40 @@
 <script setup lang="ts">
-import { toRefs } from 'vue'
-import { computed } from 'vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
+import { computed, ref, toRefs, useTemplateRef } from 'vue'
+import { useResizeObserver } from '@vueuse/core'
+import TrackRow from '@/components/player/TrackRow.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 import { usePlayer } from '@/composables/usePlayer'
-import { formatTime } from '@/utils/format'
 
 const props = defineProps<{
   indices: number[]
   listKey: string
   empty?: string
+  playAsQueue?: boolean
+  fitHeight?: boolean
 }>()
 const { state, tracks, controller } = usePlayer()
+const viewport = useTemplateRef<HTMLElement>('viewport')
+const height = ref(0)
+const trackRowHeight = 52
+const paginationHeight = 68
+
+useResizeObserver(
+  () => (props.fitHeight ? viewport.value : null),
+  ([entry]) => {
+    if (entry && entry.contentRect.height > 0)
+      height.value = entry.contentRect.height
+  }
+)
+
+const pageSize = computed(() => {
+  if (!props.fitHeight || !height.value) return 10
+  const availableRows = Math.floor(height.value / trackRowHeight)
+  if (props.indices.length <= availableRows) return Math.max(1, availableRows)
+  return Math.max(
+    1,
+    Math.floor((height.value - paginationHeight) / trackRowHeight)
+  )
+})
 const sorted = computed(() => {
   const mode = state.sorts[props.listKey] || 'def'
   if (mode === 'def') return props.indices
@@ -28,59 +51,60 @@ const current = computed({
   get: () =>
     Math.min(
       state.pg[props.listKey] || 1,
-      Math.max(1, Math.ceil(sorted.value.length / 10))
+      Math.max(1, Math.ceil(sorted.value.length / pageSize.value))
     ),
   set: page => {
     state.pg[props.listKey] = page
   },
 })
 const visible = computed(() =>
-  sorted.value.slice((current.value - 1) * 10, current.value * 10)
+  sorted.value.slice(
+    (current.value - 1) * pageSize.value,
+    current.value * pageSize.value
+  )
 )
 
 // 选择曲目回到同一播放器，保留原稿自动播放与切歌动画的顺序。
 function play(index: number): void {
-  controller()?.selectTrack(index, true)
+  if (props.playAsQueue) controller()?.playTracks(sorted.value, index)
+  else controller()?.selectTrack(index, true)
 }
 const { idx } = toRefs(state)
 </script>
 
 <template>
-  <div data-vue-tracklist>
-    <BaseButton
-      v-for="index in visible"
-      :key="index"
-      class="trow grid min-h-[52px] w-full grid-cols-[28px_minmax(0,1.6fr)_minmax(0,1fr)_52px_34px] items-center gap-[10px] rounded-[12px] border-none bg-transparent p-[0_10px] pt-[7px] pb-[7px] text-left text-[13px] text-inherit"
-      :class="{ on: index === idx }"
-      @click="play(index)"
-    >
-      <span class="num">{{ String(index + 1).padStart(2, '0') }}</span>
-      <span class="tt"
-        ><img
-          :src="tracks[index]!.cover"
-          alt=""
-        /><span class="min-w-0"
-          ><b>{{ tracks[index]!.title }}</b
-          ><span>{{ tracks[index]!.artist }}</span></span
-        ></span
-      >
-      <span class="alb">{{ tracks[index]!.album }}</span><span class="dur">{{
-        formatTime(tracks[index]!.dur)
-      }}</span>
-      <span class="bars hidden h-[14px] items-end justify-center gap-[2.5px]"
-        ><i /><i /><i
-      /></span>
-    </BaseButton>
+  <div
+    ref="viewport"
+    :class="{ 'flex min-h-0 flex-1 flex-col': fitHeight }"
+  >
     <div
-      v-if="!indices.length && empty"
-      class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
+      data-vue-tracklist
+      :class="{ 'min-h-0 overflow-y-auto': fitHeight }"
     >
-      {{ empty }}
+      <!-- 本地或已导入的曲目共用相同播放行。 -->
+      <TrackRow
+        v-for="(index, position) in visible"
+        :key="`${index}:${position}`"
+        :track="tracks[index]!"
+        :number="
+          playAsQueue ? (current - 1) * pageSize + position + 1 : index + 1
+        "
+        :active="index === idx"
+        @play="play(index)"
+      />
+      <div
+        v-if="!indices.length && empty"
+        class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
+      >
+        {{ empty }}
+      </div>
     </div>
+    <PaginationBar
+      :class="{ 'shrink-0': fitHeight }"
+      v-model:current="current"
+      :page-key="listKey"
+      :total="indices.length"
+      :page-size="pageSize"
+    />
   </div>
-  <PaginationBar
-    v-model:current="current"
-    :page-key="listKey"
-    :total="indices.length"
-  />
 </template>

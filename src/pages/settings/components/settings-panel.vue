@@ -301,6 +301,39 @@ function updateCrossfade(event: Event): void {
         <div
           class="set-card rounded-[16px] border border-transparent p-[4px_14px]"
         >
+          <!-- 灵动岛设置：启用歌词胶囊后可切换到桌面显示。 -->
+          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-0 flex-1">
+              <b>灵动岛</b><span>显示当前歌词，按住胶囊可拖动</span>
+            </div>
+            <BaseButton
+              class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
+              :class="{ on: settings.lyricIsland }"
+              role="switch"
+              :aria-checked="settings.lyricIsland"
+              aria-label="灵动岛"
+              @click="setSetting('lyricIsland', !settings.lyricIsland)"
+              ><i
+            /></BaseButton>
+          </div>
+          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-0 flex-1">
+              <b>在桌面显示灵动岛</b
+              ><span>使用置顶小窗，播放器最小化后也可显示</span>
+            </div>
+            <BaseButton
+              class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0 disabled:opacity-50"
+              :class="{ on: settings.lyricIslandDesktop }"
+              role="switch"
+              :aria-checked="settings.lyricIslandDesktop"
+              :disabled="!settings.lyricIsland"
+              aria-label="在桌面显示灵动岛"
+              @click="
+                setSetting('lyricIslandDesktop', !settings.lyricIslandDesktop)
+              "
+              ><i
+            /></BaseButton>
+          </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
               <b>桌面歌词</b
@@ -462,10 +495,7 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>正式版技术栈</b
-              ><span
-                >规划为 Vue 3 + Tauri，平台对接与真实音频引擎在正式版接入</span
-              >
+              <b>技术栈</b><span>Vue 3 + Tauri，在线曲库通过 FastAPI 获取</span>
             </div>
             <span
               class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"

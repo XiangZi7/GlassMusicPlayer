@@ -29,7 +29,7 @@ const { dlPaused } = toRefs(state)
     </div>
     <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
     <PlayerTabs
-      class="pg-tabs mt-[16px] inline-flex max-w-[100%] flex-wrap gap-[4px] rounded-full p-[4px]"
+      class="pg-tabs mt-4 inline-flex max-w-full flex-wrap gap-1 rounded-full p-1"
       role="tablist"
       aria-label="内容导入分类"
       hook="data-src-tab"
@@ -39,7 +39,7 @@ const { dlPaused } = toRefs(state)
         { label: '下载管理', value: 'downloads' },
       ]"
     />
-    <div class="lib-stats mt-[16px] grid grid-cols-[repeat(4,1fr)] gap-[10px]">
+    <div class="lib-stats mt-4 grid grid-cols-[repeat(4,1fr)] gap-2.5">
       <div><b>3</b><span>已下载</span></div>
       <div>
         <b>{{ active }}</b><span>进行中</span>
@@ -57,7 +57,7 @@ const { dlPaused } = toRefs(state)
       <div
         v-for="(item, index) in downloads"
         :key="item.name"
-        class="file-row mb-[7px] flex items-center gap-[11px] rounded-[13px] border border-transparent p-[9px_11px]"
+        class="file-row mb-1.75 flex items-center gap-2.75 rounded-[13px] border border-transparent p-[9px_11px]"
       >
         <span class="fi">↓</span
         ><span class="it"
@@ -75,7 +75,7 @@ const { dlPaused } = toRefs(state)
         ><!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
         <BaseButton
           v-if="item.prog < 100"
-          class="imp-pick min-h-[30px] flex-none rounded-full p-[6px_12px] text-[11.5px] font-extrabold"
+          class="imp-pick min-h-7.5 flex-none rounded-full p-[6px_12px] text-[11.5px] font-extrabold"
           :class="{ on: dlPaused[index] }"
           @click="dlPaused[index] = !dlPaused[index]"
           >{{ dlPaused[index] ? '继续' : '暂停' }}</BaseButton><span
@@ -85,7 +85,7 @@ const { dlPaused } = toRefs(state)
         >
       </div>
     </div>
-    <p class="src-note mt-[12px] text-[11.5px] leading-[1.65] opacity-[.55]">
+    <p class="src-note mt-3 text-[11.5px] leading-[1.65] opacity-[.55]">
       提示：平台对接导入的歌曲能否下载，取决于该平台的版权与会员规则；本地与自上传歌曲不受限制。
     </p>
   </div>

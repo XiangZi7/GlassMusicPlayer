@@ -32,7 +32,7 @@ import type {
   SettingsSnapshot,
 } from '@/types/settings'
 
-const { state: playerState, tracks } = usePlayerStore()
+const { state: playerState, tracks, saveIslandPreferences } = usePlayerStore()
 const router = useRouter()
 const navigation = useTemplateRef<HTMLElement>('navigation')
 const content = useTemplateRef<HTMLElement>('content')
@@ -185,6 +185,7 @@ async function applySettings(): Promise<boolean> {
   }
   try {
     if (isTauri()) await emitTo('main', 'settings-change', action)
+    else saveIslandPreferences()
     Object.assign(state.baseline, action.settings)
     state.baselinePanel = action.npOpen
     notify('设置已应用')

@@ -2,17 +2,21 @@
 import { toRefs } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed, nextTick, watch, useTemplateRef } from 'vue'
+import { useRouter } from 'vue-router'
 import type { Playlist } from '@/stores/player'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, tracks, controller } = usePlayer()
+const router = useRouter()
 const sidebarRoot = useTemplateRef<HTMLElement>('sidebarRoot')
 const albums = computed(() =>
   tracks
     .map((_, index) => index)
     .filter(
       index =>
-        tracks.findIndex(track => track.album === tracks[index]!.album) ===
-        index
+        !tracks[index]!.catalog &&
+        tracks.findIndex(
+          track => !track.catalog && track.album === tracks[index]!.album
+        ) === index
     )
 )
 // 内置歌单保留原稿按专辑定位、轮换曲库预览的行为。
@@ -21,8 +25,12 @@ function openPlaylist(index: number): void {
   controller()?.navigate('playlist', index)
 }
 
-// 打开导入或自建歌单，保留原稿的示例曲库预览。
+// 已导入歌单按稳定 ID 进入路由，自建歌单沿用现有本地入口。
 function openCustom(item: Playlist): void {
+  if (item.id) {
+    void router.push({ path: '/playlist', query: { playlist: item.id } })
+    return
+  }
   state.customPl = { ...item }
   controller()?.navigate('playlist', state.playlistIdx)
 }
@@ -44,7 +52,8 @@ function save(index: number, event: Event): void {
   if (name && item) {
     const old = item.name
     item.name = name
-    if (state.customPl?.name === old) state.customPl.name = name
+    if (!state.customPl?.id && state.customPl?.name === old)
+      state.customPl.name = name
   }
   state._renaming = -1
   controller()?.render()
@@ -59,7 +68,7 @@ function confirmDelete(name: string): void {
 function remove(index: number): void {
   const item = state.myLists[index]
   if (!item) return
-  const opened = state.customPl?.name === item.name
+  const opened = !state.customPl?.id && state.customPl?.name === item.name
   state.myLists.splice(index, 1)
   state._delPl = null
   state._renaming = -1
@@ -73,7 +82,7 @@ watch(
   () => [
     state.myLists.length,
     state.imported.length,
-    state.customPl?.name,
+    state.customPl?.id ?? state.customPl?.name,
     state._renaming,
     state._delPl,
   ],
@@ -83,7 +92,7 @@ watch(
   { flush: 'post' }
 )
 const {
-  platforms,
+  linkedProfiles,
   page,
   customPl,
   playlistIdx,
@@ -165,7 +174,7 @@ const {
         <path d="M10 14a5 5 0 007.1 0l2.4-2.4a5 5 0 00-7.1-7.1L11 5.9" />
         <path d="M14 10a5 5 0 00-7.1 0L4.5 12.4a5 5 0 007.1 7.1L13 18.1" /></svg
       >内容导入<span class="count"
-        >{{ Object.values(platforms).filter(Boolean).length }}/3</span
+        >{{ Object.keys(linkedProfiles).length }}/3</span
       ></BaseButton
     >
     <BaseButton
@@ -316,10 +325,10 @@ const {
       </template>
       <BaseButton
         v-for="item in imported"
-        :key="item.name"
+        :key="item.id"
         class="plist flex min-h-[40px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[7px_10px] text-left text-[13px] font-semibold text-inherit"
-        :data-custom="item.name"
-        :class="{ on: page === 'playlist' && customPl?.name === item.name }"
+        :data-custom="item.id"
+        :class="{ on: page === 'playlist' && customPl?.id === item.id }"
         @click="openCustom(item)"
         ><img
           :src="item.cover || '/images/night-drive.webp'"

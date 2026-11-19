@@ -1,3 +1,11 @@
+import type { MusicPlatform } from '@/api'
+
+export interface CatalogSource {
+  platform: MusicPlatform
+  id: string
+  sourceUrl: string
+}
+
 export interface SourceTrack {
   title: string
   artist: string
@@ -7,6 +15,7 @@ export interface SourceTrack {
   q: string
   glow: string
   mine?: boolean
+  catalog?: CatalogSource
 }
 
 export interface SourceSnapshot {
@@ -17,6 +26,7 @@ export interface SourceSnapshot {
   liked: boolean
   lyrics: string[]
   lyricIndex: number
+  capsuleLyric?: string
   motion: boolean
   fontSize: number
   locked: boolean

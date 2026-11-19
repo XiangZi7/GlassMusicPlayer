@@ -4,8 +4,8 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import TrackSuggestion from '@/components/player/TrackSuggestion.vue'
 import { usePlayer } from '@/composables/usePlayer'
-const { state, tracks } = usePlayer()
-const track = computed(() => tracks[state.idx]!)
+const { state, tracks, controller } = usePlayer()
+const track = computed(() => tracks[state.radioSeed ?? state.idx]!)
 const upcoming = computed(() => {
   const queue = state.queue || []
   const position = queue.indexOf(state.idx)
@@ -13,8 +13,8 @@ const upcoming = computed(() => {
 })
 // 推荐标签按原稿种子的专辑和歌手判定。
 function tag(index: number): string {
-  const seed = tracks[state.radioSeed ?? state.idx]!
-  return tracks[index]!.album === seed.album
+  const seed = track.value
+  return seed.album !== '—' && tracks[index]!.album === seed.album
     ? '同专辑'
     : tracks[index]!.artist === seed.artist
       ? '同歌手'
@@ -36,7 +36,10 @@ const { radioOn } = toRefs(state)
         先排同专辑、再同歌手，其余按相似度排队续播；播到队尾不会停，电台会继续往后续。开启后队列头会亮起「电台续播中」，队列顺序就是电台的播放顺序，照样可以拖拽调整。
       </p>
     </div>
-    <div class="radio-seed">
+    <!-- 当前种子卡片：开启后保持最初的歌曲。 -->
+    <div
+      class="radio-seed flex min-h-[82px] items-center gap-[14px] rounded-[16px] border border-transparent px-[14px] py-[12px]"
+    >
       <img
         :src="track.cover"
         alt=""
@@ -48,26 +51,34 @@ const { radioOn } = toRefs(state)
       </div>
       <span class="rseed-tag">种子 · SEED</span>
     </div>
-    <div
-      class="pl-actions mt-[14px] flex items-center gap-[12px]"
-      style="margin-top: 12px"
-    >
+    <div class="pl-actions mt-[12px] flex items-center gap-[12px]">
       <!-- 页面操作按钮：开始电台。 -->
       <BaseButton
         class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
         data-radio-toggle
-        >开始电台</BaseButton
-      ><span data-radio-status></span>
+        :aria-pressed="radioOn"
+        @click="controller()?.toggleRadio()"
+        >{{ radioOn ? '停止电台' : '开始电台' }}</BaseButton><span
+        data-radio-status
+        >{{
+          radioOn
+            ? `电台进行中 · 以《${track.title}》为种子，播完自动续播`
+            : '以当前播放的歌曲为种子，同专辑优先、再同歌手、其余按相似度排队'
+        }}</span
+      >
     </div>
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
     >
       接下来 · 电台队列
     </div>
-    <div class="flex flex-col gap-[5px]">
+    <div
+      class="flex flex-col gap-[5px]"
+      data-radio-list
+    >
       <!-- 电台曲目建议组件：保留下一首播放和相似标签。 --><TrackSuggestion
         v-for="(index, position) in upcoming"
-        :key="position"
+        :key="`${index}:${position}`"
         :index="index"
         :meta="tag(index)"
         show-album

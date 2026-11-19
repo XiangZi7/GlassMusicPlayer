@@ -1,23 +1,11 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
+import LyricIsland from '@/components/player/LyricIsland.vue'
 </script>
 
 <template>
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
-  <BaseButton
-    class="lyric-capsule absolute left-[50%] z-[6] flex max-w-[46%] items-center gap-[9px] rounded-full p-[8px_15px] text-[12.5px] font-bold whitespace-nowrap text-white"
-    data-stage-toggle
-    aria-label="打开全屏播放"
-    ><span class="cap-eq flex h-[12px] flex-none items-end gap-[2.5px]"
-      ><i></i><i></i><i></i></span
-    ><span
-      class="cap-text overflow-hidden text-ellipsis"
-      data-capsule-text
-    ></span
-    ><span class="cap-arrow flex-none text-[11px] opacity-[.65]"
-      >▸</span
-    ></BaseButton
-  >
+  <LyricIsland />
   <div
     class="win-bottom relative z-[4] grid h-[72px] flex-none grid-cols-[252px_minmax(0,1fr)_208px] items-center gap-[14px] p-[10px_18px_8px]"
   >
@@ -203,15 +191,10 @@ import BaseButton from '@/components/ui/BaseButton.vue'
         >0:00 / 0:00</span
       >
     </div>
-    <div
-      class="spec-bg pointer-events-none absolute right-[0] bottom-[0] left-[0] z-[0] h-[14px] overflow-hidden"
-      data-specbg
+    <canvas
+      class="player-spectrum pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[18px] w-full"
+      data-spectrum
       aria-hidden="true"
-    >
-      <div
-        class="spec-bars"
-        data-spec-bars
-      ></div>
-    </div>
+    />
   </div>
 </template>

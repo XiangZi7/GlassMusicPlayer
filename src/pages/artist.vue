@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
+import LibraryTabs from '@/components/player/LibraryTabs.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import { computed } from 'vue'
 import TrackList from '@/components/player/TrackList.vue'
@@ -21,19 +22,7 @@ const artistIndices = computed(() =>
     data-panel="artist"
   >
     <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
-    <PlayerTabs
-      class="pg-tabs mt-[16px] inline-flex max-w-[100%] flex-wrap gap-[4px] rounded-full p-[4px]"
-      role="tablist"
-      aria-label="音乐库分类"
-      hook="data-lib-tab"
-      :options="[
-        { label: '全部歌曲', value: 'library' },
-        { label: '专辑', value: 'albums' },
-        { label: '歌手', value: 'artists' },
-        { label: '我喜欢的', value: 'liked' },
-        { label: '最近播放', value: 'recent' },
-      ]"
-    />
+    <LibraryTabs />
     <div class="pl-head flex items-center gap-[18px]">
       <img
         data-ard-cover

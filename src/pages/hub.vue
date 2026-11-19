@@ -10,9 +10,9 @@
       <h3>功能全景</h3>
       <p>这个播放器现在有什么、这一轮补了什么、正式版还差什么 — 一页看清。</p>
     </div>
-    <div class="audit-grid mt-[16px] grid grid-cols-[repeat(3,1fr)] gap-[12px]">
+    <div class="audit-grid mt-4 grid grid-cols-[repeat(3,1fr)] gap-3">
       <div
-        class="audit-col rounded-[16px] border border-transparent p-[14px_15px]"
+        class="audit-col rounded-2xl border border-transparent p-[14px_15px]"
       >
         <h6>已经能用的</h6>
         <ul>
@@ -29,7 +29,7 @@
         </ul>
       </div>
       <div
-        class="audit-col rounded-[16px] border border-transparent p-[14px_15px]"
+        class="audit-col rounded-2xl border border-transparent p-[14px_15px]"
       >
         <h6>这一轮新补的</h6>
         <ul>
@@ -41,10 +41,9 @@
           <li>系统媒体控制 UI 位（页面下方桌面区）</li>
           <li>右侧正在播放面板可折叠（接缝箭头 / 设置开关）</li>
           <li>标签条、分页、排序与设置分段控件改滑动胶囊高亮</li>
-          <li>平台对接页：网易云 / 酷狗 / 酷我</li>
-          <li>歌单勾选导入 + 链接解析导入</li>
-          <li>导入歌单进侧边栏、可打开播放</li>
-          <li>每平台同步开关（自动同步 / 喜欢）</li>
+          <li>网易云、酷狗、酷我公开曲库搜索</li>
+          <li>公开歌单链接导入，曲目保存到侧边栏</li>
+          <li>点歌时读取平台提供的音频与歌词</li>
           <li>上传歌曲页：拖放 / 选文件进队列</li>
           <li>手动加歌：直接进曲库全站可搜可播</li>
           <li>新建歌单（侧边栏「我的歌单」）</li>
@@ -62,12 +61,12 @@
         </ul>
       </div>
       <div
-        class="audit-col rounded-[16px] border border-transparent p-[14px_15px]"
+        class="audit-col rounded-2xl border border-transparent p-[14px_15px]"
       >
         <h6>正式版还需要的</h6>
         <ul>
           <li>三方平台官方授权登录（OAuth）</li>
-          <li>真实音频引擎与本地文件夹扫描</li>
+          <li>本地音频文件导入与文件夹扫描</li>
           <li>账号体系与多设备云同步</li>
           <li>版权曲库与会员音质的授权校验</li>
           <li>离线缓存加密与下载断点续传</li>
@@ -85,8 +84,8 @@
         </ul>
       </div>
     </div>
-    <p class="src-note mt-[12px] text-[11.5px] leading-[1.65] opacity-[.55]">
-      说明：左边两列在本原型里都可点可操作（状态仅保存在本页内）；右列涉及账号、版权与服务器，属于正式开发阶段的工作，原型里不做假装接通。
+    <p class="src-note mt-3 text-[11.5px] leading-[1.65] opacity-[.55]">
+      公开歌单保存在本机。在线曲目能否播放取决于平台本次返回的音频。
     </p>
   </div>
 </template>

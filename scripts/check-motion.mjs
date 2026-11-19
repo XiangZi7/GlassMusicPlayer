@@ -155,7 +155,14 @@ function motionHandlers(source) {
   visit(tree)
   return handlers
 }
-const originalHandlers = motionHandlers(originalScript)
+// 仅将进度条时间来源替换为真实媒体时钟，保留鼠标提示和其余动效的原始校验。
+const expectedSeek = originalScript
+  .replace(
+    'var tr=TRACKS[state.idx]; state.t=seek.value/1000*tr.dur; render();',
+    'seekTo((seek.value / 1000) * currentDuration());'
+  )
+  .replace('var total=TRACKS[state.idx].dur;', 'var total=currentDuration();')
+const originalHandlers = motionHandlers(expectedSeek)
 const currentHandlers = motionHandlers(read('src/services/player/runtime.js'))
 for (const [key, value] of originalHandlers)
   assert.deepEqual(
@@ -164,7 +171,7 @@ for (const [key, value] of originalHandlers)
     `Motion input changed: ${key}`
   )
 
-// CSS 关键帧按名字与声明核对，保留天气、呼吸、频峰、光带、粒子及进出场。
+// CSS 关键帧按名字与声明核对，保留天气、呼吸、光带、粒子及进出场。
 function keyframes(css) {
   const frames = new Map()
   for (const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
@@ -190,11 +197,14 @@ const currentCss = ['src/styles/main.css', 'src/styles/player-effects.css']
   .filter(file => fs.existsSync(path.join(root, file)))
   .map(read)
   .join('\n')
+const expectedKeyframes = keyframes(originalCss)
+// 底栏频谱已使用实时音频数据，旧的随机脉冲关键帧不再使用。
+expectedKeyframes.delete('specPulse')
 assert.deepEqual(
   keyframes(currentCss),
-  keyframes(originalCss),
+  expectedKeyframes,
   'CSS keyframes changed'
 )
 console.log(
-  `Motion verified: ${fullscreen.length} fullscreen animations, ${desktop.length} desktop animations, ${keyframes(originalCss).size} CSS keyframes, ${originalHandlers.size} motion input handlers, and original fullscreen exit timing.`
+  `Motion verified: ${fullscreen.length} fullscreen animations, ${desktop.length} desktop animations, ${expectedKeyframes.size} CSS keyframes, ${originalHandlers.size} motion input handlers, and original fullscreen exit timing.`
 )

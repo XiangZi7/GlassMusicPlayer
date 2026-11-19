@@ -1,6 +1,32 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import QueueList from '@/components/player/QueueList.vue'
+import { usePlayer } from '@/composables/usePlayer'
+import { notify } from '@/services/notification'
+
+const { state, tracks } = usePlayer()
+const source = computed(() => tracks[state.idx]?.catalog)
+const playbackLabel = computed(() => {
+  if (state.catalogStatus === 'loading') return '正在获取音频…'
+  if (state.catalogStatus === 'preview') return '试听'
+  if (state.catalogStatus === 'unavailable') return '当前曲目暂不可播'
+  if (state.catalogStatus === 'error') return '音频加载失败'
+  return ''
+})
+
+// Windows 客户端通过系统浏览器打开曲目原站，浏览器预览使用普通链接。
+async function openSource(event: MouseEvent): Promise<void> {
+  if (!isTauri() || !source.value) return
+  event.preventDefault()
+  try {
+    await openUrl(source.value.sourceUrl)
+  } catch {
+    notify('无法打开原平台，请重试。', 'error')
+  }
+}
 </script>
 
 <template>
@@ -60,6 +86,25 @@ import QueueList from '@/components/player/QueueList.vue'
     <div class="subrow mt-[12px] flex gap-[7px]">
       <BaseButton data-lyricbtn>歌词</BaseButton
       ><BaseButton data-airbtn>输出 · 桌面音箱</BaseButton>
+    </div>
+    <!-- 在线曲目状态及原平台入口。 -->
+    <div
+      v-if="source"
+      class="mt-[10px] flex flex-wrap gap-[8px] text-[12px]"
+    >
+      <span
+        v-if="playbackLabel"
+        role="status"
+        >{{ playbackLabel }}</span
+      >
+      <a
+        :href="source.sourceUrl"
+        target="_blank"
+        rel="noreferrer"
+        class="underline"
+        @click="openSource"
+        >打开原平台</a
+      >
     </div>
     <div
       class="lyricbox mt-[12px] hidden p-[13px_14px] text-[13px] leading-[1.95] font-semibold"

@@ -25,6 +25,8 @@ src/
   services/player/fullscreen-motion.js # 原稿全屏分层切歌动画
   services/player/desktop-motion.js # 原稿桌面切歌与歌词动画
   services/desktop.ts              # Tauri 原生窗口调用
+  utils/http.ts                    # Axios 请求工厂及统一错误处理
+  api/index.ts                     # 业务接口路径、参数和响应类型
   styles/main.css                  # Tailwind 入口与宿主尺寸
   styles/theme.css                 # 原稿颜色和本地字体令牌
   styles/player-effects.css        # 玻璃材质、状态覆盖、伪元素及原始动画
@@ -49,9 +51,15 @@ Windows 10 阴影留白通过原生鼠标命中计算切换穿透，点击交给
 
 设置使用独立 Tauri 原生窗口，主界面继续播放并保留当前页面。窗口按“通用、音质、外观、桌面、快捷键、关于”分类，右侧内容独立滚动，底栏固定。原稿卡片、开关、滑动标签和字体保持不变；重置修改本窗口草稿，应用将整份偏好同步回主播放器，保存应用后关闭，取消放弃未应用的改动。
 
-原稿演示边界保留：歌曲没有真实音源；平台授权、天气、下载和上传曲库使用原稿演示流程。
+在线搜索、公开歌单导入及曲目点播使用 MiraiMusic-Server 的 FastAPI。导入歌单保存于当前播放器的本机存储，播放权限以原平台当次返回为准。本地样例、天气、下载和上传曲库沿用原稿演示流程。
+
+在标题栏或搜索页输入后按回车或点击放大镜提交。「平台对接」可通过网易云公开主页或酷我 UID 浏览并勾选公开歌单，关联记录保存在本机。酷狗账户歌单需要平台授权，公开歌单仍可通过分享链接导入。
+
+平台标识以本地 Iconify SVG 渲染。网易云图形来自 [Simple Icons](https://github.com/simple-icons/simple-icons/blob/develop/icons/neteasecloudmusic.svg)，酷狗和酷我图形参考其应用图标绘制。 [酷狗音乐](https://apps.apple.com/cn/app/id472208016) · [酷我音乐](https://apps.apple.com/cn/app/id588673713)
 
 ## 运行和验证
+
+先在 MiraiMusic-Server 仓库启动 `uv run --locked uvicorn main:app`。播放器默认请求 `http://127.0.0.1:8000`，也可以在 Vite 环境中设置 `VITE_APP_BASE_API` 指向其他服务地址。公开歌单导入支持三平台带数字 ID 的歌单详情链接。
 
 ```sh
 pnpm install
@@ -64,4 +72,4 @@ cargo test --manifest-path src-tauri/Cargo.toml --lib desktop::
 pnpm tauri build --debug --no-bundle
 ```
 
-`check:motion` 与 `ui/` 原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。前端单独预览可用 `pnpm dev --port 4183`；Tauri 开发使用 `127.0.0.1:1420`，避开 Windows 上 `localhost` 优先解析到已占用 IPv6 地址的情况。`pnpm tauri dev` 会自动启动 Vite，请勿同时运行另一个默认端口的 `pnpm dev`。Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。
+`check:motion` 与 `ui/` 原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。前端单独预览使用 `pnpm dev`。浏览器与 Tauri 开发都使用 `127.0.0.1:1420`，FastAPI 按此来源放行跨域请求。`pnpm tauri dev` 会自动启动 Vite。Windows 调试应用输出为 `src-tauri/target/debug/miraimusic.exe`。

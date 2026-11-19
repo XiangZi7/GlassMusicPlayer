@@ -53,6 +53,12 @@ export const router = createRouter({
           meta: { playerPage: 'recent' },
         },
         {
+          path: 'smart',
+          name: 'library-smart',
+          component: () => import('@/pages/library/smart.vue'),
+          meta: { playerPage: 'smart' },
+        },
+        {
           path: 'playlist',
           component: () => import('@/pages/playlist.vue'),
           meta: { playerPage: 'playlist' },
@@ -87,6 +93,11 @@ export const router = createRouter({
     {
       path: '/settings',
       component: () => import('@/pages/settings/index.vue'),
+    },
+    {
+      path: '/desktop/island',
+      name: 'desktop-island',
+      component: () => import('@/pages/lyric-island.vue'),
     },
     { path: '/desktop/:mode', component: () => import('@/pages/desktop.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },

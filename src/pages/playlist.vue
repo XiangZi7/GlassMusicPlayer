@@ -4,10 +4,22 @@ import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import { computed } from 'vue'
 import TrackList from '@/components/player/TrackList.vue'
 import { usePlayer } from '@/composables/usePlayer'
-const { state, tracks } = usePlayer()
-const playlistIndices = computed(() =>
-  tracks.map((_, index) => (state.playlistIdx + index) % tracks.length)
+const { state, tracks, controller } = usePlayer()
+const imported = computed(() => state.customPl?.trackIndices)
+const playlistIndices = computed(
+  () =>
+    imported.value ??
+    tracks
+      .map((_, index) => (state.playlistIdx + index) % tracks.length)
+      .filter(index => !tracks[index]?.catalog)
 )
+
+// 导入歌单按歌单顺序播放，内置歌单继续从原有索引开始。
+function playAll(): void {
+  if (!imported.value) controller()?.selectTrack(state.playlistIdx, true)
+  else if (imported.value.length)
+    controller()?.playTracks(imported.value, imported.value[0]!)
+}
 </script>
 
 <template>
@@ -16,12 +28,12 @@ const playlistIndices = computed(() =>
     class="page-panel hidden"
     data-panel="playlist"
   >
-    <div class="pl-head flex items-center gap-[18px]">
+    <div class="pl-head flex items-center gap-4.5">
       <img
         data-pl-cover
         alt="歌单封面"
       />
-      <div class="pl-info min-w-[0]">
+      <div class="pl-info min-w-0">
         <div
           class="pl-kicker font-mono text-[10.5px] font-bold tracking-[.14em] opacity-[.62]"
         >
@@ -29,11 +41,12 @@ const playlistIndices = computed(() =>
         </div>
         <h3 data-pl-name></h3>
         <p data-pl-desc></p>
-        <div class="pl-actions mt-[14px] flex items-center gap-[12px]">
+        <div class="pl-actions mt-[14px] flex items-center gap-3">
           <!-- 页面操作按钮：播放全部。 -->
           <BaseButton
             class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
-            data-pl-play
+            :disabled="!playlistIndices.length"
+            @click="playAll"
             ><svg
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -72,6 +85,8 @@ const playlistIndices = computed(() =>
     <!-- 歌曲列表组件：统一曲目选择、排序、分页及播放状态。 -->
     <TrackList
       :indices="playlistIndices"
+      :play-as-queue="!!imported"
+      :empty="imported ? '歌单里没有可读取的曲目。' : undefined"
       list-key="pl"
     />
   </div>

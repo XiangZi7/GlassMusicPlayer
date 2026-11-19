@@ -2,14 +2,18 @@
 import { computed, useTemplateRef } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useSlidingPill } from '@/composables/useSlidingPill'
-const props = defineProps<{
-  pageKey: string
-  total: number
-  slots?: (number | string)[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    pageKey: string
+    total: number
+    slots?: (number | string)[]
+    pageSize?: number
+  }>(),
+  { pageSize: 10 }
+)
 const current = defineModel<number>('current', { default: 1 })
 const root = useTemplateRef<HTMLElement>('root')
-const pages = computed(() => Math.ceil(props.total / 10))
+const pages = computed(() => Math.ceil(props.total / props.pageSize))
 const slots = computed(() => {
   const count = pages.value,
     value = current.value

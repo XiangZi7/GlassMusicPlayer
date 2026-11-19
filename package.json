@@ -16,23 +16,24 @@
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/noto-sans-sc": "^5.3.1",
     "@iconify/vue": "^5.0.5",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/plugin-opener": "^2.7.3",
     "@vueuse/core": "^15.0.0",
+    "axios": "^1.21.1",
     "pinia": "^4.1.0",
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.5",
-    "vue": "^3.5.13",
-    "vue-i18n": "^11.4.19",
-    "vue-router": "^5.5.0"
+    "vue": "^3.5.45",
+    "vue-i18n": "^11.4.22",
+    "vue-router": "^5.5.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",
-    "@tauri-apps/cli": "^2",
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@tauri-apps/cli": "^2.12.6",
+    "@vitejs/plugin-vue": "^6.0.11",
     "typescript": "~6.0.3",
-    "vite": "^8.0.16",
-    "vue-tsc": "^3.3.5"
+    "vite": "^8.3.8",
+    "vue-tsc": "^3.3.14"
   }
 }
