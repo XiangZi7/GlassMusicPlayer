@@ -19,11 +19,8 @@ const totalTime = computed(() =>
     data-panel="library"
   >
     <div class="flex h-full min-h-0 flex-col">
-      <div class="pg-head flex-none">
-        <h3>音乐库</h3>
-      </div>
       <!-- 音乐库分类：每个标签页独立展示对应内容。 -->
-      <LibraryTabs />
+      <LibraryTabs flush />
       <div
         class="mt-3 flex flex-none flex-wrap items-center justify-between gap-2"
       >

@@ -3,6 +3,7 @@ import { toRefs } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import TrackSuggestion from '@/components/player/TrackSuggestion.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, tracks, controller } = usePlayer()
 const track = computed(() => tracks[state.radioSeed ?? state.idx]!)
@@ -83,16 +84,12 @@ const { radioOn } = toRefs(state)
         :meta="tag(index)"
         show-album
       />
-      <div
+      <EmptyState
         v-if="!upcoming.length"
-        class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
-      >
-        队列到这里就结束了{{
-          radioOn
-            ? ' — 电台会在播完前自动续上新的一批'
-            : '，开启电台后会自动续播'
-        }}。
-      </div>
+        class="min-h-[140px]"
+        icon="playlist"
+        :label="radioOn ? '电台正在等待后续曲目' : '电台队列为空'"
+      />
     </div>
   </div>
 </template>

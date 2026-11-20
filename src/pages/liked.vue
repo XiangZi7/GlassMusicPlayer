@@ -17,27 +17,12 @@ const likedIndices = computed(() =>
     data-panel="liked"
   >
     <div class="flex h-full min-h-0 flex-col">
-      <div class="pg-head flex-none">
-        <h3>我喜欢的</h3>
-        <p>
-          点过爱心的歌曲都在这里 — 共
-          <span data-liked-total>0</span> 首，和音乐库的收藏列表同步。
-        </p>
-      </div>
       <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
-      <LibraryTabs />
+      <LibraryTabs flush />
+      <!-- 收藏与最近播放共用紧凑排序布局，分类标签已说明当前页面。 -->
       <div
-        class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
+        class="sortbar mt-3 mb-1 flex flex-none flex-wrap items-center gap-2"
       >
-        收藏歌曲
-      </div>
-      <div
-        class="sortbar m-[12px_2px_2px] flex flex-none flex-wrap items-center gap-[9px]"
-      >
-        <span
-          class="sort-lab text-[11px] font-extrabold tracking-[.08em] opacity-[.55]"
-          >排序</span
-        ><!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
         <PlayerTabs
           kind="segment"
           class="sort-seg inline-flex gap-[3px] rounded-full p-[3px]"
@@ -57,6 +42,7 @@ const likedIndices = computed(() =>
         :indices="likedIndices"
         list-key="liked"
         fit-height
+        empty-icon="heart"
         empty="还没有收藏的歌曲。在播放栏或全屏播放页点爱心，即可收藏。"
       />
     </div>

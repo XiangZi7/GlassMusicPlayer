@@ -4,6 +4,7 @@ import type { MusicPlatform } from '@/api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlatformImport } from '@/composables/usePlatformImport'
 import { defaultCover, platformNames } from '@/services/player/catalog'
 
@@ -164,18 +165,18 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
           · 已选 {{ selected.length }}</span
         >
       </h4>
-      <p
+      <EmptyState
         v-if="!active"
-        class="empty-note py-[10px] text-[13px]"
-      >
-        连接平台后，在这里选择账户的公开歌单。
-      </p>
-      <p
+        class="min-h-[120px]"
+        icon="link"
+        label="连接平台后可选择账户的公开歌单"
+      />
+      <EmptyState
         v-else-if="active === 'kugou'"
-        class="empty-note py-[10px] text-[13px]"
-      >
-        酷狗个人歌单需要账户授权。可将酷狗的公开歌单分享链接粘贴到下方导入。
-      </p>
+        class="min-h-[120px]"
+        icon="link"
+        label="酷狗个人歌单需要账户授权，当前可通过公开歌单分享链接导入"
+      />
       <template v-else>
         <form
           v-if="!activeProfile"
@@ -224,12 +225,12 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
         >
           正在读取公开歌单…
         </p>
-        <p
+        <EmptyState
           v-else-if="page && !page.playlists.length"
-          class="empty-note py-[10px] text-[13px]"
-        >
-          本页没有公开歌单。
-        </p>
+          class="min-h-[120px]"
+          icon="playlist"
+          label="本页没有公开歌单"
+        />
         <!-- 保留歌单封面、歌曲数和独立勾选操作。 -->
         <label
           v-for="item in page?.playlists"

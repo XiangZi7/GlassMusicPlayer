@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
 import LibraryTabs from '@/components/player/LibraryTabs.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { computed } from 'vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { tracks, controller } = usePlayer()
@@ -18,15 +19,19 @@ const indices = computed(() =>
     data-panel="albums"
   >
     <div class="flex h-full min-h-0 flex-col">
-      <div class="pg-head flex-none">
-        <h3>专辑</h3>
-        <p>音乐库里的全部专辑 — 点任意一张封面进入专辑详情。</p>
-      </div>
       <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
-      <LibraryTabs />
+      <LibraryTabs flush />
       <div class="mt-4 min-h-0 flex-1 overflow-y-auto">
         <!-- 专辑卡片区：按原稿排版进入详情页。 -->
-        <div class="feat-grid grid grid-cols-[repeat(4,1fr)] gap-[14px]">
+        <EmptyState
+          v-if="!indices.length"
+          icon="playlist"
+          label="暂无专辑"
+        />
+        <div
+          v-else
+          class="feat-grid grid grid-cols-[repeat(4,1fr)] gap-[14px]"
+        >
           <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
           <BaseButton
             v-for="index in indices"

@@ -4,6 +4,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import { computed } from 'vue'
 import TrackList from '@/components/player/TrackList.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, tracks, controller } = usePlayer()
 const uploadedIndices = computed(() =>
@@ -113,13 +114,12 @@ const { uploads, upAdded, upMsg } = toRefs(state)
         >
       </div>
     </div>
-    <div
-      class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
-      v-show="!uploads.length"
-    >
-      队列还是空的 —
-      选几首你自己的歌试试，文件名和大小会真实读出来，加入后能在音乐库和搜索里找到。
-    </div>
+    <EmptyState
+      v-if="!uploads.length"
+      class="min-h-[140px]"
+      icon="upload"
+      label="上传队列为空，选择音频文件后可加入曲库"
+    />
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
     >
@@ -160,13 +160,8 @@ const { uploads, upAdded, upMsg } = toRefs(state)
     <TrackList
       :indices="uploadedIndices"
       list-key="up"
+      empty-icon="upload"
+      empty="暂无上传歌曲"
     />
-    <div
-      class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
-      v-show="!upAdded"
-    >
-      还没有上传的歌 —
-      上面手动添加或从队列加入的第一首会出现在这里，也会同步进音乐库。
-    </div>
   </div>
 </template>

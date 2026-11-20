@@ -3,6 +3,7 @@ import { toRefs } from 'vue'
 import { computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import TrackSuggestion from '@/components/player/TrackSuggestion.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, controller } = usePlayer()
 const definitions = [
@@ -49,6 +50,7 @@ const { smartOpen } = toRefs(state)
         <!-- 智能歌单操作按钮：复用公共按钮组件。 -->
         <BaseButton
           class="smart-play min-h-[32px] rounded-full border-none p-[7px_15px] text-[12px] font-extrabold"
+          :disabled="!list.indices.length"
           @click="controller()?.playSmart(list.kind)"
           >播放全部</BaseButton
         >
@@ -64,6 +66,12 @@ const { smartOpen } = toRefs(state)
         class="smart-rows mt-[11px] flex flex-col gap-[5px]"
       >
         <!-- 智能歌单曲目建议组件：播放、下一首播放与统计摘要。 -->
+        <EmptyState
+          v-if="!list.indices.length"
+          class="min-h-[140px]"
+          icon="playlist"
+          :label="list.name + '暂无曲目'"
+        />
         <TrackSuggestion
           v-for="index in list.indices"
           :key="index"

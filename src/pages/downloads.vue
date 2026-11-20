@@ -3,6 +3,7 @@ import { toRefs } from 'vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import { computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { downloads } from '@/constants/music'
 const { state } = usePlayer()
@@ -53,7 +54,13 @@ const { dlPaused } = toRefs(state)
       下载队列
     </div>
     <!-- 下载任务区：保留原稿演示任务与单项暂停/继续操作。 -->
-    <div>
+    <EmptyState
+      v-if="!downloads.length"
+      class="min-h-[140px]"
+      icon="download"
+      label="下载队列为空"
+    />
+    <div v-else>
       <div
         v-for="(item, index) in downloads"
         :key="item.name"

@@ -2,6 +2,7 @@
 import { computed, ref, toRefs, useTemplateRef } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import TrackRow from '@/components/player/TrackRow.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 import { usePlayer } from '@/composables/usePlayer'
 
@@ -9,6 +10,15 @@ const props = defineProps<{
   indices: number[]
   listKey: string
   empty?: string
+  emptyIcon?:
+    | 'music'
+    | 'search'
+    | 'playlist'
+    | 'download'
+    | 'upload'
+    | 'link'
+    | 'heart'
+    | 'history'
   playAsQueue?: boolean
   fitHeight?: boolean
 }>()
@@ -16,7 +26,7 @@ const { state, tracks, controller } = usePlayer()
 const viewport = useTemplateRef<HTMLElement>('viewport')
 const height = ref(0)
 const trackRowHeight = 52
-const paginationHeight = 68
+const paginationHeight = 70
 
 useResizeObserver(
   () => (props.fitHeight ? viewport.value : null),
@@ -79,12 +89,13 @@ const { idx } = toRefs(state)
   >
     <div
       data-vue-tracklist
-      :class="{ 'min-h-0 overflow-y-auto': fitHeight }"
+      :class="{ 'flex min-h-0 flex-1 flex-col overflow-y-auto': fitHeight }"
     >
-      <!-- 本地或已导入的曲目共用相同播放行。 -->
+      <!-- 满页平分剩余高度，短页保持原始行高，不把空白留在满页末尾。 -->
       <TrackRow
         v-for="(index, position) in visible"
         :key="`${index}:${position}`"
+        :class="{ 'flex-1': fitHeight && visible.length === pageSize }"
         :track="tracks[index]!"
         :number="
           playAsQueue ? (current - 1) * pageSize + position + 1 : index + 1
@@ -92,12 +103,12 @@ const { idx } = toRefs(state)
         :active="index === idx"
         @play="play(index)"
       />
-      <div
-        v-if="!indices.length && empty"
-        class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
-      >
-        {{ empty }}
-      </div>
+      <EmptyState
+        v-if="!indices.length"
+        :class="{ 'min-h-[140px]': !fitHeight }"
+        :icon="emptyIcon || 'music'"
+        :label="empty || '暂无歌曲'"
+      />
     </div>
     <PaginationBar
       :class="{ 'shrink-0': fitHeight }"

@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import TrackList from '@/components/player/TrackList.vue'
 import TrackRow from '@/components/player/TrackRow.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import {
   searchPageSize,
   useCatalogSearch,
@@ -103,24 +104,25 @@ const searchLabel = computed(() =>
       >
         搜索中…
       </div>
-      <p
+      <EmptyState
         v-else-if="!query"
-        class="empty-note p-[14px_4px] text-[13px]"
-      >
-        输入关键词搜索{{ platformNames[platform] }}。
-      </p>
+        class="min-h-[160px]"
+        icon="search"
+        :label="'输入关键词搜索' + platformNames[platform]"
+      />
       <p
         v-else-if="failed"
         class="empty-note p-[14px_4px] text-[13px]"
+        role="alert"
       >
         搜索暂不可用。
       </p>
-      <p
+      <EmptyState
         v-else-if="!onlineRows.length"
-        class="empty-note p-[14px_4px] text-[13px]"
-      >
-        没有找到匹配的歌曲。
-      </p>
+        class="min-h-[160px]"
+        icon="search"
+        label="没有找到匹配的歌曲"
+      />
       <template v-else>
         <TrackRow
           v-for="(track, position) in onlineRows"
@@ -163,13 +165,9 @@ const searchLabel = computed(() =>
       <TrackList
         :indices="searchIndices"
         list-key="search"
+        empty-icon="search"
+        empty="没有找到匹配的歌曲"
       />
-      <div
-        class="empty-note p-[14px_4px] text-[13px] leading-[1.7] opacity-[.55]"
-        v-if="!searchIndices.length"
-      >
-        没有找到匹配的歌曲，换个关键词试试。
-      </div>
       <div
         class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
       >
