@@ -10,9 +10,12 @@ import {
   watch,
 } from 'vue'
 import { useRoute } from 'vue-router'
-import { isTauri } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
 import { emitTo, listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { LogicalPosition } from '@tauri-apps/api/dpi'
+import { Menu, MenuItem, type MenuOptions } from '@tauri-apps/api/menu'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { formatTime } from '@/utils/format'
 import {
@@ -23,6 +26,7 @@ import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 
 const route = useRoute()
 const root = useTemplateRef<HTMLElement>('root')
+const surface = useTemplateRef<HTMLElement>('surface')
 const mode = computed(() => String(route.params.mode))
 // 响应式状态：小窗只接收原稿快照，不创建另一套播放器或改写原稿卡片。
 const state = reactive({
@@ -67,6 +71,86 @@ const progress = computed(
 )
 let unlisten: UnlistenFn | undefined
 let disposed = false
+let lastSurfaceSize = ''
+let contextMenu: Menu | undefined
+let lockMenuItem: MenuItem | undefined
+let contextOpening = false
+
+// 菜单只作用于当前桌面卡片，不使用会退出整个应用的全局 Quit 项。
+async function openContextMenu(event: MouseEvent): Promise<void> {
+  if (!isTauri() || contextOpening) return
+  const window = getCurrentWindow()
+  if (!['lyrics', 'mini', 'media'].includes(window.label)) return
+  contextOpening = true
+  try {
+    if (!contextMenu) {
+      const items: NonNullable<MenuOptions['items']> = [
+        {
+          id: `${window.label}-open-main`,
+          text: '打开主播放器',
+          action: () => sendAction('focus'),
+        },
+      ]
+      if (mode.value === 'lyrics') {
+        lockMenuItem = await MenuItem.new({
+          id: 'lyrics-lock',
+          text: '锁定桌面歌词',
+          action: () => {
+            const locked = !state.snapshot.locked
+            state.snapshot = { ...state.snapshot, locked }
+            void emitTo('main', 'desktop-lock', locked)
+          },
+        })
+        items.push(lockMenuItem)
+      }
+      items.push(
+        { item: 'Separator' },
+        {
+          id: `${window.label}-close`,
+          text: '关闭小窗',
+          action: () => {
+            void window.close()
+          },
+        }
+      )
+      contextMenu = await Menu.new({ items })
+    }
+    if (lockMenuItem)
+      await lockMenuItem.setText(
+        state.snapshot.locked ? '解除歌词锁定' : '锁定桌面歌词'
+      )
+    await contextMenu.popup(
+      new LogicalPosition(event.clientX, event.clientY),
+      window
+    )
+  } catch (error) {
+    console.warn('打开桌面卡片菜单失败', error)
+  } finally {
+    contextOpening = false
+  }
+}
+
+// 只把卡片的内容高度同步到自身原生窗口，阴影在卡片外，不拉伸内层。
+useResizeObserver(
+  surface,
+  () => {
+    if (!isTauri() || !surface.value) return
+    const height = surface.value.offsetHeight
+    const key = `${mode.value}:${height}`
+    if (height < 48 || key === lastSurfaceSize) return
+    lastSurfaceSize = key
+    void invoke('resize_desktop_surface', { contentHeight: height }).catch(
+      error => {
+        console.warn('调整桌面卡片大小失败', error)
+      }
+    )
+  },
+  { box: 'border-box' }
+)
+useEventListener('keydown', event => {
+  if (event.key === 'Escape' && mode.value === 'mini' && isTauri())
+    void getCurrentWindow().close()
+})
 
 // 原稿小窗操作定向交回主窗口，继续调用原来的播放、切歌与收藏方法。
 function sendAction(type: SourceAction['type'], value?: number): void {
@@ -90,7 +174,9 @@ watch(
   () => state.snapshot.locked,
   locked => {
     if (isTauri() && mode.value === 'lyrics')
-      void getCurrentWindow().setIgnoreCursorEvents(locked)
+      void invoke('set_desktop_lock', { locked }).catch(error =>
+        console.warn('同步桌面歌词锁定失败', error)
+      )
   }
 )
 watch(
@@ -111,6 +197,7 @@ watch(
   }
 )
 onMounted(async () => {
+  document.documentElement.dataset.desktopSurface = 'true'
   if (!isTauri()) return
   const stop = await listen<SourceSnapshot>('player-snapshot', event => {
     state.snapshot = event.payload
@@ -123,8 +210,11 @@ onMounted(async () => {
   await emitTo('main', 'player-ready')
 })
 onUnmounted(() => {
+  delete document.documentElement.dataset.desktopSurface
   disposed = true
   unlisten?.()
+  void contextMenu?.close().catch(() => undefined)
+  void lockMenuItem?.close().catch(() => undefined)
   root.value
     ?.getAnimations({ subtree: true })
     .forEach(animation => animation.cancel())
@@ -137,11 +227,13 @@ onUnmounted(() => {
     ref="root"
     id="desk"
     class="desk native-desktop border-line relative h-[400px] overflow-hidden rounded-[20px] border text-left"
+    @contextmenu.prevent="openContextMenu"
   >
     <div
       v-if="mode === 'lyrics'"
       class="desk-lyr absolute top-[24px] left-[26px] z-[3] w-[min(440px,calc(100%_-_52px))] rounded-[16px] p-[12px_16px_13px] text-white"
       id="deskLyr"
+      ref="surface"
     >
       <div
         class="desk-lyr-head mb-[8px] flex cursor-grab items-center gap-[8px] text-[10.5px] font-extrabold tracking-[.1em] opacity-[.75] select-none"
@@ -194,6 +286,7 @@ onUnmounted(() => {
       v-else-if="mode === 'mini'"
       class="tray-pop absolute right-[12px] bottom-[56px] z-[6] w-[324px] max-w-[calc(100%_-_24px)] rounded-[18px] p-[14px] text-white"
       id="trayPop"
+      ref="surface"
     >
       <div
         class="tray-pop-head mb-[11px] flex items-center justify-between text-[11px] font-extrabold tracking-[.1em]"
@@ -320,6 +413,7 @@ onUnmounted(() => {
       v-else
       class="desk-smtc absolute top-[26px] right-[22px] z-[3] flex w-[min(368px,calc(100%_-_44px))] items-center gap-[12px] rounded-[16px] p-[12px_14px] text-white"
       id="deskSmtc"
+      ref="surface"
     >
       <span
         class="smtc-tag absolute top-[-9px] left-[12px] rounded-[99px] bg-white p-[2px_8px] text-[9px] font-extrabold tracking-[.08em]"
@@ -401,24 +495,60 @@ onUnmounted(() => {
   </div>
 </template>
 <style scoped>
+:global(html[data-desktop-surface]),
+:global(html[data-desktop-surface] body),
+:global(html[data-desktop-surface] #app) {
+  background: transparent !important;
+}
 .native-desktop {
   width: 100%;
-  height: 100dvh;
+  height: auto;
   min-height: 0;
   margin: 0;
+  padding: 32px;
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+.native-desktop::before {
+  display: none;
 }
 .native-desktop .desk-lyr,
 .native-desktop .tray-pop,
 .native-desktop .desk-smtc {
   position: relative;
   inset: auto;
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  height: auto;
   margin: 0;
-  border-radius: 0;
-  box-shadow: none;
+  background: linear-gradient(
+    135deg,
+    rgba(32, 35, 46, 0.97),
+    rgba(14, 16, 24, 0.96)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+}
+.native-desktop .desk-lyr {
+  width: 440px;
+  border-radius: 16px;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.native-desktop .tray-pop {
+  width: 324px;
+  border-radius: 18px;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.native-desktop .desk-smtc {
+  width: 368px;
+  border-radius: 16px;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 </style>

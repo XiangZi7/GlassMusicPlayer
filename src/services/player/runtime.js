@@ -1,4 +1,5 @@
 import { createFullscreenMotion } from '@/services/player/fullscreen-motion'
+import { fullscreenTitleClass } from '@/services/player/fullscreen-title'
 import {
   createCatalogAudio,
   parseCatalogLyrics,
@@ -218,16 +219,37 @@ export function mountSourcePlayer(root, options = {}) {
       // 歌词不可用时仍可正常听歌。
     }
   }
-  const animateFsTrackChange = createFullscreenMotion({
-    players,
-    state,
-    tracks: TRACKS,
-    document,
-    window,
-    setTimeout,
-    queueNextTi,
-  })
+  const { animateFsTrackChange, animateFsEntrance, cancelFsStageAnims } =
+    createFullscreenMotion({
+      players,
+      state,
+      tracks: TRACKS,
+      document,
+      window,
+      setTimeout,
+      queueNextTi,
+    })
   var fsCloseTimer = null
+  // 用户切换系统减少动态效果时，立即交还舞台的 CSS 静止状态。
+  const stageMotionPreference = window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  )
+  function cancelStageMotion() {
+    players().forEach(function (p) {
+      cancelFsStageAnims(p.querySelector('[data-fs]'))
+    })
+  }
+  function syncStageMotionPreference() {
+    if (stageMotionPreference.matches) cancelStageMotion()
+  }
+  stageMotionPreference.addEventListener('change', syncStageMotionPreference)
+  cleanups.push(() => {
+    stageMotionPreference.removeEventListener(
+      'change',
+      syncStageMotionPreference
+    )
+    cancelStageMotion()
+  })
 
   // 按原稿格式显示播放时间。
   function fmt(s) {
@@ -845,6 +867,7 @@ export function mountSourcePlayer(root, options = {}) {
     var s = state.settings
     document.body.classList.toggle('wx-off', !s.weather)
     document.body.classList.toggle('calm', !s.motion)
+    if (!s.motion) cancelStageMotion()
     players().forEach(function (p, pi) {
       var eff =
         s.glassStyle === 'frosted'
@@ -984,6 +1007,14 @@ export function mountSourcePlayer(root, options = {}) {
     audio.setSpectrumMotion(state.settings.motion)
     const npOpen = state[nowPlayingKey()]
     var tr = { ...TRACKS[state.idx], dur: currentDuration() }
+    audio.setSpectrumArtwork(tr.cover, tr.glow, !!tr.catalog)
+    audio.setSpectrumPlayback({
+      playing: state.playing,
+      time: state.t,
+      duration: tr.dur,
+      seed: state.idx,
+      demo: !tr.catalog,
+    })
     var ratio = tr.dur ? state.t / tr.dur : 0
     var fls = fsLinesFor(state.idx, tr.dur)
     var fli = 0
@@ -1067,6 +1098,14 @@ export function mountSourcePlayer(root, options = {}) {
       p.querySelectorAll('[data-title]').forEach(function (el) {
         el.textContent = tr.title
       })
+      var titleEl = p.querySelector('.fs-titleblock h4')
+      if (titleEl) {
+        var titleClass = fullscreenTitleClass(tr.title || '')
+        ;['t-mid', 't-long', 't-xlong'].forEach(function (tier) {
+          titleEl.classList.toggle(tier, titleClass === tier)
+        })
+        titleEl.setAttribute('title', tr.title)
+      }
       p.querySelectorAll('[data-artist]').forEach(function (el) {
         el.textContent = tr.artist + ' · ' + tr.album
       })
@@ -1401,7 +1440,7 @@ export function mountSourcePlayer(root, options = {}) {
     if (v) state.timer = setInterval(tick, 250)
     render()
   }
-  // 沿用原稿全屏舞台的进入、退出与底栏动画。
+  // 同步最新版原稿：每次打开分层入场，关闭先取消入场/切歌，再镜像退场。
   function setStage(open) {
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (open) {
@@ -1415,9 +1454,14 @@ export function mountSourcePlayer(root, options = {}) {
       state.stage = true
       state._lyrKey = ''
       render()
+      animateFsEntrance()
       return
     }
     if (!state.stage) return
+    players().forEach(function (p) {
+      var fs = p.querySelector('[data-fs]')
+      if (fs) cancelFsStageAnims(fs)
+    })
     state.stage = false
     state.fsQ = false
     render()

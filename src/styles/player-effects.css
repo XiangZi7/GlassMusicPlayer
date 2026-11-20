@@ -4298,10 +4298,19 @@ footer {
   }
 }
 
-/* 底栏频谱：空闲时显示基线，播放时由画布叠加实际频率能量。 */
+/* 原稿频谱贴底作背景：14px 高、左右留 2px、顶部 1px 圆角。
+   画布负责真实频峰与示例曲目的律动，暂停时保留曲目自己的静态轮廓。 */
 .player-spectrum {
-  background: repeating-linear-gradient(90deg, rgb(255 255 255 / 13%) 0 4px, transparent 4px 7px)
-    left bottom / 100% 2px no-repeat;
+  overflow: hidden;
+  transition: color 0.6s ease;
+}
+
+.spectrum-note {
+  display: none;
+}
+
+.player-spectrum[data-spectrum-mode='simulated'] + .spectrum-note {
+  display: block;
 }
 
 .win-bottom > .mini,
@@ -5350,5 +5359,79 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .desk-xghost {
     display: none;
+  }
+}
+
+/* 关闭动效时全屏关闭不保留动画层；系统偏好切换也能立即生效。 */
+body.calm .win.fs-closing .fs {
+  display: none;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .win.fs-closing .fs {
+    display: none;
+    animation: none;
+  }
+}
+
+/* 最新原稿：全屏入场交给分层 WAAPI；歌名按长度缩字号，最多三行。 */
+.win.fs-open .fs {
+  animation: none;
+}
+
+.fs-titleblock {
+  @apply overflow-hidden;
+}
+
+.fs-kicker {
+  @apply relative z-[2] mb-0;
+}
+
+.fs-titleblock h4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  clear: both;
+}
+
+.fs-titleblock h4.t-mid {
+  font-size: 52px;
+  line-height: 1.04;
+}
+
+.fs-titleblock h4.t-long {
+  font-size: 44px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.fs-titleblock h4.t-xlong {
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+@media (max-width: 1020px) {
+  .fs-titleblock h4.t-mid {
+    font-size: 46px;
+  }
+  .fs-titleblock h4.t-long,
+  .fs-titleblock h4.t-xlong {
+    font-size: 38px;
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 640px) {
+  .fs-titleblock h4.t-mid {
+    font-size: 34px;
+  }
+  .fs-titleblock h4.t-long,
+  .fs-titleblock h4.t-xlong {
+    font-size: 29px;
+    line-height: 1.12;
   }
 }

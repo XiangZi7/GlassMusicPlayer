@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import vm from 'node:vm'
 
 const root = path.resolve(import.meta.dirname, '..')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
@@ -81,6 +82,18 @@ assert.deepEqual(
   ),
   fullscreen,
   'Fullscreen animation changed'
+)
+const currentFullscreen = read('src/services/player/fullscreen-motion.js')
+const entrance = findFunction(originalScript, 'animateFsEntrance')
+assert.deepEqual(
+  canonical(findFunction(currentFullscreen, 'animateFsEntrance').body),
+  canonical(entrance.body),
+  'Fullscreen entrance choreography changed'
+)
+assert.deepEqual(
+  canonical(findFunction(currentFullscreen, 'cancelFsStageAnims').body),
+  canonical(findFunction(originalScript, 'cancelFsStageAnims').body),
+  'Fullscreen entrance/track-change cancellation changed'
 )
 const desktop = animationCalls(
   findFunction(originalScript, 'animateDeskTrackChange')
@@ -205,6 +218,188 @@ assert.deepEqual(
   expectedKeyframes,
   'CSS keyframes changed'
 )
+// 真正调用动画控制器，校验入场 ↔ 切歌 ↔ 关闭/立即重开没有残余 run 或 ghost。
+const ghosts = new Set()
+const nodes = new Map()
+const timers = new Map()
+let timerId = 0
+let liquid = false
+const media = { matches: false }
+function element(name) {
+  const classes = new Set()
+  const el = {
+    name,
+    style: {},
+    className: '',
+    parentNode: {
+      insertBefore(ghost) {
+        ghosts.add(ghost)
+      },
+    },
+    classList: {
+      contains: value =>
+        classes.has(value) || el.className.split(' ').includes(value),
+      add: value => classes.add(value),
+      remove: value => classes.delete(value),
+    },
+    querySelector: selector => nodes.get(selector) || null,
+    querySelectorAll: selector =>
+      selector === '.fs-xghost'
+        ? [...ghosts]
+        : selector === '.fs-specmono,.fs-toptitle'
+          ? [nodes.get('.fs-specmono'), nodes.get('.fs-toptitle')]
+          : [],
+    closest: () => (liquid ? {} : null),
+    appendChild: ghost => ghosts.add(ghost),
+    remove: () => ghosts.delete(el),
+    setAttribute() {},
+    animate(keyframes, options) {
+      return {
+        keyframes,
+        options,
+        canceled: false,
+        cancel() {
+          this.canceled = true
+        },
+      }
+    },
+  }
+  return el
+}
+for (const selector of [
+  '[data-fs]',
+  '[data-fs-bg]',
+  '.fs-amb',
+  '.fs-shade',
+  '[data-fs-giant]',
+  '.fs-main img.fs-cover[data-cover]',
+  '.fs-main .fs-reflect',
+  '.fs-titleblock',
+  '.fs-kicker',
+  'h4',
+  'p',
+  '.fs-titleactions',
+  '.fs-lyrcol',
+  '.fs-side',
+  '[data-fsnum]',
+  '.fs-specmono',
+  '.fs-toptitle',
+  '.fs-top',
+  '.fs-dock',
+  '.fs-main .fs-coverwrap',
+  '.fs-coverkb',
+  '.fs-sheen i',
+  '.dock-cover',
+])
+  nodes.set(selector, element(selector))
+nodes.set(
+  'img.fs-cover[data-cover]',
+  nodes.get('.fs-main img.fs-cover[data-cover]')
+)
+nodes.set('.fs-reflect', nodes.get('.fs-main .fs-reflect'))
+const stage = nodes.get('[data-fs]')
+const player = element('player')
+const bodyClasses = new Set()
+const environment = {
+  state: { stage: false, idx: 0, fsQ: false },
+  TRACKS: [{ cover: 'old.jpg' }, { cover: 'new.jpg' }],
+  players: () => [player],
+  document: {
+    body: { classList: { contains: value => bodyClasses.has(value) } },
+    createElement: () => element('ghost'),
+  },
+  window: { matchMedia: () => media },
+  setTimeout: (callback, delay) => {
+    const id = ++timerId
+    timers.set(id, { callback, delay })
+    return id
+  },
+  clearTimeout: id => timers.delete(id),
+  queueNextTi: () => 1,
+  render() {},
+  fsCloseTimer: null,
+}
+vm.runInNewContext(
+  `${currentFullscreen.replace('export function createFullscreenMotion', 'function createFullscreenMotion')}
+const { animateFsTrackChange, animateFsEntrance, cancelFsStageAnims } = createFullscreenMotion({players,state,tracks:TRACKS,document,window,setTimeout,queueNextTi});
+${findFunction(read('src/services/player/runtime.js'), 'setStage').getText()}
+globalThis.motion = { setStage, animateFsTrackChange };`,
+  environment
+)
+const motion = environment.motion
+motion.setStage(true)
+const firstEntrance = stage._xAnims.slice()
+assert.equal(firstEntrance.length, 17)
+assert.equal(firstEntrance[0].keyframes[0].transform, 'scale(1.230)')
+assert(
+  firstEntrance.some(a => a.options.duration === 540 && a.options.delay === 560)
+)
+motion.setStage(true)
+assert(
+  firstEntrance.every(a => a.canceled),
+  'Reopening cancels the previous entrance'
+)
+const secondEntrance = stage._xAnims.slice()
+environment.state.idx = 1
+motion.animateFsTrackChange(1, environment.TRACKS[0])
+assert(
+  secondEntrance.every(a => a.canceled),
+  'Track change cancels the entrance'
+)
+assert(ghosts.size > 0)
+const trackChange = stage._xAnims.slice()
+motion.setStage(false)
+assert(
+  trackChange.every(a => a.canceled),
+  'Close cancels all track-change layers'
+)
+assert.equal(ghosts.size, 0)
+assert.equal(stage._xAnims.length, 0)
+const closeTimer = environment.fsCloseTimer
+assert.equal(timers.get(closeTimer).delay, 360)
+liquid = true
+motion.setStage(true)
+assert.equal(
+  timers.has(closeTimer),
+  false,
+  'Immediate reopen clears the old close timer'
+)
+assert.equal(player.classList.contains('fs-closing'), false)
+assert.equal(stage._xAnims[0].keyframes[0].transform, 'scale(1.187)')
+assert.equal(stage._xAnims[0].keyframes[1].transform, 'scale(1.12)')
+motion.setStage(false)
+media.matches = true
+motion.setStage(true)
+assert.equal(stage._xAnims.length, 0, 'Reduced motion skips the entrance')
+motion.setStage(false)
+media.matches = false
+bodyClasses.add('calm')
+motion.setStage(true)
+assert.equal(stage._xAnims.length, 0, 'Motion off skips the entrance')
+
+// 标题阈值独立验证，并检查取消旧 shell 动画的最后一条 CSS 覆盖仍生效。
+const titleExports = {}
+vm.runInNewContext(
+  ts.transpileModule(read('src/services/player/fullscreen-title.ts'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText,
+  { exports: titleExports }
+)
+for (const [length, expected] of [
+  [11, ''],
+  [12, 't-mid'],
+  [18, 't-mid'],
+  [19, 't-long'],
+  [26, 't-long'],
+  [27, 't-xlong'],
+])
+  assert.equal(titleExports.fullscreenTitleClass('中'.repeat(length)), expected)
+assert.equal(titleExports.fullscreenTitleClass('A'.repeat(19)), '')
+assert.equal(titleExports.fullscreenTitleClass('A'.repeat(21)), 't-mid')
+const shellRules = [
+  ...currentCss.matchAll(/\.win\.fs-open\s+\.fs\s*\{([^}]+)\}/g),
+]
+assert.match(shellRules.at(-1)[1], /animation:\s*none/)
 console.log(
-  `Motion verified: ${fullscreen.length} fullscreen animations, ${desktop.length} desktop animations, ${expectedKeyframes.size} CSS keyframes, ${originalHandlers.size} motion input handlers, and original fullscreen exit timing.`
+  `Motion verified: original layered entrance, ${fullscreen.length} fullscreen track-change animations, ${desktop.length} desktop animations, ${expectedKeyframes.size} CSS keyframes, ${originalHandlers.size} motion input handlers, rapid open/skip/close cancellation, both themes, reduced motion and title tiers.`
 )

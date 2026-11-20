@@ -1,7 +1,15 @@
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Window, WindowEvent};
+use std::sync::Mutex;
+use tauri::{
+    AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder, Window, WindowEvent, utils::config::Color,
+};
 
-/// 主窗口允许打开的桌面窗口类型，不接受任意窗口标签或外部地址。
+/// 只用于原稿卡片外的透明阴影画布，不改变卡片本身尺寸。
+pub(crate) const SURFACE_INSET: f64 = 32.0;
+static MINI_ANCHOR: Mutex<Option<PhysicalPosition<f64>>> = Mutex::new(None);
+
+/// 主窗口只能打开本应用的三种桌面卡片。
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum DesktopWindowKind {
@@ -10,88 +18,228 @@ pub(crate) enum DesktopWindowKind {
     Media,
 }
 
-/// 一种桌面窗口的固定尺寸和标题，集中维护以保持原生窗口行为一致。
 struct DesktopWindowOptions {
     label: &'static str,
     title: &'static str,
     width: f64,
     height: f64,
-    min_width: f64,
-    min_height: f64,
+    radius: f64,
 }
-
 impl DesktopWindowKind {
-    /// 按窗口用途读取配置；这些值只在 Rust 端定义。
     fn options(self) -> DesktopWindowOptions {
         match self {
             Self::Lyrics => DesktopWindowOptions {
                 label: "lyrics",
                 title: "Mirai · 桌面歌词",
-                width: 600.0,
-                height: 220.0,
-                min_width: 450.0,
-                min_height: 180.0,
+                width: 440.0,
+                height: 178.0,
+                radius: 16.0,
             },
             Self::Mini => DesktopWindowOptions {
                 label: "mini",
                 title: "Mirai · 迷你播放器",
-                width: 380.0,
-                height: 300.0,
-                min_width: 340.0,
-                min_height: 280.0,
+                width: 324.0,
+                height: 178.0,
+                radius: 18.0,
             },
             Self::Media => DesktopWindowOptions {
                 label: "media",
                 title: "Mirai · 系统媒体控制",
-                width: 480.0,
-                height: 180.0,
-                min_width: 420.0,
-                min_height: 160.0,
+                width: 368.0,
+                height: 78.0,
+                radius: 16.0,
             },
+        }
+    }
+    fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "lyrics" => Some(Self::Lyrics),
+            "mini" => Some(Self::Mini),
+            "media" => Some(Self::Media),
+            _ => None,
         }
     }
 }
 
-/// 打开或恢复独立歌词窗、迷你播放器；恢复歌词窗时同步解除点击穿透。
+/// 计算托盘附近的位置，含阴影的窗口边界也不能越出当前显示器。
+fn popup_position(
+    pointer: PhysicalPosition<f64>,
+    size: PhysicalSize<u32>,
+    origin: PhysicalPosition<i32>,
+    monitor: PhysicalSize<u32>,
+    scale: f64,
+) -> PhysicalPosition<i32> {
+    let margin = 8.0 * scale;
+    let min_x = origin.x as f64 + margin;
+    let min_y = origin.y as f64 + margin;
+    let max_x = (origin.x as f64 + monitor.width as f64 - size.width as f64 - margin).max(min_x);
+    let max_y = (origin.y as f64 + monitor.height as f64 - size.height as f64 - margin).max(min_y);
+    let x = pointer.x - size.width as f64 + SURFACE_INSET * scale + 12.0 * scale;
+    let above = pointer.y - size.height as f64 + SURFACE_INSET * scale - 16.0 * scale;
+    let y = if above < min_y {
+        pointer.y - SURFACE_INSET * scale + 16.0 * scale
+    } else {
+        above
+    };
+    PhysicalPosition::new(
+        x.clamp(min_x, max_x).round() as i32,
+        y.clamp(min_y, max_y).round() as i32,
+    )
+}
+
+fn place_mini(window: &WebviewWindow, pointer: PhysicalPosition<f64>) -> Result<(), String> {
+    let monitors = window
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+    let monitor = monitors
+        .into_iter()
+        .find(|monitor| {
+            let origin = monitor.position();
+            let size = monitor.size();
+            pointer.x >= origin.x as f64
+                && pointer.y >= origin.y as f64
+                && pointer.x < origin.x as f64 + size.width as f64
+                && pointer.y < origin.y as f64 + size.height as f64
+        })
+        .or_else(|| window.current_monitor().ok().flatten());
+    if let Some(monitor) = monitor {
+        let current_scale = window.scale_factor().map_err(|error| error.to_string())?;
+        let outer = window.outer_size().map_err(|error| error.to_string())?;
+        let scale = monitor.scale_factor();
+        let size = PhysicalSize::new(
+            (outer.width as f64 / current_scale * scale).round() as u32,
+            (outer.height as f64 / current_scale * scale).round() as u32,
+        );
+        window
+            .set_position(popup_position(
+                pointer,
+                size,
+                *monitor.position(),
+                *monitor.size(),
+                scale,
+            ))
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+fn apply_lock(window: &WebviewWindow, locked: bool) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    super::shadow_hit_test::set_locked(window, locked).map_err(|error| error.to_string())?;
+    window
+        .set_ignore_cursor_events(locked)
+        .map_err(|error| error.to_string())
+}
+
+/// 缓存原生卡片；从托盘打开时使用实际鼠标位置，不另建播放器。
+pub(crate) fn show_desktop_window(
+    app: &AppHandle,
+    kind: DesktopWindowKind,
+    anchor: Option<PhysicalPosition<f64>>,
+) -> Result<(), String> {
+    if matches!(kind, DesktopWindowKind::Mini)
+        && !app.state::<super::tray::TrayPreferences>().enabled()
+    {
+        return Err("迷你播放器已在设置中关闭。".into());
+    }
+    let options = kind.options();
+    let window = if let Some(window) = app.get_webview_window(options.label) {
+        window
+    } else {
+        let window = WebviewWindowBuilder::new(
+            app,
+            options.label,
+            WebviewUrl::App(format!("index.html#/desktop/{}", options.label).into()),
+        )
+        .title(options.title)
+        .inner_size(
+            options.width + SURFACE_INSET * 2.0,
+            options.height + SURFACE_INSET * 2.0,
+        )
+        .min_inner_size(
+            options.width + SURFACE_INSET * 2.0,
+            48.0 + SURFACE_INSET * 2.0,
+        )
+        .decorations(false)
+        .transparent(true)
+        .background_color(Color(0, 0, 0, 0))
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .visible(false)
+        .focused(false)
+        .center()
+        .build()
+        .map_err(|error| format!("创建桌面窗口失败：{error}"))?;
+        #[cfg(target_os = "windows")]
+        super::shadow_hit_test::add_surface_window(&window, SURFACE_INSET, options.radius)
+            .map_err(|error| error.to_string())?;
+        window
+    };
+    if matches!(kind, DesktopWindowKind::Lyrics) {
+        apply_lock(&window, false)?;
+        app.emit_to("main", "desktop-unlocked", ())
+            .map_err(|error| error.to_string())?;
+    }
+    if matches!(kind, DesktopWindowKind::Mini) {
+        if let Some(anchor) = anchor {
+            *MINI_ANCHOR.lock().map_err(|_| "迷你窗口位置状态不可用")? = Some(anchor);
+        }
+        if let Some(anchor) = *MINI_ANCHOR.lock().map_err(|_| "迷你窗口位置状态不可用")?
+        {
+            place_mini(&window, anchor)?;
+        }
+    }
+    window
+        .show()
+        .map_err(|error| format!("显示窗口失败：{error}"))?;
+    window
+        .set_focus()
+        .map_err(|error| format!("聚焦窗口失败：{error}"))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub(crate) async fn open_desktop_window(
     app: AppHandle,
     kind: DesktopWindowKind,
 ) -> Result<(), String> {
-    let options = kind.options();
-    if let Some(window) = app.get_webview_window(options.label) {
-        if matches!(kind, DesktopWindowKind::Lyrics) {
-            window
-                .set_ignore_cursor_events(false)
-                .map_err(|error| format!("解除歌词窗口锁定失败：{error}"))?;
-            window
-                .emit("desktop-unlocked", ())
-                .map_err(|error| format!("同步歌词窗口锁定状态失败：{error}"))?;
-        }
-        window
-            .show()
-            .map_err(|error| format!("显示窗口失败：{error}"))?;
-        window
-            .set_focus()
-            .map_err(|error| format!("聚焦窗口失败：{error}"))?;
-        return Ok(());
-    }
+    show_desktop_window(&app, kind, None)
+}
 
-    WebviewWindowBuilder::new(
-        &app,
-        options.label,
-        WebviewUrl::App(format!("index.html#/desktop/{}", options.label).into()),
-    )
-    .title(options.title)
-    .inner_size(options.width, options.height)
-    .min_inner_size(options.min_width, options.min_height)
-    .decorations(false)
-    .always_on_top(true)
-    .resizable(true)
-    .center()
-    .build()
-    .map_err(|error| format!("创建桌面窗口失败：{error}"))?;
+/// 只允许桌面卡片调整自己的内容高度，宽度由原稿确定。
+#[tauri::command]
+pub(crate) fn resize_desktop_surface(
+    window: WebviewWindow,
+    content_height: f64,
+) -> Result<(), String> {
+    let kind = DesktopWindowKind::from_label(window.label()).ok_or("此窗口不是桌面卡片")?;
+    if !content_height.is_finite() || !(48.0..=520.0).contains(&content_height) {
+        return Err("桌面卡片高度无效".into());
+    }
+    let options = kind.options();
+    window
+        .set_size(LogicalSize::new(
+            options.width + SURFACE_INSET * 2.0,
+            content_height.ceil() + SURFACE_INSET * 2.0,
+        ))
+        .map_err(|error| error.to_string())?;
+    if matches!(kind, DesktopWindowKind::Mini) {
+        if let Some(anchor) = *MINI_ANCHOR.lock().map_err(|_| "迷你窗口位置状态不可用")?
+        {
+            place_mini(&window, anchor)?;
+        }
+    }
     Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn set_desktop_lock(window: WebviewWindow, locked: bool) -> Result<(), String> {
+    if window.label() != "lyrics" {
+        return Err("只有歌词窗口支持点击穿透锁定".into());
+    }
+    apply_lock(&window, locked)
 }
 
 /// 用隐藏和恢复保留灵动岛拖动后的位置，首次打开时创建独立置顶窗口。
@@ -108,7 +256,6 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     if !visible {
         return Ok(());
     }
-
     WebviewWindowBuilder::new(
         &app,
         "island",
@@ -129,7 +276,7 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     Ok(())
 }
 
-/// 主窗口关闭时退出整个应用，避免独立小窗继续显示已经失效的播放状态。
+/// 主窗口退出仍结束应用；迷你卡片失焦隐藏，行为与托盘弹卡一致。
 pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     #[cfg(target_os = "windows")]
     if matches!(event, WindowEvent::Destroyed) {
@@ -145,7 +292,48 @@ pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     ) {
         super::shadow_hit_test::refresh();
     }
+    if window.label() == "mini" && matches!(event, WindowEvent::Focused(false)) {
+        let _ = window.hide();
+    }
     if window.label() == "main" && matches!(event, WindowEvent::CloseRequested { .. }) {
         window.app_handle().exit(0);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn surface_dimensions_follow_original_cards() {
+        assert_eq!(DesktopWindowKind::Mini.options().width, 324.0);
+        assert_eq!(DesktopWindowKind::Lyrics.options().width, 440.0);
+        assert_eq!(DesktopWindowKind::Media.options().width, 368.0);
+        assert_eq!(DesktopWindowKind::Mini.options().radius, 18.0);
+    }
+    #[test]
+    fn tray_popup_stays_on_monitor() {
+        let size = PhysicalSize::new(420, 274);
+        let origin = PhysicalPosition::new(0, 0);
+        let monitor = PhysicalSize::new(1920, 1080);
+        for pointer in [
+            PhysicalPosition::new(1910.0, 1060.0),
+            PhysicalPosition::new(4.0, 4.0),
+        ] {
+            let result = popup_position(pointer, size, origin, monitor, 1.0);
+            assert!(result.x >= 8 && result.y >= 8);
+            assert!(result.x + size.width as i32 <= 1912 && result.y + size.height as i32 <= 1072);
+        }
+    }
+    #[test]
+    fn negative_origin_and_dpi_are_supported() {
+        let result = popup_position(
+            PhysicalPosition::new(-1800.0, 1040.0),
+            PhysicalSize::new(630, 411),
+            PhysicalPosition::new(-1920, 0),
+            PhysicalSize::new(1920, 1080),
+            1.5,
+        );
+        assert!(result.x >= -1908 && result.x + 630 <= -12);
+        assert!(result.y >= 12 && result.y + 411 <= 1068);
     }
 }

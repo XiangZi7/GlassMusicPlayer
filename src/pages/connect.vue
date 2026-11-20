@@ -1,73 +1,123 @@
 <script setup lang="ts">
-import { computed, nextTick, useTemplateRef } from 'vue'
+import {
+  computed,
+  nextTick,
+  onDeactivated,
+  reactive,
+  toRefs,
+  useTemplateRef,
+  watch,
+} from 'vue'
 import type { MusicPlatform } from '@/api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
+import PlatformConnectionDialog from '@/components/player/PlatformConnectionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlatformImport } from '@/composables/usePlatformImport'
 import { defaultCover, platformNames } from '@/services/player/catalog'
 
+const importer = usePlatformImport()
 const {
   active,
-  profileInput,
   page,
   selected,
   link,
   loading,
   loaded,
-  linkedProfiles,
+  profileError,
   imported,
   connections,
   importedCount,
   latestSync,
   openPlatform,
   connectProfile,
+  clearProfileError,
+  cancelProfileConnection,
   changePage,
   disconnect,
   importPlaylists,
   isImported,
-} = usePlatformImport()
+} = importer
 
+// 响应式状态
+const state = reactive({
+  // 是否展示平台连接弹窗。
+  dialogOpen: false,
+  // 本次连接弹窗所对应的平台。
+  dialogPlatform: null as MusicPlatform | null,
+})
+const { dialogOpen, dialogPlatform } = toRefs(state)
 const cards = [
   {
     id: 'netease',
     short: '网易云',
-    caption: '公开主页 · 歌单',
-    description: '关联网易云公开主页，选择用户公开的歌单导入。',
+    caption: '扫码登录 · 公开主页',
+    description: '选择登录或主页链接方式关联资料，导入用户歌单。',
   },
   {
     id: 'kugou',
     short: '酷狗',
-    caption: '账号 · 歌单 · 收藏',
-    description: '连接个人账号后可读取自建歌单和收藏。',
+    caption: '账号授权 · 歌单',
+    description: '通过账户授权读取用户歌单，公开歌单也可通过分享链接导入。',
   },
   {
     id: 'kuwo',
     short: '酷我',
-    caption: '公开 UID · 歌单',
-    description: '关联酷我用户 UID，选择其公开歌单导入。',
+    caption: '公开主页 · UID',
+    description: '关联酷我个人主页或 UID，选择公开歌单导入。',
   },
 ] as const
-
 const activeProfile = computed(() =>
-  active.value && active.value !== 'kugou'
-    ? linkedProfiles.value[active.value]
+  importer.active.value && importer.active.value !== 'kugou'
+    ? importer.linkedProfiles.value[importer.active.value]
     : undefined
 )
 const profileByPlatform = computed(() => ({
-  ...linkedProfiles.value,
+  ...importer.linkedProfiles.value,
   kugou: undefined,
 }))
+const dialogInitialValue = computed(() => {
+  const platform = state.dialogPlatform
+  return platform && platform !== 'kugou'
+    ? importer.linkedProfiles.value[platform]?.userId || ''
+    : ''
+})
 const selection = useTemplateRef<HTMLElement>('selection')
 
-// 卡片展开后将关联表单带入可视区域，避免小窗口看不到后续操作。
+function openConnectionDialog(platform: MusicPlatform): void {
+  state.dialogPlatform = platform
+  clearProfileError()
+  state.dialogOpen = true
+}
+
+// 已关联的卡片直接查看歌单，未关联的卡片只打开连接弹窗。
 async function showConnection(platform: MusicPlatform): Promise<void> {
-  openPlatform(platform)
-  if (active.value !== platform) return
+  if (profileByPlatform.value[platform]) {
+    openPlatform(platform)
+    await nextTick()
+    selection.value?.scrollIntoView({ block: 'nearest' })
+  } else openConnectionDialog(platform)
+}
+
+async function submitProfile(input: string): Promise<void> {
+  if (!state.dialogPlatform) return
+  const connected = await connectProfile(state.dialogPlatform, input)
+  if (!connected) return
+  state.dialogOpen = false
   await nextTick()
   selection.value?.scrollIntoView({ block: 'nearest' })
 }
+
+watch(
+  () => state.dialogOpen,
+  visible => {
+    if (!visible) cancelProfileConnection()
+  }
+)
+onDeactivated(() => {
+  state.dialogOpen = false
+})
 </script>
 
 <template>
@@ -145,7 +195,17 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
         <BaseButton
           class="plat-btn min-h-[36px] rounded-full text-[12.5px] font-extrabold"
           :disabled="!!loading"
-          :aria-expanded="active === card.id"
+          :aria-haspopup="profileByPlatform[card.id] ? undefined : 'dialog'"
+          :aria-controls="
+            profileByPlatform[card.id]
+              ? 'platform-playlist-selection'
+              : 'platform-connection-dialog'
+          "
+          :aria-expanded="
+            profileByPlatform[card.id]
+              ? active === card.id
+              : dialogOpen && dialogPlatform === card.id
+          "
           @click="showConnection(card.id)"
           >{{
             profileByPlatform[card.id] ? '查看歌单' : '连接' + card.short
@@ -156,6 +216,7 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
 
     <!-- 账户公开资料和可勾选歌单。 -->
     <section
+      id="platform-playlist-selection"
       ref="selection"
       class="mt-[20px]"
       aria-label="选择要导入的歌单"
@@ -166,41 +227,14 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
         >
       </h4>
       <EmptyState
-        v-if="!active"
+        v-if="!activeProfile"
         class="min-h-[120px]"
         icon="link"
         label="连接平台后可选择账户的公开歌单"
       />
-      <EmptyState
-        v-else-if="active === 'kugou'"
-        class="min-h-[120px]"
-        icon="link"
-        label="酷狗个人歌单需要账户授权，当前可通过公开歌单分享链接导入"
-      />
       <template v-else>
-        <form
-          v-if="!activeProfile"
-          class="link-row flex gap-[8px]"
-          @submit.prevent="connectProfile"
-        >
-          <input
-            v-model="profileInput"
-            type="text"
-            :aria-label="platformNames[active] + '公开主页或 UID'"
-            placeholder="粘贴个人主页链接或输入数字 UID"
-            :disabled="!!loading"
-          />
-          <!-- 确认提交用户公开资料。 -->
-          <BaseButton
-            type="submit"
-            class="up-add rounded-[11px] px-[14px] whitespace-nowrap"
-            :disabled="!profileInput.trim() || !!loading"
-            >关联公开资料</BaseButton
-          >
-        </form>
         <div
-          v-else
-          class="pl-actions mb-[12px] flex items-center gap-[10px]"
+          class="pl-actions mb-[12px] flex flex-wrap items-center gap-[10px]"
         >
           <span>{{
             activeProfile.displayName || 'UID ' + activeProfile.userId
@@ -210,6 +244,12 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
             :disabled="!!loading"
             @click="changePage(1)"
             >刷新歌单</BaseButton
+          >
+          <BaseButton
+            class="imp-pick rounded-full px-[12px] py-[6px]"
+            :disabled="!!loading"
+            @click="active && openConnectionDialog(active)"
+            >更换连接</BaseButton
           >
           <BaseButton
             class="imp-pick rounded-full px-[12px] py-[6px]"
@@ -328,5 +368,14 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
         已读取 {{ loaded }} 首
       </p>
     </form>
+    <PlatformConnectionDialog
+      v-model="dialogOpen"
+      :platform="dialogPlatform"
+      :busy="loading === 'profile'"
+      :error="profileError"
+      :initial-value="dialogInitialValue"
+      @profile="submitProfile"
+      @clear-error="clearProfileError"
+    />
   </div>
 </template>

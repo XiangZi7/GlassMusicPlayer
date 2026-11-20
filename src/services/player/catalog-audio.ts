@@ -7,7 +7,10 @@ import {
 import { notify } from '@/services/notification'
 import type { CatalogSource } from '@/types/prototype'
 import { catalogKey } from '@/services/player/catalog'
-import { createSpectrum } from '@/services/player/spectrum'
+import {
+  createSpectrum,
+  type SpectrumPlayback,
+} from '@/services/player/spectrum'
 
 export type CatalogAudioStatus = PlaybackStatus | 'loading' | 'error' | null
 
@@ -161,6 +164,11 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     seek,
     // 用户关闭界面动效时同步停止频谱更新。
     setSpectrumMotion: (motion: boolean) => spectrum?.setMotion(motion),
+    // 在线曲目按实际封面取色，原稿示例曲目保持其专辑背景光色。
+    setSpectrumArtwork: (cover: string, glow: string, preferArtwork = true) =>
+      spectrum?.setArtwork(cover, glow, preferArtwork),
+    setSpectrumPlayback: (playback: SpectrumPlayback) =>
+      spectrum?.setPlayback(playback),
     // 音量和静音由主播放器状态统一控制。
     setVolume: (volume: number) => {
       audio.volume = volume

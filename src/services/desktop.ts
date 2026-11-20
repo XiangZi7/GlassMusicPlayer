@@ -15,6 +15,19 @@ export function setDesktopIsland(visible: boolean): Promise<void> {
   return islandVisibility
 }
 
+// 托盘迷你卡片偏好同步到原生状态，快速切换仍以最后一次操作为准。
+let trayPreference = Promise.resolve()
+export function setTrayMini(enabled: boolean): Promise<void> {
+  trayPreference = trayPreference.then(async () => {
+    try {
+      await invoke('set_tray_mini', { enabled })
+    } catch (error) {
+      console.warn('同步托盘迷你播放器设置失败', error)
+    }
+  })
+  return trayPreference
+}
+
 // 执行自定义标题栏的真实窗口操作，浏览器预览时给出统一反馈。
 export async function controlWindow(
   action: 'minimize' | 'maximize' | 'close'

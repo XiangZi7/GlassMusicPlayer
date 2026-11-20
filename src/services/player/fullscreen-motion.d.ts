@@ -8,4 +8,8 @@ export function createFullscreenMotion(options: {
   window: Window
   setTimeout: (callback: () => void, delay: number) => number
   queueNextTi: () => number | null
-}): (direction: number, oldTrack: SourceTrack) => void
+}): {
+  animateFsTrackChange: (direction: number, oldTrack: SourceTrack) => void
+  animateFsEntrance: () => void
+  cancelFsStageAnims: (stage: HTMLElement | null) => void
+}

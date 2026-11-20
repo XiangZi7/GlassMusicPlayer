@@ -21,6 +21,8 @@ struct FrameWindow {
     label: String,
     hwnd: HWND,
     inset: f64,
+    radius: f64,
+    locked: bool,
     layered: bool,
 }
 
@@ -57,7 +59,9 @@ fn update_hit_test(window: &FrameWindow, mut point: POINT) {
         let capture = GetCapture();
         let dragging =
             !capture.is_null() && (capture == window.hwnd || IsChild(window.hwnd, capture) != 0);
-        let ignore = if dragging
+        let ignore = if window.locked {
+            true
+        } else if dragging
             || IsZoomed(window.hwnd) != 0
             || IsIconic(window.hwnd) != 0
             || IsWindowVisible(window.hwnd) == 0
@@ -77,7 +81,7 @@ fn update_hit_test(window: &FrameWindow, mut point: POINT) {
                 rect.right as f64,
                 rect.bottom as f64,
                 window.inset * scale,
-                8.0 * scale,
+                window.radius * scale,
             )
         };
         let current = GetWindowLongPtrW(window.hwnd, GWL_EXSTYLE);
@@ -137,6 +141,8 @@ pub(crate) fn install(
             label: window.label().into(),
             hwnd,
             inset,
+            radius: 8.0,
+            locked: false,
             // 安全：窗口刚创建且句柄有效，保留其原有的透明渲染模式。
             layered: unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } & WS_EX_LAYERED as isize != 0,
         });
@@ -152,19 +158,68 @@ pub(crate) fn install(
 
 /// 新弹窗通过主线程注册，与主窗口共用同一个消息钩子。
 pub(crate) fn add_window(window: &WebviewWindow, inset: f64) -> tauri::Result<()> {
+    add_surface_window(window, inset, 8.0)
+}
+
+/// 桌面卡片使用原稿各自圆角；Windows 11 上也按透明卡片而非整块窗口命中。
+pub(crate) fn add_surface_window(
+    window: &WebviewWindow,
+    inset: f64,
+    radius: f64,
+) -> tauri::Result<()> {
     let label = window.label().to_owned();
     let handle = window.hwnd()?.0 as usize;
     window.run_on_main_thread(move || {
         HIT_TEST.with(|state| {
-            state.borrow_mut().windows.push(FrameWindow {
+            let mut state = state.borrow_mut();
+            if state.hook.is_null() {
+                // 安全：钩子只在所属UI线程处理本应用窗口的几何，不记录输入。
+                state.hook = unsafe {
+                    SetWindowsHookExW(
+                        WH_MOUSE_LL,
+                        Some(mouse_hook),
+                        GetModuleHandleW(ptr::null()),
+                        0,
+                    )
+                };
+                if state.hook.is_null() {
+                    eprintln!(
+                        "注册桌面卡片透明边界失败：{}",
+                        std::io::Error::last_os_error()
+                    );
+                    return;
+                }
+            }
+            state.windows.retain(|window| window.label != label);
+            state.windows.push(FrameWindow {
                 label,
                 hwnd: handle as HWND,
                 inset,
+                radius,
+                locked: false,
                 // 安全：注册任务由所属 UI 线程执行，创建后的窗口句柄有效。
                 layered: unsafe { GetWindowLongPtrW(handle as HWND, GWL_EXSTYLE) }
                     & WS_EX_LAYERED as isize
                     != 0,
             });
+        });
+        refresh();
+    })
+}
+
+/// 锁定歌词时整个窗口穿透，不能被阴影几何更新重新变为可点击。
+pub(crate) fn set_locked(window: &WebviewWindow, locked: bool) -> tauri::Result<()> {
+    let label = window.label().to_owned();
+    window.run_on_main_thread(move || {
+        HIT_TEST.with(|state| {
+            if let Some(window) = state
+                .borrow_mut()
+                .windows
+                .iter_mut()
+                .find(|window| window.label == label)
+            {
+                window.locked = locked;
+            }
         });
         refresh();
     })
@@ -262,10 +317,12 @@ mod tests {
             )
         });
         assert!(!window.0.is_null());
-        let target = FrameWindow {
+        let mut target = FrameWindow {
             label: "test".into(),
             hwnd: window.0,
             inset: 24.0,
+            radius: 8.0,
+            locked: false,
             layered: false,
         };
         let mut shadow_point = POINT { x: 8, y: 400 };
@@ -285,5 +342,17 @@ mod tests {
         assert_eq!(inside & WS_EX_TRANSPARENT as isize, 0);
         assert_eq!(inside & WS_EX_LAYERED as isize, 0);
         assert_ne!(inside & WS_EX_TOOLWINDOW as isize, 0);
+        target.locked = true;
+        update_hit_test(&target, content_point);
+        // 安全：测试窗口仍有效；锁定必须覆盖内容区的正常命中。
+        let locked = unsafe { GetWindowLongPtrW(window.0, GWL_EXSTYLE) };
+        assert_ne!(locked & WS_EX_TRANSPARENT as isize, 0);
+    }
+
+    #[test]
+    fn original_card_corners_and_shadow_match() {
+        assert!(!contains_content(48.0, 48.0, 420.0, 274.0, 48.0, 18.0));
+        assert!(contains_content(68.0, 50.0, 420.0, 274.0, 48.0, 18.0));
+        assert!(!contains_content(20.0, 120.0, 420.0, 274.0, 48.0, 18.0));
     }
 }

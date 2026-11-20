@@ -34,6 +34,7 @@ import {
   openDesktop,
   openSettingsWindow,
   setDesktopIsland,
+  setTrayMini,
 } from '@/services/desktop'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
@@ -215,6 +216,13 @@ watch(desktopIslandVisible, visible => {
   if (isTauri()) void setDesktopIsland(visible)
 })
 
+watch(
+  () => state.settings.trayMini,
+  enabled => {
+    if (isTauri()) void setTrayMini(enabled)
+  }
+)
+
 onMounted(async () => {
   if (!root.value) return
   player.value = mountSourcePlayer(root.value, {
@@ -227,12 +235,18 @@ onMounted(async () => {
   })
   await syncRoute()
   if (!isTauri()) return
+  void setTrayMini(state.settings.trayMini)
   const callbacks = await Promise.all([
     listen<SourceAction>('player-action', event => {
       void handleAction(event.payload)
     }),
     listen('player-ready', () => {
       if (player.value) publishSnapshot(player.value.getSnapshot())
+    }),
+    listen('desktop-unlocked', () => setSetting('deskLock', false)),
+    listen<boolean>('desktop-lock', event => {
+      if (typeof event.payload === 'boolean')
+        setSetting('deskLock', event.payload)
     }),
     listen('settings-ready', publishSettings),
     listen<SettingsAction>('settings-change', event =>

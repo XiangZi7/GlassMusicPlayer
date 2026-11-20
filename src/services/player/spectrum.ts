@@ -1,10 +1,37 @@
-const fftSize = 2048
-const bandCount = 56
-const floor = 2
+import {
+  artworkColor,
+  type ArtworkColor,
+} from '@/services/player/artwork-color'
+import {
+  spectrumProfile,
+  spectrumRhythm,
+} from '@/services/player/spectrum-profile'
+
+const fftSize = 4096
+
+// 保留细柱与自适应密度，同时同步原稿的左右 2px 留白；窄窗口不裁切 168 根。
+export function spectrumLayout(width: number) {
+  if (!Number.isFinite(width) || width <= 0)
+    return { count: 0, step: 0, barWidth: 0, padding: 0 }
+  const padding = Math.min(2, width / 4)
+  const innerWidth = width - padding * 2
+  const count = Math.max(1, Math.min(320, Math.floor((innerWidth + 2) / 4)))
+  const step = innerWidth / count
+  return { count, step, barWidth: Math.min(2, step * 0.55), padding }
+}
+
+export interface SpectrumPlayback {
+  playing: boolean
+  time: number
+  duration: number
+  seed: number
+  demo: boolean
+}
 
 type CapturableAudio = HTMLAudioElement & { captureStream?: () => MediaStream }
+type SpectrumMode = 'static' | 'live' | 'simulated'
 
-// 读取播放元素的 PCM 副本并绘制频谱，音量、输出设备和播放进度仍由原音频元素控制。
+// 真实频谱仍捕获已有播放元素的 PCM 副本，不改音量、输出设备或出声路径。
 export function createSpectrum(
   canvas: HTMLCanvasElement,
   audio: CapturableAudio
@@ -17,23 +44,48 @@ export function createSpectrum(
   let source: MediaStreamAudioSourceNode | undefined
   let frame: number | undefined
   let enabled = true
+  let destroyed = false
+  let analysisFailed = false
+  let playback: SpectrumPlayback | undefined
+  let mode: SpectrumMode = 'static'
+  let profileSeed = NaN
+  let profile: Float32Array = new Float32Array(0)
+  let levels = new Float32Array(0)
+  let targets = new Float32Array(0)
+  let clock = 0
+  let lastTimestamp: number | undefined
+  let lastPaint: number | undefined
+  let artworkKey = ''
+  let colorVersion = 0
+  let targetColor: ArtworkColor = [110, 140, 255]
+  let currentColor: ArtworkColor = targetColor
+  let fromColor: ArtworkColor = targetColor
+  let colorStart: number | undefined
 
-  // 在点歌或继续播放的用户操作中恢复 Web Audio。
-  function resume(): void {
-    if (!paint || !audio.captureStream || !window.AudioContext) return
-    try {
-      context ??= new AudioContext()
-    } catch {
-      return
-    }
-    if (context.state === 'suspended')
-      void context.resume().catch(() => undefined)
+  function setMode(value: SpectrumMode): void {
+    mode = value
+    canvas.dataset.spectrumMode = value
   }
 
-  // 取 50 Hz 至 10 kHz 的对数频带，让人声和低音的变化更容易观察。
-  function draw(): void {
-    if (!paint || !analyser || !context) return
-    frame = requestAnimationFrame(draw)
+  // 播放中的换色与原稿 background 过渡一样持续 600ms，不逐帧读取封面像素。
+  function paintColor(timestamp: number, resting: boolean): string {
+    if (resting) currentColor = targetColor
+    else {
+      colorStart ??= timestamp
+      const progress = Math.min(1, Math.max(0, (timestamp - colorStart) / 600))
+      const ease = 1 - (1 - progress) ** 2
+      const mix = (channel: number) =>
+        Math.round(
+          fromColor[channel]! +
+            (targetColor[channel]! - fromColor[channel]!) * ease
+        )
+      currentColor = [mix(0), mix(1), mix(2)]
+    }
+    return `rgba(${currentColor.join(',')},0.55)`
+  }
+
+  function paintBars(timestamp: number, resting: boolean): void {
+    if (!paint || destroyed) return
     const width = canvas.clientWidth
     const height = canvas.clientHeight
     if (!width || !height) return
@@ -44,95 +96,243 @@ export function createSpectrum(
     if (canvas.height !== pixelHeight) canvas.height = pixelHeight
     paint.setTransform(ratio, 0, 0, ratio, 0, 0)
     paint.clearRect(0, 0, width, height)
-    paint.fillStyle = 'rgba(255,255,255,0.36)'
-    analyser.getByteFrequencyData(bins)
-
-    const step = width / bandCount
-    const binScale = fftSize / context.sampleRate
-    for (let band = 0; band < bandCount; band++) {
-      const start = Math.floor(50 * 200 ** (band / bandCount) * binScale)
-      const end = Math.min(
-        bins.length,
-        Math.max(
-          start + 1,
-          Math.floor(50 * 200 ** ((band + 1) / bandCount) * binScale)
+    paint.fillStyle = paintColor(timestamp, resting)
+    const { count, step, barWidth, padding } = spectrumLayout(width)
+    const seed = playback?.seed ?? 0
+    if (levels.length !== count || profileSeed !== seed) {
+      profileSeed = seed
+      profile = spectrumProfile(seed, count)
+      levels = new Float32Array(count)
+      targets = new Float32Array(count)
+      canvas.dataset.spectrumBands = String(count)
+    }
+    if (!resting && mode === 'live' && analyser && context) {
+      analyser.getByteFrequencyData(bins)
+      const binScale = fftSize / context.sampleRate
+      // 保留真实的 50Hz–10kHz 对数频带，柱高只取实际能量，不乘随机轮廓。
+      for (let band = 0; band < count; band++) {
+        const start = Math.floor(50 * 200 ** (band / count) * binScale)
+        const end = Math.min(
+          bins.length,
+          Math.max(
+            start + 1,
+            Math.floor(50 * 200 ** ((band + 1) / count) * binScale)
+          )
         )
-      )
-      let peak = 0
-      for (let bin = start; bin < end; bin++)
-        peak = Math.max(peak, bins[bin] ?? 0)
-      const barHeight = (height - floor) * (peak / 255)
-      if (barHeight >= 1)
-        paint.fillRect(
-          band * step + 1,
-          height - floor - barHeight,
-          Math.max(1, step - 3),
-          barHeight
-        )
+        let peak = 0
+        for (let bin = start; bin < end; bin++)
+          peak = Math.max(peak, bins[bin] ?? 0)
+        targets[band] = peak / 255
+      }
+    } else if (!resting && mode === 'simulated') {
+      spectrumRhythm(seed, clock, playback?.duration ?? 200, profile, targets)
+    }
+    for (let band = 0; band < count; band++) {
+      let barHeight: number
+      if (resting) barHeight = (height * Math.round(profile[band]! * 100)) / 100
+      else {
+        const target = targets[band]!
+        const previous = levels[band]!
+        const attack = mode === 'live' ? 0.62 : 0.6
+        const release = mode === 'live' ? 0.24 : 0.16
+        levels[band] =
+          previous +
+          (target - previous) * (target > previous ? attack : release)
+        barHeight =
+          mode === 'live'
+            ? height * levels[band]!
+            : height * profile[band]! * (0.06 + levels[band]! * 1.12)
+      }
+      barHeight = Math.min(height, Math.max(0, barHeight))
+      if (barHeight <= 0) continue
+      const x =
+        Math.round((padding + band * step + (step - barWidth) / 2) * ratio) /
+        ratio
+      const y = height - barHeight
+      if (typeof paint.roundRect === 'function') {
+        const radius = Math.min(1, barWidth / 2, barHeight / 2)
+        paint.beginPath()
+        paint.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0])
+        paint.fill()
+      } else paint.fillRect(x, y, barWidth, barHeight)
     }
   }
 
-  // 暂停、关闭动效或缓冲时停止读频率，并清除上一次的画面。
+  function applyColor(color: ArtworkColor): void {
+    fromColor = currentColor
+    targetColor = color
+    colorStart = undefined
+    canvas.style.color = `rgb(${color.join(',')})`
+    canvas.style.setProperty?.('--spec-c', `rgba(${color.join(',')},0.55)`)
+    canvas.dataset.spectrumColor = color.join(',')
+    if (frame === undefined) paintBars(0, true)
+  }
+
+  // 在线曲目保留实际封面取色；原稿示例曲目可直接沿用其专辑背景光色。
+  function setArtwork(url: string, glow: string, preferArtwork = true): void {
+    const key = `${url}|${glow}|${preferArtwork}`
+    if (destroyed || key === artworkKey) return
+    artworkKey = key
+    const version = ++colorVersion
+    const match = /(\d+)[, ]+(\d+)[, ]+(\d+)/.exec(glow)
+    const fallback: ArtworkColor = match
+      ? [
+          Math.min(255, +match[1]!),
+          Math.min(255, +match[2]!),
+          Math.min(255, +match[3]!),
+        ]
+      : [110, 140, 255]
+    applyColor(fallback)
+    if (!preferArtwork) return
+    void artworkColor(url, canvas.ownerDocument).then(color => {
+      if (!destroyed && version === colorVersion && color) applyColor(color)
+    })
+  }
+
+  function resume(): void {
+    if (!paint || !audio.captureStream || !window.AudioContext || destroyed)
+      return
+    try {
+      context ??= new AudioContext()
+    } catch {
+      return
+    }
+    if (context.state === 'suspended')
+      void context.resume().catch(() => undefined)
+  }
+
+  // 停止动画帧，但原稿静态轮廓仍然留在玻璃背景上。
   function stop(): void {
     if (frame !== undefined) cancelAnimationFrame(frame)
     frame = undefined
-    paint?.resetTransform()
-    paint?.clearRect(0, 0, canvas.width, canvas.height)
+    lastTimestamp = lastPaint = undefined
+    levels.fill(0)
+    setMode('static')
+    paintBars(0, true)
   }
 
-  // 媒体就绪后捕获当前曲目的音轨，失败时保持播放器原有的出声路径。
+  function draw(timestamp?: number): void {
+    if (
+      destroyed ||
+      !enabled ||
+      reduced.matches ||
+      !(playback?.playing ?? !audio.paused) ||
+      (!playback?.demo && (audio.paused || audio.readyState < 3))
+    ) {
+      stop()
+      return
+    }
+    frame = requestAnimationFrame(draw)
+    if (timestamp !== undefined) {
+      if (lastTimestamp !== undefined && mode === 'simulated')
+        clock += Math.max(0, timestamp - lastTimestamp) / 1000
+      lastTimestamp = timestamp
+      if (lastPaint !== undefined && timestamp - lastPaint < 33) return
+      lastPaint = timestamp
+    }
+    paintBars(timestamp ?? 0, false)
+  }
+
   function update(): void {
-    if (!enabled || reduced.matches || audio.paused || audio.readyState < 3) {
+    if (destroyed || !paint) return
+    if (!enabled || reduced.matches || !(playback?.playing ?? !audio.paused)) {
+      stop()
+      return
+    }
+    // 加载、缓冲或无跨域权限的真实曲目保持静态，不把模拟峰值冒充实频。
+    if (!playback?.demo && (audio.paused || audio.readyState < 3)) {
       stop()
       return
     }
     if (
-      !audio.crossOrigin ||
-      !context ||
-      !audio.captureStream ||
-      frame !== undefined
-    )
-      return
-    if (!source) {
+      !playback?.demo &&
+      !source &&
+      !analysisFailed &&
+      audio.crossOrigin &&
+      context &&
+      audio.captureStream
+    ) {
       try {
         const stream = audio.captureStream()
-        if (!stream.getAudioTracks().length) return
-        const input = context.createMediaStreamSource(stream)
-        analyser ??= new AnalyserNode(context, {
-          fftSize,
-          smoothingTimeConstant: 0.72,
-        })
-        input.connect(analyser)
-        source = input
+        if (stream.getAudioTracks().length) {
+          const input = context.createMediaStreamSource(stream)
+          analyser ??= new AnalyserNode(context, {
+            fftSize,
+            smoothingTimeConstant: 0.64,
+          })
+          input.connect(analyser)
+          source = input
+        }
       } catch {
-        return
+        analysisFailed = true
       }
     }
-    draw()
+    const nextMode = playback?.demo
+      ? 'simulated'
+      : source && analyser && context
+        ? 'live'
+        : 'static'
+    if (nextMode === 'static') {
+      stop()
+      return
+    }
+    if (mode !== nextMode) {
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      frame = undefined
+      levels.fill(0)
+      lastTimestamp = lastPaint = undefined
+      setMode(nextMode)
+    }
+    if (frame === undefined) draw()
   }
 
-  // 换曲时释放旧音轨，下一次播放重新捕获。
+  // 接入现有时钟；示例状态由曲目来源明确给出，不读取或创建第二个播放时钟。
+  function setPlayback(value: SpectrumPlayback): void {
+    if (destroyed) return
+    if (!playback || playback.seed !== value.seed) {
+      clock = value.time
+      levels.fill(0)
+      lastTimestamp = lastPaint = undefined
+    } else if (Math.abs(clock - value.time) > 1.6) clock = value.time
+    playback = value
+    update()
+  }
+
   function reset(): void {
     stop()
     source?.disconnect()
     source = undefined
+    analysisFailed = false
   }
 
   reduced.addEventListener('change', update)
+  const observer =
+    typeof ResizeObserver === 'undefined'
+      ? undefined
+      : new ResizeObserver(() => {
+          if (frame === undefined) paintBars(0, true)
+        })
+  observer?.observe(canvas)
+  setMode('static')
+  paintBars(0, true)
   return {
     resume,
     update,
     stop,
     reset,
-    // 播放器的界面动效偏好也应用于频谱。
+    setArtwork,
+    setPlayback,
     setMotion(motion: boolean): void {
       if (motion === enabled) return
       enabled = motion
       update()
     },
-    // 关闭主播放器时释放分析器与音频上下文。
     destroy(): void {
+      if (destroyed) return
+      destroyed = true
+      colorVersion++
       reset()
+      observer?.disconnect()
       reduced.removeEventListener('change', update)
       if (context) void context.close().catch(() => undefined)
     },

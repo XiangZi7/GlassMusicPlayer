@@ -192,9 +192,13 @@ import LyricIsland from '@/components/player/LyricIsland.vue'
       >
     </div>
     <canvas
-      class="player-spectrum pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[18px] w-full"
+      class="player-spectrum pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[14px] w-full"
       data-spectrum
       aria-hidden="true"
     />
+    <span
+      class="spectrum-note pointer-events-none absolute right-[18px] bottom-[2px] z-[1] text-[9px] leading-none font-semibold opacity-[.55]"
+      >模拟频谱</span
+    >
   </div>
 </template>

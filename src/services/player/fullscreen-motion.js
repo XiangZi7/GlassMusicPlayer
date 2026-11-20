@@ -8,6 +8,226 @@ export function createFullscreenMotion({
   setTimeout,
   queueNextTi,
 }) {
+  // 入场、切歌与关闭共用原稿的取消登记，快速操作时不遗留叠卡或动画。
+  function cancelFsStageAnims(fs) {
+    if (!fs) return
+    if (fs._xAnims)
+      fs._xAnims.forEach(function (a) {
+        try {
+          a.cancel()
+        } catch (e) {}
+      })
+    fs._xAnims = []
+    fs.querySelectorAll('.fs-xghost').forEach(function (g) {
+      g.remove()
+    })
+    fs._xRun = (fs._xRun || 0) + 1
+  }
+
+  // 每次打开都复用原稿约 1.1 秒的分层入场；不覆盖封面倾斜和呼吸层。
+  function animateFsEntrance() {
+    if (document.body.classList.contains('calm')) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    var E = 'cubic-bezier(.22,1,.36,1)'
+    players().forEach(function (p) {
+      var fs = p.querySelector('[data-fs]')
+      if (!fs || !fs.animate) return
+      cancelFsStageAnims(fs)
+      var anims = []
+      function track(a) {
+        if (!a) return null
+        anims.push(a)
+        a.onfinish = function () {
+          try {
+            a.cancel()
+          } catch (e) {}
+        }
+        return a
+      }
+      function go(el, from, to, dur, delay) {
+        if (!el || !el.animate) return null
+        return track(
+          el.animate([from, to], {
+            duration: dur,
+            delay: delay || 0,
+            easing: E,
+            fill: 'both',
+          })
+        )
+      }
+      var fsbg = fs.querySelector('[data-fs-bg]')
+      if (fsbg) {
+        var bsc =
+          p.classList.contains('liquid-win') || fs.closest('.liquid-win')
+            ? 1.12
+            : 1.16
+        track(
+          fsbg.animate(
+            [
+              {
+                transform: 'scale(' + (bsc * 1.06).toFixed(3) + ')',
+                opacity: 0,
+              },
+              { transform: 'scale(' + bsc + ')', opacity: 1 },
+            ],
+            { duration: 720, easing: E, fill: 'both' }
+          )
+        )
+      }
+      var amb = fs.querySelector('.fs-amb')
+      if (amb)
+        track(
+          amb.animate(
+            [
+              { opacity: 0, transform: 'scale(1.06)' },
+              { opacity: 1, transform: 'scale(1)' },
+            ],
+            { duration: 820, delay: 50, easing: E, fill: 'both' }
+          )
+        )
+      var shade = fs.querySelector('.fs-shade')
+      if (shade)
+        track(
+          shade.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 620,
+            easing: 'ease-out',
+            fill: 'both',
+          })
+        )
+      var giant = fs.querySelector('[data-fs-giant]')
+      if (giant)
+        track(
+          giant.animate(
+            [
+              { transform: 'translateX(-52px)', opacity: 0 },
+              { transform: 'translateX(0)', opacity: 0.5 },
+            ],
+            { duration: 940, delay: 110, easing: E, fill: 'both' }
+          )
+        )
+      var cover = fs.querySelector('.fs-main img.fs-cover[data-cover]')
+      if (cover)
+        track(
+          cover.animate(
+            [
+              {
+                transform: 'translateY(36px) scale(.92)',
+                opacity: 0,
+                filter: 'blur(9px)',
+              },
+              {
+                transform: 'translateY(0) scale(1)',
+                opacity: 1,
+                filter: 'blur(0px)',
+              },
+            ],
+            { duration: 700, delay: 170, easing: E, fill: 'both' }
+          )
+        )
+      var refl = fs.querySelector('.fs-main .fs-reflect')
+      if (refl)
+        track(
+          refl.animate([{ opacity: 0 }, { opacity: 0.26 }], {
+            duration: 560,
+            delay: 430,
+            easing: 'ease-out',
+            fill: 'both',
+          })
+        )
+      var tb = fs.querySelector('.fs-titleblock')
+      if (tb) {
+        go(
+          tb.querySelector('.fs-kicker'),
+          { transform: 'translateY(10px)', opacity: 0 },
+          { transform: 'translateY(0)', opacity: 0.62 },
+          460,
+          300
+        )
+        go(
+          tb.querySelector('h4'),
+          { transform: 'translateY(18px)', opacity: 0, filter: 'blur(7px)' },
+          { transform: 'translateY(0)', opacity: 1, filter: 'blur(0px)' },
+          580,
+          375
+        )
+        go(
+          tb.querySelector('p'),
+          { transform: 'translateY(12px)', opacity: 0 },
+          { transform: 'translateY(0)', opacity: 0.72 },
+          500,
+          460
+        )
+        go(
+          tb.querySelector('.fs-titleactions'),
+          { transform: 'translateY(9px)', opacity: 0 },
+          { transform: 'translateY(0)', opacity: 1 },
+          460,
+          540
+        )
+      }
+      go(
+        fs.querySelector('.fs-lyrcol'),
+        { transform: 'translateX(36px)', opacity: 0 },
+        { transform: 'translateX(0)', opacity: 1 },
+        640,
+        470
+      )
+      var side = fs.querySelector('.fs-side')
+      if (side)
+        track(
+          side.animate([{ opacity: 0 }, { opacity: 0.5 }], {
+            duration: 420,
+            delay: 640,
+            easing: 'ease-out',
+            fill: 'both',
+          })
+        )
+      var idxEl = fs.querySelector('[data-fsnum]')
+      if (idxEl)
+        track(
+          idxEl.animate(
+            [
+              { opacity: 0, transform: 'translateY(10px)' },
+              { opacity: 0.55, transform: 'translateY(0)' },
+            ],
+            { duration: 420, delay: 680, easing: E, fill: 'both' }
+          )
+        )
+      fs.querySelectorAll('.fs-specmono,.fs-toptitle').forEach(function (el) {
+        track(
+          el.animate([{ opacity: 0 }, { opacity: 0.62 }], {
+            duration: 400,
+            delay: 660,
+            easing: 'ease-out',
+            fill: 'both',
+          })
+        )
+      })
+      var top = fs.querySelector('.fs-top')
+      if (top)
+        track(
+          top.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 420,
+            delay: 620,
+            easing: 'ease-out',
+            fill: 'both',
+          })
+        )
+      var dock = fs.querySelector('.fs-dock')
+      if (dock)
+        track(
+          dock.animate(
+            [
+              { transform: 'translateY(32px)', opacity: 0 },
+              { transform: 'translateY(0)', opacity: 1 },
+            ],
+            { duration: 540, delay: 560, easing: E, fill: 'both' }
+          )
+        )
+      fs._xAnims = anims
+    })
+  }
+
   // 切歌后并行执行背景、巨字、封面、叠卡和歌词的原始分层过渡。
   function animateFsTrackChange(dir, oldTr) {
     if (!state.stage || !oldTr) return
@@ -17,16 +237,8 @@ export function createFullscreenMotion({
     players().forEach(function (p) {
       var fs = p.querySelector('[data-fs]')
       if (!fs || !fs.animate) return
-      if (fs._xAnims)
-        fs._xAnims.forEach(function (a) {
-          try {
-            a.cancel()
-          } catch (e) {}
-        })
-      fs.querySelectorAll('.fs-xghost').forEach(function (g) {
-        g.remove()
-      })
-      var run = (fs._xRun = (fs._xRun || 0) + 1)
+      cancelFsStageAnims(fs)
+      var run = fs._xRun
       var anims = []
       function track(a, el) {
         anims.push(a)
@@ -346,5 +558,5 @@ export function createFullscreenMotion({
       fs._xAnims = anims
     })
   }
-  return animateFsTrackChange
+  return { animateFsTrackChange, animateFsEntrance, cancelFsStageAnims }
 }
