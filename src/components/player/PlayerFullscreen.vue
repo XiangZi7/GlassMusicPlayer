@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import { toRefs } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import QueueList from '@/components/player/QueueList.vue'
+import LocalWeather from '@/components/player/LocalWeather.vue'
+import { usePlayer } from '@/composables/usePlayer'
+
+const { state } = usePlayer()
+const { settings, stage } = toRefs(state)
 // 原稿粒子参数逐项保留：横坐标、周期、负延迟和直径。
 const dust = [
   [6, 21, 3, 3],
@@ -89,50 +95,10 @@ const dust = [
         class="fs-topright flex flex-none items-center gap-[8px]"
         data-tauri-drag-region
       >
-        <div
-          class="fs-weather flex items-center gap-[6px] rounded-full p-[5px_11px_5px_7px] whitespace-nowrap text-white"
-          role="img"
-          aria-label="本地天气：夜晚多云，19度，演示数据"
-          title="本地天气 · 演示数据"
-        >
-          <svg
-            class="wx-icon wx-icon-sm h-[23px] w-[23px] flex-none overflow-visible"
-            viewBox="0 0 36 36"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              class="wx-star"
-              cx="7.5"
-              cy="6.5"
-              r="1.3"
-              fill="#FFE9A8"
-            />
-            <circle
-              class="wx-star s2"
-              cx="14.5"
-              cy="3.6"
-              r=".9"
-              fill="#ffffff"
-            />
-            <path
-              class="wx-moon"
-              d="M24.6 3.4a8.2 8.2 0 1 0 7.9 11.9A9.6 9.6 0 0 1 24.6 3.4z"
-              fill="#F6DC8A"
-            />
-            <g class="wx-cloud">
-              <path
-                d="M8.4 27.8a5.2 5.2 0 0 1-.7-10.35 7.2 7.2 0 0 1 13.9-1.55A5.6 5.6 0 0 1 26.2 21.3c.3 3.4-2.2 6.5-6 6.5H8.4z"
-                fill="rgba(255,255,255,.94)"
-              />
-            </g></svg
-          ><span
-            class="wx-temp text-[15px] leading-[1] font-extrabold tracking-[-.01em]"
-            >19°</span
-          ><span class="wx-cond text-[12px] leading-[1] font-bold opacity-[.85]"
-            >多云</span
-          >
-        </div>
+        <LocalWeather
+          :enabled="settings.weather && stage"
+          variant="fullscreen"
+        />
         <BaseButton
           class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
           data-fsq-toggle

@@ -347,12 +347,52 @@ mod tests {
         // 安全：测试窗口仍有效；锁定必须覆盖内容区的正常命中。
         let locked = unsafe { GetWindowLongPtrW(window.0, GWL_EXSTYLE) };
         assert_ne!(locked & WS_EX_TRANSPARENT as isize, 0);
+        target.locked = false;
+        target.layered = true;
+        update_hit_test(&target, shadow_point);
+        update_hit_test(&target, content_point);
+        // 安全：原本依赖 layered 的透明 WebView 不能在恢复命中时丢失渲染样式。
+        let restored = unsafe { GetWindowLongPtrW(window.0, GWL_EXSTYLE) };
+        assert_eq!(restored & WS_EX_TRANSPARENT as isize, 0);
+        assert_ne!(restored & WS_EX_LAYERED as isize, 0);
     }
 
     #[test]
     fn original_card_corners_and_shadow_match() {
-        assert!(!contains_content(48.0, 48.0, 420.0, 274.0, 48.0, 18.0));
-        assert!(contains_content(68.0, 50.0, 420.0, 274.0, 48.0, 18.0));
-        assert!(!contains_content(20.0, 120.0, 420.0, 274.0, 48.0, 18.0));
+        for (width, height, radius) in [
+            (440.0, 178.0, 16.0),
+            (324.0, 178.0, 18.0),
+            (368.0, 78.0, 16.0),
+            (320.0, 40.0, 20.0),
+        ] {
+            for scale in [1.0, 1.25, 1.5, 2.0] {
+                let inset = super::super::windows::SURFACE_INSET * scale;
+                let outer_width = (width + 64.0) * scale;
+                let outer_height = (height + 64.0) * scale;
+                let inside =
+                    |x, y| contains_content(x, y, outer_width, outer_height, inset, radius * scale);
+                assert!(inside(outer_width / 2.0, outer_height / 2.0));
+                assert!(inside(outer_width / 2.0, inset + scale));
+                assert!(inside(outer_width / 2.0, outer_height - inset - scale));
+                assert!(inside(inset + scale, outer_height / 2.0));
+                assert!(inside(outer_width - inset - scale, outer_height / 2.0));
+                for (x, y) in [
+                    (inset / 2.0, outer_height / 2.0),
+                    (outer_width - inset / 2.0, outer_height / 2.0),
+                    (outer_width / 2.0, inset / 2.0),
+                    (outer_width / 2.0, outer_height - inset / 2.0),
+                    (inset + scale / 2.0, inset + scale / 2.0),
+                    (
+                        outer_width - inset - scale / 2.0,
+                        outer_height - inset - scale / 2.0,
+                    ),
+                ] {
+                    assert!(
+                        !inside(x, y),
+                        "阴影/圆角必须穿透：{width}×{height} @ {scale}"
+                    );
+                }
+            }
+        }
     }
 }

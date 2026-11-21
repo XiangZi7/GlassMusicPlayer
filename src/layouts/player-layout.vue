@@ -82,6 +82,7 @@ function publishSettings(): void {
     track: { ...tracks[state.idx]! },
   }
   void emitTo('settings', 'settings-snapshot', snapshot)
+  void emitTo('tray', 'settings-snapshot', snapshot)
 }
 
 // 窗口间仅接受已存在且类型相同的设置字段，防止无效值污染播放状态。
@@ -259,6 +260,7 @@ onMounted(async () => {
   }
   unlisteners.push(...callbacks)
   publishSettings()
+  if (player.value) publishSnapshot(player.value.getSnapshot())
   if (desktopIslandVisible.value) void setDesktopIsland(true)
 })
 

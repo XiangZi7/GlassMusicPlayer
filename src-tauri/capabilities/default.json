@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main", "lyrics", "mini", "media", "settings"],
+  "windows": ["main", "lyrics", "mini", "media", "settings", "island"],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",

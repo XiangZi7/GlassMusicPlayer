@@ -256,15 +256,17 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     if !visible {
         return Ok(());
     }
-    WebviewWindowBuilder::new(
+    let window = WebviewWindowBuilder::new(
         &app,
         "island",
         WebviewUrl::App("index.html#/desktop/island".into()),
     )
     .title("Mirai Music · 灵动岛")
-    .inner_size(320.0, 40.0)
+    // 胶囊本体继续为 320 × 40；外面留透明阴影，不拉伸成矩形卡片。
+    .inner_size(320.0 + SURFACE_INSET * 2.0, 40.0 + SURFACE_INSET * 2.0)
     .decorations(false)
     .transparent(true)
+    .background_color(Color(0, 0, 0, 0))
     .shadow(false)
     .always_on_top(true)
     .skip_taskbar(true)
@@ -273,11 +275,15 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     .center()
     .build()
     .map_err(|error| format!("创建灵动岛窗口失败：{error}"))?;
+    #[cfg(target_os = "windows")]
+    super::shadow_hit_test::add_surface_window(&window, SURFACE_INSET, 20.0)
+        .map_err(|error| error.to_string())?;
     Ok(())
 }
 
-/// 主窗口退出仍结束应用；迷你卡片失焦隐藏，行为与托盘弹卡一致。
+/// 主窗口退出仍结束应用；迷你卡和托盘菜单失焦隐藏，其他桌面卡片保持原行为。
 pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
+    super::tray_menu::handle_window_event(window, event);
     #[cfg(target_os = "windows")]
     if matches!(event, WindowEvent::Destroyed) {
         super::shadow_hit_test::remove_window(window);
@@ -295,8 +301,14 @@ pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     if window.label() == "mini" && matches!(event, WindowEvent::Focused(false)) {
         let _ = window.hide();
     }
-    if window.label() == "main" && matches!(event, WindowEvent::CloseRequested { .. }) {
-        window.app_handle().exit(0);
+    if let WindowEvent::CloseRequested { api, .. } = event {
+        if DesktopWindowKind::from_label(window.label()).is_some() || window.label() == "island" {
+            // 小窗的菜单/Escape 只收起当前表面；缓存快照和拖动位置供后续重开。
+            api.prevent_close();
+            let _ = window.hide();
+        } else if window.label() == "main" {
+            window.app_handle().exit(0);
+        }
     }
 }
 
@@ -305,14 +317,21 @@ mod tests {
     use super::*;
     #[test]
     fn surface_dimensions_follow_original_cards() {
-        assert_eq!(DesktopWindowKind::Mini.options().width, 324.0);
-        assert_eq!(DesktopWindowKind::Lyrics.options().width, 440.0);
-        assert_eq!(DesktopWindowKind::Media.options().width, 368.0);
-        assert_eq!(DesktopWindowKind::Mini.options().radius, 18.0);
+        for (kind, width, radius) in [
+            (DesktopWindowKind::Lyrics, 440.0, 16.0),
+            (DesktopWindowKind::Mini, 324.0, 18.0),
+            (DesktopWindowKind::Media, 368.0, 16.0),
+        ] {
+            let options = kind.options();
+            assert_eq!(options.width, width);
+            assert_eq!(options.radius, radius);
+            assert_eq!(options.width + SURFACE_INSET * 2.0, width + 64.0);
+        }
+        assert_eq!(SURFACE_INSET, 32.0);
     }
     #[test]
     fn tray_popup_stays_on_monitor() {
-        let size = PhysicalSize::new(420, 274);
+        let size = PhysicalSize::new(388, 242);
         let origin = PhysicalPosition::new(0, 0);
         let monitor = PhysicalSize::new(1920, 1080);
         for pointer in [
@@ -325,15 +344,33 @@ mod tests {
         }
     }
     #[test]
+    fn tray_anchor_gap_tracks_dpi_and_current_canvas() {
+        for scale in [1.0, 1.25, 1.5, 2.0] {
+            let size = PhysicalSize::new((388.0 * scale) as u32, (242.0 * scale) as u32);
+            let pointer = PhysicalPosition::new(1800.0 * scale, 980.0 * scale);
+            let result = popup_position(
+                pointer,
+                size,
+                PhysicalPosition::new(0, 0),
+                PhysicalSize::new((1920.0 * scale) as u32, (1080.0 * scale) as u32),
+                scale,
+            );
+            let card_right = result.x as f64 + size.width as f64 - SURFACE_INSET * scale;
+            let card_bottom = result.y as f64 + size.height as f64 - SURFACE_INSET * scale;
+            assert!((card_right - pointer.x - 12.0 * scale).abs() <= 0.5);
+            assert!((pointer.y - card_bottom - 16.0 * scale).abs() <= 0.5);
+        }
+    }
+    #[test]
     fn negative_origin_and_dpi_are_supported() {
         let result = popup_position(
             PhysicalPosition::new(-1800.0, 1040.0),
-            PhysicalSize::new(630, 411),
+            PhysicalSize::new(582, 363),
             PhysicalPosition::new(-1920, 0),
             PhysicalSize::new(1920, 1080),
             1.5,
         );
-        assert!(result.x >= -1908 && result.x + 630 <= -12);
-        assert!(result.y >= 12 && result.y + 411 <= 1068);
+        assert!(result.x >= -1908 && result.x + 582 <= -12);
+        assert!(result.y >= 12 && result.y + 363 <= 1068);
     }
 }

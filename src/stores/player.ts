@@ -2,11 +2,12 @@ import { reactive } from 'vue'
 import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 import { tracks as demoTracks } from '@/constants/music'
+import { publicAvatar } from '@/services/public-avatar'
 import type {
   CatalogPlaylist,
   CatalogTrack,
   PlaybackStatus,
-  PublicProfilePlatform,
+  MusicPlatform,
   PublicUserPlaylists,
 } from '@/api'
 import {
@@ -27,10 +28,14 @@ export interface Playlist {
 const importedKey = 'miraiMusic.publicPlaylists.v1'
 const profilesKey = 'miraiMusic.publicPlatformProfiles.v1'
 
-type LinkedProfile = Pick<PublicUserPlaylists, 'userId' | 'displayName'> & {
+export type LinkedProfile = Pick<
+  PublicUserPlaylists,
+  'userId' | 'displayName'
+> & {
   syncedAt: number
+  avatarUrl?: string | null
 }
-type LinkedProfiles = Partial<Record<PublicProfilePlatform, LinkedProfile>>
+export type LinkedProfiles = Partial<Record<MusicPlatform, LinkedProfile>>
 
 // 恢复本机关联记录，只读取公开 UID、昵称和同步时间。
 function readLinkedProfiles(): LinkedProfiles {
@@ -39,14 +44,23 @@ function readLinkedProfiles(): LinkedProfiles {
       localStorage.getItem(profilesKey) || '{}'
     )
     const result: LinkedProfiles = {}
-    for (const platform of ['netease', 'kuwo'] as const) {
+    for (const platform of ['netease', 'kugou', 'kuwo'] as const) {
       const profile = saved?.[platform]
       if (
         profile &&
+        typeof profile.userId === 'string' &&
         /^(?:[1-9]\d{0,19})$/.test(profile.userId) &&
         Number.isFinite(profile.syncedAt)
       ) {
-        result[platform] = profile
+        result[platform] = {
+          userId: profile.userId,
+          displayName:
+            typeof profile.displayName === 'string'
+              ? profile.displayName.slice(0, 200)
+              : null,
+          syncedAt: profile.syncedAt,
+          avatarUrl: publicAvatar(profile.avatarUrl),
+        }
       }
     }
     return result
@@ -238,12 +252,30 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 保存或取消一个平台的公开资料关联，已导入歌单仍可在曲库中打开。
   function setLinkedProfile(
-    platform: PublicProfilePlatform,
+    platform: MusicPlatform,
     profile: LinkedProfile | null
   ): void {
+    if (!Object.prototype.hasOwnProperty.call(platformNames, platform))
+      throw new Error('无效音乐平台。')
     const next = { ...state.linkedProfiles }
-    if (profile) next[platform] = profile
-    else delete next[platform]
+    if (profile) {
+      if (
+        typeof profile.userId !== 'string' ||
+        !/^[1-9]\d{0,19}$/.test(profile.userId) ||
+        !Number.isFinite(profile.syncedAt)
+      )
+        throw new Error('无效公开账号资料。')
+      // 即使输入带额外字段，也只保存公开白名单，不保存 Cookie/token 或流程 ID。
+      next[platform] = {
+        userId: profile.userId,
+        displayName:
+          typeof profile.displayName === 'string'
+            ? profile.displayName.slice(0, 200)
+            : null,
+        syncedAt: profile.syncedAt,
+        avatarUrl: publicAvatar(profile.avatarUrl),
+      }
+    } else delete next[platform]
     localStorage.setItem(profilesKey, JSON.stringify(next))
     state.linkedProfiles = next
   }

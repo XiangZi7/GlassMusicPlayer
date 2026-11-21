@@ -9,14 +9,17 @@ import {
   watch,
 } from 'vue'
 import type { MusicPlatform } from '@/api'
+import { useRoute } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
 import PlatformConnectionDialog from '@/components/player/PlatformConnectionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlatformImport } from '@/composables/usePlatformImport'
+import { usePlatformQrLogin } from '@/composables/usePlatformQrLogin'
 import { defaultCover, platformNames } from '@/services/player/catalog'
 
+const route = useRoute()
 const importer = usePlatformImport()
 const {
   active,
@@ -46,8 +49,21 @@ const state = reactive({
   dialogOpen: false,
   // 本次连接弹窗所对应的平台。
   dialogPlatform: null as MusicPlatform | null,
+  // 当前连接方式，只有登录面板可启动短期扫码请求。
+  dialogMode: 'profile' as 'profile' | 'login',
 })
-const { dialogOpen, dialogPlatform } = toRefs(state)
+const { dialogOpen, dialogPlatform, dialogMode } = toRefs(state)
+const loginEnabled = computed(
+  () => state.dialogOpen && state.dialogMode === 'login'
+)
+const login = usePlatformQrLogin(dialogPlatform, loginEnabled)
+const {
+  status: loginStatus,
+  qrCodeUrl: loginQrCodeUrl,
+  error: loginError,
+  profile: loginProfile,
+  supported: loginSupported,
+} = login
 const cards = [
   {
     id: 'netease',
@@ -58,8 +74,8 @@ const cards = [
   {
     id: 'kugou',
     short: '酷狗',
-    caption: '账号授权 · 歌单',
-    description: '通过账户授权读取用户歌单，公开歌单也可通过分享链接导入。',
+    caption: '扫码登录 · 公开身份',
+    description: '使用酷狗 App 扫码确认资料，公开歌单可用分享链接导入。',
   },
   {
     id: 'kuwo',
@@ -69,14 +85,11 @@ const cards = [
   },
 ] as const
 const activeProfile = computed(() =>
-  importer.active.value && importer.active.value !== 'kugou'
+  importer.active.value
     ? importer.linkedProfiles.value[importer.active.value]
     : undefined
 )
-const profileByPlatform = computed(() => ({
-  ...importer.linkedProfiles.value,
-  kugou: undefined,
-}))
+const profileByPlatform = computed(() => importer.linkedProfiles.value)
 const dialogInitialValue = computed(() => {
   const platform = state.dialogPlatform
   return platform && platform !== 'kugou'
@@ -85,7 +98,11 @@ const dialogInitialValue = computed(() => {
 })
 const selection = useTemplateRef<HTMLElement>('selection')
 
-function openConnectionDialog(platform: MusicPlatform): void {
+function openConnectionDialog(
+  platform: MusicPlatform,
+  mode: 'profile' | 'login' = platform === 'kugou' ? 'login' : 'profile'
+): void {
+  state.dialogMode = mode
   state.dialogPlatform = platform
   clearProfileError()
   state.dialogOpen = true
@@ -101,12 +118,53 @@ async function showConnection(platform: MusicPlatform): Promise<void> {
 }
 
 async function submitProfile(input: string): Promise<void> {
-  if (!state.dialogPlatform) return
-  const connected = await connectProfile(state.dialogPlatform, input)
-  if (!connected) return
+  const platform = state.dialogPlatform
+  if (!platform || !state.dialogOpen) return
+  const verifiedProfile =
+    login.status.value === 'authorized' && login.profile.value?.userId === input
+      ? login.profile.value
+      : null
+  const connected = verifiedProfile
+    ? await importer.connectQrProfile(platform, verifiedProfile)
+    : await connectProfile(platform, input)
+  if (!connected || !state.dialogOpen || state.dialogPlatform !== platform)
+    return
   state.dialogOpen = false
   await nextTick()
   selection.value?.scrollIntoView({ block: 'nearest' })
+}
+
+// 只有服务端验证了账号后才读取同一 UID 的公开歌单；失败仍可重试，不伪造关联。
+watch(
+  () => login.profile.value,
+  profile => {
+    if (
+      profile &&
+      login.status.value === 'authorized' &&
+      state.dialogOpen &&
+      (state.dialogPlatform === 'netease' || state.dialogPlatform === 'kugou')
+    )
+      void submitProfile(profile.userId)
+  }
+)
+watch(() => state.dialogPlatform, cancelProfileConnection)
+
+// 头像菜单可在任何页面或当前连接页再次选择平台，只处理本应用允许的平台值。
+watch(
+  () => [route.path, route.query.platform, route.query.account] as const,
+  ([path, platform]) => {
+    if (
+      path === '/connect' &&
+      (platform === 'netease' || platform === 'kugou' || platform === 'kuwo')
+    )
+      openConnectionDialog(platform, platform === 'kuwo' ? 'profile' : 'login')
+  },
+  { immediate: true }
+)
+
+function refreshLogin(): void {
+  clearProfileError()
+  login.refresh()
 }
 
 watch(
@@ -208,7 +266,11 @@ onDeactivated(() => {
           "
           @click="showConnection(card.id)"
           >{{
-            profileByPlatform[card.id] ? '查看歌单' : '连接' + card.short
+            profileByPlatform[card.id]
+              ? card.id === 'kugou'
+                ? '查看资料'
+                : '查看歌单'
+              : '连接' + card.short
           }}</BaseButton
         >
       </section>
@@ -240,6 +302,7 @@ onDeactivated(() => {
             activeProfile.displayName || 'UID ' + activeProfile.userId
           }}</span>
           <BaseButton
+            v-if="active !== 'kugou'"
             class="imp-pick rounded-full px-[12px] py-[6px]"
             :disabled="!!loading"
             @click="changePage(1)"
@@ -265,6 +328,12 @@ onDeactivated(() => {
         >
           正在读取公开歌单…
         </p>
+        <EmptyState
+          v-else-if="active === 'kugou'"
+          class="min-h-[120px]"
+          icon="link"
+          label="酷狗只关联公开身份，账户歌单未接入；公开分享链接仍可导入"
+        />
         <EmptyState
           v-else-if="page && !page.playlists.length"
           class="min-h-[120px]"
@@ -374,6 +443,14 @@ onDeactivated(() => {
       :busy="loading === 'profile'"
       :error="profileError"
       :initial-value="dialogInitialValue"
+      :initial-mode="dialogMode"
+      :login-supported="loginSupported"
+      :login-status="loginStatus"
+      :login-qr-code-url="loginQrCodeUrl"
+      :login-error="loginError"
+      :login-profile="loginProfile"
+      @mode-change="dialogMode = $event"
+      @login="refreshLogin"
       @profile="submitProfile"
       @clear-error="clearProfileError"
     />

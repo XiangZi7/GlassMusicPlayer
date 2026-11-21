@@ -9,9 +9,12 @@ import {
   watch,
 } from 'vue'
 import type { MusicPlatform } from '@/api'
+import type { QrLoginProfile } from '@/api/auth'
+import type { LoginViewStatus } from '@/services/platform-login'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
+import PlatformQrLogin from '@/components/player/PlatformQrLogin.vue'
 import { platformNames } from '@/services/player/catalog'
 
 const props = withDefaults(
@@ -20,21 +23,30 @@ const props = withDefaults(
     busy?: boolean
     error?: string
     initialValue?: string
+    initialMode?: 'profile' | 'login'
     loginSupported?: boolean
-    loginMessage?: string
+    loginStatus?: LoginViewStatus
+    loginQrCodeUrl?: string
+    loginError?: string
+    loginProfile?: QrLoginProfile | null
   }>(),
   {
     busy: false,
     error: '',
     initialValue: '',
+    initialMode: 'profile',
     loginSupported: false,
-    loginMessage: '账号登录接口正在接入，当前不会生成假二维码或标记已登录。',
+    loginStatus: 'idle',
+    loginQrCodeUrl: '',
+    loginError: '',
+    loginProfile: null,
   }
 )
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   profile: [input: string]
   login: []
+  modeChange: [mode: 'profile' | 'login']
   clearError: []
 }>()
 const id = useId()
@@ -59,12 +71,27 @@ const state = reactive({
 })
 const { mode, draft } = toRefs(state)
 
-watch(open, visible => {
-  if (!visible) return
-  state.mode = 'profile'
-  state.draft = props.initialValue
-  emit('clearError')
-})
+watch(
+  () => state.mode,
+  value => emit('modeChange', value)
+)
+watch(
+  [open, () => props.platform],
+  ([visible]) => {
+    if (!visible) return
+    state.mode = props.initialMode
+    state.draft = props.initialValue
+    emit('clearError')
+  },
+  { immediate: true }
+)
+// 已展开时从头像菜单指定连接方式，不丢弃用户已填写的主页草稿。
+watch(
+  () => props.initialMode,
+  value => {
+    if (open.value) state.mode = value
+  }
+)
 watch(
   [open, () => state.mode],
   async ([visible]) => {
@@ -108,7 +135,7 @@ function submitProfile(): void {
               :id="descriptionId"
               class="mt-1 mb-0 text-[12px] leading-relaxed text-white/55"
             >
-              选择连接方式，读取用户资料与歌单。
+              选择连接方式，关联公开资料与歌单。
             </p>
           </div>
         </div>
@@ -234,7 +261,7 @@ function submitProfile(): void {
           v-else
           class="text-[12px] leading-relaxed text-white/60"
         >
-          酷狗主页歌单需要账户授权，请使用登录方式。公开歌单分享链接仍可在页面下方导入。
+          酷狗主页歌单需要账户授权，当前暂未接通。公开歌单分享链接仍可在页面下方导入。
         </p>
         <p
           v-if="error"
@@ -259,32 +286,18 @@ function submitProfile(): void {
           >
         </div>
       </form>
-      <div
+      <PlatformQrLogin
         v-else
-        class="mt-5 text-center"
-      >
-        <svg
-          class="mx-auto my-5 size-12 text-white/35"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h3v3h3v3h-6z" />
-        </svg>
-        <p class="text-[12px] leading-relaxed text-white/60">
-          {{ loginMessage }}
-        </p>
-        <BaseButton
-          class="mt-2 min-h-9 rounded-full bg-white px-5 text-[12px] font-extrabold text-[#121218] disabled:opacity-35"
-          :disabled="!loginSupported || busy"
-          @click="emit('login')"
-          >扫码登录{{ platformLabel }}</BaseButton
-        >
-      </div>
+        :platform="platform"
+        :supported="loginSupported"
+        :status="loginStatus"
+        :qr-code-url="loginQrCodeUrl"
+        :error="loginError || error"
+        :profile="loginProfile"
+        :busy="busy"
+        @refresh="emit('login')"
+        @profile="emit('profile', $event)"
+      />
     </div>
   </BaseDialog>
 </template>

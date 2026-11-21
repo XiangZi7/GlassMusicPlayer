@@ -5,12 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/check-built-css.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "format": "prettier --write \"src/**/*.{vue,ts,js,jsx,html,css,scss,md}\"",
     "check:motion": "node scripts/check-motion.mjs",
-    "check:spectrum": "node scripts/check-spectrum.mjs"
+    "check:spectrum": "node scripts/check-spectrum.mjs",
+    "check:desktop": "node scripts/check-desktop.mjs",
+    "check:tray": "node scripts/check-tray.mjs",
+    "check:tray-render": "node scripts/check-tray-render.mjs",
+    "check:platform-login": "node scripts/check-platform-login.mjs",
+    "check:weather": "node scripts/check-weather.mjs",
+    "check:native": "node scripts/check-native.mjs",
+    "check:platform-import": "node scripts/check-platform-import.mjs"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",

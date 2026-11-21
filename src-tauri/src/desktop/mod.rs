@@ -5,4 +5,5 @@ pub(crate) mod settings;
 #[cfg(target_os = "windows")]
 pub(crate) mod shadow_hit_test;
 pub(crate) mod tray;
+pub(crate) mod tray_menu;
 pub(crate) mod windows;

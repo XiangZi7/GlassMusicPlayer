@@ -7,6 +7,8 @@ import {
   type PublicUserPlaylists,
 } from '@/api'
 import { notify } from '@/services/notification'
+import type { QrLoginProfile } from '@/api/auth'
+import { publicAvatar } from '@/services/public-avatar'
 import {
   fetchLinkedPlaylist,
   fetchPublicPlaylist,
@@ -114,7 +116,9 @@ export function usePlatformImport() {
     platform: PublicProfilePlatform,
     uid: string,
     pageNum: number,
-    notifyErrors = true
+    notifyErrors = true,
+    verifiedDisplayName?: string | null,
+    verifiedAvatarUrl?: string | null
   ): Promise<boolean> {
     if (state.loading) return false
     const request = new AbortController()
@@ -136,9 +140,17 @@ export function usePlatformImport() {
         !Array.isArray(result.playlists)
       )
         throw new Error('平台返回的资料不匹配，请重试。')
+      const saved = player.state.linkedProfiles[platform]
       player.setLinkedProfile(platform, {
         userId: result.userId,
-        displayName: result.displayName,
+        displayName: verifiedDisplayName || result.displayName,
+        // 同一 UID 的公开歌单刷新不能抹去已验证的头像，也不能沿用另一账号的头像。
+        avatarUrl:
+          verifiedAvatarUrl !== undefined
+            ? publicAvatar(verifiedAvatarUrl)
+            : saved?.userId === uid
+              ? publicAvatar(saved.avatarUrl)
+              : null,
         syncedAt: Date.now(),
       })
       state.active = platform
@@ -175,12 +187,14 @@ export function usePlatformImport() {
   // 弹窗提交指定平台的个人主页，错误保留在弹窗内供用户纠正。
   async function connectProfile(
     platform: MusicPlatform,
-    input: string
+    input: string,
+    verifiedDisplayName?: string | null,
+    verifiedAvatarUrl?: string | null
   ): Promise<boolean> {
     if (state.loading) return false
     state.profileError = ''
     if (platform === 'kugou') {
-      state.profileError = '酷狗主页歌单需要账户授权，请使用登录方式。'
+      state.profileError = '酷狗主页歌单暂未接通，请使用公开歌单分享链接导入。'
       return false
     }
     const uid = readUid(input, platform)
@@ -189,9 +203,53 @@ export function usePlatformImport() {
         '请输入该平台的个人主页链接或数字 UID，不能使用歌手或歌单链接。'
       return false
     }
-    const connected = await loadProfile(platform, uid, 1, false)
+    const connected = await loadProfile(
+      platform,
+      uid,
+      1,
+      false,
+      verifiedDisplayName,
+      verifiedAvatarUrl
+    )
     if (connected) state.selected = []
     return connected
+  }
+
+  // 扫码已由服务端验证。酷狗只关联公开身份，不保留 token 或擅自读取账户歌单。
+  async function connectQrProfile(
+    platform: MusicPlatform,
+    profile: QrLoginProfile
+  ): Promise<boolean> {
+    if (
+      state.loading ||
+      (platform !== 'netease' && platform !== 'kugou') ||
+      typeof profile.userId !== 'string' ||
+      !/^[1-9]\d{0,19}$/.test(profile.userId)
+    )
+      return false
+    if (platform === 'netease')
+      // 资料与头像在公开歌单读取成功后一次提交，存储失败时不产生部分关联。
+      return connectProfile(
+        platform,
+        profile.userId,
+        profile.displayName,
+        profile.avatarUrl
+      )
+    try {
+      player.setLinkedProfile(platform, {
+        userId: profile.userId,
+        displayName: profile.displayName,
+        avatarUrl: publicAvatar(profile.avatarUrl),
+        syncedAt: Date.now(),
+      })
+      state.active = platform
+      state.page = null
+      state.selected = []
+      return true
+    } catch {
+      state.profileError = '无法保存公开关联资料，请重试。'
+      return false
+    }
   }
 
   function clearProfileError(): void {
@@ -219,7 +277,7 @@ export function usePlatformImport() {
   // 解除公开资料关联并清空本次歌单选择。
   function disconnect(): void {
     const platform = state.active
-    if (!platform || platform === 'kugou' || state.loading) return
+    if (!platform || state.loading) return
     try {
       player.setLinkedProfile(platform, null)
       state.page = null
@@ -308,6 +366,7 @@ export function usePlatformImport() {
     latestSync,
     openPlatform,
     connectProfile,
+    connectQrProfile,
     clearProfileError,
     cancelProfileConnection,
     changePage,

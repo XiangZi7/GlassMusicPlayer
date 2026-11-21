@@ -99,6 +99,11 @@ export const router = createRouter({
       name: 'desktop-island',
       component: () => import('@/pages/lyric-island.vue'),
     },
+    {
+      path: '/desktop/tray',
+      name: 'desktop-tray',
+      component: () => import('@/pages/tray.vue'),
+    },
     { path: '/desktop/:mode', component: () => import('@/pages/desktop.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

@@ -135,7 +135,8 @@ useResizeObserver(
   surface,
   () => {
     if (!isTauri() || !surface.value) return
-    const height = surface.value.offsetHeight
+    // 使用小数边框高度，Rust 向上取整后才不会在高 DPI 下少留一像素。
+    const height = surface.value.getBoundingClientRect().height
     const key = `${mode.value}:${height}`
     if (height < 48 || key === lastSurfaceSize) return
     lastSurfaceSize = key
@@ -509,6 +510,8 @@ onUnmounted(() => {
   border: 0;
   border-radius: 0;
   background: transparent;
+  /* 外层只是透明画布，不能继承原稿模拟桌面的大矩形阴影。 */
+  box-shadow: none;
 }
 .native-desktop::before {
   display: none;
@@ -521,34 +524,36 @@ onUnmounted(() => {
   max-width: 100%;
   height: auto;
   margin: 0;
+  /* CSS blur 只处理同一 WebView 内的背景；暗衬底独立遮蔽其他窗口的文字。
+     未启用或声称原生桌面磨砂，仍保留原稿暗玻璃渐变和边缘高光。 */
   background: linear-gradient(
     135deg,
-    rgba(32, 35, 46, 0.97),
-    rgba(14, 16, 24, 0.96)
+    rgba(32, 35, 46, 0.985),
+    rgba(14, 16, 24, 0.98)
   );
   border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(22px) saturate(1.25);
   -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
 }
 .native-desktop .desk-lyr {
   width: 440px;
   border-radius: 16px;
   box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .native-desktop .tray-pop {
   width: 324px;
   border-radius: 18px;
   box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.38),
+    0 6px 14px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .native-desktop .desk-smtc {
   width: 368px;
   border-radius: 16px;
   box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.34),
+    0 4px 12px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 </style>

@@ -1,11 +1,33 @@
 <script setup lang="ts">
+import { toRefs } from 'vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { useRouter } from 'vue-router'
+import type { MusicPlatform } from '@/api'
+import { usePlayer } from '@/composables/usePlayer'
+import { openSettingsWindow } from '@/services/desktop'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerSearchBox from '@/components/player/PlayerSearchBox.vue'
+import AccountMenu from '@/components/player/AccountMenu.vue'
+import LocalWeather from '@/components/player/LocalWeather.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
+
+const { state } = usePlayer()
+const { settings, linkedProfiles } = toRefs(state)
+const router = useRouter()
+function connectPlatform(platform: MusicPlatform): void {
+  void router.push({
+    path: '/connect',
+    query: { platform, account: String(Date.now()) },
+  })
+}
+function openSettings(): void {
+  if (isTauri()) void openSettingsWindow()
+  else void router.push('/settings')
+}
 </script>
 
 <template>
-  <!-- Windows 标题栏：保留原稿搜索和导航钩子，移除 macOS 红黄绿装饰。 -->
+  <!-- 搜索/天气/账号/设置属于标题栏；桌面小窗入口统一由系统托盘提供。 -->
   <div
     class="win-chrome windows-titlebar relative z-[5] flex h-[42px] flex-none items-center gap-[14px] p-[0_16px]"
     data-tauri-drag-region
@@ -22,8 +44,9 @@ import WindowControls from '@/components/ui/WindowControls.vue'
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="M14.5 5.5L8 12l6.5 6.5" /></svg></BaseButton
-      ><BaseButton
+          <path d="M14.5 5.5L8 12l6.5 6.5" /></svg
+      ></BaseButton>
+      <BaseButton
         data-nav-fwd
         aria-label="前进"
         ><svg
@@ -49,69 +72,56 @@ import WindowControls from '@/components/ui/WindowControls.vue'
       首页
     </div>
     <PlayerSearchBox variant="titlebar" />
-    <div
-      class="weather-pill flex min-h-[34px] items-center gap-[7px] rounded-full p-[4px_12px_4px_7px] whitespace-nowrap text-white"
-      role="img"
-      aria-label="本地天气：夜晚多云，19度，演示数据"
-      title="本地天气 · 演示数据，正式版接定位与天气接口后为实时"
-    >
-      <svg
-        class="wx-icon h-[29px] w-[29px] flex-none overflow-visible"
-        viewBox="0 0 36 36"
-        fill="none"
-        aria-hidden="true"
+    <LocalWeather :enabled="settings.weather" />
+    <div class="titlebar-account-actions flex flex-none items-center gap-1">
+      <BaseButton
+        type="button"
+        class="titlebar-settings grid size-10 place-items-center rounded-full bg-transparent text-white/70 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75"
+        aria-label="打开设置"
+        title="设置"
+        data-titlebar-settings
+        @click.stop="openSettings"
       >
-        <circle
-          class="wx-star"
-          cx="7.5"
-          cy="6.5"
-          r="1.3"
-          fill="#FFE9A8"
-        />
-        <circle
-          class="wx-star s2"
-          cx="14.5"
-          cy="3.6"
-          r=".9"
-          fill="#ffffff"
-        />
-        <path
-          class="wx-moon"
-          d="M24.6 3.4a8.2 8.2 0 1 0 7.9 11.9A9.6 9.6 0 0 1 24.6 3.4z"
-          fill="#F6DC8A"
-        />
-        <g class="wx-cloud">
-          <path
-            d="M8.4 27.8a5.2 5.2 0 0 1-.7-10.35 7.2 7.2 0 0 1 13.9-1.55A5.6 5.6 0 0 1 26.2 21.3c.3 3.4-2.2 6.5-6 6.5H8.4z"
-            fill="rgba(255,255,255,.94)"
+        <svg
+          class="size-[18px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="3"
           />
-        </g></svg
-      ><span
-        class="wx-temp text-[15px] leading-[1] font-extrabold tracking-[-.01em]"
-        >19°</span
-      ><span class="wx-cond text-[12px] leading-[1] font-bold opacity-[.85]"
-        >多云</span
-      >
+          <path
+            d="m9.3 3-.6 2a7.8 7.8 0 0 0-1.8 1L4.8 5.5 2.7 9.2l1.5 1.5a8.2 8.2 0 0 0 0 2.6l-1.5 1.5 2.1 3.7 2.1-.5a7.8 7.8 0 0 0 1.8 1l.6 2h5.4l.6-2a7.8 7.8 0 0 0 1.8-1l2.1.5 2.1-3.7-1.5-1.5a8.2 8.2 0 0 0 0-2.6l1.5-1.5-2.1-3.7-2.1.5a7.8 7.8 0 0 0-1.8-1l-.6-2z"
+          />
+        </svg>
+      </BaseButton>
+      <AccountMenu
+        :profiles="linkedProfiles"
+        @platform="connectPlatform"
+      />
     </div>
-    <!-- Windows 窗口操作区：公共按钮组件提供完整点击区域与键盘焦点。 -->
     <WindowControls />
   </div>
 </template>
 
 <style scoped>
-/* 仅覆盖 Windows 标题栏的宿主尺寸，原稿其余区域继续使用原样式。 */
 .windows-titlebar {
   height: 48px;
   gap: 12px;
   padding: 0 0 0 16px;
 }
-
 .windows-titlebar .chrome-nav button {
   width: 32px;
   height: 32px;
   border-radius: 8px;
 }
-
 .windows-titlebar .chrome-title {
   position: static;
   flex: 1 1 0;
@@ -124,13 +134,11 @@ import WindowControls from '@/components/ui/WindowControls.vue'
   letter-spacing: 0;
   opacity: 0.7;
 }
-
 .windows-titlebar .chrome-search {
-  width: clamp(240px, 24vw, 340px);
+  width: clamp(220px, 23vw, 340px);
   margin-left: 0;
   font-size: 13px;
 }
-
 .windows-titlebar .chrome-search :deep(input) {
   font-family: inherit;
   font-size: 13px;
@@ -138,7 +146,6 @@ import WindowControls from '@/components/ui/WindowControls.vue'
   line-height: 20px;
   letter-spacing: 0;
 }
-
 .windows-titlebar .chrome-search :deep(svg) {
   width: 14px;
   height: 14px;

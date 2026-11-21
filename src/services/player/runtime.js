@@ -2266,6 +2266,8 @@ export function mountSourcePlayer(root, options = {}) {
   }
   players().forEach(bindPlayer)
   document.addEventListener('keydown', function (e) {
+    // 模态层自行处理键盘，避免 Escape 返回首页或空格改变背景播放。
+    if (nativeDocument.querySelector('dialog[open]')) return
     if (e.code === 'Escape' && state.stage) {
       setStage(false)
       return
