@@ -43,8 +43,7 @@ export async function fetchPublicPlaylist(
   onProgress: (count: number) => void
 ): Promise<CatalogPlaylist> {
   const input = text.trim()
-  const url =
-    input.match(/https?:\/\/[^\s<>「」【】]+/i)?.[0] || `https://${input}`
+  const url = /https?:\/\//i.test(input) ? input : `https://${input}`
   const first = await resolveCatalogPlaylist(url, 100, signal)
   return fetchFollowingPages(first, signal, onProgress)
 }

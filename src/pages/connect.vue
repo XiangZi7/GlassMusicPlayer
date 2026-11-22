@@ -28,6 +28,11 @@ const {
   link,
   loading,
   loaded,
+  importTotal,
+  importDone,
+  retryTasks,
+  togglePageSelection,
+  cancelImport,
   profileError,
   imported,
   connections,
@@ -98,9 +103,10 @@ const dialogInitialValue = computed(() => {
 })
 const selection = useTemplateRef<HTMLElement>('selection')
 
+// 未关联平台优先展示可用扫码方式，酷我沿用公开主页方式。
 function openConnectionDialog(
   platform: MusicPlatform,
-  mode: 'profile' | 'login' = platform === 'kugou' ? 'login' : 'profile'
+  mode: 'profile' | 'login' = platform === 'kuwo' ? 'profile' : 'login'
 ): void {
   state.dialogMode = mode
   state.dialogPlatform = platform
@@ -282,6 +288,7 @@ onDeactivated(() => {
       ref="selection"
       class="mt-[20px]"
       aria-label="选择要导入的歌单"
+      :aria-busy="loading === 'profile'"
     >
       <h4 class="pg-secttl mb-[8px] text-[12px] font-extrabold">
         选择要导入的歌单<span v-if="selected.length">
@@ -323,7 +330,7 @@ onDeactivated(() => {
         </div>
         <p
           v-if="loading === 'profile'"
-          class="empty-note py-[10px] text-[13px]"
+          class="empty-note flex min-h-[120px] items-center justify-center text-[13px]"
           role="status"
         >
           正在读取公开歌单…
@@ -360,14 +367,15 @@ onDeactivated(() => {
           <span
             v-if="isImported(item.id)"
             class="text-[12px] opacity-[.7]"
-            >已导入</span
+            >已导入 · 可更新</span
           >
           <input
-            v-else
             v-model="selected"
             type="checkbox"
             :value="item.id"
-            :aria-label="'选择导入 ' + item.title"
+            :aria-label="
+              (isImported(item.id) ? '选择更新 ' : '选择导入 ') + item.title
+            "
             :disabled="!!loading"
           />
         </label>
@@ -379,7 +387,16 @@ onDeactivated(() => {
             class="banner-play rounded-full px-[18px] py-[9px]"
             :disabled="!selected.length || !!loading"
             @click="importPlaylists('selection')"
-            >导入所选歌单</BaseButton
+            >{{
+              loading === 'selection' ? '正在导入…' : '导入 / 更新所选'
+            }}</BaseButton
+          >
+          <!-- 歌单选择区：批量选择按钮保留其他分页的勾选。 -->
+          <BaseButton
+            class="imp-pick rounded-full px-[12px] py-[6px]"
+            :disabled="!!loading || !page.playlists.length"
+            @click="togglePageSelection"
+            >全选 / 取消本页</BaseButton
           >
           <BaseButton
             v-if="page.pageNum > 1"
@@ -395,16 +412,11 @@ onDeactivated(() => {
             @click="changePage(page.pageNum + 1)"
             >下一页</BaseButton
           >
-          <span
-            v-if="loading === 'selection'"
-            role="status"
-            >当前歌单已读取 {{ loaded }} 首</span
-          >
         </div>
       </template>
     </section>
 
-    <!-- 公开分享链接仍可单独导入。 -->
+    <!-- 分享导入区：接受整段分享内容或多行链接，不需要先关联账号。 -->
     <form
       class="mt-[22px]"
       @submit.prevent="importPlaylists('link')"
@@ -412,31 +424,62 @@ onDeactivated(() => {
       <label
         for="public-playlist-link"
         class="pg-secttl text-[12px] font-extrabold"
-        >用链接导入 · 公开歌单分享链接</label
+        >粘贴分享内容 · 无需登录</label
       >
-      <div class="link-row mt-[10px] flex gap-[8px]">
-        <input
+      <div class="link-row mt-[10px] flex flex-wrap items-start gap-[8px]">
+        <textarea
           id="public-playlist-link"
           v-model="link"
-          type="text"
-          placeholder="例如 music.163.com/playlist?id=3778678"
+          rows="3"
+          maxlength="32768"
+          class="focus-visible:ring-accent min-h-[80px] min-w-0 flex-1 resize-y rounded-[11px] px-[12px] py-[10px] text-[13px] outline-none focus-visible:ring-2"
+          placeholder="直接粘贴 App 复制的分享文字，或多行歌单链接（每批最多 50 个）"
+          aria-describedby="playlist-share-help"
           :disabled="!!loading"
         />
+        <!-- 分享导入区：公共按钮启动批量导入，过程中防止重复提交。 -->
         <BaseButton
           type="submit"
           class="up-add min-h-[38px] rounded-[11px] px-[16px] text-[12.5px] font-extrabold whitespace-nowrap"
           :disabled="!!loading || !link.trim()"
-          >导入歌单</BaseButton
+          >{{
+            loading === 'link' ? '正在导入…' : '导入 / 更新歌单'
+          }}</BaseButton
         >
       </div>
       <p
-        v-if="loading === 'link'"
-        class="src-note mt-[12px] text-[12px]"
-        role="status"
+        id="playlist-share-help"
+        class="src-note mt-[8px] text-[12px]"
       >
-        已读取 {{ loaded }} 首
+        自动识别平台并去重；已导入歌单会更新。支持公开歌单详情链接，短链接暂不展开。
       </p>
     </form>
+    <!-- 批次操作区：公共按钮停止任务或仅重试未完成项，不重复展示错误通知。 -->
+    <div
+      class="pl-actions mt-[12px] flex flex-wrap items-center gap-[10px]"
+      :aria-busy="loading === 'link' || loading === 'selection'"
+    >
+      <span
+        v-if="loading === 'link' || loading === 'selection'"
+        role="status"
+      >
+        已处理 {{ importDone }} / {{ importTotal }} 项 · 当前歌单
+        {{ loaded }} 首
+      </span>
+      <BaseButton
+        v-if="loading === 'link' || loading === 'selection'"
+        class="imp-pick rounded-full px-[12px] py-[6px]"
+        @click="cancelImport"
+        >停止导入</BaseButton
+      >
+      <BaseButton
+        v-if="retryTasks.length && !loading"
+        class="imp-pick rounded-full px-[12px] py-[6px]"
+        @click="importPlaylists('retry')"
+        >重试未完成项（{{ retryTasks.length }}）</BaseButton
+      >
+    </div>
+    <!-- 平台连接区：公共弹窗提供扫码确认身份或主页链接关联。 -->
     <PlatformConnectionDialog
       v-model="dialogOpen"
       :platform="dialogPlatform"

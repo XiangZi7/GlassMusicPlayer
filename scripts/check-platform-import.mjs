@@ -75,6 +75,7 @@ function harness(options = {}) {
   const writes = [],
     calls = [],
     notices = [],
+    routes = [],
     hooks = []
   const localStorage = {
     getItem: key => saved.get(key) ?? null,
@@ -88,10 +89,12 @@ function harness(options = {}) {
     platformNames: names,
     catalogKey: item => `${item.platform}:${item.id}`,
     toSourceTrack: item => ({ ...item }),
-    fetchLinkedPlaylist: async () => {
+    fetchLinkedPlaylist: async (...args) => {
+      if (options.linkedPlaylist) return options.linkedPlaylist(...args)
       throw new Error('Unexpected playlist fetch')
     },
-    fetchPublicPlaylist: async () => {
+    fetchPublicPlaylist: async (...args) => {
+      if (options.publicPlaylist) return options.publicPlaylist(...args)
       throw new Error('Unexpected playlist fetch')
     },
   }
@@ -139,7 +142,9 @@ function harness(options = {}) {
           onDeactivated: callback => hooks.push(callback),
         }
       if (name === 'vue-router')
-        return { useRouter: () => ({ push: async () => undefined }) }
+        return {
+          useRouter: () => ({ push: async route => routes.push(route) }),
+        }
       if (name === '@/api') return api
       if (name === '@/services/notification')
         return { notify: (...args) => notices.push(args) }
@@ -151,12 +156,14 @@ function harness(options = {}) {
   })
   return {
     importer: module.exports.usePlatformImport(),
+    readPlaylistLinks: module.exports.readPlaylistLinks,
     player,
     calls,
     writes,
     saved,
     hooks,
     notices,
+    routes,
   }
 }
 let count = 0
@@ -399,6 +406,284 @@ await check(
     pending.resolve(result())
     assert.equal(await loading, false)
     assert.equal(h.writes.length, 0)
+  }
+)
+// 构造完整歌单快照，验证保存、更新和取消不依赖真实平台账号。
+const playlist = (id, title = 'List ' + id, platform = 'netease') => ({
+  platform,
+  id,
+  title,
+  coverUrl: null,
+  sourceUrl: `https://music.163.com/playlist?id=${id}`,
+  pageNum: 1,
+  pageSize: 100,
+  total: 0,
+  tracks: [],
+})
+await check(
+  'share text extracts multiple links and removes repeated copies',
+  async () => {
+    const h = harness()
+    const links = h.readPlaylistLinks(
+      '分享（https://music.163.com/playlist?id=1），来听听\nhttps://www.kuwo.cn/playlist_detail/2。\nhttps://music.163.com/playlist?id=1'
+    )
+    assert.deepEqual(Array.from(links), [
+      'https://music.163.com/playlist?id=1',
+      'https://www.kuwo.cn/playlist_detail/2',
+    ])
+    assert.deepEqual(
+      Array.from(h.readPlaylistLinks('music.163.com/playlist?id=1')),
+      ['music.163.com/playlist?id=1']
+    )
+    assert.throws(() => h.readPlaylistLinks('x'.repeat(32769)), /过长/)
+    assert.throws(
+      () =>
+        h.readPlaylistLinks(
+          Array.from(
+            { length: 51 },
+            (_, i) => `https://music.163.com/playlist?id=${i + 1}`
+          ).join('\n')
+        ),
+      /50/
+    )
+  }
+)
+await check(
+  'one failed link does not block later links, retry fetches only failures',
+  async () => {
+    const calls = []
+    let fail = true
+    const h = harness({
+      publicPlaylist: async text => {
+        calls.push(text)
+        const id = new URL(text).searchParams.get('id')
+        if (id === '2' && fail) throw new Error('Mock upstream unavailable')
+        return playlist(id)
+      },
+    })
+    h.importer.link.value = [1, 2, 3]
+      .map(id => `https://music.163.com/playlist?id=${id}`)
+      .join('\n')
+    await h.importer.importPlaylists('link')
+    assert.equal(h.player.state.imported.length, 2)
+    assert.equal(h.importer.importDone.value, 3)
+    assert.equal(h.importer.retryTasks.value.length, 1)
+    assert.equal(h.notices.length, 1)
+    fail = false
+    await h.importer.importPlaylists('retry')
+    assert.equal(calls.length, 4)
+    assert.equal(calls[3], 'https://music.163.com/playlist?id=2')
+    assert.equal(h.player.state.imported.length, 3)
+    assert.equal(h.importer.retryTasks.value.length, 0)
+  }
+)
+await check(
+  'selected existing playlist updates in place, failures keep its old version',
+  async () => {
+    let fail = true
+    const h = harness({
+      linkedPlaylist: async (_platform, id) => {
+        if (fail) throw new Error('Mock failure')
+        return playlist(id, 'Updated')
+      },
+    })
+    h.player.savePublicPlaylist(playlist('1', 'Original'))
+    h.importer.active.value = 'netease'
+    h.importer.selected.value = ['1']
+    await h.importer.importPlaylists('selection')
+    assert.equal(h.player.state.imported[0].name, 'Original')
+    assert.equal(h.importer.selected.value.length, 1)
+    fail = false
+    await h.importer.importPlaylists('retry')
+    assert.equal(h.player.state.imported.length, 1)
+    assert.equal(h.player.state.imported[0].name, 'Updated')
+    assert.equal(h.importer.selected.value.length, 0)
+  }
+)
+await check(
+  'page select all preserves selections from other pages and includes imported lists',
+  async () => {
+    const h = harness()
+    h.importer.active.value = 'netease'
+    h.player.savePublicPlaylist(playlist('1'))
+    h.importer.page.value = {
+      ...result(),
+      playlists: [{ id: '1' }, { id: '2' }],
+    }
+    h.importer.selected.value = ['3']
+    h.importer.togglePageSelection()
+    assert.deepEqual(Array.from(h.importer.selected.value), ['3', '1', '2'])
+    h.importer.togglePageSelection()
+    assert.deepEqual(Array.from(h.importer.selected.value), ['3'])
+  }
+)
+await check(
+  'cancel keeps saved lists and uncompleted tasks, late response cannot save',
+  async () => {
+    const pending = deferred()
+    const started = deferred()
+    let signal
+    const h = harness({
+      publicPlaylist: async (text, incoming) => {
+        if (text.endsWith('=1')) return playlist('1')
+        signal = incoming
+        started.resolve()
+        return pending.promise
+      },
+    })
+    h.importer.link.value =
+      'https://music.163.com/playlist?id=1\nhttps://music.163.com/playlist?id=2'
+    const work = h.importer.importPlaylists('link')
+    await started.promise
+    assert.equal(h.player.state.imported.length, 1)
+    h.importer.cancelImport()
+    assert(signal.aborted)
+    pending.resolve(playlist('2'))
+    await work
+    assert.equal(h.player.state.imported.length, 1)
+    assert.equal(h.importer.retryTasks.value.length, 1)
+    assert.equal(h.importer.loading.value, null)
+  }
+)
+await check(
+  'retry retains original platform even after user changes visible account',
+  async () => {
+    const calls = []
+    let fail = true
+    const h = harness({
+      linkedPlaylist: async (platform, id) => {
+        calls.push(platform)
+        if (fail) throw new Error('Mock failure')
+        return playlist(id, 'Recovered', platform)
+      },
+    })
+    h.importer.active.value = 'netease'
+    h.importer.selected.value = ['1']
+    await h.importer.importPlaylists('selection')
+    h.importer.active.value = 'kuwo'
+    fail = false
+    await h.importer.importPlaylists('retry')
+    assert.deepEqual(calls, ['netease', 'netease'])
+    assert.equal(h.player.state.imported[0].id, 'netease:1')
+  }
+)
+await check(
+  'storage failures remain retryable without partially registering a playlist',
+  async () => {
+    const h = harness({
+      failStorage: true,
+      publicPlaylist: async () => playlist('1'),
+    })
+    h.importer.link.value = 'https://music.163.com/playlist?id=1'
+    await h.importer.importPlaylists('link')
+    assert.equal(h.player.state.imported.length, 0)
+    assert.equal(h.importer.retryTasks.value.length, 1)
+    assert.equal(h.notices.length, 1)
+  }
+)
+// 导航只在单链接成功后发生，批量操作保留结果及重试入口。
+await check(
+  'single successful link opens playlist, batches stay on import page',
+  async () => {
+    const h = harness({
+      publicPlaylist: async text =>
+        playlist(new URL(text).searchParams.get('id')),
+    })
+    h.importer.link.value = 'https://music.163.com/playlist?id=1'
+    await h.importer.importPlaylists('link')
+    assert.equal(h.routes.length, 1)
+    assert.equal(h.routes[0].query.playlist, 'netease:1')
+    h.importer.link.value =
+      'https://music.163.com/playlist?id=2\nhttps://music.163.com/playlist?id=3'
+    await h.importer.importPlaylists('link')
+    assert.equal(h.routes.length, 1)
+  }
+)
+
+// 旧批次的响应和 finally 不得覆盖取消后立即启动的新批次。
+await check(
+  'late canceled batch never clears or saves over a fresh batch',
+  async () => {
+    const old = deferred(),
+      fresh = deferred()
+    const h = harness({
+      publicPlaylist: async text =>
+        text.endsWith('=1') ? old.promise : fresh.promise,
+    })
+    h.importer.link.value = 'https://music.163.com/playlist?id=1'
+    const first = h.importer.importPlaylists('link')
+    h.importer.cancelImport()
+    h.importer.link.value = 'https://music.163.com/playlist?id=2'
+    const second = h.importer.importPlaylists('link')
+    old.resolve(playlist('1'))
+    await first
+    assert.equal(h.importer.loading.value, 'link')
+    assert.equal(h.player.state.imported.length, 0)
+    assert.equal(
+      h.importer.retryTasks.value[0].text,
+      'https://music.163.com/playlist?id=2'
+    )
+    fresh.resolve(playlist('2'))
+    await second
+    assert.equal(h.player.state.imported.length, 1)
+    assert.equal(h.player.state.imported[0].id, 'netease:2')
+  }
+)
+
+// 实际 catalog 服务不截取第一个链接，并沿用完整分页读取契约。
+await check(
+  'catalog passes whole share text to resolver and preserves paginated order',
+  async () => {
+    const module = { exports: {} }
+    let resolvedText
+    const signal = new AbortController().signal
+    const progress = []
+    vm.runInNewContext(compile('src/services/player/catalog.ts'), {
+      module,
+      exports: module.exports,
+      require: name => {
+        assert.equal(name, '@/api')
+        return {
+          resolveCatalogPlaylist: async (text, size, incoming) => {
+            resolvedText = text
+            assert.equal(incoming, signal)
+            assert.equal(size, 100)
+            return {
+              ...playlist('1'),
+              pageSize: 1,
+              total: 2,
+              tracks: [{ id: 'a' }],
+            }
+          },
+          getCatalogPlaylist: async (platform, id, pageNum, size, incoming) => {
+            assert.equal(platform, 'netease')
+            assert.equal(id, '1')
+            assert.equal(pageNum, 2)
+            assert.equal(size, 1)
+            assert.equal(incoming, signal)
+            return {
+              ...playlist('1'),
+              pageNum: 2,
+              pageSize: 1,
+              total: 2,
+              tracks: [{ id: 'b' }],
+            }
+          },
+        }
+      },
+    })
+    const text = '分享歌单（https://music.163.com/#/playlist?id=1），来听听'
+    const result = await module.exports.fetchPublicPlaylist(
+      text,
+      signal,
+      count => progress.push(count)
+    )
+    assert.equal(resolvedText, text)
+    assert.deepEqual(
+      Array.from(result.tracks, track => track.id),
+      ['a', 'b']
+    )
+    assert.deepEqual(progress, [1, 2])
   }
 )
 console.log(
