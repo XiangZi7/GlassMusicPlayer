@@ -11,9 +11,8 @@ export interface PlayerController extends SourcePlayer {
   playTracks(indices: number[], index: number): void
   toggleRadio(): void
   setQuery(query: string): void
-  playSmart(kind: string): void
-  smartList(kind: string): number[]
-  smartMeta(kind: string, index: number): string
+  playSmart(): void
+  smartList(): number[]
   playNext(index: number): void
   moveQueue(from: number, to: number): void
   render(): void

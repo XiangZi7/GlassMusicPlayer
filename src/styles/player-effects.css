@@ -492,20 +492,49 @@ h1 .thin {
 .banner {
   --bx: 0;
   --by: 0;
+  container-type: inline-size;
   transition:
     height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
     margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.banner-bg {
-  background-size: cover;
-  background-position: center;
-  transition: background-image 0.5s;
-  clip-path: inset(28px round 20px);
+@property --banner-accent {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #8490c6;
 }
 
-.banner-shade {
-  clip-path: inset(0 round 20px);
+.banner-bg {
+  background:
+    radial-gradient(
+      ellipse 58% 125% at 88% 43%,
+      color-mix(in srgb, var(--banner-accent) 30%, transparent),
+      transparent 85%
+    ),
+    linear-gradient(112deg, #161720 12%, #1b1d29 68%, #22222f);
+  transition: --banner-accent 200ms ease;
+}
+
+.banner-spectrum {
+  right: 0;
+  width: min(55%, 720px);
+  height: clamp(44px, 12cqw, 88px);
+  mask-image:
+    linear-gradient(to right, transparent, #000 17%, #000 80%, transparent),
+    linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
+  mask-composite: intersect;
+}
+
+@container (max-width: 35rem) {
+  .banner-spectrum {
+    right: 1%;
+    width: 49%;
+    opacity: 0.75;
+  }
+
+  .banner-content {
+    width: calc(50% - 30px);
+  }
 }
 
 .banner-content h4 {
@@ -516,30 +545,12 @@ h1 .thin {
   @apply h-[13px] w-[13px];
 }
 
-.banner-halo {
-  filter: blur(30px);
-  background-size: cover;
-  background-position: center;
-  transition: background-image 0.5s;
-}
-
-.bc {
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45);
-}
-
 .banner-girl {
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.42));
-  -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
-}
-
-.banner-floor {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0.5),
-    transparent 68%
-  );
-  filter: blur(5px);
+  mask-image:
+    linear-gradient(to right, transparent, #000 26%, #000 94%, transparent),
+    linear-gradient(to bottom, #000 86%, transparent);
+  mask-composite: intersect;
 }
 
 .banner-mini img {
@@ -559,6 +570,7 @@ h1 .thin {
 }
 
 .main.compact .banner-content,
+.main.compact .banner-spectrum,
 .main.compact .banner-stage {
   @apply hidden;
 }
@@ -567,43 +579,10 @@ h1 .thin {
   @apply flex;
 }
 
-/* A banner : flat frosted card, flat cover row, no tilt */
+/* 毛玻璃横幅：柔光渐变和固定立绘。 */
 .glass-win .banner {
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.glass-win .banner-bg {
-  filter: blur(24px) saturate(1.05) brightness(0.6);
-}
-
-.glass-win .banner-shade {
-  background: linear-gradient(
-    90deg,
-    rgba(10, 10, 16, 0.66) 30%,
-    rgba(10, 10, 16, 0.18) 68%,
-    rgba(10, 10, 16, 0.05)
-  );
-}
-
-.glass-win .banner-halo {
-  @apply top-[18%] right-[8%] h-[128px] w-[128px];
-}
-
-.glass-win .bc {
-  @apply top-[50%] mt-[-38px] h-[76px] w-[76px];
-}
-
-.glass-win .bc-back {
-  @apply right-[200px] opacity-[.55];
-}
-
-.glass-win .bc-mid {
-  @apply right-[164px] opacity-[.8];
-}
-
-.glass-win .bc-front {
-  @apply right-[128px];
 }
 
 .glass-win .banner-play {
@@ -616,7 +595,7 @@ h1 .thin {
   color: #14141c;
 }
 
-/* B banner : liquid perspective stage, covers fan in rotateY, specular follows cursor */
+/* 液态玻璃横幅：立绘视差与鼠标高光。 */
 .liquid-win .banner {
   background: linear-gradient(
     165deg,
@@ -628,21 +607,6 @@ h1 .thin {
     inset 0 1.5px 1px rgba(255, 255, 255, 0.55),
     inset 0 -10px 22px rgba(255, 255, 255, 0.06),
     0 16px 32px rgba(0, 0, 0, 0.28);
-}
-
-.liquid-win .banner-bg {
-  filter: blur(16px) saturate(1.8) brightness(0.72);
-  transform: translate3d(calc(var(--bx) * -10px), calc(var(--by) * -7px), 0)
-    scale(1.06);
-}
-
-.liquid-win .banner-shade {
-  background: linear-gradient(
-    90deg,
-    rgba(6, 10, 12, 0.62) 26%,
-    rgba(6, 10, 12, 0.16) 62%,
-    rgba(6, 10, 12, 0.02)
-  );
 }
 
 .liquid-win .banner::after {
@@ -665,39 +629,9 @@ h1 .thin {
   transform: rotateY(calc(var(--bx) * -7deg)) rotateX(calc(var(--by) * 5deg));
 }
 
-.liquid-win .banner-halo {
-  @apply top-[-18%] right-[15%] h-[158px] w-[158px];
-  transform: translate3d(calc(var(--bx) * -16px), calc(var(--by) * -10px), 0);
-}
-
-.liquid-win .bc {
-  @apply top-[50%];
-}
-
-.liquid-win .bc-back {
-  @apply right-[214px] h-[64px] w-[64px] opacity-[.55];
-  transform: translate3d(calc(var(--bx) * -22px), -50%, -70px) rotateY(38deg)
-    rotateZ(-5deg);
-}
-
-.liquid-win .bc-mid {
-  @apply right-[162px] h-[76px] w-[76px] opacity-[.85];
-  transform: translate3d(calc(var(--bx) * -13px), -50%, -30px) rotateY(30deg)
-    rotateZ(-2deg);
-}
-
-.liquid-win .bc-front {
-  @apply right-[106px] h-[90px] w-[90px];
-  transform: translate3d(calc(var(--bx) * -6px), -50%, 10px) rotateY(22deg);
-}
-
 .liquid-win .banner-girl {
   transform: translate3d(calc(var(--bx) * 7px), calc(var(--by) * 4px), 46px)
     rotateZ(calc(var(--bx) * 1.2deg));
-}
-
-.liquid-win .banner-floor {
-  transform: translate3d(calc(var(--bx) * 5px), 0, 20px);
 }
 
 .liquid-win .banner-play {
@@ -710,6 +644,32 @@ h1 .thin {
   box-shadow:
     inset 0 1.5px 1px #fff,
     0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.banner.banner-calm,
+.banner-calm .banner-bg {
+  transition: none;
+}
+
+.liquid-win .banner-calm :is(.banner-stage, .banner-girl) {
+  transform: none;
+}
+
+.liquid-win .banner.banner-calm::after {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .banner-bg {
+    transition: none;
+  }
+  .liquid-win .banner :is(.banner-stage, .banner-girl) {
+    transform: none;
+  }
+  .liquid-win .banner::after {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -726,40 +686,8 @@ h1 .thin {
     bottom: 0;
     right: 4px;
   }
-  .banner-floor {
-    right: 0;
-  }
   .feat-head {
     margin-top: 18px;
-  }
-  .glass-win .bc {
-    width: 56px;
-    height: 56px;
-    margin-top: -28px;
-  }
-  .glass-win .bc-back {
-    right: 146px;
-  }
-  .glass-win .bc-mid {
-    right: 120px;
-  }
-  .glass-win .bc-front {
-    right: 94px;
-  }
-  .liquid-win .bc-back {
-    right: 152px;
-    width: 48px;
-    height: 48px;
-  }
-  .liquid-win .bc-mid {
-    right: 116px;
-    width: 58px;
-    height: 58px;
-  }
-  .liquid-win .bc-front {
-    right: 76px;
-    width: 68px;
-    height: 68px;
   }
 }
 
@@ -3554,10 +3482,6 @@ body.calm .fs-giant {
   @apply flex-none rounded-[14px] border-[2px] border-current p-[12px_16px] text-center font-mono text-[13px] leading-[1.7] font-bold;
 }
 
-footer {
-  @apply text-ink2 border-line mt-[44px] border-t pt-[18px] text-[12.5px] leading-[1.7];
-}
-
 /* ---------- this round : platform connect / upload / downloads / hub ---------- */
 
 .glass-win .plat-card {
@@ -4305,18 +4229,10 @@ footer {
 }
 
 /* 原稿频谱贴底作背景：14px 高、左右留 2px、顶部 1px 圆角。
-   画布负责真实频峰与示例曲目的律动，暂停时保留曲目自己的静态轮廓。 */
+   画布显示实际音频的频峰，暂停时保留曲目自己的静态轮廓。 */
 .player-spectrum {
   overflow: hidden;
   transition: color 0.6s ease;
-}
-
-.spectrum-note {
-  display: none;
-}
-
-.player-spectrum[data-spectrum-mode='simulated'] + .spectrum-note {
-  display: block;
 }
 
 .win-bottom > .mini,

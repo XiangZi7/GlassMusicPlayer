@@ -24,12 +24,11 @@ fs.writeFileSync(
   `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tray component check</title><style>html,body{background:#ececea!important}.fixture-canvas{width:352px;max-width:100%;padding:32px;box-sizing:border-box}</style></head><body><div id="fixture" class="fixture-canvas"></div><script type="module">
 import { createApp, h, reactive, nextTick } from 'vue'
 import TrayMenu from '/src/components/tray/TrayMenu.vue'
-import { tracks } from '/src/constants/music.ts'
 import '@fontsource-variable/manrope'
 import '@fontsource-variable/noto-sans-sc'
 import '@fontsource-variable/jetbrains-mono'
 import '/src/styles/main.css'
-const snapshot = { track: {...tracks[0], cover:''}, playing:false, time:42, volume:70, liked:false, lyrics:[], lyricIndex:0, motion:false, fontSize:21, locked:false, index:0, direction:1 }
+const snapshot = { track: { title:'回归测试歌曲', artist:'回归测试歌手', album:'回归测试专辑', cover:'', dur:214, q:'', glow:'' }, playing:false, time:42, volume:70, liked:false, lyrics:[], lyricIndex:0, motion:false, fontSize:21, locked:false, index:0, direction:1 }
 const state = reactive({ snapshot, glassStyle:'frosted', motion:false, miniEnabled:true, busy:null, error:'', cycle:0, opened:true })
 const events = [], sizes = []
 createApp({render:()=>h(TrayMenu,{...state,onAction:action=>events.push(['action',action]),onToggle:()=>events.push(['toggle']),onDismiss:()=>events.push(['dismiss']),onResize:height=>sizes.push(height)})}).mount('#fixture')

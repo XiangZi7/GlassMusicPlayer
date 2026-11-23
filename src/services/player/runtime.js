@@ -1,15 +1,12 @@
 import { createFullscreenMotion } from '@/services/player/fullscreen-motion'
 import { fullscreenTitleClass } from '@/services/player/fullscreen-title'
+import { parseEqualizerGains } from '@/services/player/equalizer'
 import {
   createCatalogAudio,
   parseCatalogLyrics,
 } from '@/services/player/catalog-audio'
 import { getCatalogLyrics } from '@/api'
-import {
-  shortLyrics as LYRICS,
-  fullLyrics as LYR_FULL,
-  lyricPools as LYR_POOL,
-} from '@/constants/music'
+import { defaultCover, emptyTrack } from '@/constants/music'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
 // 页面、列表和状态由 Vue / Pinia 管理；保留播放时序、歌词跟随和原始动画协调。
@@ -18,7 +15,6 @@ export function mountSourcePlayer(root, options = {}) {
   const nativeWindow = nativeDocument.defaultView
   const cleanups = []
   const timeouts = new Set()
-  const intervals = new Set()
   const frames = new Set()
   const bound = new WeakMap()
   // 路由组件重复挂载时只绑定新节点，公共布局监听在卸载时统一释放。
@@ -71,17 +67,6 @@ export function mountSourcePlayer(root, options = {}) {
     timeouts.add(id)
     return id
   }
-  // 跟踪原稿的播放计时器，避免热更新或退出页面后遗留后台任务。
-  function setInterval(handler, delay) {
-    const id = nativeWindow.setInterval(handler, delay)
-    intervals.add(id)
-    return id
-  }
-  // 原稿暂停播放时同步释放已记录的计时器。
-  function clearInterval(id) {
-    nativeWindow.clearInterval(id)
-    intervals.delete(id)
-  }
   // 原稿取消动画延时后同步释放记录。
   function clearTimeout(id) {
     nativeWindow.clearTimeout(id)
@@ -107,43 +92,10 @@ export function mountSourcePlayer(root, options = {}) {
   function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   }
-  // 生成当前曲目的原稿双语歌词与时间轴。
-  function fsLinesFor(idx, dur) {
-    if (TRACKS[idx]?.catalog)
-      return catalogLyrics || [{ t: 0, o: '暂无歌词', tr: '' }]
-    var pairs = null
-    if (LYR_FULL[idx]) {
-      pairs = LYR_FULL[idx]
-    } else {
-      var trk = TRACKS[idx],
-        pool = trk ? LYR_POOL[trk.album] : null
-      if (pool) {
-        var seen = 0
-        for (var k = 0; k < idx; k++) {
-          if (TRACKS[k].album === trk.album) seen++
-        }
-        var off = (seen * 3) % pool.length
-        pairs = []
-        for (var m = 0; m < pool.length; m++)
-          pairs.push(pool[(off + m) % pool.length])
-      } else {
-        var base = LYRICS[idx] || ['—']
-        pairs = base.map(function (s) {
-          return [s, '']
-        })
-      }
-    }
-    var n = pairs.length,
-      out = [],
-      D = dur || 200
-    for (var i = 0; i < n; i++) {
-      out.push({
-        t: Math.round(((i * D) / n) * 10) / 10,
-        o: pairs[i][0],
-        tr: pairs[i][1] || '',
-      })
-    }
-    return out
+  // 歌词只使用当前曲目的真实时间轴，空播放器不创建歌词行。
+  function fsLinesFor(idx) {
+    if (!TRACKS[idx]) return []
+    return catalogLyrics || [{ t: 0, o: '暂无歌词', tr: '' }]
   }
   var ICON_PLAY =
     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>'
@@ -173,12 +125,27 @@ export function mountSourcePlayer(root, options = {}) {
   let lyricRequest
   const audio = createCatalogAudio(root, {
     time(time, duration) {
+      if (state.resumeTime > 0 && duration > 0) {
+        const target = Math.min(duration - 0.1, state.resumeTime)
+        state.resumeTime = 0
+        audio.seek(Math.max(0, target))
+        state.t = Math.max(0, target)
+        state.streamDuration = duration
+        render()
+        return
+      }
       state.t = time
       state.streamDuration = duration
       render()
     },
+    equalizer(status) {
+      state.equalizerStatus = status
+    },
     playing(playing) {
       state.playing = playing
+      if (playing && TRACKS[state.idx]?.catalog && state.recent[0] !== state.idx) {
+        state.recent = [state.idx, ...state.recent.filter(index => index !== state.idx)]
+      }
       render()
     },
     status(status) {
@@ -189,11 +156,13 @@ export function mountSourcePlayer(root, options = {}) {
 
   // 在线歌曲以音频时长为准，加载前用平台曲目时长。
   function currentDuration() {
-    return state.streamDuration || TRACKS[state.idx].dur
+    return state.streamDuration || TRACKS[state.idx]?.dur || 0
   }
 
   // 所有播放视图的进度操作都控制同一个音频元素。
   function seekTo(time) {
+    if (!TRACKS[state.idx]) return
+    state.resumeTime = 0
     state.t = Math.max(0, Math.min(currentDuration(), time))
     if (TRACKS[state.idx].catalog) audio.seek(state.t)
     render()
@@ -309,23 +278,13 @@ export function mountSourcePlayer(root, options = {}) {
     }
     renderVolume()
   }
-  var DEVICES = ['桌面音箱', '耳机']
-  // 原稿交互：保留 cycleDevice 对应的界面行为与调用规则。
-  function cycleDevice() {
-    var i = DEVICES.indexOf(state.settings.output)
-    state.settings.output = DEVICES[(i + 1) % DEVICES.length]
-    renderSettings()
-  }
-
   /* ---------- this round : queue model + listening bundle + desktop bundle ---------- */
   var ICON_QNEXT =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14l7-7z" fill="currentColor" stroke="none"/><path d="M13 5v14l7-7z" fill="currentColor" stroke="none" opacity=".55"/><path d="M21 5v14"/></svg>'
   var deskFont = 21
-  // 默认队列沿用本地曲库，在线歌曲只有被点选或加入队列后才出现。
+  // 默认队列只收录选中的在线曲目，本地资料不进入播放队列。
   function defaultQueue(current = state.idx) {
-    return TRACKS.map((track, index) =>
-      !track.catalog || index === current ? index : -1
-    ).filter(index => index >= 0)
+    return TRACKS[current]?.catalog ? [current] : []
   }
 
   // 首次播放时建立默认队列，显式选中的歌单队列由播放入口维护。
@@ -345,12 +304,11 @@ export function mountSourcePlayer(root, options = {}) {
     var q = state.queue,
       p = q.indexOf(state.idx)
     if (state.repeat === 2) return state.idx
-    if (p > -1 && p < q.length - 1) return q[p + 1]
-    if (state.repeat === 1 || state.radioOn) return q[0]
+    if (p < q.length - 1) return q[p + 1]
+    if (state.repeat === 1 || state.radioOn) return q[0] ?? null
     return null
   }
-  /* deterministic stand-ins for play history (a real build reads the listening DB) */
-  // 原稿交互：保留 metaSeed 对应的界面行为与调用规则。
+  // 为每日推荐和电台队列提供稳定的排序种子。
   function metaSeed(str) {
     var h = 2166136261
     str = String(str)
@@ -360,44 +318,10 @@ export function mountSourcePlayer(root, options = {}) {
     }
     return h >>> 0
   }
-  // 原稿交互：保留 playsOf 对应的界面行为与调用规则。
-  function playsOf(tr) {
-    return 3 + (metaSeed('plays|' + tr.title) % 58)
-  }
-  // 原稿交互：保留 lastDaysOf 对应的界面行为与调用规则。
-  function lastDaysOf(tr) {
-    return 1 + (metaSeed('last|' + tr.title) % 45)
-  }
-  // 原稿交互：保留 addedDaysOf 对应的界面行为与调用规则。
-  function addedDaysOf(tr) {
-    return 3 + (metaSeed('added|' + tr.title) % 150)
-  }
-  var SMART_DEFS = [
-    { kind: 'stale', name: '久未听的', rule: '按上次播放距今由久到近自动排' },
-    { kind: 'loop', name: '循环最多', rule: '按累计播放次数由高到低自动排' },
-    { kind: 'rewind', name: '随机重温', rule: '每天换一批 · 固定种子随机抽' },
-  ]
-  // 原稿交互：保留 smartList 对应的界面行为与调用规则。
-  function smartList(kind) {
-    var all = TRACKS.map(function (tr, i) {
-      return i
-    })
-    if (kind === 'stale')
-      return all
-        .slice()
-        .sort(function (a, b) {
-          return lastDaysOf(TRACKS[b]) - lastDaysOf(TRACKS[a]) || a - b
-        })
-        .slice(0, 8)
-    if (kind === 'loop')
-      return all
-        .slice()
-        .sort(function (a, b) {
-          return playsOf(TRACKS[b]) - playsOf(TRACKS[a]) || a - b
-        })
-        .slice(0, 8)
-    var seed = metaSeed('rewind|' + new Date().toDateString()),
-      arr = all.slice()
+  // 从真实在线曲库按当天日期抽取一组候选歌曲。
+  function smartList() {
+    const arr = TRACKS.flatMap((track, index) => track.catalog ? [index] : [])
+    var seed = metaSeed('rewind|' + new Date().toDateString())
     for (var i = arr.length - 1; i > 0; i--) {
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0
       var j = seed % (i + 1),
@@ -407,22 +331,10 @@ export function mountSourcePlayer(root, options = {}) {
     }
     return arr.slice(0, 8)
   }
-  // 原稿交互：保留 smartMeta 对应的界面行为与调用规则。
-  function smartMeta(kind, ti) {
-    var tr = TRACKS[ti]
-    if (kind === 'stale') return lastDaysOf(tr) + ' 天前听过'
-    if (kind === 'loop') return '播放 ' + playsOf(tr) + ' 次'
-    return '加入 ' + addedDaysOf(tr) + ' 天'
-  }
-  // 原稿交互：保留 playSmart 对应的界面行为与调用规则。
-  function playSmart(kind) {
-    var list = smartList(kind)
-    if (!list.length) return
-    state.radioOn = false
-    state.radioSeed = null
-    state.queue = list.slice()
-    buildLists()
-    selectTrack(list[0], true)
+  // 播放当天的推荐清单，使用和导入歌单相同的队列入口。
+  function playSmart() {
+    const list = smartList()
+    if (list.length) playTracks(list, list[0])
   }
   /* radio : seed = current track; same album first, then same artist, then seeded rest */
   // 原稿交互：保留 similarOrder 对应的界面行为与调用规则。
@@ -445,9 +357,10 @@ export function mountSourcePlayer(root, options = {}) {
     })
     return sameAlbum.concat(sameArtist, rest)
   }
-  // 原稿交互：保留 startRadio 对应的界面行为与调用规则。
+  // 使用已选歌曲作为种子开启电台，空播放器保持原状。
   function startRadio() {
     var seed = state.idx
+    if (!TRACKS[seed]?.catalog) return
     state.radioOn = true
     state.radioSeed = seed
     state.queue = [seed].concat(similarOrder(seed))
@@ -492,8 +405,9 @@ export function mountSourcePlayer(root, options = {}) {
     }
   }
   /* queue editing : play-next + drag reorder */
-  // 原稿交互：保留 playNext 对应的界面行为与调用规则。
+  // 把有效曲目放到当前歌曲之后，未选歌时放在队首。
   function playNext(ti) {
+    if (!TRACKS[ti]?.catalog) return
     ensureQueue()
     if (ti === state.idx) return
     var q = state.queue,
@@ -625,7 +539,7 @@ export function mountSourcePlayer(root, options = {}) {
   }
   // 原稿交互：保留 albumPos 对应的界面行为与调用规则。
   function albumPos() {
-    var a = TRACKS[state.playlistIdx].album,
+    var a = TRACKS[state.playlistIdx]?.album,
       seen = {},
       pos = 0
     for (var i = 0; i < TRACKS.length; i++) {
@@ -682,6 +596,7 @@ export function mountSourcePlayer(root, options = {}) {
       })
   }
   // 按原稿导航状态更新页面与列表。
+  // 渲染各页标题及详情，直接打开空曲库的详情路由时显示空态。
   function renderPages() {
     var totalDur = fmt(
       TRACKS.reduce(function (sum, tr) {
@@ -693,14 +608,9 @@ export function mountSourcePlayer(root, options = {}) {
       if (main) main.classList.toggle('show-page', state.page !== 'home')
       p.querySelectorAll('[data-chrome-title]').forEach(function (el) {
         var dt = TRACKS[state.playlistIdx]
-        el.textContent =
-          state.page === 'playlist'
-            ? '歌单 · ' + dt.album
-            : state.page === 'album'
-              ? '专辑 · ' + dt.album
-              : state.page === 'artist'
-                ? '歌手 · ' + dt.artist
-                : PAGE_NAMES[state.page]
+        var name = state.page === 'artist' ? dt?.artist : dt?.album
+        var detail = ['playlist', 'album', 'artist'].includes(state.page)
+        el.textContent = PAGE_NAMES[state.page] + (detail && name ? ' · ' + name : '')
       })
       p.querySelectorAll('[data-nav-back]').forEach(function (el) {
         el.disabled = !state._hist.length
@@ -749,16 +659,17 @@ export function mountSourcePlayer(root, options = {}) {
               (state.customPl.id || state.customPl.name)
         )
       })
-      var ptr = TRACKS[state.playlistIdx]
+      var ptr = TRACKS[state.playlistIdx] || emptyTrack
       p.querySelectorAll('[data-pl-cover]').forEach(function (el) {
         el.src = ptr.cover
       })
       p.querySelectorAll('[data-pl-name]').forEach(function (el) {
-        el.textContent = ptr.album
+        el.textContent = ptr.album || '暂无歌单'
       })
       p.querySelectorAll('[data-pl-desc]').forEach(function (el) {
-        el.textContent =
-          ptr.artist + ' 的专辑歌单 · ' + ptr.q + ' · 当前曲目 ' + ptr.title
+        el.textContent = ptr.album
+          ? ptr.artist + ' 的专辑歌单 · ' + ptr.q + ' · 当前曲目 ' + ptr.title
+          : ''
       })
       p.querySelectorAll('[data-pl-meta]').forEach(function (el) {
         el.textContent = '共 ' + TRACKS.length + ' 首 · ' + totalDur
@@ -773,7 +684,7 @@ export function mountSourcePlayer(root, options = {}) {
             state.customPl.source +
             ' · 共 ' +
             state.customPl.count +
-            (state.customPl.id ? ' 首' : ' 首（演示）')
+            ' 首'
         })
         p.querySelectorAll('[data-pl-meta]').forEach(function (el) {
           el.textContent =
@@ -786,7 +697,7 @@ export function mountSourcePlayer(root, options = {}) {
           el.textContent = '歌单 · ' + state.customPl.name
         })
       }
-      var dtr = TRACKS[state.playlistIdx]
+      var dtr = ptr
       var albIdx = TRACKS.map(function (tr, i) {
         return i
       }).filter(function (i) {
@@ -801,10 +712,10 @@ export function mountSourcePlayer(root, options = {}) {
         el.src = dtr.cover
       })
       p.querySelectorAll('[data-ad-name]').forEach(function (el) {
-        el.textContent = dtr.album
+        el.textContent = dtr.album || '暂无专辑'
       })
       p.querySelectorAll('[data-ad-desc]').forEach(function (el) {
-        el.textContent = dtr.artist + ' · ' + dtr.q + ' · 主打 ' + dtr.title
+        el.textContent = dtr.album ? dtr.artist + ' · ' + dtr.q + ' · 主打 ' + dtr.title : ''
       })
       p.querySelectorAll('[data-ad-meta]').forEach(function (el) {
         el.textContent =
@@ -821,10 +732,10 @@ export function mountSourcePlayer(root, options = {}) {
         el.src = dtr.cover
       })
       p.querySelectorAll('[data-ard-name]').forEach(function (el) {
-        el.textContent = dtr.artist
+        el.textContent = dtr.artist || '暂无歌手'
       })
       p.querySelectorAll('[data-ard-desc]').forEach(function (el) {
-        el.textContent = '代表专辑 ' + dtr.album + ' · ' + dtr.q
+        el.textContent = dtr.artist ? '代表专辑 ' + dtr.album + ' · ' + dtr.q : ''
       })
       p.querySelectorAll('[data-ard-meta]').forEach(function (el) {
         el.textContent =
@@ -922,14 +833,6 @@ export function mountSourcePlayer(root, options = {}) {
       p.querySelectorAll('[data-set-val]').forEach(function (el) {
         el.textContent = s[el.getAttribute('data-set-val')] + ' 秒'
       })
-      p.querySelectorAll('[data-device]').forEach(function (el) {
-        el.setAttribute('title', '输出设备 · ' + s.output + ' — 点击切换')
-        el.setAttribute('aria-label', '输出设备：' + s.output + '，点击切换')
-      })
-      p.querySelectorAll('[data-airbtn]').forEach(function (el) {
-        el.textContent = '输出 · ' + s.output
-        el.setAttribute('title', '输出设备 · ' + s.output + ' — 点击切换')
-      })
     })
   }
 
@@ -939,7 +842,7 @@ export function mountSourcePlayer(root, options = {}) {
     if (b > 1024) return Math.round(b / 1024) + ' KB'
     return b + ' B'
   }
-  // 原稿交互：保留 addUploadToLibrary 对应的界面行为与调用规则。
+  // 保留本地文件条目的录入流程，无封面时使用通用占位图。
   function addUploadToLibrary(i) {
     var f = state.uploads[i]
     if (!f || f.added) return
@@ -948,22 +851,15 @@ export function mountSourcePlayer(root, options = {}) {
       title: base,
       artist: '本地文件',
       album: '我上传的',
-      dur: 200,
-      cover: TRACKS[TRACKS.length % 4].cover,
-      q: '本地 · ' + (f.ext || 'AUDIO'),
+      dur: 0,
+      cover: defaultCover,
+      q: '本地资料',
       glow: 'rgba(140,160,255,.5)',
       mine: true,
     })
-    LYRICS.push([
-      '这首歌还没有歌词',
-      '来自你上传的本地文件',
-      '正式版会自动匹配歌词与封面',
-      '—',
-    ])
     f.added = true
     state.upAdded++
-    state.upMsg =
-      '已加入音乐库：《' + base + '》— 在音乐库、搜索和上传页都能找到它。'
+    state.upMsg = '已登记《' + base + '》的文件信息。'
     buildLists()
     state._pageKey = ''
     state._srcKey = ''
@@ -1004,28 +900,33 @@ export function mountSourcePlayer(root, options = {}) {
   }
   // 同步曲目、歌词、队列、横幅与桌面表面，保持原稿行为。
   function render() {
+    audio.setEqualizer({
+      enabled: state.settings.eqEnabled,
+      preamp: state.settings.eqPreamp,
+      gains: parseEqualizerGains(state.settings.eqGains),
+      autoHeadroom: state.settings.eqAutoHeadroom,
+    })
     audio.setSpectrumMotion(state.settings.motion)
     const npOpen = state[nowPlayingKey()]
-    var tr = { ...TRACKS[state.idx], dur: currentDuration() }
+    const current = TRACKS[state.idx]
+    var tr = { ...(current || emptyTrack), dur: currentDuration() }
     audio.setSpectrumArtwork(tr.cover, tr.glow, !!tr.catalog)
     audio.setSpectrumPlayback({
       playing: state.playing,
       time: state.t,
       duration: tr.dur,
       seed: state.idx,
-      demo: !tr.catalog,
+      demo: false,
     })
     var ratio = tr.dur ? state.t / tr.dur : 0
-    var fls = fsLinesFor(state.idx, tr.dur)
-    var fli = 0
+    var fls = fsLinesFor(state.idx)
+    var fli = -1
     for (var fi = 0; fi < fls.length; fi++) {
       if (fls[fi].t <= state.t + 0.001) fli = fi
     }
-    var lns = tr.catalog ? fls.map(line => line.o) : LYRICS[state.idx] || ['—']
-    var li = tr.catalog
-      ? fli
-      : Math.min(lns.length - 1, Math.floor(ratio * lns.length))
-    capsuleLyric = lns[li] || tr.title
+    var lns = fls.map(line => line.o)
+    var li = fli
+    capsuleLyric = current ? lns[li] || tr.title : ''
     var lyricTrackKey = state.idx + ':' + !!catalogLyrics
     var lyrKey = lyricTrackKey + ':' + li + ':' + fli
     var av = null
@@ -1034,6 +935,18 @@ export function mountSourcePlayer(root, options = {}) {
       av = ambVars(tr.glow)
     }
     players().forEach(function (p) {
+      p.querySelectorAll('[data-like],[data-stage-toggle],[data-lyricbtn]').forEach(function (el) {
+        el.disabled = !current
+      })
+      p.querySelectorAll('[data-seek],[data-radio-quick]').forEach(function (el) {
+        el.disabled = !current?.catalog
+      })
+      p.querySelectorAll('[data-play]').forEach(function (el) {
+        el.disabled = current ? !current.catalog : !state.queue?.length
+      })
+      p.querySelectorAll('[data-prev],[data-next]').forEach(function (el) {
+        el.disabled = !current && !state.queue?.length
+      })
       p.classList.toggle('playing', state.playing)
       p.classList.toggle('fs-open', state.stage)
       p.classList.toggle('np-collapsed', !npOpen)
@@ -1049,7 +962,7 @@ export function mountSourcePlayer(root, options = {}) {
       })
       var fsx = p.querySelector('[data-fs]')
       if (fsx) fsx.classList.toggle('qopen', state.fsQ)
-      p.querySelectorAll('[data-queuebtn]').forEach(function (el) {
+      p.querySelectorAll('[data-fsq-toggle]').forEach(function (el) {
         el.classList.toggle('on', state.fsQ)
       })
       p.style.setProperty('--glow', tr.glow)
@@ -1071,9 +984,9 @@ export function mountSourcePlayer(root, options = {}) {
         }
       }
       p.querySelectorAll('[data-next-title]').forEach(function (el) {
-        if (state.repeat === 2) {
+        if (current && state.repeat === 2) {
           el.textContent = tr.title + ' · ' + tr.artist
-        } else if (state.shuffle) {
+        } else if (current && state.shuffle) {
           el.textContent = '随机播放'
         } else {
           var nti = queueNextTi()
@@ -1107,7 +1020,7 @@ export function mountSourcePlayer(root, options = {}) {
         titleEl.setAttribute('title', tr.title)
       }
       p.querySelectorAll('[data-artist]').forEach(function (el) {
-        el.textContent = tr.artist + ' · ' + tr.album
+        el.textContent = current ? tr.artist + ' · ' + tr.album : ''
       })
       p.querySelectorAll('[data-dur]').forEach(function (el) {
         el.textContent = fmt(tr.dur)
@@ -1124,12 +1037,22 @@ export function mountSourcePlayer(root, options = {}) {
       })
       p.querySelectorAll('[data-play]').forEach(function (el) {
         el.innerHTML = state.playing ? ICON_PAUSE : ICON_PLAY
+        el.setAttribute('aria-label', state.playing ? '暂停' : '播放')
       })
       p.querySelectorAll('[data-like]').forEach(function (el) {
         el.classList.toggle('liked', !!state.liked[state.idx])
+        el.setAttribute(
+          'aria-pressed',
+          state.liked[state.idx] ? 'true' : 'false'
+        )
+        el.setAttribute(
+          'aria-label',
+          state.liked[state.idx] ? '取消收藏' : '收藏'
+        )
       })
       p.querySelectorAll('[data-shuffle]').forEach(function (el) {
         el.classList.toggle('on', state.shuffle)
+        el.setAttribute('aria-pressed', state.shuffle ? 'true' : 'false')
       })
       p.querySelectorAll('[data-repeat]').forEach(function (el) {
         el.classList.toggle('on', state.repeat > 0)
@@ -1156,11 +1079,11 @@ export function mountSourcePlayer(root, options = {}) {
         el.textContent = tr.q
       })
       p.querySelectorAll('[data-meta2]').forEach(function (el) {
-        el.textContent =
+        el.textContent = current ?
           'TRACK ' +
           String(state.idx + 1).padStart(2, '0') +
           ' / ' +
-          String(TRACKS.length).padStart(2, '0')
+          String(TRACKS.length).padStart(2, '0') : '暂无播放'
       })
       p.querySelectorAll('[data-fs-giant]').forEach(function (el) {
         el.textContent = tr.artist.toUpperCase()
@@ -1174,37 +1097,6 @@ export function mountSourcePlayer(root, options = {}) {
       p.querySelectorAll('[data-fs-spec]').forEach(function (el) {
         el.textContent =
           tr.album.toUpperCase() + ' · ' + tr.q + ' · ' + fmt(tr.dur)
-      })
-      var bbg = p.querySelector('[data-banner-bg]')
-      if (bbg) bbg.style.backgroundImage = 'url(' + tr.cover + ')'
-      var bhalo = p.querySelector('[data-banner-halo]')
-      if (bhalo) bhalo.style.backgroundImage = 'url(' + tr.cover + ')'
-      p.querySelectorAll('[data-banner-title]').forEach(function (el) {
-        el.textContent = tr.album
-      })
-      p.querySelectorAll('[data-banner-sub]').forEach(function (el) {
-        el.textContent = tr.title + ' — ' + tr.artist
-      })
-      p.querySelectorAll('[data-banner-meta]').forEach(function (el) {
-        el.textContent = tr.q + ' · ' + fmt(tr.dur)
-      })
-      p.querySelectorAll('[data-banner-mini-cover]').forEach(function (el) {
-        el.src = tr.cover
-      })
-      p.querySelectorAll('[data-banner-mini-title]').forEach(function (el) {
-        el.textContent = tr.album
-      })
-      p.querySelectorAll('[data-bc]').forEach(function (el) {
-        el.src =
-          TRACKS[
-            (state.idx + parseInt(el.getAttribute('data-bc'), 10)) %
-              TRACKS.length
-          ].cover
-      })
-      p.querySelectorAll('[data-banner-play]').forEach(function (el) {
-        el.innerHTML =
-          (state.playing ? ICON_PAUSE : ICON_PLAY) +
-          (state.playing ? '暂停' : '立即播放')
       })
       p.querySelectorAll('.trow').forEach(function (it, i) {
         it.classList.toggle('on', i === state.idx)
@@ -1242,9 +1134,9 @@ export function mountSourcePlayer(root, options = {}) {
         }
       })
       if (state._lyrKey !== lyrKey) {
-        var reduce = window.matchMedia(
-          '(prefers-reduced-motion: reduce)'
-        ).matches
+        var reduce =
+          !state.settings.motion ||
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches
         var ly = p.querySelector('[data-lyric]')
         if (ly) {
           if (
@@ -1282,10 +1174,23 @@ export function mountSourcePlayer(root, options = {}) {
             fl.getAttribute('data-track') !== lyricTrackKey ||
             fl.children.length !== fls.length
           ) {
+            // 新歌词替换旧列表时清理浏览状态，避免上一首的时间定位残留。
+            state._lyrHoldUntil = 0
+            fl._keyboardBrowsing = false
+            fl.classList.remove('keyboard-browsing')
+            if (fl._hideT) clearTimeout(fl._hideT)
+            const column = fl.closest('.fs-lyrcol')
+            const returnButton = column?.querySelector('[data-lyrreturn]')
+            const seekChip = column?.querySelector('[data-lyrseek]')
+            if (returnButton) returnButton.hidden = true
+            if (seekChip) {
+              seekChip.hidden = true
+              seekChip.classList.remove('show')
+            }
             fl.innerHTML = fls
               .map(function (L, j) {
                 return (
-                  '<div class="' +
+                  '<button type="button" class="' +
                   lineCls(j) +
                   '" data-lj="' +
                   j +
@@ -1295,7 +1200,7 @@ export function mountSourcePlayer(root, options = {}) {
                   (L.tr
                     ? '<span class="fl-tr">' + escHtml(L.tr) + '</span>'
                     : '') +
-                  '</div>'
+                  '</button>'
                 )
               })
               .join('')
@@ -1330,6 +1235,18 @@ export function mountSourcePlayer(root, options = {}) {
                 fl.scrollTo({ top: target, behavior: 'smooth' })
               }
             }
+          }
+          for (var rowIndex = 0; rowIndex < fl.children.length; rowIndex++) {
+            const row = fl.children[rowIndex]
+            row.setAttribute(
+              'aria-current',
+              rowIndex === fli ? 'true' : 'false'
+            )
+            row.setAttribute(
+              'aria-label',
+              fmt(fls[rowIndex].t) + ' ' + fls[rowIndex].o
+            )
+            row.tabIndex = rowIndex === Math.max(0, fli) ? 0 : -1
           }
         }
       }
@@ -1387,21 +1304,11 @@ export function mountSourcePlayer(root, options = {}) {
         'on',
         !isNaN(ti) &&
           !!TRACKS[ti] &&
-          TRACKS[ti].album === TRACKS[state.idx].album
+          TRACKS[ti].album === current?.album
       )
     })
 
     if (options.onStateChange) options.onStateChange(getSnapshot())
-  }
-  // 原稿计时器仅用于没有音源的样例曲目。
-  function tick() {
-    if (!state.playing) return
-    state.t += 0.25
-    if (state.t >= currentDuration()) {
-      finishPlayback()
-      return
-    }
-    render()
   }
   // 曲目播完后按现有队列和循环规则决定重播、续播或暂停。
   function finishPlayback() {
@@ -1419,26 +1326,19 @@ export function mountSourcePlayer(root, options = {}) {
     seekTo(0)
   }
 
-  // 释放样例曲目的旧计时器，再根据曲目来源选择音频或样例时钟。
-  function stopDemoTimer() {
-    if (state.timer) {
-      clearInterval(state.timer)
-      state.timer = null
-    }
-  }
-
-  // 在线播放状态由媒体事件更新，暂停和音量沿用现有控制入口。
+  // 只播放具有平台音源的曲目，由真实媒体事件更新状态和进度。
   function setPlaying(v) {
-    stopDemoTimer()
-    const source = TRACKS[state.idx].catalog
-    if (source) {
-      if (v) void audio.play(source)
-      else audio.pause()
+    const track = TRACKS[state.idx]
+    if (!track) {
+      if (v && state.queue?.length) selectTrack(state.queue[0], true)
       return
     }
-    state.playing = v
-    if (v) state.timer = setInterval(tick, 250)
-    render()
+    const source = track.catalog
+    if (!source) return
+    if (v) {
+      if (!catalogLyrics && !lyricRequest) void loadCatalogLyrics(source)
+      void audio.play(source)
+    } else audio.pause()
   }
   // 同步最新版原稿：每次打开分层入场，关闭先取消入场/切歌，再镜像退场。
   function setStage(open) {
@@ -1496,7 +1396,7 @@ export function mountSourcePlayer(root, options = {}) {
 
   // 按原稿规则切歌并同步封面、歌词和播放队列。
   function selectTrack(i, autoplay, dir) {
-    if (!TRACKS[i]) return
+    if (!TRACKS[i]?.catalog) return
     var old = state.idx
     nativeDirection = dir || (i > old ? 1 : -1)
     ensureQueue()
@@ -1504,37 +1404,34 @@ export function mountSourcePlayer(root, options = {}) {
       state.queue = defaultQueue(i)
       buildLists()
     }
-    const useAudio = TRACKS[old].catalog || TRACKS[i].catalog
+    const useAudio = TRACKS[old]?.catalog || TRACKS[i].catalog
     if (useAudio) {
-      stopDemoTimer()
       audio.reset()
       state.playing = false
       state.catalogStatus = null
       state.streamDuration = 0
     }
     lyricRequest?.abort()
+    lyricRequest = undefined
     catalogLyrics = null
+    state.resumeTime = 0
     state.idx = i
     state.t = 0
-    state.recent = [i].concat(
-      state.recent.filter(function (x) {
-        return x !== i
-      })
-    )
     render()
     if (autoplay) setPlaying(true)
-    if (TRACKS[i].catalog) void loadCatalogLyrics(TRACKS[i].catalog)
-    if (i !== old) {
+    if (TRACKS[i].catalog && !lyricRequest)
+      void loadCatalogLyrics(TRACKS[i].catalog)
+    if (i !== old && TRACKS[old]) {
       var d = dir || (i > old ? 1 : -1)
       animateFsTrackChange(d, TRACKS[old])
     }
   }
-  // 搜索和导入列表显式建立本次播放队列，防止切到无关的样例曲目。
+  // 搜索和导入列表显式建立本次播放队列。
   function playTracks(indices, index) {
-    if (!indices.includes(index)) return
+    if (!TRACKS[index]?.catalog || !indices.includes(index)) return
     state.radioOn = false
     state.radioSeed = null
-    state.queue = [...new Set(indices)]
+    state.queue = [...new Set(indices.filter(index => TRACKS[index]?.catalog))]
     selectTrack(index, true)
   }
   // 原稿交互：保留 nextTrack 对应的界面行为与调用规则。
@@ -1542,6 +1439,10 @@ export function mountSourcePlayer(root, options = {}) {
     ensureQueue()
     var q = state.queue,
       p = q.indexOf(state.idx)
+    if (p === -1) {
+      selectTrack(q[0], true, 1)
+      return
+    }
     if (state.shuffle) {
       if (q.length > 1) {
         var n = p
@@ -1571,7 +1472,7 @@ export function mountSourcePlayer(root, options = {}) {
     ensureQueue()
     var q = state.queue,
       p = q.indexOf(state.idx)
-    selectTrack(q[(p - 1 + q.length) % q.length], true, -1)
+    selectTrack(p === -1 ? q[q.length - 1] : q[(p - 1 + q.length) % q.length], true, -1)
   }
 
   function bindPlayer(p) {
@@ -1582,7 +1483,8 @@ export function mountSourcePlayer(root, options = {}) {
     })
     p.querySelectorAll('[data-stage-toggle]').forEach(function (el) {
       listenElement(el, 'click', function () {
-        setStage(!state.stage)
+        if (state.stage) setStage(false)
+        else openStage()
       })
     })
     p.querySelectorAll('[data-fsq-toggle]').forEach(function (el) {
@@ -1686,15 +1588,41 @@ export function mountSourcePlayer(root, options = {}) {
       var col = fl.closest('.fs-lyrcol')
       var chip = col ? col.querySelector('[data-lyrseek]') : null
       var drag = null
-      function seekLine(j) {
-        var lines = fsLinesFor(state.idx, TRACKS[state.idx].dur)
-        if (!lines[j]) return
+      var returnButton = col ? col.querySelector('[data-lyrreturn]') : null
+      // 立即恢复当前播放句，清理浏览计时和芯片；不会改变播放时间。
+      function resumeFollowing() {
+        const restoreFocus =
+          document.activeElement === returnButton ||
+          document.activeElement === chip
         state._lyrHoldUntil = 0
         fl._focus = null
-        if (chip) chip.classList.remove('show')
+        fl._keyboardBrowsing = false
+        fl.classList.remove('keyboard-browsing')
+        if (fl._hideT) clearTimeout(fl._hideT)
+        fl._hideT = null
+        if (chip) {
+          chip.classList.remove('show')
+          chip.hidden = true
+        }
+        if (returnButton) returnButton.hidden = true
         state._lyrKey = ''
+        render()
+        if (restoreFocus) {
+          fl._restoringFocus = true
+          ;(fl.querySelector('.fl-line.on') || fl.children[0])?.focus({
+            preventScroll: true,
+          })
+          fl._restoringFocus = false
+        }
+      }
+      // 行按钮的点击与回车都用真实音频的媒体时钟定位。
+      function seekLine(j) {
+        var lines = fsLinesFor(state.idx)
+        if (!lines[j]) return
+        resumeFollowing()
         seekTo(Math.min(currentDuration() - 0.3, lines[j].t + 0.02))
       }
+      // 浏览时按可视区域中心选择定位句，供拖动与键盘共用。
       function centreLine() {
         if (!fl.children.length) return -1
         var mid = fl.scrollTop + fl.clientHeight / 2,
@@ -1710,8 +1638,10 @@ export function mountSourcePlayer(root, options = {}) {
         }
         return best
       }
+      // 手动滚动暂停跟随并显示回到当前入口；键盘焦点停留期间不抢读词位置。
       function browse() {
         state._lyrHoldUntil = Date.now() + 3200
+        if (returnButton) returnButton.hidden = false
         var j = centreLine()
         if (j < 0) return
         if (fl._focus !== j) {
@@ -1721,7 +1651,7 @@ export function mountSourcePlayer(root, options = {}) {
           }
         }
         if (chip && col) {
-          var lines = fsLinesFor(state.idx, TRACKS[state.idx].dur)
+          var lines = fsLinesFor(state.idx)
           if (lines[j]) {
             chip.querySelector('[data-lyrseek-t]').textContent = fmt(lines[j].t)
             chip._j = j
@@ -1729,20 +1659,82 @@ export function mountSourcePlayer(root, options = {}) {
               lnR = fl.children[j].getBoundingClientRect()
             var y = lnR.top - colR.top + lnR.height / 2
             chip.style.top = Math.max(52, Math.min(colR.height - 26, y)) + 'px'
+            chip.hidden = false
             chip.classList.add('show')
           }
         }
         if (fl._hideT) clearTimeout(fl._hideT)
         fl._hideT = setTimeout(function () {
-          if (chip) chip.classList.remove('show')
-          if (fl._focus != null) {
-            fl._focus = null
-            fl.querySelectorAll('.fl-line.focus').forEach(function (el) {
-              el.classList.remove('focus')
-            })
+          fl._hideT = null
+          if (fl._keyboardBrowsing && fl.contains(document.activeElement)) {
+            state._lyrHoldUntil = Number.MAX_SAFE_INTEGER
+            return
           }
+          resumeFollowing()
         }, 3200)
       }
+      // 滚轮主动打断程序滚动，避免快速滚动时被自动跟随吞掉。
+      listenElement(
+        fl,
+        'wheel',
+        () => {
+          fl._progUntil = 0
+          browse()
+        },
+        { passive: true }
+      )
+      // 键盘浏览不触发全局音量快捷键，也不使用延迟滚动动画。
+      listenElement(fl, 'keydown', event => {
+        const row = event.target?.closest?.('.fl-line')
+        if (!row) return
+        const index = Number(row.getAttribute('data-lj'))
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          event.stopPropagation()
+          seekLine(index)
+          return
+        }
+        if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
+        event.preventDefault()
+        event.stopPropagation()
+        const next =
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? fl.children.length - 1
+              : Math.max(
+                  0,
+                  Math.min(
+                    fl.children.length - 1,
+                    index + (event.key === 'ArrowDown' ? 1 : -1)
+                  )
+                )
+        const target = fl.children[next]
+        if (!target) return
+        fl._keyboardBrowsing = true
+        fl.classList.add('keyboard-browsing')
+        fl._progUntil = 0
+        target.focus({ preventScroll: true })
+        fl.scrollTop = Math.max(
+          0,
+          target.offsetTop - fl.clientHeight / 2 + target.offsetHeight / 2
+        )
+        browse()
+      })
+      // 焦点进入歌词时保留手动浏览；移到其他控件后恢复普通延迟跟随。
+      listenElement(fl, 'focusin', () => {
+        if (fl._restoringFocus) return
+        fl._keyboardBrowsing = true
+        fl.classList.add('keyboard-browsing')
+        browse()
+      })
+      listenElement(fl, 'focusout', event => {
+        if (fl.contains(event.relatedTarget)) return
+        fl._keyboardBrowsing = false
+        fl.classList.remove('keyboard-browsing')
+        browse()
+      })
+      if (returnButton) listenElement(returnButton, 'click', resumeFollowing)
       listenElement(
         fl,
         'scroll',
@@ -1808,12 +1800,6 @@ export function mountSourcePlayer(root, options = {}) {
         })
       }
     })
-    p.querySelectorAll('[data-airbtn]').forEach(function (ab) {
-      listenElement(ab, 'click', cycleDevice)
-    })
-    p.querySelectorAll('[data-device]').forEach(function (db) {
-      listenElement(db, 'click', cycleDevice)
-    })
     p.querySelectorAll('.main-chips button').forEach(function (b) {
       listenElement(b, 'click', function () {
         var t = b.textContent.trim()
@@ -1848,17 +1834,7 @@ export function mountSourcePlayer(root, options = {}) {
     p.querySelectorAll('[data-nav-fwd]').forEach(function (nf) {
       listenElement(nf, 'click', navFwd)
     })
-    p.querySelectorAll('[data-queuebtn]').forEach(function (qb) {
-      listenElement(qb, 'click', function () {
-        if (!state.stage) {
-          state.fsQ = true
-          setStage(true)
-        } else {
-          state.fsQ = !state.fsQ
-          render()
-        }
-      })
-    })
+    // 底栏队列气泡由 Vue 独立管理；这里不再通过底栏入口打开全屏。
     p.querySelectorAll('[data-radio-quick]').forEach(function (rb) {
       listenElement(rb, 'click', function () {
         if (!state.radioOn) startRadio()
@@ -1874,7 +1850,7 @@ export function mountSourcePlayer(root, options = {}) {
       listenElement(pb, 'click', function () {
         var dt = TRACKS[state.playlistIdx]
         for (var i = 0; i < TRACKS.length; i++) {
-          if (TRACKS[i].album === dt.album) {
+          if (TRACKS[i].catalog && TRACKS[i].album === dt.album) {
             selectTrack(i, true)
             break
           }
@@ -1885,7 +1861,7 @@ export function mountSourcePlayer(root, options = {}) {
       listenElement(pb, 'click', function () {
         var dt = TRACKS[state.playlistIdx]
         for (var i = 0; i < TRACKS.length; i++) {
-          if (TRACKS[i].artist === dt.artist) {
+          if (TRACKS[i].catalog && TRACKS[i].artist === dt.artist) {
             selectTrack(i, true)
             break
           }
@@ -1967,14 +1943,6 @@ export function mountSourcePlayer(root, options = {}) {
           render()
           return
         }
-        var spl =
-          e.target && e.target.closest
-            ? e.target.closest('[data-smart-play]')
-            : null
-        if (spl) {
-          playSmart(spl.getAttribute('data-smart-play'))
-          return
-        }
         var sb =
           e.target && e.target.closest ? e.target.closest('[data-sort]') : null
         if (sb) {
@@ -2015,7 +1983,7 @@ export function mountSourcePlayer(root, options = {}) {
       state.upMsg =
         '已读取 ' +
         list.length +
-        ' 个文件（仅本页演示，不上传服务器）— 点「加入曲库」把它们放进音乐库。'
+        ' 个文件，可登记文件名和大小。'
       state._srcKey = ''
       render()
     }
@@ -2133,23 +2101,14 @@ export function mountSourcePlayer(root, options = {}) {
           title: title,
           artist: (aIn && aIn.value.trim()) || '未知歌手',
           album: (alIn && alIn.value.trim()) || '我上传的',
-          dur: 200,
-          cover: TRACKS[state.upAdded % TRACKS.length].cover,
-          q: '本地文件',
+          dur: 0,
+          cover: defaultCover,
+          q: '本地资料',
           glow: 'rgba(140,160,255,.5)',
           mine: true,
         })
-        LYRICS.push([
-          '这首歌还没有歌词',
-          '来自你手动添加的歌曲',
-          '正式版会自动匹配歌词与封面',
-          '—',
-        ])
         state.upAdded++
-        state.upMsg =
-          '《' +
-          title +
-          '》已加入音乐库 — 音乐库、搜索、首页列表里都能找到，点它即可播放。'
+        state.upMsg = '已登记《' + title + '》的曲目信息。'
         if (tIn) tIn.value = ''
         if (aIn) aIn.value = ''
         if (alIn) alIn.value = ''
@@ -2171,18 +2130,14 @@ export function mountSourcePlayer(root, options = {}) {
           state._plSeq++
           name = '新建歌单 ' + state._plSeq
         }
-        state.myLists.push({
+        const playlist = {
           name: name,
           source: '本地自建',
-          count: TRACKS.length,
-          cover: TRACKS[state.myLists.length % TRACKS.length].cover,
-        })
-        state.customPl = {
-          name: name,
-          source: '本地自建',
-          count: TRACKS.length,
-          cover: TRACKS[0].cover,
+          count: 0,
+          trackIndices: [],
         }
+        state.myLists.push(playlist)
+        state.customPl = playlist
         state._srcKey = ''
         setPage('playlist', state.playlistIdx)
         state._pageKey = ''
@@ -2216,12 +2171,7 @@ export function mountSourcePlayer(root, options = {}) {
         { passive: false }
       )
     })
-    /* banner: play toggle, compact-on-scroll, parallax vars (liquid CSS reads them) */
-    p.querySelectorAll('[data-banner-play]').forEach(function (el) {
-      listenElement(el, 'click', function () {
-        setPlaying(!state.playing)
-      })
-    })
+    /* banner: compact-on-scroll and parallax vars (liquid CSS reads them) */
     var mainEl = p.querySelector('.main')
     if (mainEl) {
       listenElement(
@@ -2264,7 +2214,12 @@ export function mountSourcePlayer(root, options = {}) {
       p.style.setProperty('--my', ((e.clientY - r.top) / r.height) * 100 + '%')
     })
   }
-  players().forEach(bindPlayer)
+  // 新路由和动态挂载的横幅复用现有频谱，同步其画布后再绑定控件。
+  function bind() {
+    audio.bindSpectrumViews()
+    players().forEach(bindPlayer)
+  }
+  bind()
   document.addEventListener('keydown', function (e) {
     // 模态层自行处理键盘，避免 Escape 返回首页或空格改变背景播放。
     if (nativeDocument.querySelector('dialog[open]')) return
@@ -2319,8 +2274,8 @@ export function mountSourcePlayer(root, options = {}) {
 
   // 发布原稿当前状态，供独立桌面窗口复用同一播放状态。
   function getSnapshot() {
-    const track = { ...TRACKS[state.idx], dur: currentDuration() }
-    const lines = fsLinesFor(state.idx, track.dur)
+    const track = { ...(TRACKS[state.idx] || emptyTrack), dur: currentDuration() }
+    const lines = fsLinesFor(state.idx)
     const lyrics = lines.map(line => line.o)
     let lyricIndex = 0
     lines.forEach((line, index) => {
@@ -2347,7 +2302,7 @@ export function mountSourcePlayer(root, options = {}) {
     if (action.type === 'toggle') setPlaying(!state.playing)
     else if (action.type === 'next') nextTrack()
     else if (action.type === 'previous') prevTrack()
-    else if (action.type === 'like') {
+    else if (action.type === 'like' && TRACKS[state.idx]) {
       state.liked[state.idx] = !state.liked[state.idx]
       state._pageKey = ''
       render()
@@ -2363,7 +2318,6 @@ export function mountSourcePlayer(root, options = {}) {
     audio.destroy()
     cleanups.forEach(cleanup => cleanup())
     timeouts.forEach(id => nativeWindow.clearTimeout(id))
-    intervals.forEach(id => nativeWindow.clearInterval(id))
     frames.forEach(id => nativeWindow.cancelAnimationFrame(id))
     root
       .getAnimations({ subtree: true })
@@ -2373,7 +2327,7 @@ export function mountSourcePlayer(root, options = {}) {
   }
   // 页面挂载后重建必要的测量与事件，不重置播放时钟。
   function refresh() {
-    players().forEach(bindPlayer)
+    bind()
     state._pageKey = ''
     state._srcKey = ''
     state._lyrKey = ''
@@ -2388,21 +2342,24 @@ export function mountSourcePlayer(root, options = {}) {
     state._pageKey = ''
     render()
   }
+  // 只有选中实际曲目后才进入全屏播放页。
+  function openStage() {
+    if (TRACKS[state.idx]) setStage(true)
+  }
   return {
     getSnapshot,
     dispatch,
     destroy,
-    bind: () => players().forEach(bindPlayer),
+    bind,
     refresh,
     navigate: setPage,
     selectTrack,
-    openStage: () => setStage(true),
+    openStage,
     playTracks,
     toggleRadio,
     setQuery,
     playSmart,
     smartList,
-    smartMeta,
     playNext,
     moveQueue,
     render,

@@ -76,14 +76,14 @@ function openSettings(): void {
     <div class="titlebar-account-actions flex flex-none items-center gap-1">
       <BaseButton
         type="button"
-        class="titlebar-settings grid size-10 place-items-center rounded-full bg-transparent text-white/70 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75"
+        class="titlebar-settings grid size-9 place-items-center rounded-[10px] bg-transparent text-white/65 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75"
         aria-label="打开设置"
         title="设置"
         data-titlebar-settings
         @click.stop="openSettings"
       >
         <svg
-          class="size-[18px]"
+          class="size-[16px]"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

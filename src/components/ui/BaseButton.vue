@@ -16,11 +16,32 @@ withDefaults(
     :disabled="disabled || loading"
     :aria-busy="loading || undefined"
   >
-    <span
+    <svg
       v-if="loading"
-      class="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
+      class="base-button-spinner inline-block size-3.5 shrink-0 align-middle motion-safe:animate-spin"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
       aria-hidden="true"
-    />
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="5.5"
+        opacity=".2"
+      />
+      <path
+        d="M8 2.5A5.5 5.5 0 0 1 13.5 8"
+        stroke-linecap="round"
+      />
+    </svg>
     <slot />
   </button>
 </template>
+
+<style scoped>
+:global(.calm .base-button-spinner) {
+  animation: none;
+}
+</style>

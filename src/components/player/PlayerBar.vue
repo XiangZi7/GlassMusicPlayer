@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
 import LyricIsland from '@/components/player/LyricIsland.vue'
+import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
 </script>
 
 <template>
@@ -97,32 +98,13 @@ import LyricIsland from '@/components/player/LyricIsland.vue'
       </div>
     </div>
     <div class="right-ctl flex flex-wrap items-center justify-end gap-[6px]">
+      <!-- 底栏队列：从当前按钮上方弹出，不改变全屏或页面状态。 -->
+      <PlayerQueueMenu />
       <BaseButton
         class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
-        data-queuebtn
-        aria-label="播放队列"
-        title="播放队列"
-        ><svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        >
-          <path d="M4 7h13M4 12h13M4 17h9" />
-          <circle
-            cx="20"
-            cy="17"
-            r="2.2"
-            fill="currentColor"
-            stroke="none"
-          /></svg
-      ></BaseButton>
-      <BaseButton
-        class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
-        data-device
-        aria-label="输出设备：桌面音箱"
-        title="输出设备 · 桌面音箱"
+        disabled
+        aria-label="输出设备：系统默认"
+        title="输出设备 · 系统默认"
         ><svg
           viewBox="0 0 24 24"
           fill="none"
@@ -196,9 +178,5 @@ import LyricIsland from '@/components/player/LyricIsland.vue'
       data-spectrum
       aria-hidden="true"
     />
-    <span
-      class="spectrum-note pointer-events-none absolute right-[18px] bottom-[2px] z-[1] text-[9px] leading-none font-semibold opacity-[.55]"
-      >模拟频谱</span
-    >
   </div>
 </template>

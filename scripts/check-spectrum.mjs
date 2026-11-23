@@ -53,6 +53,8 @@ const document = {
   },
 }
 let nextFrame = 0
+let analyserReads = 0
+let fillBins = bins => bins.fill(192)
 const frames = new Map()
 class AudioContext {
   state = 'running'
@@ -72,7 +74,8 @@ class AnalyserNode {
     assert.equal(options.fftSize, 4096)
   }
   getByteFrequencyData(bins) {
-    bins.fill(192)
+    analyserReads++
+    fillBins(bins)
   }
 }
 function load(relative, dependencies = {}) {
@@ -227,8 +230,65 @@ assert(
   calls.every(call => call.color.includes(current)),
   'Bars should use the current artwork color'
 )
+
+// 横幅重用底栏上一帧的频带，检查实频、隐藏、静止和解除绑定。
+const bannerCalls = []
+const bannerCanvas = {
+  ...canvas,
+  clientWidth: 420,
+  clientHeight: 90,
+  dataset: {},
+  getContext: () => ({
+    ...paint,
+    fill() {
+      bannerCalls.push({ ...currentPath, color: this.fillStyle })
+    },
+  }),
+}
+renderer.setBannerCanvas(bannerCanvas)
+assert.equal(bannerCanvas.dataset.spectrumMode, 'live')
+const readsBefore = analyserReads
+bannerCalls.length = 0
+assert.equal(stepFrame(100).length, 320)
+assert.equal(analyserReads - readsBefore, 1, 'Both canvases share one FFT read')
+assert.equal(frames.size, 1, 'Both canvases share one animation loop')
+assert.equal(bannerCalls.length, 84)
+assert(bannerCalls.every(bar => bar.y * 2 + bar.height === 90))
+assert(bannerCalls.every(bar => bar.height > 30 && bar.width === 3))
+
+// 即使音源只含低频，画布左右也应获得相同的峰值分布。
+fillBins = bins => {
+  bins.fill(0)
+  bins.fill(210, 6, 20)
+}
+renderer.stop()
+bannerCalls.length = 0
+renderer.update()
+const mid = bannerCalls.length / 2
+assert(
+  bannerCalls.every(
+    (bar, index) => bar.height === bannerCalls.at(-1 - index).height
+  ),
+  'Banner pairs mirror across the center'
+)
+assert(bannerCalls.slice(mid).some(bar => bar.height > 12))
+assert(bannerCalls.slice(mid).some(bar => bar.height === 2))
+fillBins = bins => bins.fill(192)
+
+bannerCanvas.clientWidth = 0
+bannerCalls.length = 0
+stepFrame(150)
+assert.equal(bannerCalls.length, 0, 'No painting while the banner is collapsed')
+bannerCanvas.clientWidth = 420
 renderer.setMotion(false)
 assert.equal(frames.size, 0, 'Reduced motion setting should stop rendering')
+assert.equal(bannerCanvas.dataset.spectrumMode, 'static')
+assert.equal(bannerCalls.length, 84)
+assert(bannerCalls.every(bar => bar.height <= 15))
+renderer.setBannerCanvas(null)
+bannerCalls.length = 0
+renderer.stop()
+assert.equal(bannerCalls.length, 0, 'An unmounted banner is no longer painted')
 renderer.destroy()
 renderer.setArtwork('after-destroy', 'rgba(0,255,0,.5)')
 assert.equal(created.has('after-destroy'), false)
@@ -365,5 +425,5 @@ assert.equal(frames.size, 0)
 assert.equal(unavailableAudio.paused, false)
 unavailable.destroy()
 console.log(
-  'Spectrum verified: thin rounded bottom-aligned bars, 4096 FFT, real peaks, cover colors/cache/CORS/stale-cover protection, seeded skyline, demo rhythm/playback clock and cleanup.'
+  'Spectrum verified: bottom bars and mirrored banner share a single 4096 FFT, with collapse, reduced motion, cover colors, CORS handling and cleanup.'
 )

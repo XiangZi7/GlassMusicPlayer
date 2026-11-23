@@ -31,12 +31,29 @@ export interface SpectrumPlayback {
 type CapturableAudio = HTMLAudioElement & { captureStream?: () => MediaStream }
 type SpectrumMode = 'static' | 'live' | 'simulated'
 
+// 按显示尺寸设置画布像素密度，折叠或隐藏时不重新分配位图。
+function fitCanvas(canvas: HTMLCanvasElement, paint: CanvasRenderingContext2D) {
+  const width = canvas.clientWidth
+  const height = canvas.clientHeight
+  if (!width || !height) return
+  const ratio = Math.min(2, window.devicePixelRatio || 1)
+  const pixelWidth = Math.round(width * ratio)
+  const pixelHeight = Math.round(height * ratio)
+  if (canvas.width !== pixelWidth) canvas.width = pixelWidth
+  if (canvas.height !== pixelHeight) canvas.height = pixelHeight
+  paint.setTransform(ratio, 0, 0, ratio, 0, 0)
+  paint.clearRect(0, 0, width, height)
+  return { width, height, ratio }
+}
+
 // 真实频谱仍捕获已有播放元素的 PCM 副本，不改音量、输出设备或出声路径。
 export function createSpectrum(
   canvas: HTMLCanvasElement,
   audio: CapturableAudio
 ) {
   const paint = canvas.getContext('2d')
+  let banner:
+    { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const bins = new Uint8Array(fftSize / 2)
   let context: AudioContext | undefined
@@ -62,9 +79,12 @@ export function createSpectrum(
   let fromColor: ArtworkColor = targetColor
   let colorStart: number | undefined
 
+  // 发布主频谱状态；横幅只显示实频或静态轮廓。
   function setMode(value: SpectrumMode): void {
     mode = value
     canvas.dataset.spectrumMode = value
+    if (banner)
+      banner.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
   }
 
   // 播放中的换色与原稿 background 过渡一样持续 600ms，不逐帧读取封面像素。
@@ -84,18 +104,12 @@ export function createSpectrum(
     return `rgba(${currentColor.join(',')},0.55)`
   }
 
+  // 在底栏保留原有细柱，并把相同的一帧频带复用给横幅。
   function paintBars(timestamp: number, resting: boolean): void {
     if (!paint || destroyed) return
-    const width = canvas.clientWidth
-    const height = canvas.clientHeight
-    if (!width || !height) return
-    const ratio = Math.min(2, window.devicePixelRatio || 1)
-    const pixelWidth = Math.round(width * ratio)
-    const pixelHeight = Math.round(height * ratio)
-    if (canvas.width !== pixelWidth) canvas.width = pixelWidth
-    if (canvas.height !== pixelHeight) canvas.height = pixelHeight
-    paint.setTransform(ratio, 0, 0, ratio, 0, 0)
-    paint.clearRect(0, 0, width, height)
+    const size = fitCanvas(canvas, paint)
+    if (!size) return
+    const { width, height, ratio } = size
     paint.fillStyle = paintColor(timestamp, resting)
     const { count, step, barWidth, padding } = spectrumLayout(width)
     const seed = playback?.seed ?? 0
@@ -153,6 +167,55 @@ export function createSpectrum(
         const radius = Math.min(1, barWidth / 2, barHeight / 2)
         paint.beginPath()
         paint.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0])
+        paint.fill()
+      } else paint.fillRect(x, y, barWidth, barHeight)
+    }
+    paintBanner()
+  }
+
+  // 低频从横幅中线向左右展开，较高频率逐渐向两端延伸。
+  function paintBanner(): void {
+    if (!banner || destroyed) return
+    const { canvas, paint } = banner
+    const size = fitCanvas(canvas, paint)
+    if (!size) return
+    const { width, height } = size
+    const half = Math.max(1, Math.min(64, Math.floor(width / 10)))
+    const count = half * 2
+    const step = width / count
+    const barWidth = Math.min(3, step * 0.6)
+    const live = mode === 'live'
+    const color = currentColor.map(channel =>
+      Math.round(channel * 0.7 + 255 * 0.3)
+    )
+    paint.fillStyle = `rgba(${color.join(',')},${live ? 0.6 : 0.26})`
+    for (let band = 0; band < count; band++) {
+      let barHeight: number
+      if (live) {
+        const outward = band < half ? half - band - 1 : band - half
+        const start = Math.floor((outward / half) ** 1.25 * levels.length)
+        const end = Math.max(
+          start + 1,
+          Math.floor(((outward + 1) / half) ** 1.25 * levels.length)
+        )
+        let peak = 0
+        for (let index = start; index < end; index++)
+          peak = Math.max(peak, levels[index] ?? 0)
+        barHeight = 2 + peak ** 0.9 * Math.max(0, height - 8)
+      } else
+        barHeight = 3 + 12 * Math.sin((Math.PI * (band + 0.5)) / count) ** 2
+      barHeight = Math.min(height, barHeight)
+      const x = band * step + (step - barWidth) / 2
+      const y = (height - barHeight) / 2
+      if (typeof paint.roundRect === 'function') {
+        paint.beginPath()
+        paint.roundRect(
+          x,
+          y,
+          barWidth,
+          barHeight,
+          Math.min(barWidth / 2, barHeight / 2)
+        )
         paint.fill()
       } else paint.fillRect(x, y, barWidth, barHeight)
     }
@@ -315,6 +378,20 @@ export function createSpectrum(
   observer?.observe(canvas)
   setMode('static')
   paintBars(0, true)
+
+  // 首页挂载、切换路由或更换媒体元素时连接当前画布，只保留一个尺寸监听。
+  function setBannerCanvas(canvas: HTMLCanvasElement | null): void {
+    if (destroyed || (banner?.canvas ?? null) === canvas) return
+    if (banner) observer?.unobserve(banner.canvas)
+    const paint = canvas?.getContext('2d')
+    banner = canvas && paint ? { canvas, paint } : undefined
+    if (banner) {
+      banner.canvas.dataset.spectrumMode = mode === 'live' ? 'live' : 'static'
+      observer?.observe(banner.canvas)
+      paintBanner()
+    }
+  }
+
   return {
     resume,
     update,
@@ -322,6 +399,7 @@ export function createSpectrum(
     reset,
     setArtwork,
     setPlayback,
+    setBannerCanvas,
     setMotion(motion: boolean): void {
       if (motion === enabled) return
       enabled = motion

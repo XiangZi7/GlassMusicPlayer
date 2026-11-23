@@ -14,10 +14,9 @@ const playlistIndices = computed(
       .filter(index => !tracks[index]?.catalog)
 )
 
-// 导入歌单按歌单顺序播放，内置歌单继续从原有索引开始。
+// 导入歌单按保存的顺序建立播放队列。
 function playAll(): void {
-  if (!imported.value) controller()?.selectTrack(state.playlistIdx, true)
-  else if (imported.value.length)
+  if (imported.value?.length)
     controller()?.playTracks(imported.value, imported.value[0]!)
 }
 </script>
@@ -45,7 +44,7 @@ function playAll(): void {
           <!-- 页面操作按钮：播放全部。 -->
           <BaseButton
             class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
-            :disabled="!playlistIndices.length"
+            :disabled="!imported?.length"
             @click="playAll"
             ><svg
               viewBox="0 0 24 24"

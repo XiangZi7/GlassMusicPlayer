@@ -113,38 +113,42 @@ onBeforeUnmount(hide)
     <button
       ref="trigger"
       type="button"
-      class="account-avatar grid size-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/5 text-white/80 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75"
+      class="account-avatar group grid size-9 cursor-pointer place-items-center rounded-[10px] border-0 bg-transparent text-white/70 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 aria-expanded:bg-white/8"
       aria-label="账号与音乐平台"
       aria-haspopup="menu"
       :aria-expanded="open"
       :aria-controls="menuId"
       @click.stop="show"
     >
-      <img
-        v-if="avatar && !avatarFailed"
-        :src="avatar"
-        alt=""
-        class="size-8 rounded-full object-cover"
-        referrerpolicy="no-referrer"
-        @error="avatarFailed = true"
-      />
-      <svg
-        v-else
-        class="size-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        aria-hidden="true"
+      <span
+        class="grid size-7 place-items-center rounded-full border border-white/8 bg-white/3 transition-colors duration-150 group-hover:border-white/15 group-hover:bg-white/6"
       >
-        <circle
-          cx="12"
-          cy="8"
-          r="3.5"
+        <img
+          v-if="avatar && !avatarFailed"
+          :src="avatar"
+          alt=""
+          class="size-[26px] rounded-full object-cover"
+          referrerpolicy="no-referrer"
+          @error="avatarFailed = true"
         />
-        <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
-      </svg>
+        <svg
+          v-else
+          class="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <circle
+            cx="12"
+            cy="8"
+            r="3.5"
+          />
+          <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+        </svg>
+      </span>
     </button>
     <Transition name="account-bubble">
       <div

@@ -3,6 +3,28 @@
 @import './player-effects.css';
 @source '../';
 
+/* 设置页和弹窗共享内容滚动区与底部操作栏。 */
+.panel-scroll {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 30%) transparent;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+}
+
+.panel-scroll:focus-visible {
+  outline: 1px solid rgb(255 255 255 / 55%);
+  outline-offset: -1px;
+}
+
+.panel-actions {
+  min-height: 56px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid rgb(255 255 255 / 13%);
+}
+
 /* 仅适配 Tauri 宿主：原稿窗口铺满视口，内部排版和材质不作调整。 */
 html,
 body,
@@ -39,7 +61,8 @@ html[data-window-frame='windows10'] #app {
 }
 .native-player.win10-frame .win {
   border-radius: 8px;
+  /* 软阴影在原生窗口预留的 24px 内渐隐，底边留出透明余量。 */
   box-shadow:
-    0 8px 24px rgb(0 0 0 / 28%),
-    0 1px 4px rgb(0 0 0 / 16%);
+    0 4px 12px rgb(0 0 0 / 24%),
+    0 1px 4px rgb(0 0 0 / 12%);
 }

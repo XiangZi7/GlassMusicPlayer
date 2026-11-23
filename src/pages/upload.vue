@@ -20,11 +20,8 @@ const { uploads, upAdded, upMsg } = toRefs(state)
     data-panel="upload"
   >
     <div class="pg-head">
-      <h3>上传歌曲</h3>
-      <p>
-        把你自己的歌带进来 —
-        选文件、选整个文件夹，或手动填写信息直接进音乐库。原型里文件只在本页读取文件名与大小、不上传到任何服务器；正式版会写入本地音乐文件夹并自动补封面与歌词。
-      </p>
+      <h3>本地曲目登记</h3>
+      <p>选择文件或手动填写曲目信息。当前只登记资料，暂未接入本地音频播放。</p>
     </div>
     <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
     <PlayerTabs
@@ -34,7 +31,7 @@ const { uploads, upAdded, upMsg } = toRefs(state)
       hook="data-src-tab"
       :options="[
         { label: '平台对接', value: 'connect' },
-        { label: '上传歌曲', value: 'upload' },
+        { label: '本地曲目', value: 'upload' },
         { label: '下载管理', value: 'downloads' },
       ]"
     />
@@ -81,7 +78,7 @@ const { uploads, upAdded, upMsg } = toRefs(state)
         <b>{{ upAdded }}</b><span>已加入曲库</span>
       </div>
       <div><b>6 种</b><span>支持格式</span></div>
-      <div><b>本地</b><span>存储位置</span></div>
+      <div><b>本次会话</b><span>保留时长</span></div>
     </div>
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
@@ -108,9 +105,9 @@ const { uploads, upAdded, upMsg } = toRefs(state)
           :class="{ on: file.added }"
           :disabled="file.added"
           @click="controller()?.addUploadToLibrary(index)"
-          >{{ file.added ? '已加入' : '加入曲库' }}</BaseButton><span
+          >{{ file.added ? '已登记' : '登记资料' }}</BaseButton><span
           class="st"
-          >{{ file.added ? '已入库' : '待加入' }}</span
+          >{{ file.added ? '已登记' : '待登记' }}</span
         >
       </div>
     </div>
@@ -118,12 +115,12 @@ const { uploads, upAdded, upMsg } = toRefs(state)
       v-if="!uploads.length"
       class="min-h-[140px]"
       icon="upload"
-      label="上传队列为空，选择音频文件后可加入曲库"
+      label="文件队列为空，选择音频文件后可登记资料"
     />
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
     >
-      手动添加一首 · 填写信息直接进曲库
+      手动登记曲目信息
     </div>
     <div class="up-form mt-[12px] grid grid-cols-[1fr_1fr_1fr_auto] gap-[8px]">
       <input
@@ -145,7 +142,7 @@ const { uploads, upAdded, upMsg } = toRefs(state)
       <BaseButton
         class="up-add min-h-[38px] rounded-[11px] border-none bg-white p-[0_16px] text-[12.5px] font-extrabold whitespace-nowrap"
         data-up-add
-        >加入音乐库</BaseButton
+        >登记曲目</BaseButton
       >
     </div>
     <div class="src-note mt-[12px] text-[11.5px] leading-[1.65] opacity-[.55]">
@@ -154,14 +151,14 @@ const { uploads, upAdded, upMsg } = toRefs(state)
     <div
       class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
     >
-      我上传的歌 · <span>{{ upAdded }}</span> 首
+      已登记曲目 · <span>{{ upAdded }}</span> 首
     </div>
     <!-- 歌曲列表组件：统一曲目选择、排序、分页及播放状态。 -->
     <TrackList
       :indices="uploadedIndices"
       list-key="up"
       empty-icon="upload"
-      empty="暂无上传歌曲"
+      empty="暂无已登记曲目"
     />
   </div>
 </template>

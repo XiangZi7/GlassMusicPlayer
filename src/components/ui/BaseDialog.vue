@@ -6,13 +6,49 @@ defineProps<{ labelledBy: string; describedBy?: string }>()
 const open = defineModel<boolean>({ default: false })
 const dialog = useTemplateRef<HTMLDialogElement>('dialog')
 
-// 原生模态层负责初始焦点、背景不可交互和 Escape 关闭。
+let transition: Animation | undefined
+let transitionRun = 0
+
+// 原生模态层保留焦点与背景隔离；开关先淡入淡出，快速重开会取消旧关闭回调。
 watch(
   [open, dialog],
-  ([visible, element]) => {
+  async ([visible, element]) => {
+    const run = ++transitionRun
+    transition?.cancel()
+    transition = undefined
     if (!element?.isConnected) return
-    if (visible && !element.open) element.showModal()
-    else if (!visible && element.open) element.close()
+    const reduced =
+      document.body.classList.contains('calm') ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (visible) {
+      element.removeAttribute('data-closing')
+      if (!element.open) element.showModal()
+      if (!reduced && element.animate)
+        transition = element.animate(
+          [
+            { opacity: 0, transform: 'translateY(8px) scale(.99)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          { duration: 180, easing: 'cubic-bezier(.22,1,.36,1)' }
+        )
+    } else if (element.open) {
+      element.setAttribute('data-closing', 'true')
+      if (!reduced && element.animate) {
+        transition = element.animate(
+          [
+            { opacity: 1, transform: 'none' },
+            { opacity: 0, transform: 'translateY(5px) scale(.99)' },
+          ],
+          { duration: 140, easing: 'ease-in', fill: 'forwards' }
+        )
+        try {
+          await transition.finished
+        } catch {
+          /* 重开或卸载会取消当前关闭。 */
+        }
+      }
+      if (run === transitionRun && !open.value && element.open) element.close()
+    }
   },
   { flush: 'post' }
 )
@@ -89,7 +125,11 @@ onDeactivated(() => {
   open.value = false
   dialog.value?.close()
 })
-onBeforeUnmount(() => dialog.value?.close())
+onBeforeUnmount(() => {
+  transitionRun++
+  transition?.cancel()
+  dialog.value?.close()
+})
 </script>
 
 <template>

@@ -1,8 +1,13 @@
 import { reactive } from 'vue'
 import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
-import { tracks as demoTracks } from '@/constants/music'
+import type { SourceTrack } from '@/types/prototype'
 import { publicAvatar } from '@/services/public-avatar'
+import {
+  preferenceTrackKey,
+  readPlayerPreferences,
+  writePlayerPreferences,
+} from '@/services/player/preferences'
 import type {
   CatalogPlaylist,
   CatalogTrack,
@@ -126,7 +131,16 @@ export function createDefaultSettings() {
     crossfade: 6,
     quality: 'FLAC · 24-BIT',
     output: '桌面音箱',
-    eq: '流行',
+    eq: '平直',
+    eqEnabled: false,
+    eqPreamp: 0,
+    eqGains: '0,0,0,0,0,0,0,0,0,0',
+    eqAutoHeadroom: true,
+    eqCustomPresets: '[]',
+    downloadQuality: 'exhigh',
+    cacheDirectory: '',
+    downloadDirectory: '',
+    rememberPlayback: true,
     sleep: '关闭',
     deskLyrics: true,
     deskLock: false,
@@ -137,9 +151,10 @@ export function createDefaultSettings() {
   }
 }
 
-// 原稿播放器状态：保持初始曲目、42 秒进度和所有演示设置。
+// 从真实曲库和保存的状态初始化播放器，首次启动时没有选中的曲目。
 export const usePlayerStore = defineStore('player', () => {
-  const tracks = reactive(demoTracks.map(track => ({ ...track })))
+  const tracks = reactive<SourceTrack[]>([])
+  const preferences = readPlayerPreferences(createDefaultSettings())
   const islandPreferences = useLocalStorage('miraiMusic.lyricIsland', {
     lyricIsland: true,
     lyricIslandDesktop: false,
@@ -147,25 +162,27 @@ export const usePlayerStore = defineStore('player', () => {
   const catalogIndices = new Map<string, number>()
   let savedPlaylists = readImportedPlaylists()
   const state = reactive({
-    /** 当前曲目索引。 */ idx: 0,
+    /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
     /** 播放和进度状态。 */ playing: false,
-    t: 42,
+    /** 当前播放进度。 */ t: 0,
+    /** 首次媒体就绪时恢复的位置，明确切歌后清零。 */ resumeTime: 0,
+    /** EQ 状态只反映当前真实音频管线，不写入用户偏好。 */ equalizerStatus:
+      'bypassed' as 'active' | 'bypassed' | 'pending' | 'unavailable',
     /** 当前在线音频的实际时长与播放状态。 */
     streamDuration: 0,
     catalogStatus: null as PlaybackStatus | 'loading' | 'error' | null,
     /** 收藏集合。 */ liked: {} as Record<number, boolean>,
     /** 播放顺序模式。 */ shuffle: false,
     repeat: 0,
-    /** 音量及静音前音量。 */ vol: 70,
-    muted: false,
-    lastVol: 70,
+    /** 音量及静音前音量。 */ vol: preferences.volume,
+    muted: preferences.muted,
+    lastVol: preferences.volume || 70,
     /** 全屏、队列和右侧栏展开状态。 */ fsQ: false,
-    npOpen: true,
+    npOpen: preferences.panelOpen,
     /** 平台对接和歌曲电台默认使用整行内容宽度。 */
     npWideOpen: false,
     stage: false,
     /** 首页内容筛选。 */ chip: '全部',
-    /** 播放计时器。 */ timer: null as number | null,
     /** 当前页面和选中的歌单、专辑或歌手。 */ page: 'home' as PlayerPage,
     playlistIdx: 0,
     /** 全局搜索词。 */ query: '',
@@ -174,7 +191,7 @@ export const usePlayerStore = defineStore('player', () => {
     queryRevision: 0,
     /** 最近播放记录。 */ recent: [] as number[],
     /** 原稿播放、外观及桌面窗口设置。 */ settings: {
-      ...createDefaultSettings(),
+      ...preferences.settings,
       lyricIsland: islandPreferences.value?.lyricIsland !== false,
       lyricIslandDesktop: islandPreferences.value?.lyricIslandDesktop === true,
     },
@@ -289,6 +306,74 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   state.imported = savedPlaylists.map(buildImportedPlaylist)
+  // 先恢复已保存歌单，再补缓存中的搜索曲目；公开 ID 相同的曲目不重复登记。
+  for (const track of preferences.catalogTracks) {
+    if (!track.catalog) continue
+    const key = catalogKey(track.catalog)
+    if (catalogIndices.has(key)) continue
+    catalogIndices.set(key, tracks.length)
+    tracks.push(track)
+  }
+  const restoredIndices = new Map(
+    tracks.map((track, index) => [preferenceTrackKey(track), index])
+  )
+  // 缓存不自动播放；失效曲目键忽略，不把旧数组索引强行指向新曲库。
+  const currentIndex = preferences.current
+    ? restoredIndices.get(preferences.current.key)
+    : undefined
+  if (currentIndex !== undefined && state.settings.rememberPlayback) {
+    state.idx = currentIndex
+    state.t = Math.min(
+      preferences.current!.time,
+      tracks[currentIndex]!.dur || preferences.current!.time
+    )
+    state.resumeTime = tracks[currentIndex]?.catalog ? state.t : 0
+  }
+  const queued = preferences.queue
+    .map(key => restoredIndices.get(key))
+    .filter((index): index is number => index !== undefined)
+  if (queued.length) state.queue = queued
+  for (const key of preferences.liked) {
+    const index = restoredIndices.get(key)
+    if (index !== undefined) state.liked[index] = true
+  }
+  state.recent = preferences.recent
+    .map(key => restoredIndices.get(key))
+    .filter((index): index is number => index !== undefined)
+
+  // 只在主窗口或用户明确应用时保存，设置窗口的未应用草稿不会覆盖缓存。
+  function savePreferences(): boolean {
+    const current = tracks[state.idx]
+    const used = [
+      ...new Set([
+        state.idx,
+        ...(state.queue || []),
+        ...state.recent,
+        ...Object.keys(state.liked).map(Number),
+      ]),
+    ]
+    const keyFor = (index: number) =>
+      tracks[index] ? preferenceTrackKey(tracks[index]!) : ''
+    return writePlayerPreferences({
+      settings: { ...state.settings },
+      volume: state.vol,
+      muted: state.muted,
+      panelOpen: state.npOpen,
+      current:
+        current && state.settings.rememberPlayback
+          ? { key: preferenceTrackKey(current), time: state.t }
+          : null,
+      queue: (state.queue || []).map(keyFor).filter(Boolean),
+      liked: Object.keys(state.liked)
+        .filter(index => state.liked[Number(index)])
+        .map(index => keyFor(Number(index)))
+        .filter(Boolean),
+      recent: state.recent.map(keyFor).filter(Boolean),
+      catalogTracks: used
+        .map(index => tracks[index])
+        .filter((track): track is (typeof tracks)[number] => !!track?.catalog),
+    })
+  }
   return {
     state,
     tracks,
@@ -296,6 +381,7 @@ export const usePlayerStore = defineStore('player', () => {
     savePublicPlaylist,
     setLinkedProfile,
     saveIslandPreferences,
+    savePreferences,
   }
 })
 

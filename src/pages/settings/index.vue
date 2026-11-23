@@ -26,13 +26,20 @@ import {
   type PlayerSettings,
 } from '@/stores/player'
 import { notify } from '@/services/notification'
+import { defaultCover } from '@/constants/music'
+import { getStorageInfo, updateStorageConfig } from '@/services/storage'
 import type {
   SettingsAction,
   SettingsSection,
   SettingsSnapshot,
 } from '@/types/settings'
 
-const { state: playerState, tracks, saveIslandPreferences } = usePlayerStore()
+const {
+  state: playerState,
+  tracks,
+  saveIslandPreferences,
+  savePreferences,
+} = usePlayerStore()
 const router = useRouter()
 const navigation = useTemplateRef<HTMLElement>('navigation')
 const content = useTemplateRef<HTMLElement>('content')
@@ -56,6 +63,13 @@ const sections: {
     title: '音质设置',
     description: '播放音质、输出设备与预设音效。',
     icon: 'M5 9H2v6h3l5 4V5L5 9zm9-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+  },
+  {
+    key: 'storage',
+    label: '缓存与下载',
+    title: '缓存与下载',
+    description: '本机目录、下载音质、占用与安全清理。',
+    icon: 'M3 7h18v13H3zM3 7V4h7l2 3M12 10v7m-3-3 3 3 3-3',
   },
   {
     key: 'appearance',
@@ -82,7 +96,7 @@ const sections: {
     key: 'about',
     label: '关于',
     title: '关于播放器',
-    description: '版本信息与演示数据说明。',
+    description: '应用信息与数据来源。',
     icon: 'M12 8h.01M11 12h1v5m9-5a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
   },
 ]
@@ -91,7 +105,7 @@ const sections: {
 const state = reactive({
   /** 首次接收主窗口状态后开放表单。 */ ready: !isTauri(),
   /** 提交期间禁止重复点击。 */ saving: false,
-  /** 当前曲目封面，沿用主界面的玻璃背景。 */ cover: tracks[0]!.cover,
+  /** 当前曲目封面，曲库为空时使用默认封面。 */ cover: tracks[0]?.cover || defaultCover,
   /** 设置分类历史，供标题栏前进和后退使用。 */ history: [
     'general',
   ] as SettingsSection[],
@@ -167,6 +181,8 @@ function applySnapshot(snapshot: SettingsSnapshot): void {
   Object.assign(state.baseline, snapshot.settings)
   state.baselinePanel = snapshot.npOpen
   state.cover = snapshot.track.cover
+  if (snapshot.equalizerStatus)
+    playerState.equalizerStatus = snapshot.equalizerStatus
   if (!keepDraft) {
     Object.assign(playerState.settings, snapshot.settings)
     playerState.npOpen = snapshot.npOpen
@@ -184,8 +200,22 @@ async function applySettings(): Promise<boolean> {
     npOpen: playerState.npOpen,
   }
   try {
-    if (isTauri()) await emitTo('main', 'settings-change', action)
-    else saveIslandPreferences()
+    if (isTauri()) {
+      const current = await getStorageInfo()
+      const stored = await updateStorageConfig({
+        cacheDirectory:
+          action.settings.cacheDirectory || current.cacheDirectory,
+        downloadDirectory:
+          action.settings.downloadDirectory || current.downloadDirectory,
+      })
+      action.settings.cacheDirectory = stored.cacheDirectory
+      action.settings.downloadDirectory = stored.downloadDirectory
+      Object.assign(playerState.settings, action.settings)
+      await emitTo('main', 'settings-change', action)
+    } else {
+      saveIslandPreferences()
+      savePreferences()
+    }
     Object.assign(state.baseline, action.settings)
     state.baselinePanel = action.npOpen
     notify('设置已应用')
@@ -215,8 +245,10 @@ async function closeSettings(): Promise<void> {
   }
 }
 
-// 分类切换后从新分组顶部开始阅读，底栏始终固定。
-watch(section, () => content.value?.scrollTo({ top: 0 }))
+// 新分类淡入前恢复顶部位置，旧内容淡出时保持原阅读位置。
+function resetSectionScroll(): void {
+  content.value?.scrollTo({ top: 0 })
+}
 // 在设置窗预览动效偏好，主窗口在应用后才更新。
 watch(
   () => playerState.settings.motion,
@@ -256,6 +288,7 @@ onUnmounted(() => {
 <template>
   <!-- 设置原生窗口：复用主播放器的玻璃外框、圆角、阴影和缩放行为。 -->
   <PlayerWindowFrame
+    :class="{ 'settings-calm': !playerState.settings.motion }"
     :cover="cover"
     :glass-style="glassStyle"
   >
@@ -311,7 +344,7 @@ onUnmounted(() => {
     <!-- 设置主体：左侧固定分类，右侧分组内容和独立滚动区域。 -->
     <div class="relative z-[3] flex min-h-0 flex-1">
       <aside
-        class="sidebar w-[190px] shrink-0 overflow-y-auto p-[14px_12px] max-[760px]:w-[160px]"
+        class="sidebar panel-scroll w-[190px] shrink-0 overflow-y-auto p-[14px_12px] max-[760px]:w-[160px]"
         aria-label="设置分类"
       >
         <nav
@@ -364,7 +397,10 @@ onUnmounted(() => {
         </div>
         <div
           ref="content"
-          class="relative min-h-0 flex-1 overflow-y-auto p-[18px_20px_24px]"
+          class="panel-scroll relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+          role="region"
+          tabindex="0"
+          :aria-label="activeSection.title"
         >
           <!-- 设置加载区域：等待主窗口快照时在表单容器中央显示。 -->
           <div
@@ -378,14 +414,15 @@ onUnmounted(() => {
             />
           </div>
           <!-- 当前分类的设置表单：原有卡片、开关和标签控件保持原样。 -->
-          <SettingsPanel
-            v-else
-            :section="section"
-          />
+          <div v-if="ready" class="p-[18px_20px_24px]">
+            <Transition name="settings-section" mode="out-in" @before-enter="resetSectionScroll">
+              <SettingsPanel :key="section" :section="section" />
+            </Transition>
+          </div>
         </div>
         <!-- 固定底部操作栏：左侧重置，右侧取消、应用和保存。 -->
         <footer
-          class="flex min-h-[56px] shrink-0 items-center justify-between gap-[12px] border-t border-white/10 px-[16px] py-[10px]"
+          class="panel-actions flex items-center justify-between gap-[12px]"
         >
           <!-- 重置操作：只改当前草稿，点击应用或保存后才写回主播放器。 -->
           <BaseButton
@@ -423,3 +460,35 @@ onUnmounted(() => {
     </div>
   </PlayerWindowFrame>
 </template>
+
+<style scoped>
+.settings-section-enter-active,
+.settings-section-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+.settings-section-enter-from,
+.settings-section-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.settings-calm .settings-section-enter-active,
+.settings-calm .settings-section-leave-active {
+  transition: none;
+}
+.settings-calm .settings-section-enter-from,
+.settings-calm .settings-section-leave-to {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-section-enter-active,
+  .settings-section-leave-active {
+    transition: none;
+  }
+  .settings-section-enter-from,
+  .settings-section-leave-to {
+    transform: none;
+  }
+}
+</style>

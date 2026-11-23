@@ -1,22 +1,119 @@
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { computed, onMounted, reactive, toRefs } from 'vue'
+import { useRouter } from 'vue-router'
+import { isTauri } from '@tauri-apps/api/core'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
-import { computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
-import { downloads } from '@/constants/music'
-const { state } = usePlayer()
-const active = computed(
+import { notify } from '@/services/notification'
+import { openSettingsWindow } from '@/services/desktop'
+import {
+  listDownloads,
+  downloadCatalogTrack,
+  openStorageDirectory,
+  isNativeStorageSupported,
+  type DownloadedTrack,
+} from '@/services/storage'
+
+const player = usePlayer()
+const router = useRouter()
+const supported = isNativeStorageSupported()
+const current = computed(() => player.tracks[player.state.idx])
+const quality = computed(
   () =>
-    downloads.filter((item, index) => item.prog < 100 && !state.dlPaused[index])
-      .length
+    ({ standard: '标准', exhigh: '极高', lossless: '无损', hires: 'Hi-Res' })[
+      player.state.settings.downloadQuality as
+        'standard' | 'exhigh' | 'lossless' | 'hires'
+    ] || '平台默认'
 )
-const { dlPaused } = toRefs(state)
+// 响应式状态
+const state = reactive({
+  // 只展示原生文件和元数据验证过的真实下载。
+  records: [] as DownloadedTrack[],
+  // 当前是否在读取真实记录。
+  loading: false,
+  // 下载中不展示虚假的百分比、暂停或断点续传。
+  downloading: false,
+})
+const { records, loading, downloading } = toRefs(state)
+
+// 显示实际字节数，不沿用演示任务的固定容量。
+function formatBytes(value: number): string {
+  if (value < 1024) return `${value} B`
+  if (value < 1024 ** 2) return `${(value / 1024).toFixed(1)} KiB`
+  return `${(value / 1024 ** 2).toFixed(1)} MiB`
+}
+
+// 刷新真实完成记录；浏览器不调用原生存储接口。
+async function refresh(): Promise<void> {
+  if (!supported || state.loading) return
+  state.loading = true
+  try {
+    state.records = await listDownloads()
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : '读取下载记录失败。',
+      'error'
+    )
+  } finally {
+    state.loading = false
+  }
+}
+
+// 下载点击时的当前曲目，平台或预览状态由原生检查，完成后再加入真实记录。
+async function downloadCurrent(): Promise<void> {
+  const track = current.value
+  if (!supported || !track?.catalog || state.downloading) return
+  state.downloading = true
+  try {
+    const saved = await downloadCatalogTrack(
+      track,
+      track.catalog.platform === 'netease'
+        ? { quality: player.state.settings.downloadQuality }
+        : {}
+    )
+    state.records = [
+      saved,
+      ...state.records.filter(item => item.key !== saved.key),
+    ]
+    notify(
+      saved.status === 'preview'
+        ? `已保存「${saved.title}」的试听音频。`
+        : `已保存「${saved.title}」，权限与实际音质以上游返回为准。`
+    )
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : '下载失败，请重试。',
+      'error'
+    )
+  } finally {
+    state.downloading = false
+  }
+}
+
+// 使用系统文件管理器打开已应用的下载目录。
+async function openFolder(): Promise<void> {
+  try {
+    await openStorageDirectory('download')
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : '无法打开下载目录。',
+      'error'
+    )
+  }
+}
+
+// 存储设置使用已有独立设置窗，浏览器走设置路由，不打开全屏。
+function openSettings(): void {
+  if (isTauri()) void openSettingsWindow()
+  else void router.push('/settings')
+}
+onMounted(refresh)
 </script>
 
 <template>
-  <!-- downloads 页面：保留原稿内容区域与交互顺序。 -->
+  <!-- 下载页面：真实本机任务和文件记录，不使用原稿演示下载数据。 -->
   <div
     class="page-panel hidden"
     data-panel="downloads"
@@ -24,11 +121,10 @@ const { dlPaused } = toRefs(state)
     <div class="pg-head">
       <h3>下载管理</h3>
       <p>
-        离线下载的歌曲与队列 — 演示数据，可暂停 /
-        继续单个任务，正式版会写入本地缓存并支持断点续传。
+        保存平台当次允许提供的音频到本机目录。浏览器预览不支持原生下载；不伪造完成、暂停或断点续传。
       </p>
     </div>
-    <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
+    <!-- 内容导航：沿用平台对接、上传与下载的公共标签条。 -->
     <PlayerTabs
       class="pg-tabs mt-4 inline-flex max-w-full flex-wrap gap-1 rounded-full p-1"
       role="tablist"
@@ -36,64 +132,128 @@ const { dlPaused } = toRefs(state)
       hook="data-src-tab"
       :options="[
         { label: '平台对接', value: 'connect' },
-        { label: '上传歌曲', value: 'upload' },
+        { label: '本地曲目', value: 'upload' },
         { label: '下载管理', value: 'downloads' },
       ]"
     />
-    <div class="lib-stats mt-4 grid grid-cols-[repeat(4,1fr)] gap-2.5">
-      <div><b>3</b><span>已下载</span></div>
+    <!-- 下载统计：只从原生完成记录和实际进行中的请求推导。 -->
+    <div class="lib-stats mt-4 grid grid-cols-3 gap-2.5">
       <div>
-        <b>{{ active }}</b><span>进行中</span>
+        <b>{{ supported ? records.length : '—' }}</b
+        ><span>文件已保存</span>
       </div>
-      <div><b>FLAC</b><span>默认下载音质</span></div>
-      <div><b>本地缓存</b><span>存储位置</span></div>
+      <div>
+        <b>{{ downloading ? 1 : 0 }}</b
+        ><span>正在下载</span>
+      </div>
+      <div>
+        <b>{{ quality }}</b
+        ><span>网易云下载偏好</span>
+      </div>
     </div>
-    <div
-      class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
-    >
-      下载队列
-    </div>
-    <!-- 下载任务区：保留原稿演示任务与单项暂停/继续操作。 -->
-    <EmptyState
-      v-if="!downloads.length"
-      class="min-h-[140px]"
-      icon="download"
-      label="下载队列为空"
-    />
-    <div v-else>
-      <div
-        v-for="(item, index) in downloads"
-        :key="item.name"
-        class="file-row mb-1.75 flex items-center gap-2.75 rounded-[13px] border border-transparent p-[9px_11px]"
+    <!-- 下载工具栏：当前歌曲的真实下载、目录与存储设置入口。 -->
+    <div class="pl-actions mt-[18px] flex flex-wrap items-center gap-[9px]">
+      <BaseButton
+        class="banner-play rounded-full px-[16px] py-[9px] text-[12px]"
+        :loading="downloading"
+        :disabled="!supported || !current?.catalog || downloading"
+        @click="downloadCurrent"
+        >{{ downloading ? '正在保存音频…' : '下载当前歌曲' }}</BaseButton
       >
-        <span class="fi">↓</span
-        ><span class="it"
-          ><b>{{ item.name }}</b
-          ><span
-            >{{ item.artist }} · {{ item.size }} ·
-            {{
-              item.prog >= 100
-                ? '已完成'
-                : (dlPaused[index] ? '已暂停 · ' : '下载中 · ') +
-                  item.prog +
-                  '%'
-            }}</span
-          ></span
-        ><!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
-        <BaseButton
-          v-if="item.prog < 100"
-          class="imp-pick min-h-7.5 flex-none rounded-full p-[6px_12px] text-[11.5px] font-extrabold"
-          :class="{ on: dlPaused[index] }"
-          @click="dlPaused[index] = !dlPaused[index]"
-          >{{ dlPaused[index] ? '继续' : '暂停' }}</BaseButton><span
-          v-else
-          class="st"
-          >可离线播放</span
-        >
-      </div>
+      <BaseButton
+        class="imp-pick rounded-full px-[12px] py-[7px] text-[12px]"
+        :disabled="!supported"
+        @click="openFolder"
+        >打开下载目录</BaseButton
+      >
+      <BaseButton
+        class="imp-pick rounded-full px-[12px] py-[7px] text-[12px]"
+        :disabled="loading"
+        @click="refresh"
+        >刷新记录</BaseButton
+      >
+      <BaseButton
+        class="imp-pick rounded-full px-[12px] py-[7px] text-[12px]"
+        @click="openSettings"
+        >存储设置</BaseButton
+      >
     </div>
+    <p class="src-note mt-[9px] text-[11.5px] leading-[1.65] opacity-[.55]">
+      {{
+        current?.catalog
+          ? `当前歌曲：${current.title}`
+          : '请选择已导入或搜索到的在线歌曲。'
+      }}
+    </p>
+    <!-- 下载记录内容：加载在区域中央，空态不展示固定测试文件。 -->
+    <section
+      class="relative mt-[18px] min-h-[160px]"
+      aria-label="已保存的下载文件"
+      :aria-busy="loading"
+    >
+      <div
+        v-if="loading"
+        class="absolute inset-0 grid place-items-center"
+        role="status"
+        aria-label="正在读取下载记录"
+      >
+        <span
+          class="size-5 animate-spin rounded-full border-2 border-white/20 border-t-white/80"
+        />
+      </div>
+      <EmptyState
+        v-else-if="!records.length"
+        class="min-h-[160px]"
+        icon="download"
+        label="没有真实下载记录"
+      />
+      <div
+        v-else
+        class="space-y-[7px]"
+      >
+        <article
+          v-for="item in records"
+          :key="item.key"
+          class="file-row flex min-h-[62px] items-center gap-[12px] rounded-[13px] border border-transparent px-[12px] py-[10px]"
+        >
+          <svg
+            class="size-5 flex-none text-white/50"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" />
+          </svg>
+          <div class="min-w-0 flex-1">
+            <b
+              class="block truncate text-[13px] font-semibold"
+              :title="item.fileName"
+              >{{ item.title }}</b
+            >
+            <p class="mt-[3px] mb-0 truncate text-[11px] text-white/55">
+              {{ item.artist }} · {{ formatBytes(item.bytes) }} ·
+              {{ item.quality || '平台未报告实际音质' }}
+            </p>
+          </div>
+          <span
+            class="flex-none rounded-full bg-white/5 px-[9px] py-[5px] text-[11px] text-white/65"
+            >{{
+              item.status === 'preview'
+                ? '试听已保存'
+                : item.status === 'full'
+                  ? '音频已保存'
+                  : '已保存 · 权限状态待确认'
+            }}</span
+          >
+        </article>
+      </div>
+    </section>
     <p class="src-note mt-3 text-[11.5px] leading-[1.65] opacity-[.55]">
-      提示：平台对接导入的歌曲能否下载，取决于该平台的版权与会员规则；本地与自上传歌曲不受限制。
+      下载以平台版权与会员规则为准；文件保存不代表会员权益授权。切换保存目录不会移动或删除原目录中的文件。本页面暂不提供自动离线播放或断点续传。
     </p>
   </div>
 </template>

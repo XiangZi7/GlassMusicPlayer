@@ -145,16 +145,6 @@ const searchLabel = computed(() =>
       </template>
     </div>
     <template v-else>
-      <div class="search-tags mt-[12px] flex flex-wrap items-center gap-[7px]">
-        <span>热门</span><!-- 页面操作按钮：Night Drive。 -->
-        <BaseButton data-tag="Night Drive">Night Drive</BaseButton
-        ><!-- 页面操作按钮：June Harbor。 -->
-        <BaseButton data-tag="June Harbor">June Harbor</BaseButton
-        ><!-- 页面操作按钮：Chrome。 -->
-        <BaseButton data-tag="Chrome">Chrome</BaseButton
-        ><!-- 页面操作按钮：Bauhaus。 -->
-        <BaseButton data-tag="Bauhaus">Bauhaus</BaseButton>
-      </div>
       <div
         class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
         data-search-label
@@ -169,6 +159,7 @@ const searchLabel = computed(() =>
         empty="没有找到匹配的歌曲"
       />
       <div
+        v-if="artistCards.length"
         class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
       >
         歌手 · 点击按歌手筛选

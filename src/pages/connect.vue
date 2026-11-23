@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onDeactivated,
-  reactive,
-  toRefs,
-  useTemplateRef,
-  watch,
-} from 'vue'
+import { computed, nextTick, onDeactivated, reactive, toRefs, watch } from 'vue'
 import type { MusicPlatform } from '@/api'
 import { useRoute } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseDialog from '@/components/ui/BaseDialog.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
 import PlatformConnectionDialog from '@/components/player/PlatformConnectionDialog.vue'
@@ -56,8 +49,10 @@ const state = reactive({
   dialogPlatform: null as MusicPlatform | null,
   // 当前连接方式，只有登录面板可启动短期扫码请求。
   dialogMode: 'profile' as 'profile' | 'login',
+  // 账号歌单只在独立选择弹窗展示，不占据平台页主体。
+  selectionOpen: false,
 })
-const { dialogOpen, dialogPlatform, dialogMode } = toRefs(state)
+const { dialogOpen, dialogPlatform, dialogMode, selectionOpen } = toRefs(state)
 const loginEnabled = computed(
   () => state.dialogOpen && state.dialogMode === 'login'
 )
@@ -101,13 +96,13 @@ const dialogInitialValue = computed(() => {
     ? importer.linkedProfiles.value[platform]?.userId || ''
     : ''
 })
-const selection = useTemplateRef<HTMLElement>('selection')
 
 // 未关联平台优先展示可用扫码方式，酷我沿用公开主页方式。
 function openConnectionDialog(
   platform: MusicPlatform,
   mode: 'profile' | 'login' = platform === 'kuwo' ? 'profile' : 'login'
 ): void {
+  state.selectionOpen = false
   state.dialogMode = mode
   state.dialogPlatform = platform
   clearProfileError()
@@ -117,12 +112,16 @@ function openConnectionDialog(
 // 已关联的卡片直接查看歌单，未关联的卡片只打开连接弹窗。
 async function showConnection(platform: MusicPlatform): Promise<void> {
   if (profileByPlatform.value[platform]) {
+    if (platform === 'kugou') {
+      openConnectionDialog(platform)
+      return
+    }
+    state.selectionOpen = true
     openPlatform(platform)
-    await nextTick()
-    selection.value?.scrollIntoView({ block: 'nearest' })
   } else openConnectionDialog(platform)
 }
 
+// 关联成功后从登录面板进入歌单选择弹窗；关闭或切换平台时不接受旧结果。
 async function submitProfile(input: string): Promise<void> {
   const platform = state.dialogPlatform
   if (!platform || !state.dialogOpen) return
@@ -137,7 +136,7 @@ async function submitProfile(input: string): Promise<void> {
     return
   state.dialogOpen = false
   await nextTick()
-  selection.value?.scrollIntoView({ block: 'nearest' })
+  state.selectionOpen = platform !== 'kugou'
 }
 
 // 只有服务端验证了账号后才读取同一 UID 的公开歌单；失败仍可重试，不伪造关联。
@@ -168,6 +167,7 @@ watch(
   { immediate: true }
 )
 
+// 重试扫码前清除旧的主页错误，不改变已保存账号。
 function refreshLogin(): void {
   clearProfileError()
   login.refresh()
@@ -179,8 +179,24 @@ watch(
     if (!visible) cancelProfileConnection()
   }
 )
+// 选择弹窗关闭时停止本次加载或导入，已经完整保存的歌单不回滚。
+watch(
+  () => state.selectionOpen,
+  visible => {
+    if (!visible) {
+      cancelProfileConnection()
+      if (importer.loading.value === 'selection') cancelImport()
+    }
+  }
+)
+// 取消账号关联后收起选择弹窗，不删除已经导入的歌单。
+function unlinkProfile(): void {
+  disconnect()
+  state.selectionOpen = false
+}
 onDeactivated(() => {
   state.dialogOpen = false
+  state.selectionOpen = false
 })
 </script>
 
@@ -203,7 +219,7 @@ onDeactivated(() => {
       hook="data-src-tab"
       :options="[
         { label: '平台对接', value: 'connect' },
-        { label: '上传歌曲', value: 'upload' },
+        { label: '本地曲目', value: 'upload' },
         { label: '下载管理', value: 'downloads' },
       ]"
     />
@@ -282,139 +298,184 @@ onDeactivated(() => {
       </section>
     </div>
 
-    <!-- 账户公开资料和可勾选歌单。 -->
-    <section
-      id="platform-playlist-selection"
-      ref="selection"
-      class="mt-[20px]"
-      aria-label="选择要导入的歌单"
-      :aria-busy="loading === 'profile'"
+    <!-- 账号歌单选择区：原生弹窗提供全选、多选、分页和统一导入。 -->
+    <BaseDialog
+      v-model="selectionOpen"
+      labelled-by="playlist-selection-title"
+      described-by="playlist-selection-help"
+      class="playlist-dialog"
     >
-      <h4 class="pg-secttl mb-[8px] text-[12px] font-extrabold">
-        选择要导入的歌单<span v-if="selected.length">
-          · 已选 {{ selected.length }}</span
-        >
-      </h4>
-      <EmptyState
-        v-if="!activeProfile"
-        class="min-h-[120px]"
-        icon="link"
-        label="连接平台后可选择账户的公开歌单"
-      />
-      <template v-else>
-        <div
-          class="pl-actions mb-[12px] flex flex-wrap items-center gap-[10px]"
-        >
-          <span>{{
-            activeProfile.displayName || 'UID ' + activeProfile.userId
-          }}</span>
-          <BaseButton
-            v-if="active !== 'kugou'"
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading"
-            @click="changePage(1)"
-            >刷新歌单</BaseButton
+      <header
+        class="flex shrink-0 items-start justify-between gap-[14px] border-b border-white/10 px-[20px] py-[16px]"
+      >
+        <div class="min-w-0">
+          <h2
+            id="playlist-selection-title"
+            class="m-0 text-[16px] font-bold"
           >
-          <BaseButton
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading"
-            @click="active && openConnectionDialog(active)"
-            >更换连接</BaseButton
+            选择要导入的歌单
+          </h2>
+          <p
+            id="playlist-selection-help"
+            class="mt-[5px] mb-0 text-[12px] leading-[1.5] text-white/55"
           >
-          <BaseButton
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading"
-            @click="disconnect"
-            >取消关联</BaseButton
-          >
+            {{ activeProfile?.displayName || '公开歌单' }} ·
+            可全选本页或勾选部分，已导入的歌单可更新。
+          </p>
         </div>
-        <p
+        <!-- 歌单选择弹窗：关闭按钮保留已导入结果并取消未完成请求。 -->
+        <BaseButton
+          class="grid size-[32px] flex-none place-items-center rounded-[10px] bg-white/5 text-white/70 hover:bg-white/10"
+          aria-label="关闭歌单选择"
+          @click="selectionOpen = false"
+          ><svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M6 6l12 12M18 6 6 18" /></svg
+        ></BaseButton>
+      </header>
+      <div
+        class="flex shrink-0 flex-wrap items-center gap-[8px] border-b border-white/7 px-[20px] py-[10px]"
+      >
+        <!-- 歌单选择工具栏：统一字号的刷新、账号切换与取消关联入口。 -->
+        <BaseButton
+          class="imp-pick rounded-full px-[11px] py-[6px] text-[12px]"
+          :disabled="!!loading"
+          @click="changePage(1)"
+          >刷新歌单</BaseButton
+        >
+        <BaseButton
+          class="imp-pick rounded-full px-[11px] py-[6px] text-[12px]"
+          :disabled="!!loading"
+          @click="active && openConnectionDialog(active)"
+          >更换账号</BaseButton
+        >
+        <BaseButton
+          class="imp-pick rounded-full px-[11px] py-[6px] text-[12px]"
+          :disabled="!!loading"
+          @click="unlinkProfile"
+          >取消关联</BaseButton
+        >
+        <span class="ml-auto text-[12px] text-white/60"
+          >已选 {{ selected.length }} 份</span
+        >
+      </div>
+      <section
+        id="platform-playlist-selection"
+        class="panel-scroll relative max-h-[430px] min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-[16px] py-[12px]"
+        tabindex="0"
+        aria-label="可选择的公开歌单"
+        :aria-busy="loading === 'profile'"
+      >
+        <!-- 歌单选择内容：加载居中，原有数据不使用固定演示列表替代。 -->
+        <div
           v-if="loading === 'profile'"
-          class="empty-note flex min-h-[120px] items-center justify-center text-[13px]"
+          class="grid min-h-[180px] place-items-center"
           role="status"
         >
-          正在读取公开歌单…
-        </p>
-        <EmptyState
-          v-else-if="active === 'kugou'"
-          class="min-h-[120px]"
-          icon="link"
-          label="酷狗只关联公开身份，账户歌单未接入；公开分享链接仍可导入"
-        />
-        <EmptyState
-          v-else-if="page && !page.playlists.length"
-          class="min-h-[120px]"
-          icon="playlist"
-          label="本页没有公开歌单"
-        />
-        <!-- 保留歌单封面、歌曲数和独立勾选操作。 -->
-        <label
-          v-for="item in page?.playlists"
-          :key="item.id"
-          class="imp-row mb-[7px] flex items-center gap-[11px] rounded-[13px] border border-transparent px-[11px] py-[9px]"
-        >
-          <img
-            :src="item.coverUrl || defaultCover"
-            alt=""
-            loading="lazy"
-          />
-          <span class="it min-w-0 flex-1"
-            ><b>{{ item.title }}</b
-            ><span>{{
-              item.trackCount === null ? '公开歌单' : item.trackCount + ' 首'
-            }}</span></span
-          >
           <span
-            v-if="isImported(item.id)"
-            class="text-[12px] opacity-[.7]"
-            >已导入 · 可更新</span
-          >
-          <input
-            v-model="selected"
-            type="checkbox"
-            :value="item.id"
-            :aria-label="
-              (isImported(item.id) ? '选择更新 ' : '选择导入 ') + item.title
-            "
-            :disabled="!!loading"
+            class="size-5 animate-spin rounded-full border-2 border-white/20 border-t-white/80"
+            aria-label="正在读取公开歌单"
           />
-        </label>
-        <div
-          v-if="page"
-          class="pl-actions mt-[12px] flex flex-wrap items-center gap-[10px]"
-        >
-          <BaseButton
-            class="banner-play rounded-full px-[18px] py-[9px]"
-            :disabled="!selected.length || !!loading"
-            @click="importPlaylists('selection')"
-            >{{
-              loading === 'selection' ? '正在导入…' : '导入 / 更新所选'
-            }}</BaseButton
-          >
-          <!-- 歌单选择区：批量选择按钮保留其他分页的勾选。 -->
-          <BaseButton
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading || !page.playlists.length"
-            @click="togglePageSelection"
-            >全选 / 取消本页</BaseButton
-          >
-          <BaseButton
-            v-if="page.pageNum > 1"
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading"
-            @click="changePage(page.pageNum - 1)"
-            >上一页</BaseButton
-          >
-          <BaseButton
-            v-if="page.hasMore"
-            class="imp-pick rounded-full px-[12px] py-[6px]"
-            :disabled="!!loading"
-            @click="changePage(page.pageNum + 1)"
-            >下一页</BaseButton
-          >
         </div>
-      </template>
-    </section>
+        <template v-else>
+          <EmptyState
+            v-if="!page?.playlists.length"
+            class="min-h-[180px]"
+            icon="playlist"
+            label="没有可展示的公开歌单，可尝试刷新"
+          />
+          <!-- 歌单选择列表：整行可点击，清晰区分已导入状态与选择状态。 -->
+          <label
+            v-for="item in page?.playlists"
+            :key="item.id"
+            class="playlist-pick mb-[7px] flex min-h-[62px] cursor-pointer items-center gap-[12px] rounded-[13px] border border-white/8 bg-white/3 px-[12px] py-[9px] transition-colors hover:bg-white/6"
+            :class="{ 'playlist-picked': selected.includes(item.id) }"
+          >
+            <img
+              :src="item.coverUrl || defaultCover"
+              alt=""
+              loading="lazy"
+              class="size-[38px] flex-none rounded-[9px] object-cover"
+            />
+            <span class="min-w-0 flex-1"
+              ><b
+                class="block truncate text-[13px] leading-[1.5] font-semibold"
+                >{{ item.title }}</b
+              ><span class="mt-[2px] block text-[11px] text-white/50">{{
+                item.trackCount === null ? '公开歌单' : item.trackCount + ' 首'
+              }}</span></span
+            >
+            <span
+              v-if="isImported(item.id)"
+              class="flex-none text-[11px] text-white/45"
+              >已导入 · 可更新</span
+            >
+            <input
+              v-model="selected"
+              type="checkbox"
+              :value="item.id"
+              :aria-label="
+                (isImported(item.id) ? '选择更新 ' : '选择导入 ') + item.title
+              "
+              :disabled="!!loading"
+              class="size-4 flex-none cursor-pointer accent-white"
+            />
+          </label>
+        </template>
+      </section>
+      <footer
+        class="panel-actions flex flex-wrap items-center gap-[8px]"
+      >
+        <!-- 歌单选择底栏：全选保持跨页选择，用户显式确认后才导入。 -->
+        <BaseButton
+          class="imp-pick rounded-full px-[12px] py-[7px]"
+          :disabled="!!loading || !page?.playlists.length"
+          @click="togglePageSelection"
+          >全选 / 取消本页</BaseButton
+        >
+        <BaseButton
+          v-if="page && page.pageNum > 1"
+          class="imp-pick rounded-full px-[10px] py-[7px]"
+          :disabled="!!loading"
+          @click="changePage(page.pageNum - 1)"
+          >上一页</BaseButton
+        >
+        <BaseButton
+          v-if="page?.hasMore"
+          class="imp-pick rounded-full px-[10px] py-[7px]"
+          :disabled="!!loading"
+          @click="changePage(page!.pageNum + 1)"
+          >下一页</BaseButton
+        >
+        <BaseButton
+          v-if="loading === 'selection'"
+          class="imp-pick rounded-full px-[12px] py-[7px]"
+          @click="cancelImport"
+          >停止</BaseButton
+        >
+        <BaseButton
+          class="banner-play ml-auto inline-flex h-9 min-w-32 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 font-extrabold whitespace-nowrap"
+          :disabled="!selected.length || !!loading"
+          :loading="loading === 'selection'"
+          @click="importPlaylists('selection')"
+          ><span>{{ loading === 'selection' ? '正在导入…' : '导入 / 更新所选' }}</span></BaseButton
+        >
+        <span
+          v-if="loading === 'selection'"
+          class="w-full text-[11px] text-white/55"
+          role="status"
+          >已处理 {{ importDone }} / {{ importTotal }} 项 · 当前歌单
+          {{ loaded }} 首</span
+        >
+      </footer>
+    </BaseDialog>
 
     <!-- 分享导入区：接受整段分享内容或多行链接，不需要先关联账号。 -->
     <form
@@ -499,3 +560,30 @@ onDeactivated(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.playlist-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-width: 640px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color-scheme: dark;
+}
+.playlist-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.playlist-dialog :deep(button) {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.playlist-dialog :deep(:focus-visible:not(.panel-scroll)) {
+  outline: 2px solid rgb(255 255 255 / 0.75);
+  outline-offset: 3px;
+}
+.playlist-pick.playlist-picked {
+  border-color: rgb(255 255 255 / 0.3);
+  background: rgb(255 255 255 / 0.075);
+}
+</style>

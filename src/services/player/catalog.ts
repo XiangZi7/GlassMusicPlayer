@@ -1,5 +1,6 @@
 import type { CatalogPlaylist, CatalogTrack, MusicPlatform } from '@/api'
 import { getCatalogPlaylist, resolveCatalogPlaylist } from '@/api'
+import { defaultCover } from '@/constants/music'
 import type { SourceTrack } from '@/types/prototype'
 
 export const platformNames: Record<MusicPlatform, string> = {
@@ -8,7 +9,7 @@ export const platformNames: Record<MusicPlatform, string> = {
   kuwo: '酷我音乐',
 }
 
-export const defaultCover = '/images/night-drive.webp'
+export { defaultCover }
 
 // 平台与曲目 ID 共同定位歌曲或歌单，允许不同平台有相同 ID。
 export function catalogKey(item: {

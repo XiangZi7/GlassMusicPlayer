@@ -16,6 +16,11 @@ const avatarCode = compile('src/services/public-avatar.ts')
 const storeCode = compile('src/stores/player.ts')
 const importCode = compile('src/composables/usePlatformImport.ts')
 const avatarModule = { exports: {} }
+const musicModule = { exports: {} }
+vm.runInNewContext(compile('src/constants/music.ts'), {
+  module: musicModule,
+  exports: musicModule.exports,
+})
 vm.runInNewContext(avatarCode, {
   module: avatarModule,
   exports: avatarModule.exports,
@@ -72,6 +77,8 @@ function harness(options = {}) {
   const saved = new Map(
     options.saved ? [[profileKey, JSON.stringify(options.saved)]] : []
   )
+  if (options.preferences)
+    saved.set('miraiMusic.preferences.v1', JSON.stringify(options.preferences))
   const writes = [],
     calls = [],
     notices = [],
@@ -98,6 +105,17 @@ function harness(options = {}) {
       throw new Error('Unexpected playlist fetch')
     },
   }
+  const preferencesModule = { exports: {} }
+  vm.runInNewContext(compile('src/services/player/preferences.ts'), {
+    module: preferencesModule,
+    exports: preferencesModule.exports,
+    localStorage,
+    URL,
+    require: name => {
+      if (name === '@/constants/music') return musicModule.exports
+      throw new Error(`Unexpected preference dependency ${name}`)
+    },
+  })
   const storeModule = { exports: {} }
   const common = {
     Date: ClockDate,
@@ -108,9 +126,10 @@ function harness(options = {}) {
       if (name === 'pinia') return { defineStore: (_id, setup) => setup }
       if (name === '@vueuse/core')
         return { useLocalStorage: () => ({ value: {} }) }
-      if (name === '@/constants/music') return { tracks: [] }
       if (name === '@/services/public-avatar') return avatarModule.exports
       if (name === '@/services/player/catalog') return catalog
+      if (name === '@/services/player/preferences')
+        return preferencesModule.exports
       throw new Error(`Unexpected store dependency ${name}`)
     },
   }
@@ -642,6 +661,7 @@ await check(
       module,
       exports: module.exports,
       require: name => {
+        if (name === '@/constants/music') return musicModule.exports
         assert.equal(name, '@/api')
         return {
           resolveCatalogPlaylist: async (text, size, incoming) => {
@@ -684,6 +704,133 @@ await check(
       ['a', 'b']
     )
     assert.deepEqual(progress, [1, 2])
+  }
+)
+
+// 使用真实缓存模块和 store 验证稳定键恢复，不自动开始播放。
+await check(
+  'preferences restore a real track, queue and favorite without autoplay',
+  async () => {
+    const track = {
+      title: 'Cached song',
+      artist: 'Artist',
+      album: 'Album',
+      cover: 'https://p1.music.126.net/public.jpg',
+      dur: 200,
+      q: '网易云',
+      glow: 'rgba(110,140,255,.55)',
+      catalog: {
+        platform: 'netease',
+        id: '77',
+        sourceUrl: 'https://music.163.com/song?id=77',
+        token: 'mock_secret',
+      },
+      audioUrl: 'mock_private_audio',
+    }
+    const h = harness({
+      preferences: {
+        version: 1,
+        settings: { motion: false },
+        volume: 35,
+        muted: false,
+        panelOpen: true,
+        current: { key: 'netease:77', time: 43 },
+        queue: ['netease:77', 'missing'],
+        liked: ['netease:77'],
+        recent: ['netease:77'],
+        catalogTracks: [track],
+        cookie: 'mock_cookie',
+      },
+    })
+    assert.equal(h.player.state.playing, false)
+    assert.equal(h.player.state.t, 43)
+    assert.equal(h.player.state.resumeTime, 43)
+    assert.equal(h.player.state.vol, 35)
+    assert.equal(h.player.state.settings.motion, false)
+    assert.equal(h.player.state.queue.length, 1)
+    assert.equal(h.player.state.liked[0], true)
+    assert.equal(h.player.savePreferences(), true)
+    const cached = h.saved.get('miraiMusic.preferences.v1')
+    assert(!cached.includes('mock_'))
+  }
+)
+await check(
+  'old demo keys are ignored while real tracks without artwork and saved settings remain available',
+  async () => {
+    const demo = 'demo:Midnight%20Drift%7CNeon%20Coast%7CNight%20Drive'
+    const real = 'netease:77'
+    const h = harness({
+      preferences: {
+        version: 1,
+        settings: { eqEnabled: true },
+        current: { key: demo, time: 42 },
+        queue: [demo, real],
+        liked: [demo, real],
+        recent: [demo, real],
+        catalogTracks: [{
+          title: 'Cached song',
+          artist: 'Artist',
+          album: 'Album',
+          cover: '/images/night-drive.webp',
+          catalog: { platform: 'netease', id: '77', sourceUrl: 'https://music.163.com/song?id=77' },
+        }],
+      },
+    })
+    assert.equal(h.player.tracks.length, 1)
+    assert.equal(h.player.tracks[0].cover, musicModule.exports.defaultCover)
+    assert.equal(h.player.state.idx, -1)
+    assert.equal(h.player.state.t, 0)
+    assert.equal(h.player.state.settings.eqEnabled, true)
+    assert.equal(h.player.savePreferences(), true)
+    const saved = JSON.parse(h.saved.get('miraiMusic.preferences.v1'))
+    assert.deepEqual(saved.queue, [real])
+    assert.deepEqual(saved.liked, [real])
+    assert.deepEqual(saved.recent, [real])
+    assert.equal(saved.current, null)
+    assert.equal(saved.catalogTracks[0].cover, musicModule.exports.defaultCover)
+  }
+)
+await check(
+  'damaged preference fields never replace defaults or add credentials',
+  async () => {
+    const h = harness({
+      preferences: {
+        version: 1,
+        settings: { motion: 'bad', cookie: 'mock_secret', eqEnabled: 'bad' },
+        current: { key: 'missing', time: -100 },
+        catalogTracks: [],
+      },
+    })
+    assert.equal(h.player.state.settings.motion, true)
+    assert.equal(h.player.state.settings.eqEnabled, false)
+    assert.equal(h.player.state.playing, false)
+    assert(!Object.hasOwn(h.player.state.settings, 'cookie'))
+  }
+)
+await check(
+  'failed preference writes keep the previous cache and do not affect playback',
+  async () => {
+    const saved = { version: 1, settings: { motion: false }, catalogTracks: [] }
+    const h = harness({ preferences: saved, failStorage: true })
+    assert.equal(h.player.savePreferences(), false)
+    assert.equal(
+      h.saved.get('miraiMusic.preferences.v1'),
+      JSON.stringify(saved)
+    )
+  }
+)
+await check(
+  'preferences never overwrite platform profiles or saved playlists',
+  async () => {
+    const h = harness({ saved: { netease: { userId: '123', syncedAt: now } } })
+    const original = h.saved.get(profileKey)
+    h.saved.set('miraiMusic.publicPlaylists.v1', '["preserved user data"]')
+    h.player.savePreferences()
+    assert.equal(h.saved.get(profileKey), original)
+    assert.equal(
+      h.saved.get('miraiMusic.publicPlaylists.v1'),
+      '["preserved user data"]'
+    )
   }
 )
 console.log(

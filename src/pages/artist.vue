@@ -10,7 +10,7 @@ const artistIndices = computed(() =>
   tracks
     .map((_, index) => index)
     .filter(
-      index => tracks[index]!.artist === tracks[state.playlistIdx]!.artist
+      index => tracks[index]!.artist === tracks[state.playlistIdx]?.artist
     )
 )
 </script>
@@ -41,6 +41,7 @@ const artistIndices = computed(() =>
           <BaseButton
             class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
             data-ard-play
+            :disabled="!artistIndices.some(index => tracks[index]?.catalog)"
             ><svg
               viewBox="0 0 24 24"
               fill="currentColor"

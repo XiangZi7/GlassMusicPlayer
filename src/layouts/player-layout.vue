@@ -12,7 +12,11 @@ import {
   watch,
 } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
-import { useMutationObserver } from '@vueuse/core'
+import {
+  useMutationObserver,
+  useThrottleFn,
+  useEventListener,
+} from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
 import { emit, emitTo, listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -37,13 +41,16 @@ import {
   setTrayMini,
 } from '@/services/desktop'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
+import { getStorageInfo } from '@/services/storage'
+import { emptyTrack } from '@/constants/music'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
 const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
 const root = computed(() => frame.value?.element ?? null)
 const route = useRoute()
 const router = useRouter()
-const { state, tracks, saveIslandPreferences } = usePlayerStore()
+const { state, tracks, saveIslandPreferences, savePreferences } =
+  usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
 let disposed = false
@@ -79,7 +86,8 @@ function publishSettings(): void {
   const snapshot: SettingsSnapshot = {
     settings: { ...state.settings },
     npOpen: state.npOpen,
-    track: { ...tracks[state.idx]! },
+    equalizerStatus: state.equalizerStatus,
+    track: { ...(tracks[state.idx] || emptyTrack) },
   }
   void emitTo('settings', 'settings-snapshot', snapshot)
   void emitTo('tray', 'settings-snapshot', snapshot)
@@ -136,9 +144,42 @@ function openSettings(): void {
   else void router.push('/settings')
 }
 
-watch(() => [state.settings, state.npOpen, state.idx], publishSettings, {
-  deep: true,
-  flush: 'post',
+watch(
+  () => [state.settings, state.npOpen, state.idx, state.equalizerStatus],
+  publishSettings,
+  {
+    deep: true,
+    flush: 'post',
+  }
+)
+
+// 主播放器只缓存已应用状态，进度按五秒粒度观察并节流；关闭前立即保存。
+const cachePreferences = useThrottleFn(
+  () => {
+    if (!disposed) savePreferences()
+  },
+  1500,
+  true
+)
+watch(
+  () => [
+    state.settings,
+    state.vol,
+    state.muted,
+    state.idx,
+    Math.floor(state.t / 5),
+    state.queue,
+    state.liked,
+    state.recent,
+    state.npOpen,
+  ],
+  () => {
+    void cachePreferences()
+  },
+  { deep: true }
+)
+useEventListener(window, 'pagehide', () => {
+  if (!disposed) savePreferences()
 })
 
 // 路由缓存和组件热更新出现新控件时，只补绑定新节点，不重启播放或动画。
@@ -146,7 +187,7 @@ useMutationObserver(
   root,
   mutations => {
     const controls =
-      '[data-play],[data-nav],[data-stage-toggle],[data-top-search],[data-seek],[data-up-add],[data-banner-play],[data-nav-back],[data-set-toggle],[data-search-input]'
+      '[data-play],[data-nav],[data-stage-toggle],[data-top-search],[data-seek],[data-up-add],[data-banner],[data-nav-back],[data-set-toggle],[data-search-input]'
     if (
       mutations.some(change =>
         [...change.addedNodes].some(
@@ -259,12 +300,23 @@ onMounted(async () => {
     return
   }
   unlisteners.push(...callbacks)
+  if (isTauri())
+    void getStorageInfo()
+      .then(info => {
+        if (disposed) return
+        state.settings.cacheDirectory = info.cacheDirectory
+        state.settings.downloadDirectory = info.downloadDirectory
+        savePreferences()
+        publishSettings()
+      })
+      .catch(() => undefined)
   publishSettings()
   if (player.value) publishSnapshot(player.value.getSnapshot())
   if (desktopIslandVisible.value) void setDesktopIsland(true)
 })
 
 onUnmounted(() => {
+  savePreferences()
   disposed = true
   unlisteners.forEach(stop => stop())
   player.value?.destroy()
@@ -281,7 +333,7 @@ const compactLibrary = computed(() =>
   <!-- 公共原生窗口外框：复用圆角、阴影、背景和缩放入口。 -->
   <PlayerWindowFrame
     ref="frame"
-    :cover="tracks[idx]!.cover"
+    :cover="tracks[idx]?.cover"
     :glass-style="settings.glassStyle"
   >
     <PlayerTitlebar />

@@ -5,6 +5,7 @@ import { computed, nextTick, watch, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Playlist } from '@/stores/player'
 import { usePlayer } from '@/composables/usePlayer'
+import { defaultCover } from '@/constants/music'
 const { state, tracks, controller } = usePlayer()
 const router = useRouter()
 const sidebarRoot = useTemplateRef<HTMLElement>('sidebarRoot')
@@ -19,7 +20,7 @@ const albums = computed(() =>
         ) === index
     )
 )
-// 内置歌单保留原稿按专辑定位、轮换曲库预览的行为。
+// 侧栏本地专辑入口按曲库索引打开。
 function openPlaylist(index: number): void {
   state.customPl = null
   controller()?.navigate('playlist', index)
@@ -64,7 +65,7 @@ function confirmDelete(name: string): void {
   state._renaming = -1
 }
 
-// 删除的是原稿本地演示歌单，删除当前项后返回首页。
+// 删除选中的自建歌单，删除当前项后返回首页。
 function remove(index: number): void {
   const item = state.myLists[index]
   if (!item) return
@@ -158,7 +159,7 @@ const {
         stroke-width="2"
       >
         <path d="M4 6h16M4 12h16M4 18h10" /></svg
-      >音乐库<span class="count">1,248</span></BaseButton
+      >音乐库<span class="count">{{ tracks.length }}</span></BaseButton
     >
     <BaseButton
       class="navitem flex min-h-[38px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[9px_10px] text-left text-[13.5px] font-bold text-inherit"
@@ -222,7 +223,7 @@ const {
           on:
             page === 'playlist' &&
             !customPl &&
-            tracks[playlistIdx]!.album === tracks[index]!.album,
+            tracks[playlistIdx]?.album === tracks[index]!.album,
         }"
         @click="openPlaylist(index)"
         ><img
@@ -284,7 +285,7 @@ const {
             :class="{ on: page === 'playlist' && customPl?.name === item.name }"
             @click="openCustom(item)"
             ><img
-              :src="item.cover || '/images/night-drive.webp'"
+              :src="item.cover || defaultCover"
               alt=""
             /><span>{{ item.name }}</span></BaseButton
           ><span class="pl-acts hidden flex-none gap-[4px] pr-[2px]"
@@ -331,7 +332,7 @@ const {
         :class="{ on: page === 'playlist' && customPl?.id === item.id }"
         @click="openCustom(item)"
         ><img
-          :src="item.cover || '/images/night-drive.webp'"
+          :src="item.cover || defaultCover"
           alt=""
         /><span>{{ item.name }}</span></BaseButton
       >

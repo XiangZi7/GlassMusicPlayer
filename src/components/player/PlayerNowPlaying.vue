@@ -35,7 +35,7 @@ async function openSource(event: MouseEvent): Promise<void> {
     <div
       class="right-head mb-[12px] flex items-center justify-between text-[11px] font-extrabold tracking-[.11em] opacity-[.9]"
     >
-      <span>正在播放</span><span data-meta2>TRACK 01 / 04</span
+      <span>正在播放</span><span data-meta2></span
       ><BaseButton
         class="np-head-btn ml-[9px] hidden h-[26px] w-[26px] flex-none place-items-center rounded-full p-0 text-inherit"
         data-np-toggle
@@ -85,7 +85,7 @@ async function openSource(event: MouseEvent): Promise<void> {
     </div>
     <div class="subrow mt-[12px] flex gap-[7px]">
       <BaseButton data-lyricbtn>歌词</BaseButton
-      ><BaseButton data-airbtn>输出 · 桌面音箱</BaseButton>
+      ><BaseButton disabled>输出 · 系统默认</BaseButton>
     </div>
     <!-- 在线曲目状态及原平台入口。 -->
     <div
@@ -109,12 +109,7 @@ async function openSource(event: MouseEvent): Promise<void> {
     <div
       class="lyricbox mt-[12px] hidden p-[13px_14px] text-[13px] leading-[1.95] font-semibold"
       data-lyric
-    >
-      <div class="dim">城市把灯都调成了慢动作</div>
-      <div>而你刚好路过我的副歌</div>
-      <div class="dim">晚风替我说完那句抱歉</div>
-      <div class="dim">我们就不再绕远了</div>
-    </div>
+    ></div>
     <div
       class="secttl q-secttl m-[18px_2px_8px] flex items-center gap-[8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
     >
@@ -140,7 +135,7 @@ async function openSource(event: MouseEvent): Promise<void> {
       ><span
         class="np-expand-meta"
         data-meta2
-        >TRACK 01 / 04</span
+        ></span
       ><svg
         viewBox="0 0 24 24"
         fill="none"

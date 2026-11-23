@@ -6,7 +6,7 @@ import TrackSuggestion from '@/components/player/TrackSuggestion.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, tracks, controller } = usePlayer()
-const track = computed(() => tracks[state.radioSeed ?? state.idx]!)
+const track = computed(() => tracks[state.radioSeed ?? state.idx])
 const upcoming = computed(() => {
   const queue = state.queue || []
   const position = queue.indexOf(state.idx)
@@ -15,6 +15,7 @@ const upcoming = computed(() => {
 // 推荐标签按原稿种子的专辑和歌手判定。
 function tag(index: number): string {
   const seed = track.value
+  if (!seed) return ''
   return seed.album !== '—' && tracks[index]!.album === seed.album
     ? '同专辑'
     : tracks[index]!.artist === seed.artist
@@ -39,6 +40,7 @@ const { radioOn } = toRefs(state)
     </div>
     <!-- 当前种子卡片：开启后保持最初的歌曲。 -->
     <div
+      v-if="track"
       class="radio-seed flex min-h-[82px] items-center gap-[14px] rounded-[16px] border border-transparent px-[14px] py-[12px]"
     >
       <img
@@ -57,14 +59,15 @@ const { radioOn } = toRefs(state)
       <BaseButton
         class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
         data-radio-toggle
+        :disabled="!track"
         :aria-pressed="radioOn"
         @click="controller()?.toggleRadio()"
         >{{ radioOn ? '停止电台' : '开始电台' }}</BaseButton><span
         data-radio-status
         >{{
-          radioOn
+          radioOn && track
             ? `电台进行中 · 以《${track.title}》为种子，播完自动续播`
-            : '以当前播放的歌曲为种子，同专辑优先、再同歌手、其余按相似度排队'
+            : '选择一首歌曲即可开启电台'
         }}</span
       >
     </div>

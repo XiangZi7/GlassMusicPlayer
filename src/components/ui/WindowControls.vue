@@ -72,7 +72,7 @@ onUnmounted(() => {
     <BaseButton
       v-for="control in windowControls"
       :key="control.action"
-      class="grid h-full w-[46px] shrink-0 place-items-center rounded-none border-0 bg-transparent text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white/70"
+      class="grid h-full w-11.5 shrink-0 place-items-center rounded-none border-0 bg-transparent text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white/70"
       :class="
         control.action === 'close'
           ? 'hover:bg-[#c42b1c] active:bg-[#a82318]'

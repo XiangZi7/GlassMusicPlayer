@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
+import EqualizerPanel from '@/pages/settings/components/equalizer-panel.vue'
+import StoragePanel from '@/pages/settings/components/storage-panel.vue'
 import { toRefs } from 'vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SettingsSection } from '@/types/settings'
@@ -17,7 +19,7 @@ function updateCrossfade(event: Event): void {
 <template>
   <!-- 设置内容组件：原有卡片、开关与滑动标签的视觉和动画保持不变。 -->
   <div
-    class="space-y-[22px]"
+    :class="section === 'audio' ? 'space-y-[12px]' : 'space-y-[22px]'"
     data-panel="settings"
   >
     <!-- 设置分组：保留原稿控件，按左侧分类展示。 -->
@@ -33,8 +35,7 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>无缝播放</b
-              ><span>上一首淡出与下一首淡入衔接，不留静音间隙</span>
+              <b>无缝播放</b><span>预留选项，尚未接入真实无缝音频衔接</span>
             </div>
             <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
             <BaseButton
@@ -49,7 +50,7 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>交叉淡化</b><span>切歌时用交叉淡化过渡，而不是硬切</span>
+              <b>交叉淡化</b><span>预留选项，尚未接入双音轨交叉淡化</span>
             </div>
             <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
             <BaseButton
@@ -85,7 +86,7 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>音量标准化</b><span>把不同专辑的响度拉到同一水平</span>
+              <b>音量标准化</b><span>预留选项，尚未接入真实响度标准化</span>
             </div>
             <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
             <BaseButton
@@ -111,7 +112,7 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>睡眠定时器</b><span>到时自动暂停播放</span>
+              <b>睡眠定时器</b><span>此处仅保存偏好，真实定时暂停尚未接入</span>
             </div>
             <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
             <PlayerTabs
@@ -140,9 +141,12 @@ function updateCrossfade(event: Event): void {
         <div
           class="set-card rounded-[16px] border border-transparent p-[4px_14px]"
         >
-          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+          <div class="set-row flex items-center gap-[14px] py-[5px]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>默认音质</b><span>播放时首选的规格</span>
+              <b>默认音质</b
+              ><span
+                >播放音质由音源决定，下载音质可单独设置</span
+              >
             </div>
             <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
             <PlayerTabs
@@ -158,9 +162,10 @@ function updateCrossfade(event: Event): void {
               ]"
             />
           </div>
-          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+          <div class="set-row flex items-center gap-[14px] py-[5px]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>输出设备</b><span>当前输出走选定的设备</span>
+              <b>输出设备</b
+              ><span>仅保存设备名称偏好，尚未调用系统输出切换</span>
             </div>
             <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
             <PlayerTabs
@@ -176,36 +181,11 @@ function updateCrossfade(event: Event): void {
           </div>
         </div>
       </section>
-      <section>
-        <h3
-          class="pg-secttl m-[0_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
-        >
-          音效
-        </h3>
-        <div
-          class="set-card rounded-[16px] border border-transparent p-[4px_14px]"
-        >
-          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
-            <div class="set-txt min-w-[0] flex-1">
-              <b>均衡器</b
-              ><span>预设音效 — 影响播放的频段曲线（原型内切换状态）</span>
-            </div>
-            <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
-            <PlayerTabs
-              kind="segment"
-              class="set-seg flex flex-none flex-wrap justify-end gap-[4px]"
-              setting-key="eq"
-              hook="data-set-seg"
-              :options="[
-                { label: '原声', value: '原声' },
-                { label: '流行', value: '流行' },
-                { label: '低音', value: '低音' },
-                { label: '人声', value: '人声' },
-              ]"
-            />
-          </div>
-        </div></section
-    ></template>
+      <!-- 音效完整设置：真实十频段与预设、自定义保存集中展示。 -->
+      <EqualizerPanel />
+    </template>
+    <!-- 缓存与下载完整设置：目录草稿、实际占用、下载音质与安全清理。 -->
+    <StoragePanel v-if="section === 'storage'" />
     <!-- 设置分组：保留原稿控件，按左侧分类展示。 -->
     <template v-if="section === 'appearance'"
       ><section>
@@ -460,11 +440,7 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>Aura Player</b
-              ><span
-                >桌面端音乐播放器 — A · 传统毛玻璃与 B ·
-                液态玻璃双方案设计原型</span
-              >
+              <b>Mirai Music</b><span>桌面音乐播放器</span>
             </div>
             <span
               class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
@@ -473,34 +449,16 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>版本</b
-              ><span>界面与交互原型，两个窗口共用同一套播放逻辑与状态</span>
-            </div>
-            <span
-              class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
-              >v1.0.0</span
-            >
-          </div>
-          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
-            <div class="set-txt min-w-[0] flex-1">
               <b>数据说明</b
               ><span
-                >歌曲、歌词、封面与天气均为演示内容，不含真实音频；所有状态只保存在本页内，关掉即清空</span
+                >公开歌单和已应用的设置保存在本机。音频与歌词由曲目来源提供。</span
               >
             </div>
-            <span
-              class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
-              >DEMO</span
-            >
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
               <b>技术栈</b><span>Vue 3 + Tauri，在线曲库通过 FastAPI 获取</span>
             </div>
-            <span
-              class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
-              >PLANNED</span
-            >
           </div>
         </div>
       </section></template

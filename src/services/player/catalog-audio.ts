@@ -8,6 +8,12 @@ import { notify } from '@/services/notification'
 import type { CatalogSource } from '@/types/prototype'
 import { catalogKey } from '@/services/player/catalog'
 import {
+  createEqualizer,
+  normalizeEqualizerConfig,
+  type EqualizerConfig,
+  type EqualizerStatus,
+} from '@/services/player/equalizer'
+import {
   createSpectrum,
   type SpectrumPlayback,
 } from '@/services/player/spectrum'
@@ -19,72 +25,260 @@ interface AudioEvents {
   playing: (playing: boolean) => void
   status: (status: CatalogAudioStatus) => void
   ended: () => void
+  equalizer?: (status: EqualizerStatus) => void
 }
 
-// 主窗口拥有唯一音频元素，上游地址只在当前曲目生命周期内保留。
+// 主窗口拥有唯一活动音频元素；EQ 默认不接管，上游签名地址只在当前曲目内存中保留。
 export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
-  const audio = root.ownerDocument.createElement('audio')
-  audio.preload = 'metadata'
-  audio.hidden = true
-  root.append(audio)
-  const canvas = root.querySelector<HTMLCanvasElement>('[data-spectrum]')
-  const spectrum = canvas ? createSpectrum(canvas, audio) : undefined
+  let destroyed = false
   let loaded: string | null = null
   let pending: AbortController | undefined
+  let version = 0
+  let nativeFallback = false
+  let requestedPlaying = false
+  let removePositionListeners = () => {}
+  let removeAudioListeners = () => {}
+  let spectrumMotion = true
+  let spectrumArtwork: [string, string, boolean] | undefined
+  let spectrumPlayback: SpectrumPlayback | undefined
+  let equalizerConfig = normalizeEqualizerConfig({
+    enabled: false,
+    preamp: 0,
+    gains: [],
+    autoHeadroom: true,
+  })
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-spectrum]')
 
-  // 用实际媒体时钟发布进度和时长，试听时长由媒体决定。
-  function publishTime(): void {
-    if (loaded)
+  // 创建单个受播放器拥有的媒体元素，替换前必须先停止并移除旧元素。
+  function makeAudio(): HTMLAudioElement {
+    const element = root.ownerDocument.createElement('audio')
+    element.preload = 'metadata'
+    element.hidden = true
+    root.append(element)
+    return element
+  }
+
+  let audio = makeAudio()
+  let spectrum = canvas ? createSpectrum(canvas, audio) : undefined
+  let equalizer = makeEqualizer(audio)
+
+  // 每个音频图的状态和恢复回调都绑定对应元素，迟到的旧图不能修改新媒体。
+  function makeEqualizer(element: HTMLAudioElement) {
+    return createEqualizer(element, {
+      status(status) {
+        if (!destroyed && element === audio) events.equalizer?.(status)
+      },
+      recover() {
+        if (!destroyed && element === audio) recoverNativePlayback()
+      },
+    })
+  }
+
+  // 用实际媒体时钟发布进度和时长，metadata 后根层可通过 seek 恢复已保存进度。
+  function publishTime(element: HTMLAudioElement): void {
+    if (!destroyed && element === audio && loaded)
       events.time(
-        audio.currentTime,
-        Number.isFinite(audio.duration) ? audio.duration : 0
+        element.currentTime,
+        Number.isFinite(element.duration) ? element.duration : 0
       )
   }
 
-  // 清理已加载或正在加载的音频，防止切歌后前一首的事件继续更新状态。
+  // 所有监听绑定单个具体元素并可移除，旧元素被替换后不再发布播放或进度事件。
+  function bindAudio(element: HTMLAudioElement): void {
+    const listeners: [string, EventListener][] = []
+    // 记录媒体监听，替换及销毁时成组清理。
+    function listen(type: string, callback: () => void): void {
+      const guarded = () => {
+        if (!destroyed && element === audio) callback()
+      }
+      element.addEventListener(type, guarded)
+      listeners.push([type, guarded])
+    }
+    listen('timeupdate', () => publishTime(element))
+    listen('durationchange', () => publishTime(element))
+    listen('loadedmetadata', () => publishTime(element))
+    listen('playing', () => {
+      if (!requestedPlaying) {
+        element.pause()
+        return
+      }
+      if (loaded && !element.paused) {
+        equalizer.setSourceSupported(
+          !nativeFallback && element.crossOrigin === 'anonymous'
+        )
+        events.playing(true)
+        spectrum?.update()
+      }
+    })
+    listen('pause', () => {
+      spectrum?.stop()
+      if (loaded && element.paused) events.playing(false)
+    })
+    listen('waiting', () => spectrum?.stop())
+    listen('ended', () => {
+      spectrum?.stop()
+      if (loaded && element.ended) events.ended()
+    })
+    listen('error', () => {
+      if (loaded && element.error && !pending)
+        fail('音频无法播放，请重试或前往原平台。')
+    })
+    const removePosition = removePositionListeners
+    removeAudioListeners = () => {
+      for (const [type, listener] of listeners)
+        element.removeEventListener(type, listener)
+      removePosition()
+    }
+  }
+  bindAudio(audio)
+
+  // 旧 Web Audio 源无法解绑；先停止旧图与媒体，再创建唯一未接管元素恢复原声。
+  function replaceWithNativeAudio(preserveSource: boolean): {
+    wasPlaying: boolean
+    key: string | null
+  } {
+    const old = audio
+    const saved = {
+      src: old.currentSrc || old.src,
+      crossOrigin: old.crossOrigin,
+      time: old.currentTime,
+      volume: old.volume,
+      muted: old.muted,
+      wasPlaying: !old.paused,
+      key: loaded,
+    }
+    removeAudioListeners()
+    old.pause()
+    equalizer.destroy()
+    spectrum?.destroy()
+    old.removeAttribute('src')
+    old.load()
+    old.remove()
+    audio = makeAudio()
+    removePositionListeners = () => {}
+    audio.volume = saved.volume
+    audio.muted = saved.muted
+    nativeFallback = true
+    equalizer = makeEqualizer(audio)
+    equalizer.setConfig(equalizerConfig)
+    equalizer.setSourceSupported(false)
+    spectrum = canvas ? createSpectrum(canvas, audio) : undefined
+    bindSpectrumViews()
+    spectrum?.setMotion(spectrumMotion)
+    if (spectrumArtwork) spectrum?.setArtwork(...spectrumArtwork)
+    if (spectrumPlayback) spectrum?.setPlayback(spectrumPlayback)
+    if (preserveSource && saved.src) {
+      const current = audio
+      // 恢复监听早于时钟发布，避免 metadata 首次回调把已有进度错误写回零。
+      const restore = () => {
+        if (
+          destroyed ||
+          current !== audio ||
+          loaded !== saved.key ||
+          current.readyState < 1
+        )
+          return
+        if (Number.isFinite(saved.time)) {
+          try {
+            current.currentTime = saved.time
+          } catch {
+            /* 未就绪时仍可由根层 seek 恢复。 */
+          }
+        }
+        removePositionListeners()
+      }
+      removePositionListeners = () => {
+        current.removeEventListener('loadedmetadata', restore)
+        current.removeEventListener('durationchange', restore)
+      }
+      current.addEventListener('loadedmetadata', restore)
+      current.addEventListener('durationchange', restore)
+      if (saved.crossOrigin) current.crossOrigin = saved.crossOrigin
+      current.src = saved.src
+    }
+    bindAudio(audio)
+    return { wasPlaying: saved.wasPlaying, key: saved.key }
+  }
+
+  // 已接管音频的 Context/连接失败时恢复当前原声，保留时钟、音量和真实频谱机制。
+  function recoverNativePlayback(): void {
+    if (destroyed) return
+    const recoveryVersion = ++version
+    pending?.abort()
+    pending = undefined
+    const restored = replaceWithNativeAudio(true)
+    if (!restored.wasPlaying || !restored.key) return
+    const current = audio
+    void current.play().catch(() => {
+      if (
+        !destroyed &&
+        current === audio &&
+        version === recoveryVersion &&
+        loaded === restored.key
+      )
+        fail('音频恢复失败，请重新播放或前往原平台。')
+    })
+  }
+
+  // 清理已加载或正在加载的音频，切歌后旧响应不能恢复音频图或媒体时钟。
   function reset(): void {
+    requestedPlaying = false
+    version++
     pending?.abort()
     pending = undefined
     loaded = null
+    equalizer.setSourceSupported(null)
     spectrum?.reset()
     audio.pause()
     audio.removeAttribute('src')
     audio.load()
   }
 
-  // 暂停本曲并取消未完成的请求，保留已加载音频供下一次继续播放。
+  // 暂停本曲并取消未完成的请求与 EQ 激活，保留已加载音频供下一次继续播放。
   function pause(): void {
+    requestedPlaying = false
+    version++
     pending?.abort()
     pending = undefined
+    equalizer.cancel()
     audio.pause()
     events.playing(false)
   }
 
-  // 若地址已失效，可再次点击通过 API 重新取地址。
+  // 播放失败只通过公共通知反馈，EQ 不可用但原声可播时不误报音源失败。
   function fail(message: string): void {
+    if (destroyed) return
     reset()
     events.status('error')
     events.playing(false)
     notify(message, 'error')
   }
 
-  // 点击曲目后现取音频地址，切歌或取消时丢弃迟到的响应。
+  // 点击曲目后现取允许的音频地址；先激活 Context，但仅成功 CORS 播放后才接管。
   async function play(track: CatalogSource): Promise<void> {
-    if (pending) return
+    if (destroyed || pending) return
+    requestedPlaying = true
     spectrum?.resume()
     const operation = new AbortController()
+    const playVersion = version
     pending = operation
     const key = catalogKey(track)
+    const needsLoad = loaded !== key || !!audio.error
+    if (needsLoad) equalizer.setSourceSupported(null)
+    void equalizer.prepare()
     try {
-      if (loaded !== key || audio.error) {
+      if (needsLoad) {
         events.status('loading')
         const response = await getCatalogPlayback(
           track.platform,
           track.id,
           operation.signal
         )
-        if (operation.signal.aborted) return
+        if (destroyed || operation.signal.aborted || playVersion !== version)
+          return
         if (!response.url || response.status === 'unavailable') {
+          requestedPlaying = false
+          equalizer.setSourceSupported(false)
           events.status('unavailable')
           notify('当前曲目没有可用的播放地址，可在原平台打开。', 'error')
           return
@@ -94,20 +288,31 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
           throw new Error('平台返回了无效音频地址。')
         spectrum?.reset()
         loaded = key
+        nativeFallback = false
         events.status(response.status)
         audio.crossOrigin = 'anonymous'
         audio.src = getCatalogAudioUrl(track.platform, track.id)
+        const proxyElement = audio
         try {
-          await audio.play()
+          await proxyElement.play()
         } catch (error) {
-          if (operation.signal.aborted) return
+          if (
+            destroyed ||
+            operation.signal.aborted ||
+            playVersion !== version ||
+            proxyElement !== audio
+          )
+            return
           if (
             error instanceof DOMException &&
             error.name !== 'NotSupportedError' &&
             !audio.error
           )
             throw error
-          // 旧服务版本或上游中转失败时回退到原播放地址，避免影响已有播放。
+          // 无 CORS 直链不能留在受 Web Audio 接管的元素上，否则浏览器会输出静音。
+          if (equalizer.attached) replaceWithNativeAudio(false)
+          nativeFallback = true
+          equalizer.setSourceSupported(false)
           audio.removeAttribute('crossorigin')
           audio.src = response.url
           await audio.play()
@@ -116,7 +321,7 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
       }
       await audio.play()
     } catch (error) {
-      if (!operation.signal.aborted) {
+      if (!destroyed && !operation.signal.aborted && playVersion === version) {
         fail(
           error instanceof DOMException
             ? '音频加载失败，请重新播放或前往原平台。'
@@ -130,55 +335,75 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     }
   }
 
-  // 拖动进度条和上一首重播操作直接控制媒体时间。
+  // 拖动进度和根层的缓存恢复都直接控制唯一媒体时间；未就绪时等待 metadata 回调再调用。
   function seek(time: number): void {
-    if (loaded && audio.readyState > 0) audio.currentTime = time
+    if (loaded && audio.readyState > 0 && Number.isFinite(time))
+      audio.currentTime = Math.max(0, time)
   }
 
-  audio.addEventListener('timeupdate', publishTime)
-  audio.addEventListener('durationchange', publishTime)
-  audio.addEventListener('playing', () => {
-    if (loaded && !audio.paused) {
-      events.playing(true)
-      spectrum?.update()
-    }
-  })
-  audio.addEventListener('pause', () => {
-    spectrum?.stop()
-    if (loaded && audio.paused) events.playing(false)
-  })
-  audio.addEventListener('waiting', () => spectrum?.stop())
-  audio.addEventListener('ended', () => {
-    spectrum?.stop()
-    if (loaded && audio.ended) events.ended()
-  })
-  audio.addEventListener('error', () => {
-    if (loaded && audio.error && !pending)
-      fail('音频无法播放，请重试或前往原平台。')
-  })
+  // 只保存有限、脱离调用方的曲线；真实图是否生效通过独立状态回调告知根层。
+  function setEqualizer(config: EqualizerConfig): void {
+    equalizerConfig = normalizeEqualizerConfig(config)
+    equalizer.setConfig(equalizerConfig)
+  }
+
+  // 把当前路由的横幅交给底栏频谱渲染器，复用同一次音频分析。
+  function bindSpectrumViews(): void {
+    spectrum?.setBannerCanvas(root.querySelector<HTMLCanvasElement>('[data-banner-spectrum]'))
+  }
+
+  // 用户关闭界面动效时同步停止频谱，替换原声元素后仍恢复同一偏好。
+  function setSpectrumMotion(motion: boolean): void {
+    spectrumMotion = motion
+    spectrum?.setMotion(motion)
+  }
+
+  // 在线曲目按实际封面取色，原稿示例曲目保持其专辑背景光色。
+  function setSpectrumArtwork(
+    cover: string,
+    glow: string,
+    preferArtwork = true
+  ): void {
+    spectrumArtwork = [cover, glow, preferArtwork]
+    spectrum?.setArtwork(cover, glow, preferArtwork)
+  }
+
+  // 频谱仍跟随根层唯一媒体时钟，不通过 EQ 另起计时器或伪造分析数据。
+  function setSpectrumPlayback(playback: SpectrumPlayback): void {
+    spectrumPlayback = { ...playback }
+    spectrum?.setPlayback(playback)
+  }
+
+  // 音量和静音由主播放器统一控制，异常外部输入不污染媒体参数。
+  function setVolume(volume: number): void {
+    audio.volume = Number.isFinite(volume)
+      ? Math.max(0, Math.min(1, volume))
+      : 0
+  }
+
+  // 布局卸载后移除媒体监听、源、频谱及 Context，不允许迟到事件再次发布状态。
+  function destroy(): void {
+    if (destroyed) return
+    destroyed = true
+    reset()
+    removeAudioListeners()
+    equalizer.destroy()
+    spectrum?.destroy()
+    audio.remove()
+  }
 
   return {
     play,
     pause,
     reset,
     seek,
-    // 用户关闭界面动效时同步停止频谱更新。
-    setSpectrumMotion: (motion: boolean) => spectrum?.setMotion(motion),
-    // 在线曲目按实际封面取色，原稿示例曲目保持其专辑背景光色。
-    setSpectrumArtwork: (cover: string, glow: string, preferArtwork = true) =>
-      spectrum?.setArtwork(cover, glow, preferArtwork),
-    setSpectrumPlayback: (playback: SpectrumPlayback) =>
-      spectrum?.setPlayback(playback),
-    // 音量和静音由主播放器状态统一控制。
-    setVolume: (volume: number) => {
-      audio.volume = volume
-    },
-    // 布局卸载时释放音频连接及元素。
-    destroy: () => {
-      reset()
-      spectrum?.destroy()
-      audio.remove()
-    },
+    setEqualizer,
+    bindSpectrumViews,
+    setSpectrumMotion,
+    setSpectrumArtwork,
+    setSpectrumPlayback,
+    setVolume,
+    destroy,
   }
 }
 

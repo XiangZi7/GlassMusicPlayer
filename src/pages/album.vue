@@ -9,7 +9,7 @@ const { state, tracks } = usePlayer()
 const albumIndices = computed(() =>
   tracks
     .map((_, index) => index)
-    .filter(index => tracks[index]!.album === tracks[state.playlistIdx]!.album)
+    .filter(index => tracks[index]!.album === tracks[state.playlistIdx]?.album)
 )
 </script>
 
@@ -39,6 +39,7 @@ const albumIndices = computed(() =>
           <BaseButton
             class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
             data-ad-play
+            :disabled="!albumIndices.some(index => tracks[index]?.catalog)"
             ><svg
               viewBox="0 0 24 24"
               fill="currentColor"

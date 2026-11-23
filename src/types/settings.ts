@@ -5,10 +5,17 @@ export interface SettingsSnapshot {
   settings: PlayerSettings
   npOpen: boolean
   track: SourceTrack
+  equalizerStatus?: 'active' | 'bypassed' | 'pending' | 'unavailable'
 }
 
 export type SettingsSection =
-  'general' | 'audio' | 'appearance' | 'desktop' | 'shortcuts' | 'about'
+  | 'general'
+  | 'audio'
+  | 'storage'
+  | 'appearance'
+  | 'desktop'
+  | 'shortcuts'
+  | 'about'
 
 export type SettingsAction =
   | {
