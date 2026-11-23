@@ -944,7 +944,7 @@ const dust = [
 
 @media (prefers-reduced-motion: no-preference) {
   .fs-artwork-floating {
-    animation: artwork-float 12s ease infinite;
+    animation: artwork-float 28s ease infinite;
   }
 }
 

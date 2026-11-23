@@ -21,6 +21,9 @@ export interface SourceTrack {
 export interface SourceSnapshot {
   track: SourceTrack
   playing: boolean
+  audioLoading?: boolean
+  playable?: boolean
+  glassStyle?: string
   time: number
   volume: number
   liked: boolean

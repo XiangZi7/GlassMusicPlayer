@@ -1,20 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, useTemplateRef, watch } from 'vue'
 import {
   useElementSize,
+  onClickOutside,
   StorageSerializers,
   useLocalStorage,
   usePreferredReducedMotion,
   useResizeObserver,
 } from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
+import IslandCover from '@/components/player/IslandCover.vue'
+import IslandPlayer from '@/components/player/IslandPlayer.vue'
 import { usePlayer } from '@/composables/usePlayer'
 
-const { state, controller } = usePlayer()
+const { state, tracks, controller } = usePlayer()
 const button = useTemplateRef<HTMLButtonElement>('button')
 const measure = useTemplateRef<HTMLElement>('measure')
 const { width: lyricWidth } = useElementSize(measure)
 const reducedMotion = usePreferredReducedMotion()
+const panel = useTemplateRef<InstanceType<typeof IslandPlayer>>('panel')
+const popup = reactive({
+  // 是否展开胶囊内的播放控件。
+  open: false,
+  // 面板在所属玻璃窗口中的水平位置。
+  left: 0,
+  // 面板在所属玻璃窗口中的垂直位置。
+  top: 0,
+})
 const host = computed(() => button.value?.closest<HTMLElement>('[data-player]'))
 const offset = reactive({
   // 水平拖动相对胶囊默认中心的位移。
@@ -83,10 +95,17 @@ function restorePosition(): void {
   )
 }
 onMounted(restorePosition)
-useResizeObserver([host, button], restorePosition)
+useResizeObserver([host, button], () => {
+  restorePosition()
+  if (popup.open) placePanel()
+})
 watch([visible, () => state.stage], restorePosition, { flush: 'post' })
+watch([visible, () => state.stage], ([shown, stage]) => {
+  if (!shown || stage) popup.open = false
+})
+onClickOutside(() => panel.value?.$el as HTMLElement | undefined, () => { popup.open = false }, { ignore: [button] })
 
-// 记录起点，轻点仍打开全屏播放。
+// 记录起点，轻点展开播放器，拖动只移动胶囊。
 function startDrag(event: PointerEvent): void {
   if (!event.isPrimary || event.button !== 0) return
   dragged = false
@@ -129,9 +148,35 @@ function endDrag(event: PointerEvent): void {
   }
 }
 
-// 忽略拖动后产生的鼠标点击，保留键盘操作。
-function openStage(event: MouseEvent): void {
-  if (!dragged || event.detail === 0) controller()?.openStage(event.currentTarget as HTMLElement)
+// 从胶囊向可用空间展开，拖到窗口四角也能点到所有控件。
+function placePanel(): void {
+  const bounds = host.value?.getBoundingClientRect()
+  const rect = button.value?.getBoundingClientRect()
+  if (!bounds || !rect) return
+  const width = Math.min(320, bounds.width - 16)
+  const height = Math.min(158, bounds.height - 16)
+  popup.left = Math.max(8, Math.min(rect.left - bounds.left + (rect.width - width) / 2, bounds.width - width - 8))
+  popup.top = Math.max(8, Math.min(rect.bottom - bounds.top - height, bounds.height - height - 8))
+}
+
+// 键盘激活和轻点展开同一面板，拖动后的合成点击不会展开。
+function openPanel(event: MouseEvent): void {
+  if (dragged && event.detail !== 0) return
+  placePanel()
+  popup.open = true
+}
+
+// 主动收起后把键盘焦点交还胶囊。
+async function closePanel(): Promise<void> {
+  popup.open = false
+  await nextTick()
+  if (!popup.open) button.value?.focus({ preventScroll: true })
+}
+
+// 全屏仍由主播放器管理，退出舞台后焦点回到紧凑胶囊。
+function openStage(): void {
+  popup.open = false
+  controller()?.openStage(button.value ?? undefined)
 }
 </script>
 
@@ -140,24 +185,23 @@ function openStage(event: MouseEvent): void {
     v-show="visible"
     ref="button"
     type="button"
-    class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full px-[15px] py-2 text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
-    :style="{ translate: `${offset.x}px ${offset.y}px` }"
+    class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full py-1 pr-[12px] pl-[5px] text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
+    :style="{ translate: `${offset.x}px ${offset.y}px`, opacity: popup.open ? 0 : undefined }"
+    :inert="popup.open"
     :tabindex="state.stage ? -1 : undefined"
-    aria-label="灵动岛，打开全屏播放"
+    aria-label="展开灵动岛播放器"
+    aria-haspopup="dialog"
+    :aria-expanded="popup.open"
+    :aria-controls="popup.open ? 'island-player' : undefined"
     :aria-busy="state.stageLoading || undefined"
     @pointerdown="startDrag"
     @pointermove="drag"
     @pointerup="endDrag"
     @pointercancel="endDrag"
     @lostpointercapture="endDrag"
-    @click="openStage"
+    @click="openPanel"
   >
-    <span
-      class="cap-eq pointer-events-none flex h-3 flex-none items-end gap-[2.5px]"
-      aria-hidden="true"
-    >
-      <i /><i /><i />
-    </span>
+    <IslandCover :src="tracks[state.idx]?.cover" :motion="state.settings.motion" />
     <span
       class="pointer-events-none relative h-[1lh] min-w-0 overflow-hidden"
       :class="{ 'transition-[width] duration-[160ms] ease-out': animateLyrics }"
@@ -185,11 +229,36 @@ function openStage(event: MouseEvent): void {
       </Transition>
     </span>
     <span
+      class="cap-eq pointer-events-none flex h-3 flex-none items-end gap-[2.5px]"
+      aria-hidden="true"
+    >
+      <i /><i /><i />
+    </span>
+    <span
       class="pointer-events-none flex-none text-[11px] opacity-65"
       aria-hidden="true"
       >▸</span
     >
   </button>
+  <Transition name="island-expand" :css="animateLyrics">
+    <IslandPlayer
+      v-if="popup.open && visible && !state.stage"
+      ref="panel"
+      class="absolute z-[12]"
+      :style="{ left: popup.left + 'px', top: popup.top + 'px' }"
+      :track="tracks[state.idx]"
+      :time="state.t"
+      :duration="state.streamDuration || tracks[state.idx]?.dur || 0"
+      :playing="state.playing"
+      :loading="state.audioLoading"
+      :playable="!!tracks[state.idx]?.catalog || (!tracks[state.idx] && !!state.queue?.length)"
+      :motion="state.settings.motion"
+      open-label="打开全屏播放"
+      @action="controller()?.dispatch($event)"
+      @close="closePanel"
+      @open="openStage"
+    />
+  </Transition>
 </template>
 
 <style scoped>

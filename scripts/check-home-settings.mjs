@@ -531,6 +531,67 @@ async function runBrowserChecks() {
     await resize(1240, 820)
     await waitFor('恢复窗口大小后回到原位', `Math.hypot(${center}.x - ${saved.x}, ${center}.y - ${saved.y}) < 2`)
     console.log('PASS 歌词灵动岛真实拖动、刷新和窗口缩放恢复')
+    const cover = `${island}.querySelector('img')`
+    const art = '/images/featured-singer.webp'
+    const broken = 'data:image/png;base64,AA=='
+    await evaluate(`(async () => {
+      window.fixturePlayer = (await import('/src/stores/player.ts')).usePlayerStore()
+      window.islandTracks = fixturePlayer.registerCatalogTracks([${JSON.stringify(art)}, ${JSON.stringify(broken)}].map((coverUrl, i) => ({
+        platform: 'netease', id: 'island-' + i, title: '灵动岛测试', artists: [], album: '',
+        durationMs: 60000, sourceUrl: '', coverUrl
+      })))
+      fixturePlayer.state.idx = islandTracks[0]
+    })()`)
+    await resize(620, 540)
+    for (const material of ['glass', 'liquid']) {
+      await evaluate(`fixturePlayer.state.settings.glassStyle = '${material}'; fixturePlayer.state.capsuleLyric = '长句歌词'.repeat(40)`)
+      await waitFor(material + ' 封面与长句并排', `(() => {
+        const img = ${cover}, line = ${island}.querySelector('[data-capsule-text]')
+        return !!${island}.closest('.${material}-win') && img?.naturalWidth > 0 && getComputedStyle(img).opacity === '1' &&
+          img.clientWidth === 26 && line.scrollWidth > line.clientWidth && ${island}.scrollWidth <= ${island}.clientWidth
+      })()`)
+    }
+    await evaluate('fixturePlayer.state.idx = islandTracks[1]')
+    await waitFor('坏图露出同尺寸本地音符', `(() => {
+      const img = ${cover}
+      return img?.getAttribute('src') === ${JSON.stringify(broken)} && img.complete && !img.naturalWidth &&
+        getComputedStyle(img).opacity === '0' && getComputedStyle(img.parentElement).backgroundImage.includes('music-placeholder.svg')
+    })()`)
+    await evaluate('fixturePlayer.state.idx = islandTracks[0]')
+    await waitFor('切回歌曲重新显示封面', `${cover}?.naturalWidth > 0 && getComputedStyle(${cover}).opacity === '1'`)
+    await evaluate('fixturePlayer.state.settings.motion = false')
+    await waitFor('关闭动效后封面静态显示', `getComputedStyle(${cover}).transitionDuration === '0s'`)
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    await evaluate('fixturePlayer.state.settings.motion = true')
+    await waitFor('系统减少动态效果时封面静态显示', `getComputedStyle(${cover}).transitionDuration === '0s'`)
+    await evaluate(`${island}.focus()`)
+    await key('Enter', 13)
+    await waitFor('从灵动岛键盘打开全屏', 'fixturePlayer.state.stage === true')
+    await key('Escape', 27)
+    await waitFor('退出全屏恢复胶囊焦点', `!fixturePlayer.state.stage && document.activeElement === ${island}`)
+
+    // 在独立小窗的实际路由用 Tauri 事件模拟器投递播放快照。
+    await resize(384, 104)
+    await evaluate(`(async () => {
+      const { mockIPC } = await import('/node_modules/@tauri-apps/api/mocks.js')
+      mockIPC(() => {}, { shouldMockEvents: true })
+      window.isTauri = true
+      location.hash = '#/desktop/island'
+    })()`)
+    await waitFor('独立灵动岛等待快照', "document.body.classList.contains('desktop-island')")
+    await evaluate(`window.__TAURI_INTERNALS__.invoke('plugin:event|emit', { event: 'player-snapshot', payload: {
+      track: { title: '长歌名'.repeat(50), cover: ${JSON.stringify(art)} }, playing: false, motion: false
+    } })`)
+    await waitFor('桌面封面、拖动区和返回按钮共用固定尺寸', `(() => {
+      const surface = document.querySelector('.island-surface'), img = surface?.querySelector('img')
+      const line = surface?.querySelector('[title]'), button = surface?.querySelector('button')
+      if (!img?.naturalWidth || getComputedStyle(img).opacity !== '1') return false
+      const {width, height} = surface.getBoundingClientRect(), rect = img.getBoundingClientRect()
+      return width === 320 && height === 40 && line.scrollWidth > line.clientWidth && img.clientWidth === 26 &&
+        document.elementFromPoint(rect.x + 13, rect.y + 13)?.hasAttribute('data-tauri-drag-region') &&
+        button.getBoundingClientRect().right <= surface.getBoundingClientRect().right
+    })()`)
+    console.log('PASS 灵动岛双材质长句、封面切换和坏图占位，桌面快照模拟与拖动命中')
     return
   }
   if (stagePerformance) {
@@ -697,6 +758,40 @@ async function runBrowserChecks() {
     girl: true,
     clean: true,
   })
+  for (const material of ['glass', 'liquid']) {
+    await evaluate(`(async () => {
+      const { usePlayerStore } = await import('/src/stores/player.ts')
+      usePlayerStore().state.settings.glassStyle = '${material}'
+    })()`)
+    await waitFor(material + ' 主打渐变与等距网格独立于曲名和人物', `(() => {
+      const banner = document.querySelector('[data-banner]')
+      const bg = banner.querySelector('[data-banner-bg]')
+      const grid = getComputedStyle(bg, '::before')
+      const content = banner.querySelector('.banner-content')
+      return banner.closest('.${material}-win') &&
+        grid.backgroundImage.includes('featured-cube-grid.svg') && Number(grid.opacity) > 0 &&
+        grid.maskImage.includes('linear-gradient') && getComputedStyle(bg).backgroundImage.includes('radial-gradient') &&
+        Number(getComputedStyle(content).zIndex) > Number(getComputedStyle(bg).zIndex)
+    })()`)
+  }
+  await evaluate(`(async () => {
+    const { usePlayerStore } = await import('/src/stores/player.ts')
+    const store = usePlayerStore()
+    store.state.settings.glassStyle = 'glass'
+    window.bannerFixtureTrack = store.tracks.find(t => t.catalog)
+    window.bannerFixtureCover = bannerFixtureTrack.cover
+  })()`)
+  const sampledGradients = []
+  for (const [hex, rgb] of [['e65070', '230 80 112'], ['468abd', '70 138 189']]) {
+    await evaluate(`bannerFixtureTrack.cover = 'data:image/svg+xml;base64,' +
+      btoa('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#${hex}"/></svg>')`)
+    await waitFor('封面取色 ' + hex, `document.querySelector('[data-banner-bg]').style.getPropertyValue('--banner-accent') === 'rgb(${rgb})'`)
+    await evaluate(`new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`)
+    await waitFor('封面色过渡结束', `!document.querySelector('[data-banner-bg]').getAnimations().some(a => a.playState === 'running')`)
+    sampledGradients.push(await evaluate(`getComputedStyle(document.querySelector('[data-banner-bg]')).backgroundImage`))
+  }
+  assert.notEqual(sampledGradients[0], sampledGradients[1], '暖色与冷色封面应生成不同渐变')
+  await evaluate(`bannerFixtureTrack.cover = bannerFixtureCover`)
   const bannerSpectrum = `document.querySelector('[data-banner-spectrum]')`
   const bottomSpectrum = `document.querySelector('[data-spectrum]')`
   await waitFor(
@@ -724,6 +819,8 @@ async function runBrowserChecks() {
   )
   assert(spectrumLayout.titleGap >= 0 && spectrumLayout.behindPortrait)
   const bannerPlay = `document.querySelector('.banner-content [data-banner-play]')`
+  const musicArt = `getComputedStyle(document.querySelector('.banner-stage'), '::before')`
+  const wideArtWidth = await evaluate(`parseFloat(${musicArt}.width)`)
   await resize(760, 740)
   await waitFor(
     '窄窗口保留完整曲名与播放按钮',
@@ -735,12 +832,14 @@ async function runBrowserChecks() {
       action.left >= bounds.left && action.right <= bounds.right && action.bottom < bounds.bottom
   })()`
   )
+  assert(await evaluate(`parseFloat(${musicArt}.width)`) < wideArtWidth / 2, '窄窗只展示较小的音符')
   await resize(1240, 820)
   await evaluate(`${bannerPlay}.focus()`)
   await key('Enter', 13)
   const playButton = `document.querySelector('.win-bottom [data-play]')`
   await waitFor('原位显示等待中的播放按钮', `${playButton}.getAttribute('aria-busy') === 'true'`)
-  await evaluate(`${playButton}.click()`)
+  await waitFor('主打入口显示取消加载', `${bannerPlay}.getAttribute('aria-busy') === 'true' && ${bannerPlay}.textContent.includes('取消加载')`)
+  await evaluate(`${bannerPlay}.click()`)
   await waitFor('点击加载按钮取消点播', `${playButton}.getAttribute('aria-busy') === 'false'`)
   await evaluate(`${playButton}.click()`)
   await waitFor('再次点击开始获取', `${playButton}.getAttribute('aria-busy') === 'true'`)
@@ -758,7 +857,8 @@ async function runBrowserChecks() {
   await waitFor(
     '横幅与底栏显示实频',
     `
-    ${bannerSpectrum}.dataset.spectrumMode === 'live' && ${bottomSpectrum}.dataset.spectrumMode === 'live' && !document.querySelector('audio').paused
+    ${bannerSpectrum}.dataset.spectrumMode === 'live' && ${bottomSpectrum}.dataset.spectrumMode === 'live' && !document.querySelector('audio').paused &&
+    ${musicArt}.animationName !== 'none' && ${musicArt}.animationPlayState === 'running'
   `
   )
   await waitFor(
@@ -796,7 +896,7 @@ async function runBrowserChecks() {
   await waitFor(
     '减少动态效果时频谱静止，歌曲继续播',
     `
-    ${bannerSpectrum}.dataset.spectrumMode === 'static' && !document.querySelector('audio').paused &&
+    ${bannerSpectrum}.dataset.spectrumMode === 'static' && !document.querySelector('audio').paused && ${musicArt}.animationName === 'none' &&
     [...${trackBars}].every(bar => getComputedStyle(bar).animationName === 'none')
   `
   )
@@ -809,6 +909,7 @@ async function runBrowserChecks() {
   await waitFor(
     '暂停时保留静态频谱',
     `${bannerSpectrum}.dataset.spectrumMode === 'static' && document.querySelector('audio').paused &&
+      ${musicArt}.animationPlayState === 'paused' &&
       ${trackBars}.length === 3 && [...${trackBars}].every(bar => getComputedStyle(bar).animationName === 'none')`
   )
   const capsule = `document.querySelector('.lyric-capsule')`

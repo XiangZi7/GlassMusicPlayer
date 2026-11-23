@@ -168,7 +168,9 @@ export function mountSourcePlayer(root, options = {}) {
     },
     // 底栏与全屏按钮共用音频请求的生命周期。
     loading(loading) {
+      if (state.audioLoading === loading) return
       state.audioLoading = loading
+      options.onStateChange?.(getSnapshot())
     },
     // 只公布音源实际返回的档位或码率。
     quality(quality) {
@@ -2372,6 +2374,9 @@ export function mountSourcePlayer(root, options = {}) {
     return {
       track,
       playing: state.playing,
+      audioLoading: state.audioLoading,
+      playable: TRACKS[state.idx] ? !!track.catalog : !!state.queue?.length,
+      glassStyle: state.settings.glassStyle,
       time: state.t,
       volume: effVol(),
       liked: !!state.liked[state.idx],

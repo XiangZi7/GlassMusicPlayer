@@ -502,23 +502,49 @@ h1 .thin {
 @property --banner-accent {
   syntax: '<color>';
   inherits: false;
-  initial-value: #8490c6;
+  initial-value: #568a9e;
 }
 
 .banner-bg {
+  /* 限定明度以适配深、浅封面；无彩封面自然形成银灰渐变。 */
+  --banner-shadow: oklch(from var(--banner-accent) .31 min(c, .095) calc(h + 12));
+  --banner-body: oklch(from var(--banner-accent) .53 min(calc(c * 1.25), .18) h);
+  --banner-bloom: oklch(from var(--banner-accent) .78 min(calc(c * 1.3), .19) calc(h + 42));
+  --banner-echo: oklch(from var(--banner-accent) .60 min(calc(c * 1.15), .17) calc(h - 35));
+  --banner-grid-opacity: .28;
+  background-color: #273b50;
   background:
-    radial-gradient(
-      ellipse 47% 133% at 82% 71%,
-      color-mix(in srgb, var(--banner-accent) 24%, transparent),
-      transparent 91%
-    ),
-    radial-gradient(
-      ellipse 45% 115% at 81% 0%,
-      color-mix(in srgb, var(--banner-accent) 12%, transparent),
-      transparent 88%
-    ),
-    linear-gradient(108deg, #14161f 10%, #181a24 47%, #222430);
-  transition: --banner-accent 200ms ease;
+    linear-gradient(95deg, rgb(11 17 30 / 62%), rgb(14 19 29 / 22%) 42%, transparent 66%),
+    radial-gradient(ellipse 73% 140% at 88% -21%, var(--banner-bloom), transparent 89%),
+    radial-gradient(ellipse 60% 105% at 46% 116%, var(--banner-echo), transparent 81%),
+    linear-gradient(118deg, var(--banner-shadow) 4%, var(--banner-body) 59%, var(--banner-shadow) 120%);
+  transition: --banner-accent 240ms ease;
+}
+
+.banner-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/images/featured-cube-grid.svg') repeat center / var(--banner-grid-size, 94px);
+  opacity: var(--banner-grid-opacity);
+  mask-image: linear-gradient(100deg, rgb(0 0 0 / 30%) 4%, rgb(0 0 0 / 72%) 40%, #000 63%, rgb(0 0 0 / 68%));
+}
+
+.banner-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgb(255 255 255 / 88%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.banner-kicker::before {
+  content: '';
+  width: 23px;
+  height: 2px;
+  background: currentColor;
 }
 
 .banner-spectrum {
@@ -546,6 +572,10 @@ h1 .thin {
     width: calc(64% - var(--banner-inset));
   }
 
+  .banner-bg {
+    --banner-grid-size: 70px;
+  }
+
   .banner-stage {
     width: 61%;
     mask-image: linear-gradient(to right, transparent, #000 44%);
@@ -559,7 +589,21 @@ h1 .thin {
 
 .banner-content h4 {
   @apply m-[8px_0_0] overflow-hidden leading-[1.08] font-extrabold tracking-[-.035em] text-ellipsis whitespace-nowrap;
-  font-size: clamp(1.625rem, 4.6cqw, 2.875rem);
+  font-size: clamp(1.625rem, 5.6cqw, 3.5rem);
+}
+
+.banner-pending {
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .banner:not(.banner-calm) .banner-pending {
+    animation: spin .8s linear infinite;
+  }
 }
 
 .banner-play svg {
@@ -597,6 +641,10 @@ h1 .thin {
 .main.compact .banner-spectrum,
 .main.compact .banner-stage {
   @apply hidden;
+}
+
+.main.compact .banner-bg {
+  --banner-grid-opacity: .12;
 }
 
 .main.compact .banner-mini {
@@ -651,6 +699,11 @@ h1 .thin {
 .liquid-win .banner-stage {
   transform-style: preserve-3d;
   transform: rotateY(calc(var(--bx) * -7deg)) rotateX(calc(var(--by) * 5deg));
+}
+
+.liquid-win .banner-bg {
+  --banner-grid-opacity: .35;
+  --banner-bloom: oklch(from var(--banner-accent) .82 min(calc(c * 1.4), .20) calc(h + 42));
 }
 
 .liquid-win .banner-girl {
