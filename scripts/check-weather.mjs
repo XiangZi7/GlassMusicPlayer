@@ -126,6 +126,7 @@ function harness(overrides = {}, initial) {
       : response(payload(clock))
   }
   const deps = {
+    nearbyCity: overrides.nearbyCity ?? (async () => undefined),
     resetPermission: overrides.resetPermission ?? null,
     geolocation: overrides.unsupported ? null : native,
     permissions: overrides.noPermissions
@@ -180,6 +181,54 @@ async function check(name, test) {
   count++
   console.log(`PASS ${name}`)
 }
+await check('离线索引匹配城市中心，海上保留空地名', async () => {
+  const table = fs.readFileSync(path.join(root, 'src/assets/weather-cities.json'), 'utf8')
+  let loads = 0
+  const { findNearbyCity } = load('src/services/nearby-city.ts', {
+    '@/assets/weather-cities.json?url': '/assets/weather-cities.json',
+  }, { fetch: async url => {
+    assert.equal(url, '/assets/weather-cities.json')
+    loads++
+    return response(JSON.parse(table))
+  } })
+  assert.equal(await findNearbyCity(30.29365, 120.16142), '杭州')
+  assert.equal(await findNearbyCity(51.509, -0.126), 'London')
+  assert.equal(await findNearbyCity(0, -145), undefined)
+  assert.equal(await findNearbyCity(NaN, 0), undefined)
+  assert.equal(loads, 1)
+})
+
+await check('地名延迟时先显示天气，主界面与全屏共享且不进入快照', async () => {
+  const city = deferred()
+  let lookups = 0
+  const h = harness({ nearbyCity: () => { lookups++; return city.promise } })
+  const stop = h.subscribe()
+  const stopSecond = h.subscribe()
+  await flush()
+  assert.equal(h.values.at(-1).label, '多云')
+  assert.equal(h.values.at(-1).nearbyCity, undefined)
+  city.resolve('测试城市')
+  await flush()
+  assert.equal(h.values.at(-1).nearbyCity, '测试城市')
+  assert.equal(h.positions.length, 1)
+  assert.equal(lookups, 1)
+  assert(!JSON.stringify(h.client.snapshot()).includes('测试城市'))
+  stopSecond()
+  stop()
+})
+
+await check('权限撤销后迟到的地名不能恢复显示', async () => {
+  const city = deferred()
+  const h = harness({ nearbyCity: () => city.promise })
+  const stop = h.subscribe()
+  await flush()
+  h.permissionStatus.change('denied')
+  city.resolve('旧地名')
+  await flush()
+  assert.equal(h.values.at(-1), null)
+  stop()
+})
+
 await check(
   'weather TypeScript modules pass the project strict compiler settings',
   () => {
@@ -1278,7 +1327,7 @@ await check(
   () => {
     assert.match(
       componentSource,
-      /<Transition[^>]*name="local-weather"[^>]*appear[^>]*:css="preferredMotion !== 'reduce'"/
+      /<Transition[^>]*name="local-weather"[^>]*appear[^>]*:css="props\.motion && preferredMotion !== 'reduce'"/
     )
     assert.match(componentSource, /v-if="props.enabled && pill"/)
     assert.match(componentSource, /@leave="leaveImmediately"/)
@@ -1428,6 +1477,10 @@ await check(
     )
     assert.equal(transitions.at(-1).appear, true)
     assert.equal(transitions.at(-1).css, true)
+    weather.value = { ...weather.value, nearbyCity: '杭州' }
+    await vue.nextTick()
+    assert.match(visible().attrs['aria-label'], /杭州附近/)
+    assert(visible().children.some(child => child.text === '杭州附近'))
     motion.value = 'reduce'
     await vue.nextTick()
     assert.equal(transitions.at(-1).css, false)

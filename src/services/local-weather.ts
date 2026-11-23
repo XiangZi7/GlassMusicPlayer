@@ -1,4 +1,4 @@
-// Open-Meteo 当前天气的窄数据契约；不携带城市、经纬度或完整接口响应。
+// Open-Meteo 当前天气的窄数据契约；可选地名由设备离线匹配，不保留经纬度或完整响应。
 export type WeatherIcon =
   | 'sun'
   | 'moon'
@@ -16,6 +16,7 @@ export interface WeatherDescription {
 }
 
 export interface LocalWeatherData extends WeatherDescription {
+  readonly nearbyCity?: string
   readonly temperatureCelsius: number
   readonly weatherCode: number
   readonly isDay: boolean

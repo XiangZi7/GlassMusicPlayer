@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import { computed, reactive, useTemplateRef } from 'vue'
-import { useResizeObserver } from '@vueuse/core'
+import { useElementSize, usePreferredReducedMotion, useResizeObserver } from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
 import { usePlayer } from '@/composables/usePlayer'
 
 const { state, controller } = usePlayer()
 const button = useTemplateRef<HTMLButtonElement>('button')
+const measure = useTemplateRef<HTMLElement>('measure')
+const { width: lyricWidth } = useElementSize(measure)
+const reducedMotion = usePreferredReducedMotion()
 const host = computed(() => button.value?.closest<HTMLElement>('[data-player]'))
 const offset = reactive({ x: 0, y: 0 })
 const visible = computed(
   () =>
     state.settings.lyricIsland &&
     !(isTauri() && state.settings.lyricIslandDesktop)
+)
+const animateLyrics = computed(
+  () => visible.value && !state.stage && state.settings.motion && reducedMotion.value !== 'reduce'
 )
 let gesture:
   | { id: number; x: number; y: number; startX: number; startY: number }
@@ -82,7 +88,7 @@ function openStage(event: MouseEvent): void {
     v-show="visible"
     ref="button"
     type="button"
-    class="lyric-capsule absolute left-1/2 z-[6] flex max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full px-[15px] py-2 text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
+    class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full px-[15px] py-2 text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
     :style="{ translate: `${offset.x}px ${offset.y}px` }"
     :tabindex="state.stage ? -1 : undefined"
     aria-label="灵动岛，打开全屏播放"
@@ -98,9 +104,21 @@ function openStage(event: MouseEvent): void {
       <i /><i /><i />
     </span>
     <span
-      class="cap-text pointer-events-none overflow-hidden text-ellipsis"
-      data-capsule-text
-    />
+      class="pointer-events-none relative h-[1lh] min-w-0 overflow-hidden"
+      :class="{ 'transition-[width] duration-[160ms] ease-out': animateLyrics }"
+      :style="{ width: lyricWidth + 'px' }"
+    >
+      <!-- 独立测量新句，旧句淡出期间胶囊即可向目标宽度过渡。 -->
+      <span ref="measure" class="invisible absolute top-0 left-0 w-max" aria-hidden="true">{{ state.capsuleLyric }}</span>
+      <Transition
+        :key="animateLyrics ? 'animated' : 'static'"
+        name="capsule-line"
+        mode="out-in"
+        :css="animateLyrics"
+      >
+        <span :key="state.capsuleLyric" class="block truncate" data-capsule-text>{{ state.capsuleLyric }}</span>
+      </Transition>
+    </span>
     <span
       class="pointer-events-none flex-none text-[11px] opacity-65"
       aria-hidden="true"
@@ -108,3 +126,16 @@ function openStage(event: MouseEvent): void {
     >
   </button>
 </template>
+
+<style scoped>
+.capsule-line-leave-active {
+  transition: opacity 70ms ease-in;
+}
+.capsule-line-enter-active {
+  transition: opacity 90ms ease-out;
+}
+.capsule-line-leave-to,
+.capsule-line-enter-from {
+  opacity: 0;
+}
+</style>

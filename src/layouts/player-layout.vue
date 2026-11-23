@@ -174,20 +174,19 @@ const cachePreferences = useThrottleFn(
   true
 )
 watch(
-  () => [
-    state.settings,
-    state.vol,
-    state.muted,
-    state.idx,
-    Math.floor(state.t / 5),
-    state.queue,
-    state.liked,
-    state.recent,
-    state.npOpen,
+  [
+    () => state.vol,
+    () => state.muted,
+    () => state.idx,
+    () => Math.floor(state.t / 5),
+    () => state.npOpen,
   ],
-  () => {
-    void cachePreferences()
-  },
+  cachePreferences
+)
+// 队列拖放和收藏仍需观察原地修改，播放时钟不参与这次深度遍历。
+watch(
+  [() => state.settings, () => state.queue, () => state.liked, () => state.recent],
+  cachePreferences,
   { deep: true }
 )
 useEventListener(window, 'pagehide', () => {

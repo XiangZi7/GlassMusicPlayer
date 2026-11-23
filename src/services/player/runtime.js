@@ -29,7 +29,6 @@ export function mountSourcePlayer(root, options = {}) {
   }
   let destroyed = false
   let nativeDirection = 1
-  let capsuleLyric = ''
 
   // 将原稿查询限定在当前页面，避免影响独立桌面窗口或其他 Vue 视图。
   const document = {
@@ -1015,7 +1014,7 @@ export function mountSourcePlayer(root, options = {}) {
     }
     var lns = fls.map(line => line.o)
     var li = fli
-    capsuleLyric = current ? lns[li] || tr.title : ''
+    state.capsuleLyric = current ? lns[li] || tr.title : ''
     var lyricTrackKey = state.idx + ':' + !!catalogLyrics
     var lyrKey = lyricTrackKey + ':' + li + ':' + fli
     var av = null
@@ -1184,20 +1183,6 @@ export function mountSourcePlayer(root, options = {}) {
         var ti = it.getAttribute('data-ti')
         if (ti !== null && TRACKS[parseInt(ti, 10)]) {
           it.classList.toggle('on', TRACKS[parseInt(ti, 10)].album === tr.album)
-        }
-      })
-      p.querySelectorAll('[data-capsule-text]').forEach(function (el) {
-        if (el.textContent !== capsuleLyric) {
-          var had = !!el.textContent
-          el.textContent = capsuleLyric
-          if (
-            had &&
-            !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-          ) {
-            el.classList.remove('flip-in')
-            void el.offsetWidth
-            el.classList.add('flip-in')
-          }
         }
       })
       if (state._lyrKey !== lyrKey) {
@@ -1596,14 +1581,10 @@ export function mountSourcePlayer(root, options = {}) {
         var r = fsEl.getBoundingClientRect()
         var nx = (e.clientX - r.left) / r.width - 0.5,
           ny = (e.clientY - r.top) / r.height - 0.5
-        fsEl.style.setProperty('--tx', nx.toFixed(3))
-        fsEl.style.setProperty('--ty', ny.toFixed(3))
         fsEl.style.setProperty('--px', nx.toFixed(3))
         fsEl.style.setProperty('--py', ny.toFixed(3))
       })
       listenElement(fsEl, 'mouseleave', function () {
-        fsEl.style.setProperty('--tx', 0)
-        fsEl.style.setProperty('--ty', 0)
         fsEl.style.setProperty('--px', 0)
         fsEl.style.setProperty('--py', 0)
       })
@@ -2372,7 +2353,7 @@ export function mountSourcePlayer(root, options = {}) {
       liked: !!state.liked[state.idx],
       lyrics,
       lyricIndex,
-      capsuleLyric,
+      capsuleLyric: state.capsuleLyric,
       motion: state.settings.motion,
       fontSize: deskFont,
       locked: state.settings.deskLock,

@@ -175,6 +175,8 @@ function motionHandlers(source) {
 }
 // 仅将进度条时间来源替换为真实媒体时钟，保留鼠标提示和其余动效的原始校验。
 const expectedSeek = originalScript
+  // 封面保持静止，背景巨字和粒子的指针通道照旧校验。
+  .replace(/fsEl\.style\.setProperty\("--t[xy]",(?:n[xy]\.toFixed\(3\)|0)\);/g, '')
   .replace(
     'var tr=TRACKS[state.idx]; state.t=seek.value/1000*tr.dur; render();',
     'seekTo((seek.value / 1000) * currentDuration());'
@@ -218,6 +220,8 @@ const currentCss = ['src/styles/main.css', 'src/styles/player-effects.css']
 const expectedKeyframes = keyframes(originalCss)
 // 底栏频谱已使用实时音频数据，旧的随机脉冲关键帧不再使用。
 expectedKeyframes.delete('specPulse')
+// 窗内歌词胶囊改用短淡出和淡入，长短句的尺寸过渡由浏览器回归覆盖。
+expectedKeyframes.delete('capFlipIn')
 // 原稿中的流场 / 唱片属于其他主题。本应用四种舞台使用各自的背景层。
 expectedKeyframes.delete('ambFlow')
 expectedKeyframes.delete('fsDiscSpin')

@@ -10,11 +10,17 @@ import { playbackQualities } from '@/constants/music'
 
 const { state, tracks, setSetting } = usePlayer()
 const { settings, stage } = toRefs(state)
-const supportsQuality = computed(() => tracks[state.idx]?.catalog?.platform === 'netease')
+const supportsQuality = computed(
+  () => tracks[state.idx]?.catalog?.platform === 'netease'
+)
 const qualityHint = computed(() => {
   if (!supportsQuality.value) return '网易云曲目支持选择播放音质'
-  const actual = playbackQualities.find(item => item.value === state.actualQuality)?.label ?? state.actualQuality
-  return actual ? `当前音源实际音质：${actual}` : '选择请求的播放音质，实际音质由平台返回'
+  const actual =
+    playbackQualities.find(item => item.value === state.actualQuality)?.label ??
+    state.actualQuality
+  return actual
+    ? `当前音源实际音质：${actual}`
+    : '选择请求的播放音质，实际音质由平台返回'
 })
 </script>
 
@@ -30,7 +36,9 @@ const qualityHint = computed(() => {
         data-stage-toggle
         aria-label="打开全屏播放页"
         title="打开全屏播放"
-        ><img decoding="async" loading="lazy"
+        ><img
+          decoding="async"
+          loading="lazy"
           data-cover
           alt="专辑封面"
       /></BaseButton>

@@ -37,7 +37,14 @@ function alignMenu(): void {
   const button = anchor.getBoundingClientRect()
   const frame = host.getBoundingClientRect()
   state.position = {
-    right: Math.max(8, Math.min(host.clientWidth - 148, frame.right - host.clientLeft - button.right)) + 'px',
+    right:
+      Math.max(
+        8,
+        Math.min(
+          host.clientWidth - 148,
+          frame.right - host.clientLeft - button.right
+        )
+      ) + 'px',
     ...(props.above
       ? { bottom: frame.bottom - host.clientTop - button.top + 8 + 'px' }
       : { top: button.bottom - frame.top - host.clientTop + 8 + 'px' }),
@@ -124,7 +131,12 @@ function keydown(event: KeyboardEvent): void {
 // Teleport 后按钮和弹层仍属同一焦点区域。
 function closeOutside(event: Event): void {
   const target = event.target as Node
-  if (state.open && !root.value?.contains(target) && !menu.value?.contains(target)) close()
+  if (
+    state.open &&
+    !root.value?.contains(target) &&
+    !menu.value?.contains(target)
+  )
+    close()
 }
 useEventListener(document, 'pointerdown', closeOutside)
 useEventListener(document, 'focusin', closeOutside)
@@ -181,60 +193,63 @@ watch(
         <path d="m4 6 4 4 4-4" />
       </svg>
     </BaseButton>
-    <Teleport defer to="[data-player]">
-    <Transition name="choice">
-      <div
-        v-if="state.open"
-        :id="menuId"
-        ref="menu"
-        role="menu"
-        :aria-label="label"
-        class="choice-panel absolute z-20 grid w-[140px] gap-0.5 rounded-xl border p-1.5 text-white"
-        :class="{ 'choice-calm': !motion }"
-        :style="state.position"
-        @keydown="keydown"
-      >
-        <button
-          v-for="option in options"
-          :key="option.value"
-          type="button"
-          role="menuitemradio"
-          tabindex="-1"
-          :aria-checked="value === option.value"
-          :data-choice="option.value"
-          class="choice-option flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-left text-[12px] font-semibold text-white/75"
-          @click="choose(option.value)"
+    <Teleport
+      defer
+      to="[data-player]"
+    >
+      <Transition name="choice">
+        <div
+          v-if="state.open"
+          :id="menuId"
+          ref="menu"
+          role="menu"
+          :aria-label="label"
+          class="choice-panel absolute z-20 grid w-[140px] gap-0.5 rounded-xl border p-1.5 text-white"
+          :class="{ 'choice-calm': !motion }"
+          :style="state.position"
+          @keydown="keydown"
         >
-          <svg
-            v-if="option.icon"
-            viewBox="0 0 24 24"
-            class="size-4 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+          <button
+            v-for="option in options"
+            :key="option.value"
+            type="button"
+            role="menuitemradio"
+            tabindex="-1"
+            :aria-checked="value === option.value"
+            :data-choice="option.value"
+            class="choice-option flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-left text-[12px] font-semibold text-white/75"
+            @click="choose(option.value)"
           >
-            <path :d="option.icon" />
-          </svg>
-          {{ option.label }}
-          <svg
-            v-if="value === option.value"
-            viewBox="0 0 16 16"
-            class="ml-auto size-3 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m3 8 3 3 7-7" />
-          </svg>
-        </button>
-      </div>
-    </Transition>
+            <svg
+              v-if="option.icon"
+              viewBox="0 0 24 24"
+              class="size-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path :d="option.icon" />
+            </svg>
+            {{ option.label }}
+            <svg
+              v-if="value === option.value"
+              viewBox="0 0 16 16"
+              class="ml-auto size-3 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m3 8 3 3 7-7" />
+            </svg>
+          </button>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -260,8 +275,13 @@ watch(
   background: rgb(255 255 255 / 9%);
   border-color: rgb(255 255 255 / 20%);
 }
-.liquid-win .choice-trigger, .liquid-win .choice-option[aria-checked='true'] {
-  background: linear-gradient(160deg, rgb(255 255 255 / 26%), rgb(255 255 255 / 7%));
+.liquid-win .choice-trigger,
+.liquid-win .choice-option[aria-checked='true'] {
+  background: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 26%),
+    rgb(255 255 255 / 7%)
+  );
   border-color: rgb(255 255 255 / 40%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }

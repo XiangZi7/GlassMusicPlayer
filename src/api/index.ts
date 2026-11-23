@@ -1,5 +1,8 @@
 import { apiBaseUrl, httpGet, httpPost } from '@/utils/http'
-import { playbackBearer, clearPlaybackGrant } from '@/services/player/playback-session'
+import {
+  playbackBearer,
+  clearPlaybackGrant,
+} from '@/services/player/playback-session'
 
 export type MusicPlatform = 'netease' | 'kugou' | 'kuwo'
 export type PublicProfilePlatform = Exclude<MusicPlatform, 'kugou'>
@@ -131,11 +134,20 @@ export async function getCatalogPlayback(
   try {
     const result = await httpGet<CatalogPlayback>(
       `/${platform}/tracks/${encodeURIComponent(id)}/playback`,
-      { signal, params: { quality }, headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+      {
+        signal,
+        params: { quality },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }
     )
     return { ...result, accountPlayback: !!token }
   } catch (error) {
-    if (token && token === playbackBearer() && error instanceof Error && error.name === 'playback_session_expired')
+    if (
+      token &&
+      token === playbackBearer() &&
+      error instanceof Error &&
+      error.name === 'playback_session_expired'
+    )
       clearPlaybackGrant()
     throw error
   }

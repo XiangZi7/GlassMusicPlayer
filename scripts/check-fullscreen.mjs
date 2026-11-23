@@ -394,7 +394,7 @@ const effects = fs.readFileSync(
   path.join(root, 'src/styles/player-effects.css'),
   'utf8'
 )
-// 防止倒影退回独立裁切的横条，或脱离封面共用的呼吸层。
+// 防止倒影退回独立裁切的横条，或脱离与封面共用的画框。
 assert.match(
   component,
   /class="fs-coverkb relative">\s*<img\b[^>]*\bclass="fs-cover"[^>]*\/\s*>\s*<div\s+class="fs-reflect"[^>]*>\s*<img\b[^>]*\bdata-cover\s+alt=""/

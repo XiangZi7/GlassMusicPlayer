@@ -2,8 +2,7 @@
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { playbackQualities } from '@/constants/music'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
-import EqualizerPanel from '@/pages/settings/components/equalizer-panel.vue'
-import StoragePanel from '@/pages/settings/components/storage-panel.vue'
+import DeferredSettingsPanel from '@/pages/settings/components/deferred-settings-panel.vue'
 import { toRefs } from 'vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SettingsSection } from '@/types/settings'
@@ -209,10 +208,10 @@ function updateCrossfade(event: Event): void {
         </div>
       </section>
       <!-- 音效完整设置：真实十频段与预设、自定义保存集中展示。 -->
-      <EqualizerPanel />
+      <DeferredSettingsPanel section="audio" />
     </template>
     <!-- 缓存与下载完整设置：目录草稿、实际占用、下载音质与安全清理。 -->
-    <StoragePanel v-if="section === 'storage'" />
+    <DeferredSettingsPanel v-if="section === 'storage'" section="storage" />
     <!-- 设置分组：保留原稿控件，按左侧分类展示。 -->
     <template v-if="section === 'appearance'"
       ><section>
@@ -255,7 +254,7 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>天气胶囊</b><span>在顶栏与全屏页右上角显示本地天气</span>
+              <b>天气胶囊</b><span>顶栏与全屏显示本地天气和附近城市，地名在设备上匹配。</span>
             </div>
             <!-- 页面操作按钮：复用公共按钮的点击、禁用与加载语义。 -->
             <BaseButton

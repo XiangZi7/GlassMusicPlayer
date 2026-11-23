@@ -1,0 +1,9 @@
+The offline nearby-city index in MiraiPlayer is derived from the GeoNames
+geographical database, https://www.geonames.org/.
+
+Source data: https://download.geonames.org/export/dump/
+Licence: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+
+MiraiPlayer filters populated places, selects localised names, rounds city
+centre coordinates and groups the records by latitude for offline lookup.

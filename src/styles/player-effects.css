@@ -1662,32 +1662,7 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
-/* ---------- lyric capsule flip + quality badge (used in fullscreen dock) ---------- */
-.cap-text {
-  @apply inline-block;
-}
-
-.cap-text.flip-in {
-  animation: capFlipIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes capFlipIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-    filter: blur(3px);
-  }
-  55% {
-    opacity: 1;
-    filter: blur(0.6px);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-    filter: blur(0);
-  }
-}
-
+/* ---------- fullscreen dock quality badge ---------- */
 .glass-win .quality-badge {
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -1831,12 +1806,6 @@ input[type='range']::-moz-range-thumb {
 
 .fs-left {
   @apply flex min-w-[0] justify-center;
-}
-
-.fs-coverwrap {
-  transform: perspective(900px) rotateY(calc(var(--tx, 0) * 9deg))
-    rotateX(calc(var(--ty, 0) * -7deg));
-  transition: transform 0.25s ease-out;
 }
 
 .fs-cover,
@@ -2156,7 +2125,7 @@ input[type='range']::-moz-range-thumb {
 
 .fs-main .fs-coverwrap {
   @apply z-[2] w-[min(292px,24vw)] flex-none;
-  /* 保留原稿的倒影占位，封面呼吸层仍以封面本身为中心。 */
+  /* 为封面下方的倒影留出空间。 */
   padding-bottom: 45px;
 }
 
@@ -2922,9 +2891,6 @@ input[type='range']::-moz-range-thumb {
     animation: none;
   }
   .playing .cap-eq i {
-    animation: none;
-  }
-  .cap-text.flip-in {
     animation: none;
   }
   .fl-line {
@@ -4369,12 +4335,7 @@ body.calm .fs-giant {
   color: #10181b;
 }
 
-/* ---------- this round : fullscreen playback ambience (Apple Music-style living stage) —
-   fluid mesh blobs in the current album colour drifting under the shade, a Ken Burns
-   living cover with a breathing glow, sparse album-tinted dust, and the Dock play
-   button halo on the same slow breath. Transform/opacity only; motion runs only while
-   playing, freezes in place on pause (the cover eases back via its transition), and is
-   fully off under the calm setting or prefers-reduced-motion. Album colour only. ---------- */
+/* 全屏环境光与粒子随播放漂移，封面使用固定的专辑色投影。 */
 .fs-amb {
   @apply pointer-events-none absolute inset-0 z-[0] overflow-hidden;
   transition: opacity 0.55s ease;
@@ -4485,29 +4446,6 @@ body.calm .fs-amb {
   animation-play-state: paused;
 }
 
-/* Ken Burns lives on its OWN layer (.fs-coverkb wraps the cover img): the track-change
-   entrance animates transform on the img itself, and the two used to fight over the same
-   property — when the WAAPI run handed control back, the 7s CSS transition restarted from
-   the resting value and the cover visibly paused, then lurched larger. Split onto
-   parent/child layers, the entrance can end exactly at the resting state while the
-   breathing drift carries on underneath, uninterrupted. */
-.fs-coverkb {
-  transition: transform 7s ease-in-out;
-}
-
-.win.playing .fs-coverkb {
-  transform: scale(1.045) translate(-0.5%, 0.7%);
-}
-
-.fs-coverwrap::before {
-  @apply pointer-events-none absolute inset-[-2%_-5%_14%] z-[-1] rounded-full opacity-[.42];
-  content: '';
-  background: var(--glow, rgba(255, 255, 255, 0.3));
-  filter: blur(34px);
-  transform: scale(0.92);
-  animation: fsGlowBreath 7s ease-in-out infinite;
-}
-
 @keyframes fsGlowBreath {
   0%,
   100% {
@@ -4518,10 +4456,6 @@ body.calm .fs-amb {
     opacity: 0.78;
     transform: scale(1.07);
   }
-}
-
-.win:not(.playing) .fs-coverwrap::before {
-  animation-play-state: paused;
 }
 
 .dock-controls .playbtn {
@@ -4550,28 +4484,15 @@ body.calm .fs-amb {
 
 body.calm .amb,
 body.calm .fs-dust i,
-body.calm .fs-coverwrap::before,
 body.calm .dock-controls .playbtn::before {
   animation: none;
-}
-
-body.calm .win.playing .fs-coverkb {
-  transform: none;
-  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .amb,
   .fs-dust i,
-  .fs-coverwrap::before,
   .dock-controls .playbtn::before {
     animation: none;
-  }
-  .win.playing .fs-coverkb {
-    transform: none;
-  }
-  .fs-coverkb {
-    transition: none;
   }
 }
 
@@ -4641,26 +4562,13 @@ img.fs-cover.fs-xghost.fs-peek {
 }
 
 /* ---------- this round : borrowed from real community shots, not a house style —
-   (1) layered pointer parallax, the device in Aurélien Salomon's Dribbble "Apple Music
-   3d parallax" work: the stage's layers answer the pointer at different rates — blurred
-   backdrop & outline giant slowest, cover mid, dust front — so the stage reads as depth,
-   not a flat picture. It rides the standalone `translate` property, which composes with
-   (never overwrites) the cover's tilt transform, the giant's drift animation and the
-   WAAPI track-change transforms. A long ease on `translate` makes layers trail the
-   pointer with weight instead of tracking it 1:1. Off under calm / reduced motion.
+   (1) 指针仅带动背景巨字和前景粒子，封面保持固定。
    (2) a whisper of film grain over the stage, the texture Behance dark-player concepts
    (e.g. Beatflow's glassmorphic case study) lay over big blurred fields so they don't
    band into flat gradients: an SVG-noise tile at 5% opacity, decorative only. ---------- */
 .fs-giant {
   translate: calc(var(--px, 0) * -16px) calc(var(--py, 0) * -9px);
   transition: translate 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.fs-main .fs-coverwrap {
-  translate: calc(var(--px, 0) * 9px) calc(var(--py, 0) * 6px);
-  transition:
-    transform 0.25s ease-out,
-    translate 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fs-dust {
@@ -4675,7 +4583,6 @@ img.fs-cover.fs-xghost.fs-peek {
 }
 
 body.calm .fs-giant,
-body.calm .fs-main .fs-coverwrap,
 body.calm .fs-dust {
   translate: none;
   transition: none;
@@ -4683,7 +4590,6 @@ body.calm .fs-dust {
 
 @media (prefers-reduced-motion: reduce) {
   .fs-giant,
-  .fs-main .fs-coverwrap,
   .fs-dust {
     translate: none;
     transition: none;

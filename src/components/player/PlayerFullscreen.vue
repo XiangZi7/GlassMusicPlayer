@@ -28,13 +28,12 @@ const lyrics = useTemplateRef<HTMLElement>('lyrics')
 const fullscreen = useTemplateRef<HTMLElement>('fullscreen')
 const themes = [
   { value: 'magazine', label: '时尚' },
-  { value: 'glow', label: '微光' },
   { value: 'ink', label: '手书' },
   { value: 'cinema', label: '字幕' },
   { value: 'chat', label: '对话' },
 ] as const
 type LyricsTheme = (typeof themes)[number]['value']
-const savedTheme = useLocalStorage<string>('miraiMusic.lyricTheme', 'glow')
+const savedTheme = useLocalStorage<string>('miraiMusic.lyricTheme', themes[0].value)
 
 // 响应式状态
 const state = reactive({
@@ -44,13 +43,15 @@ const state = reactive({
   reading: false,
   // 全屏歌词的样式，跨会话保留。
   theme:
-    themes.find(option => option.value === savedTheme.value)?.value ?? 'glow',
+    themes.find(option => option.value === savedTheme.value)?.value ?? themes[0].value,
 })
 const { showTranslation, reading, theme } = toRefs(state)
 // 对话主题用当前曲目封面作为来信头像，切歌时同步替换。
 const chatCover = computed(() => {
   const cover = player.tracks[player.state.idx]?.cover
-  return state.theme === 'chat' && cover ? `url("${CSS.escape(cover)}")` : 'none'
+  return state.theme === 'chat' && cover
+    ? `url("${CSS.escape(cover)}")`
+    : 'none'
 })
 
 let switchRun = 0
@@ -74,25 +75,39 @@ async function applyLyricsView(
 ): Promise<void> {
   Object.assign(requested, patch)
   const run = ++switchRun
-  const scene = affectsLayout || switchAnimations.some(animation =>
-    (animation.effect as KeyframeEffect)?.target?.matches('.fs-main')
-  )
-  const selector = scene ? '.fs-main, .fs-giant, .fs-side, .fs-scenery' : '.fs-lyrics'
-  const elements = [...fullscreen.value?.querySelectorAll<HTMLElement>(selector) ?? []]
-  const animate = player.state.stage && player.state.settings.motion && !reducedMotion.matches
+  const scene =
+    affectsLayout ||
+    switchAnimations.some(animation =>
+      (animation.effect as KeyframeEffect)?.target?.matches('.fs-main')
+    )
+  const selector = scene
+    ? '.fs-main, .fs-giant, .fs-side, .fs-scenery'
+    : '.fs-lyrics'
+  const elements = [
+    ...(fullscreen.value?.querySelectorAll<HTMLElement>(selector) ?? []),
+  ]
+  const animate =
+    player.state.stage && player.state.settings.motion && !reducedMotion.matches
   // 先记录可见层的实际透明度，再取消旧动画，连续点击时从眼前的画面接续。
-  const outgoing = elements.filter(el => el.getClientRects().length).map(el => ({
-    el, opacity: getComputedStyle(el).opacity,
-  }))
+  const outgoing = elements
+    .filter(el => el.getClientRects().length)
+    .map(el => ({
+      el,
+      opacity: getComputedStyle(el).opacity,
+    }))
   switchAnimations.forEach(animation => animation.cancel())
   switchAnimations = []
   if (animate) {
     switchAnimations = outgoing.map(({ el, opacity }) =>
       el.animate([{ opacity }, { opacity: 0 }], {
-        duration: 170, easing: 'ease-in', fill: 'both',
+        duration: 170,
+        easing: 'ease-in',
+        fill: 'both',
       })
     )
-    await Promise.allSettled(switchAnimations.map(animation => animation.finished))
+    await Promise.allSettled(
+      switchAnimations.map(animation => animation.finished)
+    )
     if (run !== switchRun || !player.state.stage) return
   }
   Object.assign(state, requested)
@@ -101,14 +116,25 @@ async function applyLyricsView(
   switchAnimations.forEach(animation => animation.cancel())
   switchAnimations = []
   if (animate) {
-    switchAnimations = elements.filter(el => el.getClientRects().length).map(el => {
-      const opacity = getComputedStyle(el).opacity
-      const frames = el.matches('.fs-main')
-        ? [{ opacity: 0, transform: 'translateY(10px)' }, { opacity, transform: 'none' }]
-        : [{ opacity: 0 }, { opacity }]
-      return el.animate(frames, { duration: scene ? 330 : 200, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' })
-    })
-    await Promise.allSettled(switchAnimations.map(animation => animation.finished))
+    switchAnimations = elements
+      .filter(el => el.getClientRects().length)
+      .map(el => {
+        const opacity = getComputedStyle(el).opacity
+        const frames = el.matches('.fs-main')
+          ? [
+              { opacity: 0, transform: 'translateY(10px)' },
+              { opacity, transform: 'none' },
+            ]
+          : [{ opacity: 0 }, { opacity }]
+        return el.animate(frames, {
+          duration: scene ? 330 : 200,
+          easing: 'cubic-bezier(.22,1,.36,1)',
+          fill: 'both',
+        })
+      })
+    await Promise.allSettled(
+      switchAnimations.map(animation => animation.finished)
+    )
     if (run === switchRun) {
       switchAnimations.forEach(animation => animation.cancel())
       switchAnimations = []
@@ -131,13 +157,20 @@ function selectLyricsTheme(value: string): void {
 // 在主题胶囊中即时移动键盘焦点，回车或空格沿用按钮的选择行为。
 function focusTheme(event: KeyboardEvent): void {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-  const buttons = [...(event.currentTarget as HTMLElement).querySelectorAll('button')]
+  const buttons = [
+    ...(event.currentTarget as HTMLElement).querySelectorAll('button'),
+  ]
   const current = buttons.indexOf(event.target as HTMLButtonElement)
   if (current < 0) return
   event.preventDefault()
   event.stopPropagation()
-  const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
-    : (current + (event.key === 'ArrowLeft' ? -1 : 1) + buttons.length) % buttons.length
+  const next =
+    event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? buttons.length - 1
+        : (current + (event.key === 'ArrowLeft' ? -1 : 1) + buttons.length) %
+          buttons.length
   buttons[next]?.focus()
 }
 
@@ -167,9 +200,10 @@ function alignLyrics(): void {
 watch(() => [state.showTranslation, state.reading, state.theme], alignLyrics, {
   flush: 'post',
 })
+// 首次挂载也写回有效主题，将旧版微光偏好迁移到时尚。
 watch(theme, (value: LyricsTheme) => {
   savedTheme.value = value
-})
+}, { immediate: true })
 useResizeObserver(lyrics, alignLyrics)
 // 本地手书字体加载后行宽可能改变，重新居中当前唱句。
 useEventListener(document.fonts, 'loadingdone', () => {
@@ -246,7 +280,14 @@ const dust = [
       <i class="amb a1" /><i class="amb a2" /><i class="amb a3" />
     </div>
     <div class="fs-shade absolute inset-0 z-[1]"></div>
-    <FullscreenScenery :theme="theme" :moving="stage && settings.motion && (playing || theme === 'ink' || theme === 'chat')" />
+    <FullscreenScenery
+      :theme="theme"
+      :moving="
+        stage &&
+        settings.motion &&
+        (playing || theme === 'ink' || theme === 'chat')
+      "
+    />
     <div
       class="fs-grain"
       aria-hidden="true"
@@ -345,6 +386,7 @@ const dust = [
         ></BaseButton>
         <LocalWeather
           :enabled="settings.weather && stage"
+          :motion="settings.motion"
           variant="fullscreen"
         />
         <BaseButton
@@ -370,7 +412,9 @@ const dust = [
         ></BaseButton>
       </div>
     </div>
-    <div class="fs-themebar relative z-[3] flex flex-none justify-center px-5 pt-[10px] max-sm:pt-[7px]">
+    <div
+      class="fs-themebar relative z-[3] flex flex-none justify-center px-5 pt-[10px] max-sm:pt-[7px]"
+    >
       <SlidingTabs
         class="set-seg fs-theme-seg flex flex-none"
         role="group"
@@ -398,7 +442,9 @@ const dust = [
     >
       <div class="fs-coverwrap relative w-[min(328px,100%)]">
         <div class="fs-coverkb relative">
-          <img decoding="async" loading="lazy"
+          <img
+            decoding="async"
+            loading="lazy"
             class="fs-cover"
             data-cover
             alt="专辑封面"
@@ -407,7 +453,12 @@ const dust = [
             class="fs-reflect"
             aria-hidden="true"
           >
-            <img decoding="async" loading="lazy" data-cover alt="" />
+            <img
+              decoding="async"
+              loading="lazy"
+              data-cover
+              alt=""
+            />
           </div>
         </div>
         <div
@@ -447,7 +498,7 @@ const dust = [
       </div>
       <div class="fs-lyrcol">
         <BaseButton
-          class="fs-lyrreturn fs-tool absolute right-2 top-1 z-[3] min-h-[30px] rounded-full px-[9px] text-[11px] font-semibold"
+          class="fs-lyrreturn fs-tool absolute top-1 right-2 z-[3] min-h-[30px] rounded-full px-[9px] text-[11px] font-semibold"
           data-lyrreturn
           hidden
           title="回到当前播放的歌词"
@@ -505,7 +556,9 @@ const dust = [
       </div>
       <div class="fs-dock-main flex items-center gap-[14px]">
         <div class="dock-left flex min-w-[0] flex-1 items-center gap-[11px]">
-          <img decoding="async" loading="lazy"
+          <img
+            decoding="async"
+            loading="lazy"
             class="dock-cover h-[44px] w-[44px] flex-none rounded-[10px] object-cover"
             data-cover
             alt="专辑封面"
@@ -702,7 +755,11 @@ const dust = [
             <path d="M6 6l12 12M18 6L6 18" /></svg
         ></BaseButton>
       </div>
-      <QueueList v-if="stage && fsQ" compact />
+      <QueueList
+        v-if="stage"
+        :show-current="fsQ"
+        compact
+      />
     </div>
   </div>
 </template>
@@ -784,6 +841,7 @@ const dust = [
   filter: blur(0.25px);
 }
 .fs .fs-main :deep(.fl-line.on) {
+  color: #fff;
   opacity: 1;
   filter: none;
   transform: none;
@@ -791,13 +849,16 @@ const dust = [
 .fs .fs-main :deep(.fl-line.on .fl-o) {
   text-shadow: 0 3px 22px rgb(255 255 255 / 14%);
 }
+.fs .fs-main :deep(.fl-line.on .fl-tr) {
+  opacity: 1;
+}
 .fs .fs-main :deep(.fl-timed) {
   white-space: break-spaces;
 }
 .fs .fs-main :deep(.fl-line.on .fl-word) {
   background: linear-gradient(
     to right,
-    var(--lyric-ink, #fff) 0 var(--sung, 0%),
+    #fff 0 var(--sung, 0%),
     var(--lyric-unsung, rgb(255 255 255 / 48%)) var(--sung, 0%) 100%
   );
   background-clip: text;
@@ -808,8 +869,10 @@ const dust = [
 .fs .fs-main :deep(.fl-line.focus),
 .fs .fs-main :deep(.fl-line:focus-visible) {
   filter: none;
-  opacity: 0.95;
   background: rgb(255 255 255 / 0.055);
+}
+.fs .fs-main :deep(.fl-line:not(.on):is(:hover, .focus, :focus-visible)) {
+  opacity: 0.95;
 }
 .fs .fs-main :deep(.fl-line:focus-visible) {
   outline-offset: -2px;
@@ -892,23 +955,8 @@ const dust = [
   text-shadow: none;
 }
 
-/* 时尚沿用原稿 magazine 的封面倒影、跨栏标题、背景大字和紧凑的歌词栏。 */
-.fs[data-lyric-theme='magazine'] .fs-main .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line) {
-  opacity: .55;
-  padding-block: 7px;
-}
-.fs[data-lyric-theme='magazine'] .fs-main :deep(.fl-line.d1) { opacity: .82; }
-.fs[data-lyric-theme='magazine'] .fs-main :deep(.fl-line:is(.on,.focus)) { opacity: 1; }
-.fs[data-lyric-theme='magazine'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-o) {
-  font-size: clamp(14px, 1.25vw, 17px);
-  line-height: 1.4;
-}
-.fs[data-lyric-theme='magazine'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line.on .fl-o) {
-  font-size: clamp(18px, 2vw, 24px);
-}
 /* 手书用暖色笔画和较大的行距，字幕把唱词放到舞台中央。 */
 .fs[data-lyric-theme='ink'] {
-  --lyric-ink: #fff0d8;
   --lyric-unsung: rgb(255 228 200 / 46%);
 }
 .fs[data-lyric-theme='ink'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-o) {
@@ -917,18 +965,28 @@ const dust = [
   line-height: 1.38;
   letter-spacing: 0.015em;
 }
-.fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
-  color: var(--lyric-ink);
-}
-.fs[data-lyric-theme='ink'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line:nth-child(even)) {
+.fs[data-lyric-theme='ink']
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line:nth-child(even)) {
   width: calc(100% - 22px);
   margin-left: 22px;
 }
 .fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
-  text-decoration: underline;
-  text-decoration-color: rgb(221 171 99 / 45%);
-  text-underline-offset: .22em;
-  text-decoration-thickness: 1px;
+  position: relative;
+}
+.fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o::after) {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 4px;
+  width: min(64%, 220px);
+  background: linear-gradient(
+    90deg,
+    rgb(237 199 132 / 80%),
+    rgb(219 174 104 / 20%),
+    transparent
+  );
+  transform-origin: left center;
 }
 .fs[data-lyric-theme='cinema'] .fs-main {
   display: grid;
@@ -1009,7 +1067,8 @@ const dust = [
     gap: clamp(14px, 2.4vh, 24px);
     padding: 0 8px 0 4px;
     /* 首尾留白和长句都保留实际高度，供滚动与按句定位测量。 */
-    &::before, &::after {
+    &::before,
+    &::after {
       flex-shrink: 0;
     }
     & :deep(.fl-line) {
@@ -1023,12 +1082,17 @@ const dust = [
       padding: 12px 17px 13px;
       border: 1px solid rgb(255 255 255 / 20%);
       border-radius: 22px 22px 22px 7px;
-      background: linear-gradient(rgb(255 255 255 / 21%), rgb(255 255 255 / 10%));
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 6px 18px rgb(0 0 0 / 20%);
+      background: linear-gradient(
+        rgb(255 255 255 / 21%),
+        rgb(255 255 255 / 10%)
+      );
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 22%),
+        0 6px 18px rgb(0 0 0 / 20%);
       backdrop-filter: blur(14px) saturate(1.5);
       filter: none;
       transform: none;
-      opacity: .75;
+      opacity: 0.75;
     }
     & :deep(.fl-line:nth-child(odd)::before) {
       content: '';
@@ -1059,17 +1123,23 @@ const dust = [
     & :deep(.fl-line .fl-tr) {
       margin-top: 5px;
       font-size: 12px;
-      opacity: .75;
+    }
+    & :deep(.fl-line:not(.on) .fl-tr) {
+      opacity: 0.75;
     }
     & :deep(.fl-line.d1) {
-      opacity: .9;
+      opacity: 0.9;
     }
     & :deep(.fl-line.on) {
       opacity: 1;
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 12px 28px rgb(0 0 0 / 32%);
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 30%),
+        0 12px 28px rgb(0 0 0 / 32%);
     }
     & :deep(.fl-line:nth-child(even).on) {
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 32%), 0 6px 18px rgb(10 90 180 / 20%);
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 32%),
+        0 6px 18px rgb(10 90 180 / 20%);
     }
     & :deep(.fl-line.on .fl-o) {
       font-weight: 700;
@@ -1082,14 +1152,24 @@ const dust = [
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .fs[data-lyric-theme='chat']:not(.fs-calm) .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line.on) {
-    animation: bubble-arrive 340ms cubic-bezier(.2,.8,.25,1) both;
+  .fs[data-lyric-theme='chat']:not(.fs-calm)
+    .fs-lyrics:not(.lyrics-unavailable)
+    :deep(.fl-line.on) {
+    animation: bubble-arrive 340ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
   }
 }
 @keyframes bubble-arrive {
-  from { opacity: .68; transform: translateY(7px) scale(.96); }
-  70% { transform: translateY(-1px) scale(1.025); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0.68;
+    transform: translateY(7px) scale(0.96);
+  }
+  70% {
+    transform: translateY(-1px) scale(1.025);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @media (max-width: 1020px) {
   .fs[data-lyric-theme='chat'] .fs-titleblock h4 {
@@ -1113,10 +1193,27 @@ const dust = [
   .fs:not(.fs-calm)[data-lyric-theme='cinema'] :deep(.fl-line.on .fl-o) {
     animation: lyric-reveal 250ms ease-out both;
   }
+  .fs:not(.fs-calm)[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o::after) {
+    animation: brush-stroke 440ms cubic-bezier(0.18, 0.68, 0.25, 1) both;
+  }
+}
+@keyframes brush-stroke {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 @keyframes ink-reveal {
-  from { opacity: .55; transform: translateX(-9px) rotate(-1deg); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0.55;
+    transform: translateX(-9px) rotate(-1deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes lyric-reveal {
   from {

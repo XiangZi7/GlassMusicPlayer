@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from 'axios'
+import type { AxiosRequestConfig, AxiosInstance } from 'axios'
 
 const errorMessages: Readonly<Record<string, string>> = {
   invalid_playlist_url: '无法识别该歌单链接，请粘贴公开歌单详情页地址。',
@@ -14,8 +14,9 @@ const errorMessages: Readonly<Record<string, string>> = {
   upstream_error: '音乐平台暂时无法返回数据，请稍后重试。',
 }
 
-// 创建独立的 Axios 客户端，统一处理超时、取消、服务端错误和响应体解包。
-export function createRequest(baseURL: string) {
+// 首次访问音乐服务时加载 Axios，并设置该服务的超时与错误处理。
+async function loadClient(baseURL: string): Promise<AxiosInstance> {
+  const { default: axios } = await import('axios')
   const client = axios.create({
     baseURL,
     timeout: 25_000,
@@ -39,12 +40,27 @@ export function createRequest(baseURL: string) {
     if (code) error.name = code
     throw error
   })
+  return client
+}
+
+// 同一地址的请求共用客户端，初始化失败后允许下一次请求重新加载。
+export function createRequest(baseURL: string) {
+  let pending: Promise<AxiosInstance> | undefined
+
+  // 并发的首批 GET 和 POST 等待同一次初始化。
+  function getClient(): Promise<AxiosInstance> {
+    return (pending ??= loadClient(baseURL).catch(error => {
+      pending = undefined
+      throw error
+    }))
+  }
 
   // GET 查询参数和取消配置都交给 Axios 转换。
   async function httpGet<T>(
     path: string,
     config?: AxiosRequestConfig
   ): Promise<T> {
+    const client = await getClient()
     return (await client.get<T>(path, config)).data
   }
 
@@ -54,6 +70,7 @@ export function createRequest(baseURL: string) {
     body: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
+    const client = await getClient()
     return (await client.post<T>(path, body, config)).data
   }
 

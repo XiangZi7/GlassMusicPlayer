@@ -109,7 +109,7 @@ function openSettings(): void {
       首页
     </div>
     <PlayerSearchBox variant="titlebar" />
-    <LocalWeather :enabled="settings.weather" />
+    <LocalWeather :enabled="settings.weather" :motion="settings.motion" />
     <div class="titlebar-account-actions flex flex-none items-center gap-1">
       <BaseButton
         type="button"

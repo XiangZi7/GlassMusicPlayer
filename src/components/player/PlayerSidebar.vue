@@ -6,20 +6,11 @@ import { useRouter } from 'vue-router'
 import type { Playlist } from '@/stores/player'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
+import { firstTrackIndices } from '@/services/player/library'
 const { state, tracks, controller } = usePlayer()
 const router = useRouter()
 const sidebarRoot = useTemplateRef<HTMLElement>('sidebarRoot')
-const albums = computed(() =>
-  tracks
-    .map((_, index) => index)
-    .filter(
-      index =>
-        !tracks[index]!.catalog &&
-        tracks.findIndex(
-          track => !track.catalog && track.album === tracks[index]!.album
-        ) === index
-    )
-)
+const albums = computed(() => firstTrackIndices(tracks, 'album', true))
 // 侧栏本地专辑入口按曲库索引打开。
 function openPlaylist(index: number): void {
   state.customPl = null

@@ -82,6 +82,9 @@ const wav = spectrumAudio()
 let releasePlayback
 const pendingPlayback = new Promise(resolve => { releasePlayback = resolve })
 const requestedQualities = []
+let heldEqualizerRequest
+let delayEqualizer = true
+let failStorageOnce = true
 let socket
 let send
 let releasePlaylistResponse
@@ -140,9 +143,25 @@ try {
   // 只有隔离浏览器的指定样本接口返回数据，其余外部音源请求快速失败。
   async function respondToFixture({ requestId, request }) {
     const path = new URL(request.url).pathname
+    if (path.endsWith('/equalizer-panel.vue') || path.endsWith('/storage-panel.vue')) {
+      if (!new URL(request.url).searchParams.has('type')) {
+        if (path.endsWith('/equalizer-panel.vue') && delayEqualizer) {
+          heldEqualizerRequest = requestId
+          return
+        }
+        if (path.endsWith('/storage-panel.vue') && failStorageOnce) {
+          failStorageOnce = false
+          return send('Fetch.failRequest', { requestId, errorReason: 'Failed' })
+        }
+      }
+      return send('Fetch.continueRequest', { requestId })
+    }
     const headers = [{ name: 'Access-Control-Allow-Origin', value: origin }]
     let data
-    if (path === '/mirai-avatar-fixture.svg') {
+    if (path === '/v1/forecast' && new URL(request.url).hostname === 'api.open-meteo.com') {
+      data = { current_units: { time: 'unixtime', temperature_2m: '°C' },
+        current: { time: Math.floor(Date.now() / 1000), temperature_2m: 23, weather_code: 51, is_day: 1 } }
+    } else if (path === '/mirai-avatar-fixture.svg') {
       return send('Fetch.fulfillRequest', {
         requestId,
         responseCode: 200,
@@ -280,17 +299,24 @@ try {
   await send('Fetch.enable', {
     patterns: [
       { urlPattern: 'http://127.0.0.1:8000/*' },
+      { urlPattern: '*/components/equalizer-panel.vue*' },
+      { urlPattern: '*/components/storage-panel.vue*' },
       { urlPattern: 'https://api.open-meteo.com/*' },
       { urlPattern: '*/*missing-banner-cover.webp' },
       { urlPattern: 'https://p1.music.126.net/mirai-avatar-fixture.svg' },
     ],
   })
   await resize(1240, 820)
+  await send('Browser.grantPermissions', { permissions: ['geolocation'], origin })
+  await send('Emulation.setGeolocationOverride', { latitude: 30.29365, longitude: 120.16142, accuracy: 50 })
   await send('Page.navigate', { url: origin })
+  await waitFor('模拟位置离线匹配，主窗口显示杭州附近', `document.querySelector('.win-chrome .weather-place')?.textContent === '杭州附近'`)
   await waitFor(
     '空曲库首页',
     `document.querySelector('.win-bottom [data-play]')?.disabled`
   )
+  const axiosLoaded = `performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/axios.js'))`
+  assert.equal(await evaluate(axiosLoaded), false, '空曲库首页应延迟加载 Axios')
   assert(
     await evaluate(
       `document.querySelector('.home-content').textContent.includes('暂无推荐专辑')`
@@ -354,7 +380,9 @@ try {
   )
   console.log('PASS 空曲库、资料登记、直接进入详情和动态挂载横幅')
 
-  await evaluate(`localStorage.setItem('miraiMusic.publicPlatformProfiles.v1', JSON.stringify({
+  assert.equal(await evaluate(`document.querySelector('.fs').dataset.lyricTheme`), 'magazine')
+  await evaluate(`localStorage.setItem('miraiMusic.lyricTheme', 'glow');
+    localStorage.setItem('miraiMusic.publicPlatformProfiles.v1', JSON.stringify({
     netease: { userId: '123', displayName: '原有关联', syncedAt: 1 },
   })); localStorage.setItem('miraiMusic.publicPlaylists.v1', JSON.stringify([{
     platform: 'netease', id: '100', title: '浏览器验证歌单', coverUrl: null,
@@ -376,6 +404,7 @@ try {
       avatar.naturalWidth > 0 && stored.avatarUrl === avatar.src && stored.syncedAt === 1
   })()`
   )
+  assert.equal(await evaluate(axiosLoaded), true, '首次音乐服务请求应加载 Axios')
   await evaluate(`(async () => {
     const { usePlayerStore } = await import('/src/stores/player.ts')
     usePlayerStore().setLinkedProfile('netease', null)
@@ -518,6 +547,50 @@ try {
     '暂停时保留静态频谱',
     `${bannerSpectrum}.dataset.spectrumMode === 'static' && document.querySelector('audio').paused`
   )
+  const capsule = `document.querySelector('.lyric-capsule')`
+  const capsuleLine = `${capsule}.querySelector('[data-capsule-text]')`
+  await evaluate(`document.querySelector('audio').currentTime = 0.2`)
+  await waitFor('胶囊显示首句', `${capsuleLine}?.textContent === '街灯落在静水上' && !${capsule}.querySelector('[class*="capsule-line-"]')`)
+  const shortWidth = await evaluate(`${capsule}.getBoundingClientRect().width`)
+  await evaluate(`(() => {
+    const island = ${capsule}
+    window.capsuleTransitions = []
+    island.addEventListener('transitionend', event => {
+      if (['opacity', 'width'].includes(event.propertyName))
+        capsuleTransitions.push([event.propertyName, event.target.textContent, event.elapsedTime])
+    })
+    document.querySelector('audio').currentTime = 8.1
+  })()`)
+  await waitFor('旧句淡出、新句淡入，胶囊宽度随长句过渡', `(() => {
+    const fades = capsuleTransitions.filter(([property]) => property === 'opacity')
+    return fades[0]?.[1] === '街灯落在静水上' && fades[1]?.[1] === 'The sky opens up again' &&
+      fades[0][2] + fades[1][2] <= 0.2 && capsuleTransitions.some(([property]) => property === 'width') &&
+      ${capsule}.getBoundingClientRect().width > ${shortWidth}
+  })()`).catch(async error => {
+    console.error(await evaluate(`({ transitions: capsuleTransitions, before: ${shortWidth},
+      after: ${capsule}.getBoundingClientRect().width, content: ${capsule}.innerHTML, time: document.querySelector('audio').currentTime })`))
+    throw error
+  })
+  await evaluate(`${capsuleLine}.addEventListener('transitionrun', () => {
+    document.querySelector('audio').currentTime = 0.2
+  }, { once: true }); document.querySelector('audio').currentTime = 4.1`)
+  await waitFor('连续定位后停在最新歌词和宽度', `${capsuleLine}?.textContent === '街灯落在静水上' &&
+    Math.abs(${capsule}.getBoundingClientRect().width - ${shortWidth}) < 1 && !${capsule}.querySelector('[class*="capsule-line-"]')`)
+  for (const preference of ['system', 'player']) {
+    if (preference === 'system') {
+      await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    } else {
+      await evaluate(`(async () => { (await import('/src/stores/player.ts')).usePlayerStore().state.settings.motion = false })()`)
+    }
+    await evaluate(`capsuleTransitions.length = 0; document.querySelector('audio').currentTime = 8.1`)
+    await waitFor('关闭动效时直接换句', `${capsuleLine}?.textContent === 'The sky opens up again' && !${capsule}.querySelector('[class*="capsule-line-"]') &&
+      getComputedStyle(${capsuleLine}.parentElement).transitionDuration === '0s' && capsuleTransitions.length === 0`)
+    await evaluate(`document.querySelector('audio').currentTime = 0.2`)
+    await waitFor('静态短句恢复', `${capsuleLine}?.textContent === '街灯落在静水上'`)
+    if (preference === 'system') await send('Emulation.setEmulatedMedia', { features: [] })
+    else await evaluate(`(async () => { (await import('/src/stores/player.ts')).usePlayerStore().state.settings.motion = true })()`)
+  }
+  console.log('PASS 歌词胶囊随媒体时间快速淡出淡入、伸缩，覆盖连续跳句与两种少动效设置')
   await evaluate(
     `document.querySelector('.win-bottom [data-stage-toggle]').click()`
   )
@@ -564,13 +637,26 @@ try {
     [100, 40, 0]
   )
   const stagePlay = `document.querySelector('.fs-dock [data-play]')`
+  const coverIsStill = `(() => {
+    const frame = document.querySelector('.fs-coverwrap')
+    const inner = frame.querySelector('.fs-coverkb')
+    return getComputedStyle(inner).animationName === 'none' &&
+      getComputedStyle(inner).transform === 'none' &&
+      getComputedStyle(frame, '::before').animationName === 'none'
+  })()`
+  const aurora = `getComputedStyle(document.querySelector(".fs-scenery[data-scene='magazine'] .first"))`
+  assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.fs-theme-seg button'), el => el.dataset.slideValue)`),
+    ['magazine', 'ink', 'cinema', 'chat'])
+  assert.equal(await evaluate(`localStorage.getItem('miraiMusic.lyricTheme')`), 'magazine')
   await evaluate(`${stagePlay}.click()`)
   await waitFor(
     '继续播放时逐字进度随真实媒体时钟前进',
     `${wordFills}[1] > 33 && !document.querySelector('audio').paused`
   )
+  await waitFor('时尚播放时双层极光浮动，封面固定', `${aurora}.display !== 'none' && ${aurora}.backgroundImage.includes('radial-gradient') && ${aurora}.animationName.includes('scenery-drift') && ${coverIsStill}`)
   await evaluate(`${stagePlay}.click()`)
   await waitFor('暂停媒体', `document.querySelector('audio').paused`)
+  await waitFor('暂停时极光静止', `${aurora}.animationName === 'none' && ${coverIsStill}`)
   await evaluate(`document.querySelector('audio').currentTime = 0.32`)
   await waitFor('后跳后重新填色', `JSON.stringify(${wordFills}) === '[40,0,0]'`)
   await send('Emulation.setEmulatedMedia', {
@@ -585,6 +671,7 @@ try {
   await waitFor(
     '只有 LRC 的句子继续整句高亮',
     `${lyrics}.querySelector('.fl-line.on .fl-o')?.textContent === 'The sky opens up again' &&
+      getComputedStyle(${lyrics}.querySelector('.fl-line.on .fl-o')).color === 'rgb(255, 255, 255)' &&
       ${wordFills}.length === 0`
   )
   await evaluate(`document.querySelector('audio').currentTime = 1.2`)
@@ -596,12 +683,34 @@ try {
     writeFileSync(file, Buffer.from(image.data, 'base64'))
     console.log(file)
   }
-  const coverSize = `(() => { const box = document.querySelector('.fs-cover').getBoundingClientRect(); return [Math.round(box.width), Math.round(box.height)] })()`
+  const coverSize = `(() => { const cover = document.querySelector('.fs-cover'); return [cover.offsetWidth, cover.offsetHeight] })()`
   await delay(350)
-  const glowDesktop = await evaluate(coverSize)
+  const magazineDesktop = await evaluate(coverSize)
+  await waitFor('全屏与主界面共享地名', `document.querySelector('.fs .weather-place')?.textContent === '杭州附近'`)
+  const coverBox = `document.querySelector('.fs .fs-cover').getBoundingClientRect()`
+  const titleBox = `document.querySelector('.fs .fs-titleblock').getBoundingClientRect()`
+  const coverLayout = `(() => {
+    const bounds = selector => {
+      const el = document.querySelector('.fs ' + selector)
+      return [el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight]
+    }
+    return {
+      cover: bounds('.fs-coverwrap'), title: bounds('.fs-titleblock'), artist: bounds('[data-artist]'),
+      titleSize: getComputedStyle(document.querySelector('.fs-titleblock h4')).fontSize,
+      reflection: getComputedStyle(document.querySelector('.fs-reflect')).display,
+    }
+  })()`
+  const magazineDesktopLayout = await evaluate(coverLayout)
+  assert.notEqual(magazineDesktopLayout.reflection, 'none')
+  assert(await evaluate(`${titleBox}.left < ${coverBox}.right && ${titleBox}.top < ${coverBox}.bottom`))
+  assert(await evaluate(coverIsStill))
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1180, y: 760 })
+  await delay(300)
+  assert(await evaluate(`(() => { const cover = getComputedStyle(document.querySelector('.fs-coverwrap')); return cover.transform === 'none' && cover.translate === 'none' })()`))
   await resize(620, 740)
   await delay(200)
-  const glowNarrow = await evaluate(coverSize)
+  const magazineNarrow = await evaluate(coverSize)
+  const magazineNarrowLayout = await evaluate(coverLayout)
   await resize(1240, 820)
   const themeTabs = 'document.querySelector(".fs-theme-seg")'
   const activeTheme = `${lyrics}.closest('[data-lyric-theme]').dataset.lyricTheme`
@@ -611,7 +720,7 @@ try {
   }
   await evaluate(`${themeTabs}.querySelector('button').focus()`)
   await key('End', 35)
-  await waitFor('键盘定位到末尾主题', `document.activeElement?.dataset.slideValue === 'chat' && ${activeTheme} === 'glow'`)
+  await waitFor('键盘定位到末尾主题', `document.activeElement?.dataset.slideValue === 'chat' && ${activeTheme} === 'magazine'`)
   await key('Enter', 13)
   await waitFor('键盘确认对话主题', `${activeTheme} === 'chat'`)
   await delay(450)
@@ -624,10 +733,25 @@ try {
   assert.equal(chatLayout.scene, 'chat')
   assert(chatLayout.left[0] < chatLayout.left[1] && chatLayout.right[1] > chatLayout.right[0], JSON.stringify(chatLayout))
   assert(parseFloat(chatLayout.gap) >= 14)
-  assert.deepEqual(await evaluate(coverSize), glowDesktop)
+  await evaluate(`document.querySelector('audio').currentTime = 1.5`)
+  await waitFor('对话逐字填色', `${wordFills}[1] === 58 && getComputedStyle(${lyrics}.querySelector('.fl-line.on .fl-word')).backgroundImage.includes('linear-gradient')`)
+  await evaluate(`document.querySelector('audio').currentTime = 1.2`)
+  const stageShape = `document.querySelector('.fs-scenery .first')`
+  // 在暂停预览时测量两次实际位置，减少动态效果时应停止动画。
+  async function verifyAmbient() {
+    const before = await evaluate(`getComputedStyle(${stageShape}).transform`)
+    await delay(250)
+    assert.notEqual(await evaluate(`getComputedStyle(${stageShape}).transform`), before)
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    await waitFor('减少动态效果停用背景动画', `getComputedStyle(${stageShape}).animationName === 'none'`)
+    assert(await evaluate(coverIsStill))
+    await send('Emulation.setEmulatedMedia', { features: [] })
+  }
+  await verifyAmbient()
+  assert.deepEqual(await evaluate(coverSize), magazineDesktop)
   await resize(620, 740)
   await delay(220)
-  assert.deepEqual(await evaluate(coverSize), glowNarrow)
+  assert.deepEqual(await evaluate(coverSize), magazineNarrow)
   await resize(1240, 820)
   // 用真实主题和字体渲染生成预览。
   async function captureLyricsTheme(name) {
@@ -651,8 +775,24 @@ try {
     ),
     1
   )
+  await verifyAmbient()
   await captureLyricsTheme('ink')
-  await chooseTheme('glow')
+  await chooseTheme('magazine')
+  await waitFor('时尚版式与逐字时钟共存', `${activeTheme} === 'magazine' && ${wordFills}[1] === 33 && parseFloat(getComputedStyle(${lyrics}.querySelector('.fl-line.on .fl-o')).fontSize) > 30`)
+  await waitFor('时尚标题横跨封面', `${titleBox}.left < ${coverBox}.right && ${titleBox}.top < ${coverBox}.bottom`)
+  assert.deepEqual(await evaluate(coverLayout), magazineDesktopLayout)
+  await waitFor('时尚当前句与译文以不透明白色高亮', `(() => {
+    const row = ${lyrics}.querySelector('.fl-line.on')
+    return getComputedStyle(row).opacity === '1' &&
+      ['.fl-o', '.fl-tr'].every(selector => {
+        const style = getComputedStyle(row.querySelector(selector))
+        return style.color === 'rgb(255, 255, 255)' && style.opacity === '1'
+      }) && getComputedStyle(row.querySelector('.fl-word')).backgroundImage.includes('rgb(255, 255, 255)')
+  })()`)
+  await resize(620, 740)
+  assert.deepEqual(await evaluate(coverLayout), magazineNarrowLayout)
+  await resize(1240, 820)
+  await chooseTheme('chat')
   await chooseTheme('cinema')
   await waitFor(
     '连续切换以字幕主题为准，歌词居中且保留词段进度',
@@ -661,9 +801,9 @@ try {
       JSON.stringify(${wordFills}) === '[100,33,0]'`
   )
   await captureLyricsTheme('cinema')
-  await chooseTheme('glow')
-  await waitFor('恢复微光排版', `${activeTheme} === 'glow'`)
-  console.log('PASS 真实媒体时钟逐字填色、整句回退、少动效与三种歌词主题')
+  await chooseTheme('magazine')
+  await waitFor('恢复时尚排版', `${activeTheme} === 'magazine'`)
+  console.log('PASS 真实媒体时钟逐字填色、整句回退、少动效与四种歌词主题、微光偏好迁移与静态封面')
   await evaluate(`${reading}.click()`)
   await waitFor(
     '阅读模式居中且沿用当前句',
@@ -762,6 +902,8 @@ try {
     '点选真实曲目',
     `document.querySelector('.win-bottom [data-title]')?.textContent === ${JSON.stringify(secondTrack)}`
   )
+  // 折叠态封面进入视口后才检查懒加载的失败回退。
+  await evaluate(`document.querySelector('.main').scrollTop = 110`)
   await waitFor(
     '切换到封面加载失败的曲目',
     `(() => {
@@ -854,8 +996,22 @@ try {
     '设置页',
     `!!document.querySelector('[data-slide-value="audio"]')`
   )
+  const panelLoaded = name => `performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/${name}-panel.vue'))`
+  assert.equal(await evaluate(panelLoaded('equalizer')), false)
+  assert.equal(await evaluate(panelLoaded('storage')), false)
+  await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
+  await until('拦截首次均衡器模块', () => heldEqualizerRequest)
+  await waitFor('慢加载期间反馈', `document.querySelector('main [role="status"]')?.textContent.includes('正在加载设置')`)
+  await evaluate(`document.querySelector('[data-slide-value="general"]').click()`)
+  await waitFor('回到通用设置', `document.querySelector('[data-panel="settings"]')?.textContent.includes('关闭主窗口') && !document.querySelector('main [role="status"]')`)
+  delayEqualizer = false
+  await send('Fetch.continueRequest', { requestId: heldEqualizerRequest })
+  await waitFor('迟到的模块已返回', panelLoaded('equalizer'))
+  assert.equal(await evaluate(`document.querySelectorAll('.eq-band').length`), 0)
   await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
   await waitFor('十频段', `document.querySelectorAll('.eq-band').length === 10`)
+  assert.equal(await evaluate(panelLoaded('equalizer')), true)
+  assert.equal(await evaluate(panelLoaded('storage')), false)
   await evaluate('document.fonts.ready.then(() => true)')
   const metrics = await evaluate(`(() => {
     const scroll = document.querySelector('main .panel-scroll')
@@ -958,6 +1114,12 @@ try {
     '切换后回到顶部',
     `!document.querySelector('.eq-band') && document.querySelector('main .panel-scroll').scrollTop === 0`
   )
+  await evaluate(`document.querySelector('[data-slide-value="storage"]').click()`)
+  const retryPanel = `[...document.querySelectorAll('main button')].find(button => button.textContent.trim() === '重新加载')`
+  await waitFor('存储模块读取失败后可重试', `!!(${retryPanel})`)
+  await evaluate(`(${retryPanel}).click()`)
+  await waitFor('存储重试后就绪', `!!document.querySelector('#cache-directory')`)
+  assert.equal(await evaluate(panelLoaded('storage')), true)
   await evaluate(`[...document.querySelectorAll('main .panel-actions button')]
     .find(button => button.textContent.trim() === '取消').click()`)
   await waitFor('取消返回首页', `!!document.querySelector('.home-content')`)
@@ -1086,7 +1248,7 @@ try {
     const store = usePlayerStore()
     window.fixturePlayer = store
     store.state.queue = store.registerCatalogTracks(Array.from({ length: 777 }, (_, i) => ({
-      platform: 'netease', id: String(10000+i), title: '队列 ' + i, artists: ['样本'], album: '队列验证',
+      platform: 'netease', id: String(10000+i), title: '队列 ' + i, artists: ['样本 ' + i], album: '队列验证 ' + i,
       durationMs: 120000, coverUrl: null, sourceUrl: 'https://music.163.com/song?id=' + (10000+i)
     })))
     store.state.idx = store.state.queue[420]
@@ -1111,19 +1273,65 @@ try {
   assert(await evaluate(`[...${queue}.querySelectorAll('img')].every(img => img.loading === 'lazy' && img.decoding === 'async')`))
   await key('Escape', 27)
   await waitFor('关闭队列恢复焦点', `!${queue} && document.activeElement === ${queueButton}`)
+  // 在暂停状态模拟媒体时间更新，区分同一五秒区间、跨区间与退出前的精确保存。
+  const savedTime = `JSON.parse(localStorage.getItem('miraiMusic.preferences.v1'))?.current?.time`
+  await evaluate('fixturePlayer.state.t = 70')
+  await waitFor('进度进入新区间后保存', `${savedTime} === 70`)
+  await evaluate('fixturePlayer.state.t = 71.25')
+  await delay(1600)
+  assert.equal(await evaluate(savedTime), 70)
+  await evaluate('fixturePlayer.state.t = 75')
+  await waitFor('五秒区间更新', `${savedTime} === 75`)
+  await evaluate(`fixturePlayer.state.t = 76.5; window.dispatchEvent(new Event('pagehide'))`)
+  assert.equal(await evaluate(savedTime), 76.5)
   const quality = `document.querySelector('.win-bottom [aria-label="音质"]')`
   await evaluate(`fixturePlayer.state.settings.glassStyle='glass'; ${quality}.click()`)
   const panel = `document.querySelector('.choice-panel')`
   await waitFor('毛玻璃音质菜单', `${panel}?.parentElement.hasAttribute('data-player') && getComputedStyle(${panel}).backdropFilter.includes('16px')`)
+  const qualityIcons = await evaluate(`Array.from(${panel}.querySelectorAll('[data-choice]'), row =>
+    row.querySelector('svg[viewBox="0 0 24 24"][aria-hidden="true"] path')?.getAttribute('d'))`)
+  assert(qualityIcons.every(Boolean) && new Set(qualityIcons).size === 5)
   await evaluate(`fixturePlayer.state.settings.glassStyle='liquid'`)
   await waitFor('液态玻璃菜单实时切换', `getComputedStyle(${panel}).backgroundImage.includes('gradient') && getComputedStyle(${panel}).backdropFilter.includes('saturate')`)
+  const losslessIcon = await evaluate(`${panel}.querySelector('[data-choice="lossless"] path').getAttribute('d')`)
   await evaluate(`${panel}.querySelector('[data-choice="lossless"]').click()`)
   await waitFor('选择品质后恢复入口焦点', `!${panel} && document.activeElement === ${quality} && ${quality}.textContent.includes('无损')`)
+  assert.equal(await evaluate(`${quality}.querySelector('svg path').getAttribute('d')`), losslessIcon)
   await evaluate(`fixturePlayer.state.idx = 0; ${playButton}.click()`)
   await until('点播携带所选的无损音质', () => requestedQualities.includes('lossless'))
   await evaluate(`fixturePlayer.state.settings.bottomSpectrum = false`)
   await waitFor('关闭底栏频谱后横幅仍可见', `getComputedStyle(${bottomSpectrum}).display === 'none' && ${bannerSpectrum}.clientHeight > 0`)
   console.log(`PASS 777 首队列挂载 ${mountedRows} 行，覆盖当前歌曲、键盘、拖放、图片懒加载、双材质及音质请求`)
+  // 同一批曲库数据覆盖两种材质和列数，核对滚动末端的真实详情索引。
+  for (const [page, kind, material] of [['albums', 'album', 'glass'], ['artists', 'artist', 'liquid']]) {
+    await resize(1240, 820)
+    await evaluate(`fixturePlayer.state.settings.glassStyle = '${material}'; location.hash = '#/${page}'`)
+    const grid = `document.querySelector('[data-panel="${page}"].active .collection-viewport')`
+    const cards = `${grid}.querySelectorAll('[data-position]')`
+    await waitFor(page, `${grid}?.querySelector('[data-position="0"]')`)
+    const count = await evaluate(`${cards}.length`)
+    assert(count > 0 && count < 60)
+    await evaluate(`${cards}[0].focus()`)
+    const lastTitle = kind === 'album' ? '队列验证 776' : '样本 776'
+    for (let jump = 0; jump < 4; jump++) {
+      await key('End', 35)
+      await waitFor('末行键盘焦点', `document.activeElement.matches('button[data-position]') && document.activeElement.querySelector('b')?.textContent === '${lastTitle}'`)
+      await key('Home', 36)
+      await waitFor('首张卡片', `document.activeElement.dataset.position === '0'`)
+    }
+    await resize(620, 740)
+    await waitFor('窄窗重新分列', `getComputedStyle(${grid}.firstElementChild).gridTemplateColumns.split(' ').length === 2`)
+    await key('ArrowDown', 40)
+    await waitFor('两列网格的下一行', `document.activeElement.dataset.position === '2'`)
+    await evaluate(`${grid}.scrollTop = ${grid}.scrollHeight`)
+    await waitFor('滚动到末行并保留原焦点', `[...${cards}].at(-1).querySelector('b').textContent === '${lastTitle}' && document.activeElement.dataset.position === '2'`)
+    assert(await evaluate(`Math.abs([...${cards}].at(-1).getBoundingClientRect().bottom - ${grid}.getBoundingClientRect().bottom) < 2`))
+    assert(await evaluate(`[...${cards}].every(card => card.querySelector('img').loading === 'lazy')`))
+    await evaluate(`[...${cards}].at(-1).click()`)
+    await waitFor('实际曲库索引', `location.hash.startsWith('#/${kind}?') && fixturePlayer.tracks[fixturePlayer.state.playlistIdx]['${kind}'] === '${lastTitle}'`)
+    console.log(`PASS ${page} 宽窗挂载 ${count} 张卡片，窄窗首末行、焦点和详情入口正常`)
+  }
+  await resize(1240, 820)
   const nativeSource = readFileSync(
     resolve(import.meta.dirname, '../src-tauri/src/desktop/appearance.rs'),
     'utf8'
@@ -1135,8 +1343,8 @@ try {
   await send('Emulation.setDefaultBackgroundColorOverride', {
     color: { r: 255, g: 255, b: 255, a: 1 },
   })
-  await send('Page.navigate', { url: origin + '/#/' })
-  await send('Page.reload')
+  // 一次跨文档导航应用外框注入，避免路由切换与立即刷新同时销毁测试上下文。
+  await send('Page.navigate', { url: origin + '/?frame-check#/' })
   await waitFor(
     'Windows 10 外框挂载',
     `!!document.querySelector('.win10-frame .win')`

@@ -5,13 +5,15 @@ import { useLocalWeather } from '@/composables/useLocalWeather'
 import { formatWeatherTemperature } from '@/services/local-weather'
 
 const props = withDefaults(
-  defineProps<{ enabled: boolean; variant?: 'titlebar' | 'fullscreen' }>(),
-  { variant: 'titlebar' }
+  defineProps<{ enabled: boolean; motion?: boolean; variant?: 'titlebar' | 'fullscreen' }>(),
+  { motion: true, variant: 'titlebar' }
 )
 const weatherState = useLocalWeather(() => props.enabled)
-const retryHint = computed(() => weatherState.problem.value === '定位未授权'
-  ? '点击重新请求定位权限。如果系统仍拒绝，请在 Windows 设置 → 隐私和安全性 → 位置，或浏览器的网站权限中开启位置。'
-  : '重新获取当前位置的天气')
+const retryHint = computed(() =>
+  weatherState.problem.value === '定位未授权'
+    ? '点击重新请求定位权限。如果系统仍拒绝，请在 Windows 设置 → 隐私和安全性 → 位置，或浏览器的网站权限中开启位置。'
+    : '重新获取当前位置的天气'
+)
 const preferredMotion = usePreferredReducedMotion()
 const presentation = computed(() =>
   props.variant === 'fullscreen'
@@ -37,7 +39,7 @@ const pill = computed(() => {
   return {
     ...weather,
     temperatureText: formatWeatherTemperature(weather.temperatureCelsius),
-    accessibleText: `用户当前位置实时天气：${weather.isDay ? '白天' : '夜晚'}，${weather.label}，${weather.temperatureCelsius}摄氏度；Open-Meteo，更新于${updated}`,
+    accessibleText: `用户当前位置实时天气：${weather.nearbyCity ? weather.nearbyCity + '附近，' : ''}${weather.isDay ? '白天' : '夜晚'}，${weather.label}，${weather.temperatureCelsius}摄氏度；Open-Meteo，更新于${updated}`,
   }
 })
 const isClear = computed(
@@ -65,7 +67,7 @@ function leaveImmediately(_element: Element, done: () => void): void {
   <Transition
     name="local-weather"
     appear
-    :css="preferredMotion !== 'reduce'"
+    :css="props.motion && preferredMotion !== 'reduce'"
     @leave="leaveImmediately"
   >
     <div
@@ -156,12 +158,16 @@ function leaveImmediately(_element: Element, done: () => void): void {
         class="wx-temp text-[15px] leading-[1] font-extrabold tracking-[-.01em]"
         >{{ pill.temperatureText }}</span
       >
+      <span v-if="pill.nearbyCity" class="weather-place">{{ pill.nearbyCity }}附近</span>
       <span class="wx-cond text-[12px] leading-[1] font-bold opacity-[.85]">{{
         pill.label
       }}</span>
     </div>
     <button
-      v-else-if="props.enabled && (weatherState.problem.value || weatherState.retrying.value)"
+      v-else-if="
+        props.enabled &&
+        (weatherState.problem.value || weatherState.retrying.value)
+      "
       type="button"
       class="weather-status inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 text-[11px] text-white/70 hover:bg-white/10 focus-visible:outline-2"
       :title="retryHint"
@@ -171,13 +177,36 @@ function leaveImmediately(_element: Element, done: () => void): void {
       :disabled="weatherState.retrying.value"
       @click="weatherState.refresh"
     >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 18a4 4 0 0 1 0-8 6 6 0 0 1 11.8-1A4.5 4.5 0 1 1 18 18Z"/></svg>
-      {{ weatherState.retrying.value ? '正在重新定位…' : weatherState.problem.value }}
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        aria-hidden="true"
+      >
+        <path d="M6 18a4 4 0 0 1 0-8 6 6 0 0 1 11.8-1A4.5 4.5 0 1 1 18 18Z" />
+      </svg>
+      {{
+        weatherState.retrying.value
+          ? '正在重新定位…'
+          : weatherState.problem.value
+      }}
     </button>
   </Transition>
 </template>
 
 <style scoped>
+.weather-place {
+  max-width: clamp(5em, 8vw, 10em);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .local-weather-enter-active {
   transition:
     opacity 200ms ease,

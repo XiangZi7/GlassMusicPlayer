@@ -29,6 +29,7 @@ type WeatherPermission = Pick<
 >
 
 export interface WeatherDependencies {
+  nearbyCity: (lat: number, lon: number) => Promise<string | undefined>
   resetPermission: (() => Promise<unknown>) | null
   geolocation: Pick<Geolocation, 'getCurrentPosition'> | null
   permissions: Pick<Permissions, 'query'> | null
@@ -87,8 +88,13 @@ export function createLocalWeatherClient(
 ): LocalWeatherClient {
   const deps: WeatherDependencies = {
     ...browserLocation(),
-    resetPermission: typeof window !== 'undefined' && isTauri()
-      ? () => invoke('reset_location_permission') : null,
+    // 仅在天气可用时加载打包的离线城市表，地点不会随任何新增请求发出。
+    nearbyCity: async (lat, lon) =>
+      (await import('@/services/nearby-city')).findNearbyCity(lat, lon),
+    resetPermission:
+      typeof window !== 'undefined' && isTauri()
+        ? () => invoke('reset_location_permission')
+        : null,
     fetch:
       typeof globalThis.fetch === 'function'
         ? globalThis.fetch.bind(globalThis)
@@ -338,6 +344,21 @@ export function createLocalWeatherClient(
     )
   }
 
+  // 本地匹配独立于天气显示，取消或移动后丢弃旧观测的地名。
+  async function attachCity(weather: LocalWeatherData, lat: number, lon: number): Promise<void> {
+    const id = generation
+    try {
+      const city = await deps.nearbyCity(lat, lon)
+      if (city && id === generation && subscribed() && cached === weather) {
+        cached = { ...weather, nearbyCity: city }
+        publish(visibleWeather())
+      }
+    } catch {
+      // 本地资源加载失败时仍显示有效天气。
+    }
+  }
+
+  // 一次定位刷新天气，使用同一位置在本地补上附近城市名。
   async function request(): Promise<void> {
     if (!subscribed() || active || permissionPaused || !capable()) return
     const id = ++generation
@@ -399,11 +420,16 @@ export function createLocalWeatherClient(
       )
       if (!current(id, controller)) return
       cached = parseCurrentWeather(payload, deps.now())
-      if (!cached) problem.value = '天气暂不可用'
+      if (cached) void attachCity(cached, position.coords.latitude, position.coords.longitude)
+      else problem.value = '天气暂不可用'
     } catch {
       // 只显示失败类别，绝不输出 URL、位置或原始错误。
       if (owns(id, controller) && subscribed()) {
-        problem.value = permissionPaused ? '定位未授权' : located ? '天气暂不可用' : '定位暂不可用'
+        problem.value = permissionPaused
+          ? '定位未授权'
+          : located
+            ? '天气暂不可用'
+            : '定位暂不可用'
         clearWeather()
       }
     } finally {
@@ -421,8 +447,13 @@ export function createLocalWeatherClient(
     retrying.value = true
     try {
       if (permissionPaused && deps.resetPermission) {
-        try { await deps.resetPermission() } catch { /* 仍通过宿主定位确认当前授权。 */ }
-        if (!subscribed() || attempt !== retryGeneration || !permissionPaused) return
+        try {
+          await deps.resetPermission()
+        } catch {
+          /* 仍通过宿主定位确认当前授权。 */
+        }
+        if (!subscribed() || attempt !== retryGeneration || !permissionPaused)
+          return
       }
       if (!subscribed() || active) return
       permissionPaused = false

@@ -17,6 +17,7 @@ import {
   toSourceTrack,
 } from '@/services/player/catalog'
 import { usePlayerStore } from '@/stores/player'
+import { firstTrackIndices } from '@/services/player/library'
 const { state, tracks, controller } = usePlayer()
 const { registerCatalogTracks } = usePlayerStore()
 const { query, platform, pageNum, result, loading, failed } =
@@ -40,16 +41,7 @@ const searchIndices = computed(() =>
       )
     })
 )
-const artistCards = computed(() =>
-  tracks
-    .map((_, i) => i)
-    .filter(
-      i =>
-        !tracks[i]!.catalog &&
-        tracks.findIndex(t => !t.catalog && t.artist === tracks[i]!.artist) ===
-          i
-    )
-)
+const artistCards = computed(() => firstTrackIndices(tracks, 'artist', true))
 
 // 用搜索结果页建立播放队列，从用户点选的位置开始播放。
 function playOnline(position: number): void {

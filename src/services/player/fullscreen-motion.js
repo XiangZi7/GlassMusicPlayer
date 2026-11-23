@@ -24,7 +24,7 @@ export function createFullscreenMotion({
     fs._xRun = (fs._xRun || 0) + 1
   }
 
-  // 每次打开都复用原稿约 1.1 秒的分层入场；不覆盖封面倾斜和呼吸层。
+  // 打开全屏时复用原稿约 1.1 秒的分层入场动画。
   function animateFsEntrance() {
     if (document.body.classList.contains('calm')) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -322,15 +322,7 @@ export function createFullscreenMotion({
             { duration: 980, easing: E, fill: 'both' }
           )
         )
-      /* cover: ghost of the old cover slides out + softens WHILE the new cover slides
-       in — the two runs overlap from the same first frame (no "old one leaves, then
-       the new one starts" gap). The layers are split so nothing fights over transform:
-       .fs-coverwrap tilts, .fs-coverkb underneath carries the Ken Burns breathing, and
-       the entrance below animates transform on the img alone — one continuous ease-out
-       where slide and scale happen together, starting with no delay and ending exactly
-       at the resting state (translateX 0 / scale 1 / no blur), so when the run is
-       cancelled on finish the handoff to the still-breathing KB layer has zero step.
-       The ghost lives inside the KB layer too, so it tracks the breathing exactly. */
+      // 新旧封面在固定画框内交叠过渡，动画结束后新图回到原位。
       var wrap = fs.querySelector('.fs-main .fs-coverwrap')
       var cover = wrap ? wrap.querySelector('img.fs-cover[data-cover]') : null
       if (wrap && cover) {

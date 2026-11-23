@@ -171,6 +171,7 @@ export const usePlayerStore = defineStore('player', () => {
     /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
     /** 播放和进度状态。 */ playing: false,
     /** 当前播放进度。 */ t: 0,
+    /** 主窗口和桌面灵动岛共用的当前歌词，无对应句时显示曲名。 */ capsuleLyric: '',
     /** 首次媒体就绪时恢复的位置，明确切歌后清零。 */ resumeTime: 0,
     /** EQ 状态只反映当前真实音频管线，不写入用户偏好。 */ equalizerStatus:
       'bypassed' as 'active' | 'bypassed' | 'pending' | 'unavailable',

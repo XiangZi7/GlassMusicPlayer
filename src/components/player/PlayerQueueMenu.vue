@@ -68,8 +68,10 @@ async function keydown(event: KeyboardEvent): Promise<void> {
 
 // 按钮和面板位于不同的 DOM 容器，两个区域之间移动焦点时保持打开。
 function containsTarget(target: EventTarget | null): boolean {
-  return target instanceof Node &&
+  return (
+    target instanceof Node &&
     !!(root.value?.contains(target) || panel.value?.contains(target))
+  )
 }
 
 // 点击外部、焦点移出或窗口失焦时收起队列。
@@ -79,6 +81,10 @@ useEventListener(document, 'pointerdown', event => {
 useEventListener(document, 'focusin', event => {
   if (state.open && !containsTarget(event.target)) close()
 })
+// 拖放或虚拟行回收可能让浏览器暂时把焦点交给 body，Escape 仍然归当前气泡处理。
+useEventListener(document, 'keydown', event => {
+  if (state.open && event.key === 'Escape') void keydown(event)
+}, { capture: true })
 useEventListener(window, 'blur', () => close())
 // 打开全屏后隐藏底栏气泡，两个队列入口不会抢同一个开关。
 watch(
@@ -128,54 +134,71 @@ onBeforeUnmount(() => close())
         />
       </svg>
     </button>
-    <Teleport defer to="[data-player]">
-    <Transition name="queue-bubble" :css="settings.motion">
-      <section
-        v-if="open"
-        :id="menuId"
-        ref="panel"
-        role="dialog"
-        aria-label="播放队列"
-        tabindex="-1"
-        class="main-queue absolute right-[14px] bottom-[88px] z-[12] flex max-h-[calc(100%-176px)] w-[352px] max-w-[calc(100%-28px)] flex-col rounded-[18px] p-[12px] text-left text-white outline-none"
-        :class="{ 'queue-calm': !settings.motion }"
-        @keydown="keydown"
+    <Teleport
+      defer
+      to="[data-player]"
+    >
+      <Transition
+        name="queue-bubble"
+        :css="settings.motion"
       >
-        <!-- 气泡标题区：当前队列计数与关闭操作。 -->
-        <header
-          class="m-[2px_4px_10px] flex shrink-0 items-center gap-[8px]"
+        <section
+          v-if="open"
+          :id="menuId"
+          ref="panel"
+          role="dialog"
+          aria-label="播放队列"
+          tabindex="-1"
+          class="main-queue absolute right-[14px] bottom-[88px] z-[12] flex max-h-[calc(100%-176px)] w-[352px] max-w-[calc(100%-28px)] flex-col rounded-[18px] p-[12px] text-left text-white outline-none"
+          :class="{ 'queue-calm': !settings.motion }"
+          @keydown="keydown"
         >
-          <h3 class="m-0 text-[12px] font-extrabold tracking-[.1em]">播放队列 · QUEUE</h3>
-          <span v-if="radioOn" class="q-radio-chip rounded-full px-2 py-[3px] text-[9.5px] font-extrabold">电台续播中</span>
-          <span class="ml-auto font-mono text-[10.5px] font-bold tracking-[.02em] whitespace-nowrap text-white/55">{{ count }} 首</span>
-          <BaseButton
-            class="mq-close grid size-[30px] shrink-0 place-items-center rounded-full border border-white/22 bg-white/10 p-0 text-white transition-colors hover:bg-white/18"
-            aria-label="关闭播放队列"
-            @click="close(true)"
-          >
-            <svg
-              class="size-[14px]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.4"
-              stroke-linecap="round"
-              aria-hidden="true"
+          <!-- 气泡标题区：当前队列计数与关闭操作。 -->
+          <header class="m-[2px_4px_10px] flex shrink-0 items-center gap-[8px]">
+            <h3 class="m-0 text-[12px] font-extrabold tracking-[.1em]">
+              播放队列 · QUEUE
+            </h3>
+            <span
+              v-if="radioOn"
+              class="q-radio-chip rounded-full px-2 py-[3px] text-[9.5px] font-extrabold"
+              >电台续播中</span
             >
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
-          </BaseButton>
-        </header>
-        <!-- 气泡列表区：复用真实队列与下一首播放操作，空态不展示演示曲目。 -->
-          <QueueList ref="queueList" v-if="count" compact />
+            <span
+              class="ml-auto font-mono text-[10.5px] font-bold tracking-[.02em] whitespace-nowrap text-white/55"
+              >{{ count }} 首</span
+            >
+            <BaseButton
+              class="mq-close grid size-[30px] shrink-0 place-items-center rounded-full border border-white/22 bg-white/10 p-0 text-white transition-colors hover:bg-white/18"
+              aria-label="关闭播放队列"
+              @click="close(true)"
+            >
+              <svg
+                class="size-[14px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </BaseButton>
+          </header>
+          <!-- 气泡列表区：复用真实队列与下一首播放操作，空态不展示演示曲目。 -->
+          <QueueList
+            ref="queueList"
+            v-if="count"
+            compact
+          />
           <EmptyState
             v-else
             class="min-h-[140px]"
             icon="playlist"
             label="播放队列为空"
           />
-      </section>
-    </Transition>
+        </section>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -191,11 +214,17 @@ onBeforeUnmount(() => close())
   border-color: rgb(255 255 255 / 38%);
   background: linear-gradient(165deg, rgb(30 42 46 / 93%), rgb(14 20 22 / 95%));
   backdrop-filter: blur(12px) saturate(1.7);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), 0 24px 48px rgb(0 0 0 / 45%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 45%),
+    0 24px 48px rgb(0 0 0 / 45%);
 }
 .liquid-win .mq-close {
   border-color: rgb(255 255 255 / 45%);
-  background: linear-gradient(160deg, rgb(255 255 255 / 30%), rgb(255 255 255 / 8%));
+  background: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 30%),
+    rgb(255 255 255 / 8%)
+  );
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
 }
 .main-queue :deep(.qt span) {
