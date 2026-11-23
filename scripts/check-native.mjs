@@ -129,6 +129,7 @@ if (process.platform !== 'win32') {
     '-nologo',
   ])
   run(executable, ['desktop::'])
+  run(executable, ['playback_credential::vault::windows_vault_round_trip'])
 }
 console.log(
   'Native checks passed: Rust format, locked compile, and actual desktop unit tests. No tray/UI interaction is claimed by this script.'

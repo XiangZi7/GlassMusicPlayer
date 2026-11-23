@@ -10,6 +10,7 @@ import {
   shallowRef,
   useTemplateRef,
   watch,
+  type Component,
 } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import {
@@ -24,7 +25,6 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerTitlebar from '@/components/player/PlayerTitlebar.vue'
 import PlayerSidebar from '@/components/player/PlayerSidebar.vue'
 import PlayerNowPlaying from '@/components/player/PlayerNowPlaying.vue'
-import PlayerFullscreen from '@/components/player/PlayerFullscreen.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { playerKey, type PlayerController } from '@/composables/usePlayer'
 import {
@@ -45,7 +45,7 @@ import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import { getStorageInfo } from '@/services/storage'
 import { emptyTrack } from '@/constants/music'
-import { clearPlaybackGrant, playbackAccount } from '@/services/player/playback-session'
+import { clearPlaybackGrant, initializePlaybackGrant, playbackAccount, playbackRevision } from '@/services/player/playback-session'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
 const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
@@ -59,12 +59,21 @@ const player = shallowRef<PlayerController>()
 // 设置窗与底栏选音质共用重新取源流程，暂停时只让旧音源失效。
 watch(() => state.settings.quality, () => player.value?.reloadPlayback())
 // 登录切换或撤销后立即释放属于上一身份的音源。
-watch(playbackAccount, () => player.value?.reloadPlayback(false), { flush: 'sync' })
+watch(playbackRevision, () => player.value?.reloadPlayback(false), { flush: 'sync' })
 // 主动解除关联或改绑其他 UID 时丢弃本次扫码的会员凭证。
-watch(() => state.linkedProfiles.netease, profile => {
-  if (playbackAccount.value && profile?.userId !== playbackAccount.value.userId) clearPlaybackGrant()
+watch(() => state.linkedProfiles.netease?.userId, (userId, previous) => {
+  if ((previous || playbackAccount.value) && (!userId || userId !== playbackAccount.value?.userId)) clearPlaybackGrant()
 })
 let disposed = false
+const fullscreenView = shallowRef<Component>()
+
+// 第一次打开时加载并挂载舞台；离开或取消后忽略迟到的模块。
+async function prepareStage(signal: AbortSignal): Promise<void> {
+  const { default: view } = await import('@/components/player/PlayerFullscreen.vue')
+  if (disposed || signal.aborted) return
+  fullscreenView.value = view
+  await nextTick()
+}
 
 provide(playerKey, {
   state,
@@ -201,9 +210,11 @@ useMutationObserver(
       '[data-play],[data-nav],[data-stage-toggle],[data-top-search],[data-seek],[data-up-add],[data-banner],[data-nav-back],[data-set-toggle],[data-search-input]'
     if (
       mutations.some(change =>
+        !(change.target instanceof Element && change.target.closest('[data-fs-lyrics],[data-lyric]')) &&
         [...change.addedNodes].some(
           node =>
             node instanceof HTMLElement &&
+            !node.matches('[data-fs]') &&
             (node.matches(controls) || node.querySelector(controls))
         )
       )
@@ -279,11 +290,13 @@ watch(
 // 初始化播放器、恢复原生关闭偏好并订阅独立窗口事件。
 onMounted(async () => {
   if (!root.value) return
+  initializePlaybackGrant(() => state.linkedProfiles.netease?.userId)
   player.value = mountSourcePlayer(root.value, {
     state,
     tracks,
     onNavigate: navigate,
-    onStateChange: publishSnapshot,
+    onStateChange: isTauri() ? publishSnapshot : undefined,
+    prepareStage,
     onDesktop: openSourceDesktop,
     onSettings: openSettings,
   })
@@ -385,7 +398,7 @@ const compactLibrary = computed(() =>
       </BaseButton>
       <PlayerNowPlaying />
     </div>
-    <PlayerFullscreen />
+    <component :is="fullscreenView" v-if="fullscreenView" />
     <PlayerBar />
   </PlayerWindowFrame>
 </template>

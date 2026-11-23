@@ -3,8 +3,10 @@ import { fullscreenTitleClass } from '@/services/player/fullscreen-title'
 import { parseEqualizerGains } from '@/services/player/equalizer'
 import { createCatalogAudio } from '@/services/player/catalog-audio'
 import { parseCatalogLyrics } from '@/services/player/catalog-lyrics'
+import { createLyricWindow, lyricRow, mountedLyricRows } from '@/services/player/lyric-window'
 import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
+import { notify } from '@/services/notification'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
 // 页面、列表和状态由 Vue / Pinia 管理；保留播放时序、歌词跟随和原始动画协调。
@@ -89,10 +91,22 @@ export function mountSourcePlayer(root, options = {}) {
   function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   }
+  const noLines = []
+  const unavailableLines = [{ t: 0, o: '暂无歌词', tr: '' }]
   // 歌词只使用当前曲目的真实时间轴，空播放器不创建歌词行。
   function fsLinesFor(idx) {
-    if (!TRACKS[idx]) return []
-    return catalogLyrics || [{ t: 0, o: '暂无歌词', tr: '' }]
+    if (!TRACKS[idx]) return noLines
+    return catalogLyrics || unavailableLines
+  }
+  // 在有序时间轴中定位当前句，首句之前返回 -1，支持向前或向后拖动。
+  function lyricIndexAt(lines, time) {
+    let left = 0, right = lines.length
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2)
+      if (lines[mid].t <= time + 0.001) left = mid + 1
+      else right = mid
+    }
+    return left - 1
   }
   var VOL_SPK = '<path d="M11 5L6 9H3v6h3l5 4z"/>'
   var ICON_VOL_HIGH =
@@ -115,6 +129,10 @@ export function mountSourcePlayer(root, options = {}) {
       : 'npOpen'
   }
   let catalogLyrics = null
+  let lyricTexts = []
+  let hasTimedLyrics = false
+  let stageRequest
+  let stageTrigger
   let lyricRequest
   let wordCue
   let wordFrame
@@ -129,9 +147,11 @@ export function mountSourcePlayer(root, options = {}) {
         render()
         return
       }
+      const durationChanged = state.streamDuration !== duration
       state.t = time
       state.streamDuration = duration
-      render()
+      if (durationChanged) render()
+      else renderClock()
     },
     equalizer(status) {
       state.equalizerStatus = status
@@ -168,7 +188,7 @@ export function mountSourcePlayer(root, options = {}) {
     state.resumeTime = 0
     state.t = Math.max(0, Math.min(currentDuration(), time))
     if (TRACKS[state.idx].catalog) audio.seek(state.t)
-    render()
+    renderClock()
   }
 
   // 拉取当前曲目的歌词，切歌后忽略上一请求结果。
@@ -185,6 +205,8 @@ export function mountSourcePlayer(root, options = {}) {
       const lines = parseCatalogLyrics(result)
       if (lines.length) {
         catalogLyrics = lines
+        lyricTexts = lines.map(line => line.o)
+        hasTimedLyrics = lines.some(line => line.words || line.trWords)
         render()
       }
     } catch {
@@ -247,7 +269,7 @@ export function mountSourcePlayer(root, options = {}) {
     if (time === undefined) return
     if (time + 0.001 >= wordCue.next || time + 0.001 < wordCue.start) {
       state.t = time
-      render()
+      renderClock()
       return
     }
     paintLyricWords(time)
@@ -257,11 +279,11 @@ export function mountSourcePlayer(root, options = {}) {
   // 所有全屏主题共享实际媒体位置和词段时钟，只更新当前唱句。
   function syncLyricWords(lines, index) {
     const viewport = state.stage && root.querySelector('[data-fs-lyrics]')
-    if (!viewport || !catalogLyrics?.some(line => line.words || line.trWords)) {
+    if (!viewport || !hasTimedLyrics) {
       wordCue = undefined
     } else {
       const line = lines[index]
-      const row = line?.words || line?.trWords ? viewport?.children[index] : undefined
+      const row = line?.words || line?.trWords ? lyricRow(viewport, index) : undefined
       const parts = row && row === wordCue?.row ? wordCue.parts : []
       if (row && row !== wordCue?.row) {
         const timings = [...(line.words ?? []), ...(line.trWords ?? [])]
@@ -285,12 +307,24 @@ export function mountSourcePlayer(root, options = {}) {
     }
   }
 
-  // 保持歌词拼接文本转义，只有附带词段时间的原文或译文才生成逐字节点。
+  // 普通行使用完整文本，保留词段的真实空格与换行宽度。
   function lyricMarkup(className, text, words) {
-    const inner = words
-      ? words.map(word => '<span class="fl-word">' + escHtml(word.text) + '</span>').join('')
-      : escHtml(text)
+    const inner = escHtml(words ? words.map(word => word.text).join('') : text)
     return '<span class="' + className + (words ? ' fl-timed' : '') + '">' + inner + '</span>'
+  }
+
+  // 只有当前句需要逐字填色；移出高亮后合并词段，保留按钮、键盘焦点和行高。
+  function setWordSpans(row, line, active) {
+    if (!row || !line) return
+    for (const [selector, words] of [['.fl-o', line.words], ['.fl-tr', line.trWords]]) {
+      if (!words?.length) continue
+      const text = row.querySelector(selector)
+      if (!text) continue
+      if (active) text.innerHTML = words.map(word =>
+        '<span class="fl-word">' + escHtml(word.text) + '</span>'
+      ).join('')
+      else text.textContent = text.textContent
+    }
   }
 
   // 按原稿用曲目与行号生成固定的气泡宽度、字号及行距，仅在创建歌词行时计算。
@@ -535,6 +569,7 @@ export function mountSourcePlayer(root, options = {}) {
 
   // 原稿交互：保留 setPage 对应的界面行为与调用规则。
   function setPage(pg, plIdx, viaNav) {
+    if (stageRequest && pg !== state.page) closeStage()
     if (pg === 'settings' && !viaNav && options.onSettings) {
       options.onSettings()
       return
@@ -986,6 +1021,141 @@ export function mountSourcePlayer(root, options = {}) {
     p.style.setProperty('--amb2', v.a2)
     p.style.setProperty('--amb3', v.a3)
   }
+  // 同步时间文本时只写变化的秒数，避免重复替换文本节点。
+  function updateClockLabel(element, value) {
+    if (element && element.textContent !== value) element.textContent = value
+  }
+
+  // 右侧歌词展开后才创建行；换句只更新上次和本次的高亮。
+  function updateSidebarLyrics(box, lines, index) {
+    if (!box?.classList.contains('show')) return
+    if (box._lines !== lines) {
+      box.classList.toggle('long-lyrics', lines.length >= 96)
+      box.innerHTML = lines.map((line, i) =>
+        '<div class="' + (i === index ? '' : 'dim') + '">' + escHtml(line.o) + '</div>'
+      ).join('')
+      box._lines = lines
+    } else if (box._activeLine !== index) {
+      box.children[box._activeLine]?.classList.add('dim')
+      box.children[index]?.classList.remove('dim')
+    }
+    box._activeLine = index
+  }
+
+  // 换曲或离开舞台时结束歌词浏览，使下次打开直接定位到媒体时钟。
+  function resetLyricBrowsing(fl) {
+    if (!fl) return
+    state._lyrHoldUntil = 0
+    lyricRow(fl, fl._focus)?.classList.remove('focus')
+    fl._focus = null
+    fl._keyboardBrowsing = false
+    fl.classList.remove('keyboard-browsing')
+    if (fl._hideT) clearTimeout(fl._hideT)
+    fl._hideT = null
+    const column = fl.closest('.fs-lyrcol')
+    const returnButton = column?.querySelector('[data-lyrreturn]')
+    const seekChip = column?.querySelector('[data-lyrseek]')
+    if (returnButton) returnButton.hidden = true
+    if (seekChip) {
+      seekChip.hidden = true
+      seekChip.classList.remove('show')
+    }
+  }
+
+  // 全屏歌词仅在曲目或时间轴替换时创建；固定的时间标签只生成一次。
+  function updateStageLyrics(fl, lines, index, realign) {
+    if (!fl) return
+    const rebuilt = fl._lines !== lines || fl._track !== state.idx
+    const previous = fl._activeLine ?? -1
+    if (!rebuilt && previous === index && !realign) return
+    if (rebuilt) {
+      fl._lines = lines
+      fl._track = state.idx
+      resetLyricBrowsing(fl)
+      fl.classList.toggle('lyrics-unavailable', !catalogLyrics)
+      fl._activeLine = -1
+      fl._window = createLyricWindow(fl, lines.length, (group, start, end) => {
+        group.innerHTML = lines.slice(start, end).map((line, offset) => {
+          const i = start + offset
+          return '<button type="button" class="fl-line" tabindex="-1" aria-current="false" data-lj="' +
+            i + '" style="' + chatLineStyle(state.idx, i) + '">' +
+            lyricMarkup('fl-o', line.o, line.words) +
+            (line.tr ? lyricMarkup('fl-tr', line.tr, line.trWords) : '') + '</button>'
+        }).join('')
+        for (let i = start; i < end; i++) {
+          const row = group.children[i - start]
+          row.setAttribute('aria-label', fmt(lines[i].t) + ' ' + lines[i].o)
+          row.classList.toggle('d1', Math.abs(i - fl._activeLine) === 1)
+        }
+      })
+    }
+    fl._window?.sync(index, realign || rebuilt)
+    if (rebuilt || previous !== index) {
+      if (!rebuilt) setWordSpans(lyricRow(fl, previous), lines[previous], false)
+      setWordSpans(lyricRow(fl, index), lines[index], true)
+      // 当前句、相邻句与唯一 Tab 入口均只涉及前后两个局部范围。
+      const changed = new Set([previous - 1, previous, previous + 1, index - 1, index, index + 1])
+      for (const i of changed) {
+        const row = lyricRow(fl, i)
+        if (!row) continue
+        row.classList.toggle('on', i === index)
+        row.classList.toggle('d1', Math.abs(i - index) === 1)
+        row.setAttribute('aria-current', String(i === index))
+        row.tabIndex = i === Math.max(0, index) ? 0 : -1
+      }
+      fl._activeLine = index
+    }
+    const active = lyricRow(fl, index)
+    if (!active || state._lyrHoldUntil > Date.now()) return
+    // 远距离定位先展开目标附近的真实行高，再居中；相邻唱句沿用平滑跟随。
+    const centeredTop = () => Math.max(0, active.offsetTop - fl.clientHeight / 2 + active.offsetHeight / 2)
+    const top = centeredTop()
+    const jump = fl._window && (realign || Math.abs(fl.scrollTop - top) > fl.clientHeight * 2)
+    const instant = rebuilt || jump || !state.settings.motion || stageMotionPreference.matches
+    fl._progUntil = Date.now() + (instant ? 90 : 780)
+    fl.scrollTo({ top, behavior: instant ? 'instant' : 'smooth' })
+    if (jump) {
+      fl._window.sync(index)
+      fl.scrollTo({ top: centeredTop(), behavior: 'instant' })
+    }
+  }
+
+  // 媒体时钟只驱动当前可见的进度条、唱句、频谱与桌面快照。
+  function renderClock(refreshLyrics = false) {
+    const duration = currentDuration()
+    const ratio = duration ? state.t / duration : 0
+    const lines = fsLinesFor(state.idx)
+    const index = lyricIndexAt(lines, state.t)
+    const current = TRACKS[state.idx]
+    state.capsuleLyric = current ? lines[index]?.o || current.title : ''
+    const key = state.idx + ':' + !!catalogLyrics + ':' + index
+    if (!state.stage) audio.setSpectrumPlayback({
+      playing: state.playing, time: state.t, duration, seed: state.idx, demo: false,
+    })
+    players().forEach(p => {
+      const surface = p.querySelector(state.stage ? '.fs-dock' : '.win-bottom')
+      if (surface) {
+        updateClockLabel(surface.querySelector('[data-cur]'), fmt(state.t))
+        updateClockLabel(surface.querySelector('[data-dur]'), fmt(duration))
+        updateClockLabel(surface.querySelector('[data-remain]'), '-' + fmt(duration - state.t))
+        const seek = surface.querySelector('[data-seek]')
+        if (seek) {
+          const value = String(Math.round(ratio * 1000))
+          if (seek.value !== value) seek.value = value
+          const fill = ratio * 100 + '%'
+          if (seek.style.getPropertyValue('--p') !== fill) seek.style.setProperty('--p', fill)
+        }
+      }
+      if (refreshLyrics || state._lyrKey !== key) {
+        if (state.stage) updateStageLyrics(p.querySelector('[data-fs-lyrics]'), lines, index, !state._lyrKey)
+        else if (state[nowPlayingKey()]) updateSidebarLyrics(p.querySelector('[data-lyric]'), lines, index)
+      }
+    })
+    state._lyrKey = key
+    syncLyricWords(lines, index)
+    if (options.onStateChange) options.onStateChange(getSnapshot())
+  }
+
   // 同步曲目、歌词、队列、横幅与桌面表面，保持原稿行为。
   function render() {
     audio.setEqualizer({
@@ -994,29 +1164,11 @@ export function mountSourcePlayer(root, options = {}) {
       gains: parseEqualizerGains(state.settings.eqGains),
       autoHeadroom: state.settings.eqAutoHeadroom,
     })
-    audio.setSpectrumMotion(state.settings.motion)
+    audio.setSpectrumMotion(state.settings.motion && !state.stage)
     const npOpen = state[nowPlayingKey()]
     const current = TRACKS[state.idx]
     var tr = { ...(current || emptyTrack), dur: currentDuration() }
     audio.setSpectrumArtwork(tr.cover, tr.glow, !!tr.catalog)
-    audio.setSpectrumPlayback({
-      playing: state.playing,
-      time: state.t,
-      duration: tr.dur,
-      seed: state.idx,
-      demo: false,
-    })
-    var ratio = tr.dur ? state.t / tr.dur : 0
-    var fls = fsLinesFor(state.idx)
-    var fli = -1
-    for (var fi = 0; fi < fls.length; fi++) {
-      if (fls[fi].t <= state.t + 0.001) fli = fi
-    }
-    var lns = fls.map(line => line.o)
-    var li = fli
-    state.capsuleLyric = current ? lns[li] || tr.title : ''
-    var lyricTrackKey = state.idx + ':' + !!catalogLyrics
-    var lyrKey = lyricTrackKey + ':' + li + ':' + fli
     var av = null
     if (state._ambIdx !== state.idx) {
       state._ambIdx = state.idx
@@ -1107,19 +1259,6 @@ export function mountSourcePlayer(root, options = {}) {
       p.querySelectorAll('[data-artist]').forEach(function (el) {
         el.textContent = current ? tr.artist + ' · ' + tr.album : ''
       })
-      p.querySelectorAll('[data-dur]').forEach(function (el) {
-        el.textContent = fmt(tr.dur)
-      })
-      p.querySelectorAll('[data-cur]').forEach(function (el) {
-        el.textContent = fmt(state.t)
-      })
-      p.querySelectorAll('[data-remain]').forEach(function (el) {
-        el.textContent = '-' + fmt(tr.dur - state.t)
-      })
-      p.querySelectorAll('[data-seek]').forEach(function (seek) {
-        seek.value = Math.round(ratio * 1000)
-        seek.style.setProperty('--p', ratio * 100 + '%')
-      })
       p.querySelectorAll('[data-like]').forEach(function (el) {
         el.classList.toggle('liked', !!state.liked[state.idx])
         el.setAttribute(
@@ -1185,126 +1324,7 @@ export function mountSourcePlayer(root, options = {}) {
           it.classList.toggle('on', TRACKS[parseInt(ti, 10)].album === tr.album)
         }
       })
-      if (state._lyrKey !== lyrKey) {
-        var reduce =
-          !state.settings.motion ||
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        var ly = p.querySelector('[data-lyric]')
-        if (ly) {
-          if (
-            ly.getAttribute('data-track') !== lyricTrackKey ||
-            !ly.children.length
-          ) {
-            ly.innerHTML = lns
-              .map(function (line, j) {
-                return (
-                  '<div class="' +
-                  (j === li ? '' : 'dim') +
-                  '">' +
-                  escHtml(line) +
-                  '</div>'
-                )
-              })
-              .join('')
-            ly.setAttribute('data-track', lyricTrackKey)
-          } else {
-            for (var lj = 0; lj < ly.children.length; lj++) {
-              ly.children[lj].className = lj === li ? '' : 'dim'
-            }
-          }
-        }
-        var fl = p.querySelector('[data-fs-lyrics]')
-        if (fl) {
-          fl.classList.toggle('lyrics-unavailable', !catalogLyrics)
-          var lineCls = function (j) {
-            return (
-              'fl-line' +
-              (j === fli ? ' on' : Math.abs(j - fli) === 1 ? ' d1' : '') +
-              (fl._focus === j ? ' focus' : '')
-            )
-          }
-          if (
-            fl.getAttribute('data-track') !== lyricTrackKey ||
-            fl.children.length !== fls.length
-          ) {
-            // 新歌词替换旧列表时清理浏览状态，避免上一首的时间定位残留。
-            state._lyrHoldUntil = 0
-            fl._keyboardBrowsing = false
-            fl.classList.remove('keyboard-browsing')
-            if (fl._hideT) clearTimeout(fl._hideT)
-            const column = fl.closest('.fs-lyrcol')
-            const returnButton = column?.querySelector('[data-lyrreturn]')
-            const seekChip = column?.querySelector('[data-lyrseek]')
-            if (returnButton) returnButton.hidden = true
-            if (seekChip) {
-              seekChip.hidden = true
-              seekChip.classList.remove('show')
-            }
-            fl.innerHTML = fls
-              .map(function (L, j) {
-                return (
-                  '<button type="button" class="' +
-                  lineCls(j) +
-                  '" data-lj="' +
-                  j +
-                  '" style="' +
-                  chatLineStyle(state.idx, j) +
-                  '">' +
-                  lyricMarkup('fl-o', L.o, L.words) +
-                  (L.tr ? lyricMarkup('fl-tr', L.tr, L.trWords) : '') +
-                  '</button>'
-                )
-              })
-              .join('')
-            fl.setAttribute('data-track', lyricTrackKey)
-            fl._focus = null
-            fl._progUntil = Date.now() + 90
-            var act0 = fl.querySelector('.fl-line.on')
-            if (act0) {
-              fl.scrollTop = Math.max(
-                0,
-                act0.offsetTop - fl.clientHeight / 2 + act0.offsetHeight / 2
-              )
-            }
-          } else {
-            for (var fj = 0; fj < fl.children.length; fj++) {
-              fl.children[fj].className = lineCls(fj)
-            }
-            var act = fl.querySelector('.fl-line.on')
-            /* while the user is drag-browsing the lyrics, follow-scroll yields */
-            if (
-              act &&
-              !(state._lyrHoldUntil && Date.now() < state._lyrHoldUntil)
-            ) {
-              var target = Math.max(
-                0,
-                act.offsetTop - fl.clientHeight / 2 + act.offsetHeight / 2
-              )
-              fl._progUntil = Date.now() + 780
-              if (reduce) {
-                fl.scrollTop = target
-              } else {
-                fl.scrollTo({ top: target, behavior: 'smooth' })
-              }
-            }
-          }
-          for (var rowIndex = 0; rowIndex < fl.children.length; rowIndex++) {
-            const row = fl.children[rowIndex]
-            row.setAttribute(
-              'aria-current',
-              rowIndex === fli ? 'true' : 'false'
-            )
-            row.setAttribute(
-              'aria-label',
-              fmt(fls[rowIndex].t) + ' ' + fls[rowIndex].o
-            )
-            row.tabIndex = rowIndex === Math.max(0, fli) ? 0 : -1
-          }
-        }
-      }
     })
-    state._lyrKey = lyrKey
-    syncLyricWords(fls, fli)
     renderVolume()
     var pgSig =
       state.query +
@@ -1359,7 +1379,7 @@ export function mountSourcePlayer(root, options = {}) {
       )
     })
 
-    if (options.onStateChange) options.onStateChange(getSnapshot())
+    renderClock(true)
   }
   // 曲目播完后按现有队列和循环规则决定重播、续播或暂停。
   function finishPlayback() {
@@ -1482,6 +1502,8 @@ export function mountSourcePlayer(root, options = {}) {
     lyricRequest?.abort()
     lyricRequest = undefined
     catalogLyrics = null
+    lyricTexts = []
+    hasTimedLyrics = false
     state.resumeTime = 0
     state.idx = i
     state.t = 0
@@ -1551,8 +1573,8 @@ export function mountSourcePlayer(root, options = {}) {
     })
     p.querySelectorAll('[data-stage-toggle]').forEach(function (el) {
       listenElement(el, 'click', function () {
-        if (state.stage) setStage(false)
-        else openStage()
+        if (state.stage) closeStage()
+        else void openStage(el)
       })
     })
     p.querySelectorAll('[data-fsq-toggle]').forEach(function (el) {
@@ -1642,6 +1664,7 @@ export function mountSourcePlayer(root, options = {}) {
         var ly = p.querySelector('[data-lyric]')
         ly.classList.toggle('show')
         lb.classList.toggle('on')
+        if (ly.classList.contains('show')) renderClock(true)
       })
     })
     /* fullscreen lyrics : drag / scroll to browse — the line at the column's centre
@@ -1659,6 +1682,7 @@ export function mountSourcePlayer(root, options = {}) {
           document.activeElement === returnButton ||
           document.activeElement === chip
         state._lyrHoldUntil = 0
+        lyricRow(fl, fl._focus)?.classList.remove('focus')
         fl._focus = null
         fl._keyboardBrowsing = false
         fl.classList.remove('keyboard-browsing')
@@ -1673,7 +1697,7 @@ export function mountSourcePlayer(root, options = {}) {
         render()
         if (restoreFocus) {
           fl._restoringFocus = true
-          ;(fl.querySelector('.fl-line.on') || fl.children[0])?.focus({
+          ;(fl.querySelector('.fl-line.on') || lyricRow(fl, 0, true))?.focus({
             preventScroll: true,
           })
           fl._restoringFocus = false
@@ -1688,19 +1712,19 @@ export function mountSourcePlayer(root, options = {}) {
       }
       // 浏览时按可视区域中心选择定位句，供拖动与键盘共用。
       function centreLine() {
-        if (!fl.children.length) return -1
-        var mid = fl.scrollTop + fl.clientHeight / 2,
-          best = -1,
-          bd = 1e18
-        for (var j = 0; j < fl.children.length; j++) {
-          var c = fl.children[j].offsetTop + fl.children[j].offsetHeight / 2,
-            d = Math.abs(c - mid)
-          if (d < bd) {
-            bd = d
-            best = j
-          }
+        const rows = mountedLyricRows(fl)
+        if (!rows.length) return -1
+        const mid = fl.scrollTop + fl.clientHeight / 2
+        // 行高由原文和译文实测，按实际中心坐标二分定位。
+        const center = i => rows[i].offsetTop + rows[i].offsetHeight / 2
+        let left = 0, right = rows.length - 1
+        while (left < right) {
+          const index = Math.floor((left + right) / 2)
+          if (center(index) < mid) left = index + 1
+          else right = index
         }
-        return best
+        const nearest = left > 0 && mid - center(left - 1) <= center(left) - mid ? left - 1 : left
+        return Number(rows[nearest].getAttribute('data-lj'))
       }
       // 手动滚动暂停跟随并显示回到当前入口；键盘焦点停留期间不抢读词位置。
       function browse() {
@@ -1709,10 +1733,9 @@ export function mountSourcePlayer(root, options = {}) {
         var j = centreLine()
         if (j < 0) return
         if (fl._focus !== j) {
+          lyricRow(fl, fl._focus)?.classList.remove('focus')
           fl._focus = j
-          for (var k = 0; k < fl.children.length; k++) {
-            fl.children[k].classList.toggle('focus', k === j)
-          }
+          lyricRow(fl, j).classList.add('focus')
         }
         if (chip && col) {
           var lines = fsLinesFor(state.idx)
@@ -1720,7 +1743,7 @@ export function mountSourcePlayer(root, options = {}) {
             chip.querySelector('[data-lyrseek-t]').textContent = fmt(lines[j].t)
             chip._j = j
             var colR = col.getBoundingClientRect(),
-              lnR = fl.children[j].getBoundingClientRect()
+              lnR = lyricRow(fl, j).getBoundingClientRect()
             var y = lnR.top - colR.top + lnR.height / 2
             chip.style.top = Math.max(52, Math.min(colR.height - 26, y)) + 'px'
             chip.hidden = false
@@ -1761,19 +1784,20 @@ export function mountSourcePlayer(root, options = {}) {
         if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
         event.preventDefault()
         event.stopPropagation()
+        const count = fsLinesFor(state.idx).length
         const next =
           event.key === 'Home'
             ? 0
             : event.key === 'End'
-              ? fl.children.length - 1
+              ? count - 1
               : Math.max(
                   0,
                   Math.min(
-                    fl.children.length - 1,
+                    count - 1,
                     index + (event.key === 'ArrowDown' ? 1 : -1)
                   )
                 )
-        const target = fl.children[next]
+        const target = lyricRow(fl, next, true)
         if (!target) return
         fl._keyboardBrowsing = true
         fl.classList.add('keyboard-browsing')
@@ -1793,6 +1817,7 @@ export function mountSourcePlayer(root, options = {}) {
         browse()
       })
       listenElement(fl, 'focusout', event => {
+        if (!state.stage) return
         if (fl.contains(event.relatedTarget)) return
         fl._keyboardBrowsing = false
         fl.classList.remove('keyboard-browsing')
@@ -1803,6 +1828,8 @@ export function mountSourcePlayer(root, options = {}) {
         fl,
         'scroll',
         function () {
+          if (!state.stage) return
+          fl._window?.sync(fl._activeLine)
           if (fl._progUntil && Date.now() < fl._progUntil) return
           browse()
         },
@@ -1839,10 +1866,10 @@ export function mountSourcePlayer(root, options = {}) {
         fl.classList.remove('dragging')
         fl._clickSupp = Date.now() + 450
         if (!wasDrag) {
-          for (var k = 0; k < fl.children.length; k++) {
-            var rr = fl.children[k].getBoundingClientRect()
+          for (const row of mountedLyricRows(fl)) {
+            var rr = row.getBoundingClientRect()
             if (e.clientY >= rr.top && e.clientY <= rr.bottom) {
-              seekLine(k)
+              seekLine(Number(row.getAttribute('data-lj')))
               break
             }
           }
@@ -2287,8 +2314,8 @@ export function mountSourcePlayer(root, options = {}) {
   document.addEventListener('keydown', function (e) {
     // 模态层自行处理键盘，避免 Escape 返回首页或空格改变背景播放。
     if (nativeDocument.querySelector('dialog[open]')) return
-    if (e.code === 'Escape' && state.stage) {
-      setStage(false)
+    if (e.code === 'Escape' && (state.stage || state.stageLoading)) {
+      closeStage()
       return
     }
     if (e.code === 'Escape' && state.page !== 'home') {
@@ -2340,11 +2367,8 @@ export function mountSourcePlayer(root, options = {}) {
   function getSnapshot() {
     const track = { ...(TRACKS[state.idx] || emptyTrack), dur: currentDuration() }
     const lines = fsLinesFor(state.idx)
-    const lyrics = lines.map(line => line.o)
-    let lyricIndex = 0
-    lines.forEach((line, index) => {
-      if (line.t <= state.t + 0.001) lyricIndex = index
-    })
+    const lyrics = catalogLyrics ? lyricTexts : lines.map(line => line.o)
+    const lyricIndex = Math.max(0, lyricIndexAt(lines, state.t))
     return {
       track,
       playing: state.playing,
@@ -2378,6 +2402,8 @@ export function mountSourcePlayer(root, options = {}) {
   // Vue 页面退出时只释放宿主资源，不修改原稿的交互状态与视觉规则。
   function destroy() {
     destroyed = true
+    stageRequest?.abort()
+    state.stageLoading = false
     lyricRequest?.abort()
     audio.destroy()
     cleanups.forEach(cleanup => cleanup())
@@ -2406,9 +2432,47 @@ export function mountSourcePlayer(root, options = {}) {
     state._pageKey = ''
     render()
   }
-  // 只有选中实际曲目后才进入全屏播放页。
-  function openStage() {
-    if (TRACKS[state.idx]) setStage(true)
+  // 第一次进入在舞台就绪后启动原有分层动画；再次点击可取消慢加载。
+  async function openStage(trigger) {
+    if (!TRACKS[state.idx] || state.stage) return
+    if (stageRequest) {
+      closeStage()
+      return
+    }
+    stageTrigger = trigger ?? nativeDocument.activeElement
+    if (!root.querySelector('[data-fs]') && options.prepareStage) {
+      const request = new AbortController()
+      stageRequest = request
+      state.stageLoading = true
+      try {
+        await options.prepareStage(request.signal)
+        if (destroyed || request.signal.aborted || !TRACKS[state.idx]) return
+        bind()
+        state._ambIdx = undefined
+      } catch {
+        if (!destroyed && !request.signal.aborted) notify('全屏舞台加载失败，请重新打开', 'error')
+        return
+      } finally {
+        if (stageRequest === request) {
+          stageRequest = undefined
+          state.stageLoading = false
+        }
+      }
+    }
+    setStage(true)
+    root.querySelector('.fs-top [data-stage-toggle]')?.focus({ preventScroll: true })
+  }
+  // 取消仍在准备的舞台，或播放既有退场动画并把焦点交回入口。
+  function closeStage() {
+    stageRequest?.abort()
+    stageRequest = undefined
+    state.stageLoading = false
+    if (state.stage) {
+      setStage(false)
+      resetLyricBrowsing(root.querySelector('[data-fs-lyrics]'))
+    }
+    if (stageTrigger?.isConnected) stageTrigger.focus({ preventScroll: true })
+    stageTrigger = undefined
   }
   return {
     getSnapshot,

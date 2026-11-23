@@ -490,7 +490,7 @@ function keyboardHarness(modal, stage = false) {
     nativeDocument: { querySelector: () => (modal ? {} : null) },
     document: { activeElement: { tagName: 'BODY' } },
     setPage: value => calls.push(['page', value]),
-    setStage: value => calls.push(['stage', value]),
+    closeStage: () => calls.push(['stage', false]),
     setPlaying: value => calls.push(['playing', value]),
     seekTo: value => calls.push(['seek', value]),
     setVol: value => calls.push(['volume', value]),

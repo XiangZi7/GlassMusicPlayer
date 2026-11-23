@@ -1,6 +1,7 @@
 import { apiBaseUrl, httpGet, httpPost } from '@/utils/http'
 import {
   playbackBearer,
+  restorePlaybackGrant,
   clearPlaybackGrant,
 } from '@/services/player/playback-session'
 
@@ -130,6 +131,7 @@ export async function getCatalogPlayback(
   signal: AbortSignal,
   quality?: string
 ) {
+  if (platform === 'netease') await restorePlaybackGrant()
   const token = platform === 'netease' ? playbackBearer() : ''
   try {
     const result = await httpGet<CatalogPlayback>(

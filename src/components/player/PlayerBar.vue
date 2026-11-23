@@ -34,6 +34,7 @@ const qualityHint = computed(() => {
       <BaseButton
         class="mini-cover h-[48px] w-[48px] flex-none overflow-hidden rounded-[11px] border-none bg-none p-0"
         data-stage-toggle
+        :aria-busy="state.stageLoading || undefined"
         aria-label="打开全屏播放页"
         title="打开全屏播放"
         ><img

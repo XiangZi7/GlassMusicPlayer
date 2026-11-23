@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, useTemplateRef } from 'vue'
-import { useElementSize, usePreferredReducedMotion, useResizeObserver } from '@vueuse/core'
+import { computed, onMounted, reactive, useTemplateRef, watch } from 'vue'
+import {
+  useElementSize,
+  StorageSerializers,
+  useLocalStorage,
+  usePreferredReducedMotion,
+  useResizeObserver,
+} from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
 import { usePlayer } from '@/composables/usePlayer'
 
@@ -10,14 +16,27 @@ const measure = useTemplateRef<HTMLElement>('measure')
 const { width: lyricWidth } = useElementSize(measure)
 const reducedMotion = usePreferredReducedMotion()
 const host = computed(() => button.value?.closest<HTMLElement>('[data-player]'))
-const offset = reactive({ x: 0, y: 0 })
+const offset = reactive({
+  // 水平拖动相对胶囊默认中心的位移。
+  x: 0,
+  // 垂直拖动相对底栏默认位置的位移。
+  y: 0,
+})
+const savedCenter = useLocalStorage<{ x: number; y: number } | null>(
+  'miraiMusic.lyricIsland.center.v1', null,
+  { serializer: StorageSerializers.object, writeDefaults: false, flush: 'sync' }
+)
 const visible = computed(
   () =>
     state.settings.lyricIsland &&
     !(isTauri() && state.settings.lyricIslandDesktop)
 )
 const animateLyrics = computed(
-  () => visible.value && !state.stage && state.settings.motion && reducedMotion.value !== 'reduce'
+  () =>
+    visible.value &&
+    !state.stage &&
+    state.settings.motion &&
+    reducedMotion.value !== 'reduce'
 )
 let gesture:
   | { id: number; x: number; y: number; startX: number; startY: number }
@@ -46,7 +65,26 @@ function moveTo(x: number, y: number): void {
   )
 }
 
-useResizeObserver([host, button], () => moveTo(offset.x, offset.y))
+// 按窗口比例恢复胶囊中心；暂时缩小窗口只做限位，不覆盖用户保存的位置。
+function restorePosition(): void {
+  const bounds = host.value?.getBoundingClientRect()
+  const element = button.value
+  const center = savedCenter.value
+  if (!bounds || !element || gesture || !visible.value || state.stage) return
+  if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y)) {
+    moveTo(offset.x, offset.y)
+    return
+  }
+  const rect = element.getBoundingClientRect()
+  const [x = 0, y = 0] = element.style.translate.split(' ').map(parseFloat)
+  moveTo(
+    x + bounds.left + center.x * bounds.width - rect.left - rect.width / 2,
+    y + bounds.top + center.y * bounds.height - rect.top - rect.height / 2
+  )
+}
+onMounted(restorePosition)
+useResizeObserver([host, button], restorePosition)
+watch([visible, () => state.stage], restorePosition, { flush: 'post' })
 
 // 记录起点，轻点仍打开全屏播放。
 function startDrag(event: PointerEvent): void {
@@ -72,14 +110,28 @@ function drag(event: PointerEvent): void {
   moveTo(gesture.startX + dx, gesture.startY + dy)
 }
 
-// 指针被收回时结束本次拖动，保留点击抑制直到下一次操作。
+// 拖动完成只保存一次，轻点、取消或歌词伸缩都不会改写用户选定的位置。
 function endDrag(event: PointerEvent): void {
-  if (gesture?.id === event.pointerId) gesture = undefined
+  if (gesture?.id !== event.pointerId) return
+  gesture = undefined
+  const bounds = host.value?.getBoundingClientRect()
+  const element = button.value
+  if (!dragged || !bounds?.width || !bounds.height || !element) return
+  if (event.type === 'pointercancel') {
+    restorePosition()
+    return
+  }
+  const rect = element.getBoundingClientRect()
+  const [x = 0, y = 0] = element.style.translate.split(' ').map(parseFloat)
+  savedCenter.value = {
+    x: (rect.left - x + offset.x + rect.width / 2 - bounds.left) / bounds.width,
+    y: (rect.top - y + offset.y + rect.height / 2 - bounds.top) / bounds.height,
+  }
 }
 
 // 忽略拖动后产生的鼠标点击，保留键盘操作。
 function openStage(event: MouseEvent): void {
-  if (!dragged || event.detail === 0) controller()?.openStage()
+  if (!dragged || event.detail === 0) controller()?.openStage(event.currentTarget as HTMLElement)
 }
 </script>
 
@@ -92,8 +144,11 @@ function openStage(event: MouseEvent): void {
     :style="{ translate: `${offset.x}px ${offset.y}px` }"
     :tabindex="state.stage ? -1 : undefined"
     aria-label="灵动岛，打开全屏播放"
+    :aria-busy="state.stageLoading || undefined"
     @pointerdown="startDrag"
     @pointermove="drag"
+    @pointerup="endDrag"
+    @pointercancel="endDrag"
     @lostpointercapture="endDrag"
     @click="openStage"
   >
@@ -109,14 +164,24 @@ function openStage(event: MouseEvent): void {
       :style="{ width: lyricWidth + 'px' }"
     >
       <!-- 独立测量新句，旧句淡出期间胶囊即可向目标宽度过渡。 -->
-      <span ref="measure" class="invisible absolute top-0 left-0 w-max" aria-hidden="true">{{ state.capsuleLyric }}</span>
+      <span
+        ref="measure"
+        class="invisible absolute top-0 left-0 w-max"
+        aria-hidden="true"
+        >{{ state.capsuleLyric }}</span
+      >
       <Transition
         :key="animateLyrics ? 'animated' : 'static'"
         name="capsule-line"
         mode="out-in"
         :css="animateLyrics"
       >
-        <span :key="state.capsuleLyric" class="block truncate" data-capsule-text>{{ state.capsuleLyric }}</span>
+        <span
+          :key="state.capsuleLyric"
+          class="block truncate"
+          data-capsule-text
+          >{{ state.capsuleLyric }}</span
+        >
       </Transition>
     </span>
     <span

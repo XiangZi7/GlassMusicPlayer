@@ -182,6 +182,12 @@ const expectedSeek = originalScript
     'seekTo((seek.value / 1000) * currentDuration());'
   )
   .replace('var total=TRACKS[state.idx].dur;', 'var total=currentDuration();')
+  // 虚拟行仅改变可命中的节点和绝对行号，保留原滚动抑制、拖动阈值与松手时序。
+  .replace('if(fl._progUntil&&Date.now()<fl._progUntil)return; browse();',
+    'if (!state.stage) return; fl._window?.sync(fl._activeLine); if(fl._progUntil&&Date.now()<fl._progUntil)return; browse();')
+  .replace(/for\(var k=0;k<fl\.children\.length;k\+\+\)\{\s*var rr=fl\.children\[k\]\.getBoundingClientRect\(\);/,
+    'for(const row of mountedLyricRows(fl)){ var rr=row.getBoundingClientRect();')
+  .replace('seekLine(k); break;', "seekLine(Number(row.getAttribute('data-lj'))); break;")
 const originalHandlers = motionHandlers(expectedSeek)
 const currentHandlers = motionHandlers(read('src/services/player/runtime.js'))
 for (const [key, value] of originalHandlers)

@@ -4,6 +4,7 @@ import type { MusicPlatform } from '@/api'
 import type { QrLoginProfile } from '@/api/auth'
 import type { LoginViewStatus } from '@/services/platform-login'
 import { platformNames } from '@/services/player/catalog'
+import { rememberPlayback } from '@/services/player/playback-session'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = defineProps<{
@@ -170,7 +171,9 @@ const showQr = computed(
       class="mt-4 mb-0 text-[11px] leading-relaxed text-white/55"
     >
       {{ platform === 'netease'
-        ? '扫码后，本次会话可使用你的网易云会员权益。可播曲目和音质以网易云授权为准。'
+        ? (rememberPlayback
+          ? '扫码后会在此 Windows 设备上记住登录。重启时将向网易云核对账号和会员权益。'
+          : '扫码后，本次会话可使用你的网易云会员权益。可播曲目和音质以网易云授权为准。')
         : '酷狗扫码可关联公开资料，公开歌单可通过分享链接导入。' }}
     </p>
   </section>

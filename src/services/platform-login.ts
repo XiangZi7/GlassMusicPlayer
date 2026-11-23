@@ -20,7 +20,7 @@ export interface PlatformLoginState {
 }
 
 export interface PlatformLoginApi {
-  authorized?: (profile: QrLoginProfile, grant?: QrLoginResult['playback']) => void
+  authorized?: (profile: QrLoginProfile, grant?: QrLoginResult['playback']) => void | Promise<void>
   create: (
     platform: MusicPlatform,
     signal: AbortSignal
@@ -160,7 +160,10 @@ export function createPlatformLoginFlow(
         throw new Error('扫码流程返回的平台不匹配，请重新扫码。')
       if (result.status === 'authorized') {
         const profile = verifiedProfile(result.profile)
-        if (active.platform === 'netease') api.authorized?.(profile, result.playback)
+        if (active.platform === 'netease' && api.authorized) {
+          await api.authorized(profile, result.playback)
+          if (current !== generation || request.signal.aborted) return
+        }
         // 已取得公开身份后立即回收服务端槽位，不等弹窗关闭或 TTL 清理。
         release(active.platform, active.id)
         session = undefined

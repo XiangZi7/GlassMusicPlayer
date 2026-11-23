@@ -11,6 +11,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            crate::playback_credential::read_playback_credential,
+            crate::playback_credential::write_playback_credential,
             windows::open_desktop_window,
             windows::resize_desktop_surface,
             windows::set_desktop_lock,

@@ -46,6 +46,7 @@ export interface SourcePlayer {
 }
 
 export interface SourcePlayerOptions {
+  prepareStage?: (signal: AbortSignal) => Promise<void>
   onStateChange?: (snapshot: SourceSnapshot) => void
   onDesktop?: (mode: 'mini' | 'lyr' | 'media') => void
   onSettings?: () => void

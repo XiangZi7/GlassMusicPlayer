@@ -47,9 +47,9 @@ async function until(label, condition) {
 }
 
 // 生成只供浏览器测试使用的短 WAV，用实际媒体元素驱动两处频谱。
-function spectrumAudio() {
-  const rate = 16000
-  const samples = rate * 12
+function spectrumAudio(longLyrics = false) {
+  const rate = longLyrics ? 8000 : 16000
+  const samples = rate * (longLyrics ? 240 : 12)
   const wav = Buffer.alloc(44 + samples * 2)
   wav.write('RIFF', 0)
   wav.writeUInt32LE(wav.length - 8, 4)
@@ -77,11 +77,14 @@ function spectrumAudio() {
   }
   return wav
 }
-const wav = spectrumAudio()
+const stagePerformance = process.argv.includes('--stage-performance')
+const wav = spectrumAudio(stagePerformance)
 
 let releasePlayback
 const pendingPlayback = new Promise(resolve => { releasePlayback = resolve })
 const requestedQualities = []
+let stageAttempts = 0
+let heldStageRequest
 let heldEqualizerRequest
 let delayEqualizer = true
 let failStorageOnce = true
@@ -91,7 +94,8 @@ let releasePlaylistResponse
 const playlistResponse = new Promise(resolve => {
   releasePlaylistResponse = resolve
 })
-try {
+// 按命令运行完整界面回归或独立加载专项，共用隔离浏览器和样本接口。
+async function runBrowserChecks() {
   const port = await until('Edge 调试端口', () => {
     try {
       return readFileSync(portFile, 'utf8').match(/^\d+(?=\r?\n)/)?.[0]
@@ -143,6 +147,17 @@ try {
   // 只有隔离浏览器的指定样本接口返回数据，其余外部音源请求快速失败。
   async function respondToFixture({ requestId, request }) {
     const path = new URL(request.url).pathname
+    if (stagePerformance && path.endsWith('/PlayerFullscreen.vue')) {
+      if (!new URL(request.url).searchParams.has('type')) {
+        stageAttempts++
+        if (stageAttempts === 1) return send('Fetch.failRequest', { requestId, errorReason: 'Failed' })
+        if (stageAttempts === 2) {
+          heldStageRequest = requestId
+          return
+        }
+      }
+      return send('Fetch.continueRequest', { requestId })
+    }
     if (path.endsWith('/equalizer-panel.vue') || path.endsWith('/storage-panel.vue')) {
       if (!new URL(request.url).searchParams.has('type')) {
         if (path.endsWith('/equalizer-panel.vue') && delayEqualizer) {
@@ -247,6 +262,20 @@ try {
         body: wav.subarray(start, end + 1).toString('base64'),
       })
     }
+    if (stagePerformance && path === '/api/v1/netease/tracks/1/lyrics') {
+      data = {
+        lrc: '', translatedLrc: '',
+        yrc: Array.from({ length: 480 }, (_, i) => {
+          const start = i * 500
+          const extra = i > 12 && i % 7 === 0 ? ' 长句在窄窗中自然换行'.repeat(5) : ''
+          return `[${start},500](${start},200,0)第(${start + 200},300,0)${i}句${extra}`
+        }).join('\n'),
+        ytlrc: Array.from({ length: 240 }, (_, i) => {
+          const seconds = i % 60
+          return `[${Math.floor(i / 60)}:${String(seconds).padStart(2, '0')}.00]Translation for line ${i * 2}`
+        }).join('\n'),
+      }
+    }
     if (!data) {
       return send('Fetch.failRequest', { requestId, errorReason: 'Failed' })
     }
@@ -261,11 +290,12 @@ try {
     })
   }
   // 从浏览器读取页面状态和实际布局。
-  async function evaluate(expression) {
+  async function evaluate(expression, userGesture = false) {
     const response = await send('Runtime.evaluate', {
       expression,
       returnByValue: true,
       awaitPromise: true,
+      userGesture,
     })
     assert(
       !response.exceptionDetails,
@@ -292,8 +322,130 @@ try {
       deviceScaleFactor: 1,
     })
   }
-  const waitFor = (label, expression) =>
-    until(label, () => evaluate(expression))
+  // 超时时保留浏览器异常，让加载失败与交互断言可以分别定位。
+  const waitFor = (label, expression) => until(label, () => evaluate(expression)).catch(error => {
+    if (errors.length) throw new Error(errors.join('\n'), { cause: error })
+    throw error
+  })
+  const panelLoaded = name => `performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/${name}-panel.vue'))`
+
+  // 验证通用设置的加载边界、慢请求切换与重新进入。
+  async function checkDeferredEqualizer() {
+    assert.equal(await evaluate(panelLoaded('equalizer')), false)
+    assert.equal(await evaluate(panelLoaded('storage')), false)
+    await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
+    await until('拦截首次均衡器模块', () => heldEqualizerRequest)
+    await waitFor('慢加载期间反馈', `document.querySelector('main [role="status"]')?.textContent.includes('正在加载设置')`)
+    await evaluate(`document.querySelector('[data-slide-value="general"]').click()`)
+    await waitFor('回到通用设置', `document.querySelector('[data-panel="settings"]')?.textContent.includes('关闭主窗口') && !document.querySelector('main [role="status"]')`)
+    delayEqualizer = false
+    await send('Fetch.continueRequest', { requestId: heldEqualizerRequest })
+    await waitFor('迟到的模块已返回', panelLoaded('equalizer'))
+    assert.equal(await evaluate(`document.querySelectorAll('.eq-band').length`), 0)
+    await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
+    await waitFor('十频段', `document.querySelectorAll('.eq-band').length === 10`)
+    assert.equal(await evaluate(panelLoaded('equalizer')), true)
+    assert.equal(await evaluate(panelLoaded('storage')), false)
+  }
+
+  // 在独立浏览器拦截一次模块，验证错误反馈与重试。
+  async function checkDeferredStorage() {
+    await evaluate(`document.querySelector('[data-slide-value="storage"]').click()`)
+    const retryPanel = `[...document.querySelectorAll('main button')].find(button => button.textContent.trim() === '重新加载')`
+    await waitFor('存储模块读取失败后可重试', `!!(${retryPanel})`)
+    await evaluate(`(${retryPanel}).click()`)
+    await waitFor('存储重试后就绪', `!!document.querySelector('#cache-directory')`)
+    assert.equal(await evaluate(panelLoaded('storage')), true)
+  }
+
+  // 向隔离浏览器注册独立专辑和歌手，并设置一条 777 首的队列。
+  async function seedLargeLibrary() {
+    await evaluate(`(async () => {
+      const {usePlayerStore} = await import('/src/stores/player.ts')
+      const store = usePlayerStore()
+      window.fixturePlayer = store
+      store.state.queue = store.registerCatalogTracks(Array.from({ length: 777 }, (_, i) => ({
+        platform: 'netease', id: String(10000+i), title: '队列 ' + i, artists: ['样本 ' + i], album: '队列验证 ' + i,
+        durationMs: 120000, coverUrl: null, sourceUrl: 'https://music.163.com/song?id=' + (10000+i)
+      })))
+      store.state.idx = store.state.queue[420]
+    })()`)
+  }
+
+  // 验证长队列的可见行数、键盘、拖放与关闭后的焦点。
+  async function checkVirtualQueue() {
+    const queueButton = `document.querySelector('.win-bottom button[aria-label="播放队列"]')`
+    const queue = `document.querySelector('.main-queue')`
+    await evaluate(`${queueButton}.click()`)
+    await waitFor('长队列打开并定位当前歌曲', `${queue}?.querySelector('[aria-current=true]')?.dataset.qpos === '420'`)
+    const mountedRows = await evaluate(`${queue}.querySelectorAll('.qrow').length`)
+    assert(mountedRows > 0 && mountedRows < 35, String(mountedRows))
+    await key('End', 35)
+    await waitFor('虚拟队列定位末行', `document.activeElement?.dataset.qpos === '776'`)
+    await evaluate(`(() => {
+      const before = ${queue}.querySelector('[data-qpos="775"]'), after = ${queue}.querySelector('[data-qpos="776"]')
+      const dataTransfer = new DataTransfer()
+      before.dispatchEvent(new DragEvent('dragstart',{bubbles:true, dataTransfer}))
+      const options = {bubbles:true,cancelable:true,dataTransfer,clientY:after.getBoundingClientRect().bottom-1}
+      after.dispatchEvent(new DragEvent('dragover',options))
+      after.dispatchEvent(new DragEvent('drop',options))
+    })()`)
+    await waitFor('拖放按绝对位置移动', `${queue}.querySelector('[data-qpos="776"] .qt b').textContent === '队列 775'`)
+    assert(await evaluate(`[...${queue}.querySelectorAll('img')].every(img => img.loading === 'lazy' && img.decoding === 'async')`))
+    await key('Escape', 27)
+    await waitFor('关闭队列恢复焦点', `!${queue} && document.activeElement === ${queueButton}`)
+    return mountedRows
+  }
+
+  // 验证播放进度的五秒保存粒度与关闭时的精确位置。
+  async function checkSavedProgress() {
+    // 在暂停状态模拟媒体时间更新，区分同一五秒区间、跨区间与退出前的精确保存。
+    const savedTime = `JSON.parse(localStorage.getItem('miraiMusic.preferences.v1'))?.current?.time`
+    await evaluate('fixturePlayer.state.t = 70')
+    await waitFor('进度进入新区间后保存', `${savedTime} === 70`)
+    await evaluate('fixturePlayer.state.t = 71.25')
+    await delay(1600)
+    assert.equal(await evaluate(savedTime), 70)
+    await evaluate('fixturePlayer.state.t = 75')
+    await waitFor('五秒区间更新', `${savedTime} === 75`)
+    await evaluate(`fixturePlayer.state.t = 76.5; window.dispatchEvent(new Event('pagehide'))`)
+    assert.equal(await evaluate(savedTime), 76.5)
+  }
+
+  // 验证两种玻璃材质、响应式列数及虚拟卡片的绝对位置。
+  async function checkCollectionGrids() {
+    // 同一批曲库数据覆盖两种材质和列数，核对滚动末端的真实详情索引。
+    for (const [page, kind, material] of [['albums', 'album', 'glass'], ['artists', 'artist', 'liquid']]) {
+      await resize(1240, 820)
+      await evaluate(`fixturePlayer.state.settings.glassStyle = '${material}'; location.hash = '#/${page}'`)
+      const grid = `document.querySelector('[data-panel="${page}"].active .collection-viewport')`
+      const cards = `${grid}.querySelectorAll('[data-position]')`
+      await waitFor(page, `${grid}?.querySelector('[data-position="0"]')`)
+      const count = await evaluate(`${cards}.length`)
+      assert(count > 0 && count < 60)
+      await evaluate(`${cards}[0].focus()`)
+      const lastTitle = kind === 'album' ? '队列验证 776' : '样本 776'
+      for (let jump = 0; jump < 4; jump++) {
+        await key('End', 35)
+        await waitFor('末行键盘焦点', `document.activeElement.matches('button[data-position]') && document.activeElement.querySelector('b')?.textContent === '${lastTitle}'`)
+        await key('Home', 36)
+        await waitFor('首张卡片', `document.activeElement.dataset.position === '0'`)
+      }
+      await resize(620, 740)
+      await waitFor('窄窗重新分列', `getComputedStyle(${grid}.firstElementChild).gridTemplateColumns.split(' ').length === 2`)
+      await key('ArrowDown', 40)
+      await waitFor('两列网格的下一行', `document.activeElement.dataset.position === '2'`)
+      await evaluate(`${grid}.scrollTop = ${grid}.scrollHeight`)
+      await waitFor('滚动到末行并保留原焦点', `[...${cards}].at(-1).querySelector('b').textContent === '${lastTitle}' && document.activeElement.dataset.position === '2'`)
+      assert(await evaluate(`Math.abs([...${cards}].at(-1).getBoundingClientRect().bottom - ${grid}.getBoundingClientRect().bottom) < 2`))
+      assert(await evaluate(`[...${cards}].every(card => card.querySelector('img').loading === 'lazy')`))
+      await evaluate(`[...${cards}].at(-1).click()`)
+      await waitFor('实际曲库索引', `location.hash.startsWith('#/${kind}?') && fixturePlayer.tracks[fixturePlayer.state.playlistIdx]['${kind}'] === '${lastTitle}'`)
+      console.log(`PASS ${page} 宽窗挂载 ${count} 张卡片，窄窗首末行、焦点和详情入口正常`)
+    }
+    await resize(1240, 820)
+  }
+
   await send('Page.enable')
   await send('Runtime.enable')
   await send('Fetch.enable', {
@@ -301,6 +453,7 @@ try {
       { urlPattern: 'http://127.0.0.1:8000/*' },
       { urlPattern: '*/components/equalizer-panel.vue*' },
       { urlPattern: '*/components/storage-panel.vue*' },
+      ...(stagePerformance ? [{ urlPattern: '*/player/PlayerFullscreen.vue*' }] : []),
       { urlPattern: 'https://api.open-meteo.com/*' },
       { urlPattern: '*/*missing-banner-cover.webp' },
       { urlPattern: 'https://p1.music.126.net/mirai-avatar-fixture.svg' },
@@ -310,6 +463,46 @@ try {
   await send('Browser.grantPermissions', { permissions: ['geolocation'], origin })
   await send('Emulation.setGeolocationOverride', { latitude: 30.29365, longitude: 120.16142, accuracy: 50 })
   await send('Page.navigate', { url: origin })
+  if (process.argv.includes('--island-position')) {
+    const island = "document.querySelector('.lyric-capsule')"
+    await waitFor('灵动岛已显示', `${island}?.clientHeight > 0`).catch(async error => {
+      assert.fail(JSON.stringify({ error: error.message, errors, page: await evaluate('document.body.innerText.slice(0, 400)') }))
+    })
+    const center = `(() => {
+      const rect = ${island}.getBoundingClientRect()
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    })()`
+    const initial = await evaluate(center)
+    const moved = { x: initial.x - 172, y: initial.y - 264 }
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', buttons: 1, clickCount: 1, ...initial })
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', button: 'left', buttons: 1, ...moved })
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', buttons: 0, clickCount: 1, ...moved })
+    await waitFor('拖动落点保存', "!!localStorage.getItem('miraiMusic.lyricIsland.center.v1')")
+    const saved = await evaluate(center)
+    assert(Math.hypot(saved.x - moved.x, saved.y - moved.y) < 2)
+    await send('Page.navigate', { url: origin + '/?island-position-reload' })
+    await waitFor('重新挂载后回到拖动位置', `${island} && Math.hypot(${center}.x - ${saved.x}, ${center}.y - ${saved.y}) < 2`)
+    await resize(620, 540)
+    await waitFor('小窗内保持可见', `(() => {
+      const r = ${island}.getBoundingClientRect()
+      return innerWidth === 620 && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight
+    })()`)
+    await resize(1240, 820)
+    await waitFor('恢复窗口大小后回到原位', `Math.hypot(${center}.x - ${saved.x}, ${center}.y - ${saved.y}) < 2`)
+    console.log('PASS 歌词灵动岛真实拖动、刷新和窗口缩放恢复')
+    return
+  }
+  if (stagePerformance) {
+    releasePlayback()
+    const { checkStagePerformance } = await import('./check-stage-performance.mjs')
+    await checkStagePerformance({
+      evaluate, waitFor, key, resize,
+      waitForStageRequest: () => until('等待舞台模块', () => heldStageRequest),
+      releaseStage: () => send('Fetch.continueRequest', { requestId: heldStageRequest }),
+    })
+    assert.deepEqual(errors, [])
+    return
+  }
   await waitFor('模拟位置离线匹配，主窗口显示杭州附近', `document.querySelector('.win-chrome .weather-place')?.textContent === '杭州附近'`)
   await waitFor(
     '空曲库首页',
@@ -317,6 +510,24 @@ try {
   )
   const axiosLoaded = `performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/axios.js'))`
   assert.equal(await evaluate(axiosLoaded), false, '空曲库首页应延迟加载 Axios')
+  if (process.argv.includes('--loading')) {
+    await evaluate(`(async () => {
+      const api = await import('/src/api/index.ts')
+      await api.getPublicUserPlaylists('netease', '123', 1, 1)
+    })()`)
+    assert.equal(await evaluate(axiosLoaded), true)
+    await seedLargeLibrary()
+    const rows = await checkVirtualQueue()
+    await checkSavedProgress()
+    await checkCollectionGrids()
+    await evaluate(`location.hash = '#/settings'`)
+    await waitFor('打开设置', `!!document.querySelector('[data-slide-value="audio"]')`)
+    await checkDeferredEqualizer()
+    await checkDeferredStorage()
+    assert.deepEqual(errors, [])
+    console.log(`PASS 音乐请求按需加载、777 首队列挂载 ${rows} 行、五秒保存、设置切换与失败重试`)
+    return
+  }
   assert(
     await evaluate(
       `document.querySelector('.home-content').textContent.includes('暂无推荐专辑')`
@@ -380,7 +591,7 @@ try {
   )
   console.log('PASS 空曲库、资料登记、直接进入详情和动态挂载横幅')
 
-  assert.equal(await evaluate(`document.querySelector('.fs').dataset.lyricTheme`), 'magazine')
+  assert.equal(await evaluate(`!!document.querySelector('[data-fs]')`), false)
   await evaluate(`localStorage.setItem('miraiMusic.lyricTheme', 'glow');
     localStorage.setItem('miraiMusic.publicPlatformProfiles.v1', JSON.stringify({
     netease: { userId: '123', displayName: '原有关联', syncedAt: 1 },
@@ -555,22 +766,19 @@ try {
   await evaluate(`(() => {
     const island = ${capsule}
     window.capsuleTransitions = []
-    island.addEventListener('transitionend', event => {
+    island.addEventListener('transitionrun', event => {
       if (['opacity', 'width'].includes(event.propertyName))
-        capsuleTransitions.push([event.propertyName, event.target.textContent, event.elapsedTime])
+        capsuleTransitions.push([event.propertyName, event.target.textContent, getComputedStyle(event.target).transitionDuration])
     })
     document.querySelector('audio').currentTime = 8.1
   })()`)
   await waitFor('旧句淡出、新句淡入，胶囊宽度随长句过渡', `(() => {
     const fades = capsuleTransitions.filter(([property]) => property === 'opacity')
     return fades[0]?.[1] === '街灯落在静水上' && fades[1]?.[1] === 'The sky opens up again' &&
-      fades[0][2] + fades[1][2] <= 0.2 && capsuleTransitions.some(([property]) => property === 'width') &&
+      parseFloat(fades[0][2]) + parseFloat(fades[1][2]) <= 0.2 && capsuleTransitions.some(([property]) => property === 'width') &&
+      !${capsule}.querySelector('[class*="capsule-line-"]') &&
       ${capsule}.getBoundingClientRect().width > ${shortWidth}
-  })()`).catch(async error => {
-    console.error(await evaluate(`({ transitions: capsuleTransitions, before: ${shortWidth},
-      after: ${capsule}.getBoundingClientRect().width, content: ${capsule}.innerHTML, time: document.querySelector('audio').currentTime })`))
-    throw error
-  })
+  })()`)
   await evaluate(`${capsuleLine}.addEventListener('transitionrun', () => {
     document.querySelector('audio').currentTime = 0.2
   }, { once: true }); document.querySelector('audio').currentTime = 4.1`)
@@ -582,9 +790,10 @@ try {
     } else {
       await evaluate(`(async () => { (await import('/src/stores/player.ts')).usePlayerStore().state.settings.motion = false })()`)
     }
+    await waitFor(preference + ' 关闭胶囊宽度动效', `getComputedStyle(${capsuleLine}.parentElement).transitionDuration === '0s'`)
     await evaluate(`capsuleTransitions.length = 0; document.querySelector('audio').currentTime = 8.1`)
-    await waitFor('关闭动效时直接换句', `${capsuleLine}?.textContent === 'The sky opens up again' && !${capsule}.querySelector('[class*="capsule-line-"]') &&
-      getComputedStyle(${capsuleLine}.parentElement).transitionDuration === '0s' && capsuleTransitions.length === 0`)
+    await waitFor(preference + ' 静态长句', `${capsuleLine}?.textContent === 'The sky opens up again' && !${capsule}.querySelector('[class*="capsule-line-"]')`)
+    assert.deepEqual(await evaluate('capsuleTransitions'), [])
     await evaluate(`document.querySelector('audio').currentTime = 0.2`)
     await waitFor('静态短句恢复', `${capsuleLine}?.textContent === '街灯落在静水上'`)
     if (preference === 'system') await send('Emulation.setEmulatedMedia', { features: [] })
@@ -996,22 +1205,7 @@ try {
     '设置页',
     `!!document.querySelector('[data-slide-value="audio"]')`
   )
-  const panelLoaded = name => `performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/${name}-panel.vue'))`
-  assert.equal(await evaluate(panelLoaded('equalizer')), false)
-  assert.equal(await evaluate(panelLoaded('storage')), false)
-  await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
-  await until('拦截首次均衡器模块', () => heldEqualizerRequest)
-  await waitFor('慢加载期间反馈', `document.querySelector('main [role="status"]')?.textContent.includes('正在加载设置')`)
-  await evaluate(`document.querySelector('[data-slide-value="general"]').click()`)
-  await waitFor('回到通用设置', `document.querySelector('[data-panel="settings"]')?.textContent.includes('关闭主窗口') && !document.querySelector('main [role="status"]')`)
-  delayEqualizer = false
-  await send('Fetch.continueRequest', { requestId: heldEqualizerRequest })
-  await waitFor('迟到的模块已返回', panelLoaded('equalizer'))
-  assert.equal(await evaluate(`document.querySelectorAll('.eq-band').length`), 0)
-  await evaluate(`document.querySelector('[data-slide-value="audio"]').click()`)
-  await waitFor('十频段', `document.querySelectorAll('.eq-band').length === 10`)
-  assert.equal(await evaluate(panelLoaded('equalizer')), true)
-  assert.equal(await evaluate(panelLoaded('storage')), false)
+  await checkDeferredEqualizer()
   await evaluate('document.fonts.ready.then(() => true)')
   const metrics = await evaluate(`(() => {
     const scroll = document.querySelector('main .panel-scroll')
@@ -1114,12 +1308,7 @@ try {
     '切换后回到顶部',
     `!document.querySelector('.eq-band') && document.querySelector('main .panel-scroll').scrollTop === 0`
   )
-  await evaluate(`document.querySelector('[data-slide-value="storage"]').click()`)
-  const retryPanel = `[...document.querySelectorAll('main button')].find(button => button.textContent.trim() === '重新加载')`
-  await waitFor('存储模块读取失败后可重试', `!!(${retryPanel})`)
-  await evaluate(`(${retryPanel}).click()`)
-  await waitFor('存储重试后就绪', `!!document.querySelector('#cache-directory')`)
-  assert.equal(await evaluate(panelLoaded('storage')), true)
+  await checkDeferredStorage()
   await evaluate(`[...document.querySelectorAll('main .panel-actions button')]
     .find(button => button.textContent.trim() === '取消').click()`)
   await waitFor('取消返回首页', `!!document.querySelector('.home-content')`)
@@ -1243,47 +1432,9 @@ try {
 
   await evaluate(`location.hash = '#/'`)
   await waitFor('回首页验证长队列', `!!document.querySelector('.home-content')`)
-  await evaluate(`(async () => {
-    const {usePlayerStore} = await import('/src/stores/player.ts')
-    const store = usePlayerStore()
-    window.fixturePlayer = store
-    store.state.queue = store.registerCatalogTracks(Array.from({ length: 777 }, (_, i) => ({
-      platform: 'netease', id: String(10000+i), title: '队列 ' + i, artists: ['样本 ' + i], album: '队列验证 ' + i,
-      durationMs: 120000, coverUrl: null, sourceUrl: 'https://music.163.com/song?id=' + (10000+i)
-    })))
-    store.state.idx = store.state.queue[420]
-  })()`)
-  const queueButton = `document.querySelector('.win-bottom button[aria-label="播放队列"]')`
-  const queue = `document.querySelector('.main-queue')`
-  await evaluate(`${queueButton}.click()`)
-  await waitFor('长队列打开并定位当前歌曲', `${queue}?.querySelector('[aria-current=true]')?.dataset.qpos === '420'`)
-  const mountedRows = await evaluate(`${queue}.querySelectorAll('.qrow').length`)
-  assert(mountedRows > 0 && mountedRows < 35, String(mountedRows))
-  await key('End', 35)
-  await waitFor('虚拟队列定位末行', `document.activeElement?.dataset.qpos === '776'`)
-  await evaluate(`(() => {
-    const before = ${queue}.querySelector('[data-qpos="775"]'), after = ${queue}.querySelector('[data-qpos="776"]')
-    const dataTransfer = new DataTransfer()
-    before.dispatchEvent(new DragEvent('dragstart',{bubbles:true, dataTransfer}))
-    const options = {bubbles:true,cancelable:true,dataTransfer,clientY:after.getBoundingClientRect().bottom-1}
-    after.dispatchEvent(new DragEvent('dragover',options))
-    after.dispatchEvent(new DragEvent('drop',options))
-  })()`)
-  await waitFor('拖放按绝对位置移动', `${queue}.querySelector('[data-qpos="776"] .qt b').textContent === '队列 775'`)
-  assert(await evaluate(`[...${queue}.querySelectorAll('img')].every(img => img.loading === 'lazy' && img.decoding === 'async')`))
-  await key('Escape', 27)
-  await waitFor('关闭队列恢复焦点', `!${queue} && document.activeElement === ${queueButton}`)
-  // 在暂停状态模拟媒体时间更新，区分同一五秒区间、跨区间与退出前的精确保存。
-  const savedTime = `JSON.parse(localStorage.getItem('miraiMusic.preferences.v1'))?.current?.time`
-  await evaluate('fixturePlayer.state.t = 70')
-  await waitFor('进度进入新区间后保存', `${savedTime} === 70`)
-  await evaluate('fixturePlayer.state.t = 71.25')
-  await delay(1600)
-  assert.equal(await evaluate(savedTime), 70)
-  await evaluate('fixturePlayer.state.t = 75')
-  await waitFor('五秒区间更新', `${savedTime} === 75`)
-  await evaluate(`fixturePlayer.state.t = 76.5; window.dispatchEvent(new Event('pagehide'))`)
-  assert.equal(await evaluate(savedTime), 76.5)
+  await seedLargeLibrary()
+  const mountedRows = await checkVirtualQueue()
+  await checkSavedProgress()
   const quality = `document.querySelector('.win-bottom [aria-label="音质"]')`
   await evaluate(`fixturePlayer.state.settings.glassStyle='glass'; ${quality}.click()`)
   const panel = `document.querySelector('.choice-panel')`
@@ -1302,36 +1453,7 @@ try {
   await evaluate(`fixturePlayer.state.settings.bottomSpectrum = false`)
   await waitFor('关闭底栏频谱后横幅仍可见', `getComputedStyle(${bottomSpectrum}).display === 'none' && ${bannerSpectrum}.clientHeight > 0`)
   console.log(`PASS 777 首队列挂载 ${mountedRows} 行，覆盖当前歌曲、键盘、拖放、图片懒加载、双材质及音质请求`)
-  // 同一批曲库数据覆盖两种材质和列数，核对滚动末端的真实详情索引。
-  for (const [page, kind, material] of [['albums', 'album', 'glass'], ['artists', 'artist', 'liquid']]) {
-    await resize(1240, 820)
-    await evaluate(`fixturePlayer.state.settings.glassStyle = '${material}'; location.hash = '#/${page}'`)
-    const grid = `document.querySelector('[data-panel="${page}"].active .collection-viewport')`
-    const cards = `${grid}.querySelectorAll('[data-position]')`
-    await waitFor(page, `${grid}?.querySelector('[data-position="0"]')`)
-    const count = await evaluate(`${cards}.length`)
-    assert(count > 0 && count < 60)
-    await evaluate(`${cards}[0].focus()`)
-    const lastTitle = kind === 'album' ? '队列验证 776' : '样本 776'
-    for (let jump = 0; jump < 4; jump++) {
-      await key('End', 35)
-      await waitFor('末行键盘焦点', `document.activeElement.matches('button[data-position]') && document.activeElement.querySelector('b')?.textContent === '${lastTitle}'`)
-      await key('Home', 36)
-      await waitFor('首张卡片', `document.activeElement.dataset.position === '0'`)
-    }
-    await resize(620, 740)
-    await waitFor('窄窗重新分列', `getComputedStyle(${grid}.firstElementChild).gridTemplateColumns.split(' ').length === 2`)
-    await key('ArrowDown', 40)
-    await waitFor('两列网格的下一行', `document.activeElement.dataset.position === '2'`)
-    await evaluate(`${grid}.scrollTop = ${grid}.scrollHeight`)
-    await waitFor('滚动到末行并保留原焦点', `[...${cards}].at(-1).querySelector('b').textContent === '${lastTitle}' && document.activeElement.dataset.position === '2'`)
-    assert(await evaluate(`Math.abs([...${cards}].at(-1).getBoundingClientRect().bottom - ${grid}.getBoundingClientRect().bottom) < 2`))
-    assert(await evaluate(`[...${cards}].every(card => card.querySelector('img').loading === 'lazy')`))
-    await evaluate(`[...${cards}].at(-1).click()`)
-    await waitFor('实际曲库索引', `location.hash.startsWith('#/${kind}?') && fixturePlayer.tracks[fixturePlayer.state.playlistIdx]['${kind}'] === '${lastTitle}'`)
-    console.log(`PASS ${page} 宽窗挂载 ${count} 张卡片，窄窗首末行、焦点和详情入口正常`)
-  }
-  await resize(1240, 820)
+  await checkCollectionGrids()
   const nativeSource = readFileSync(
     resolve(import.meta.dirname, '../src-tauri/src/desktop/appearance.rs'),
     'utf8'
@@ -1382,6 +1504,10 @@ try {
   console.log(
     'PASS 模拟 Windows 10 外框的底部阴影平滑淡出，透明留边保持原有尺寸'
   )
+}
+
+try {
+  await runBrowserChecks()
 } finally {
   releasePlaylistResponse()
   if (send && socket?.readyState === WebSocket.OPEN) {

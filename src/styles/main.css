@@ -3,6 +3,24 @@
 @import './player-effects.css';
 @source '../';
 
+/* 首次打开舞台的等待状态位于当前入口内，减少动效时沿用静态标记。 */
+.mini-cover[aria-busy='true'], .lyric-capsule[aria-busy='true'] {
+  cursor: progress;
+}
+.mini-cover[aria-busy='true']::after, .lyric-capsule[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 40%);
+  border-top-color: white;
+  background: rgb(0 0 0 / 55%);
+}
+.mini-cover[aria-busy='true'] { position: relative; }
+
 /* 设置页和弹窗共享内容滚动区与底部操作栏。 */
 .panel-scroll {
   color-scheme: dark;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
+import { lyricRow, mountedLyricRows } from '../src/services/player/lyric-window.js'
 import ts from 'typescript'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -55,7 +56,7 @@ function harness() {
   const events = new Map(),
     timers = new Map(),
     seeks = []
-  const state = { idx: 0, t: 12, vol: 70, _lyrHoldUntil: 0, _lyrKey: 'old' }
+  const state = { idx: 0, stage: true, t: 12, vol: 70, _lyrHoldUntil: 0, _lyrKey: 'old' }
   const document = { activeElement: null }
   let timerId = 0,
     renders = 0
@@ -115,6 +116,8 @@ function harness() {
   }))
   fl.children[1].classList.add('on')
   const ctx = {
+    lyricRow,
+    mountedLyricRows,
     state,
     document,
     TRACKS: [{ dur: 60 }],
@@ -320,7 +323,7 @@ check(
     assert(component.includes("'fs-calm': !settings.motion"))
     assert(!component.includes(':global(body.calm)'))
     assert(component.includes('scroll-behavior: auto'))
-    assert(source.includes('\'<button type="button" class="\''))
+    assert(source.includes('<button type="button" class="fl-line" tabindex="-1"'))
     assert(source.includes("'aria-current'"))
     assert(source.includes('!state.settings.motion ||'))
   }

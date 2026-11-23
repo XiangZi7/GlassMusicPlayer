@@ -148,3 +148,11 @@ async function openSource(event: MouseEvent): Promise<void> {
     ></BaseButton>
   </aside>
 </template>
+
+<style scoped>
+/* 侧栏与队列共用滚动容器，长歌词让浏览器跳过屏外文本并记住实测行高。 */
+.long-lyrics :deep(.dim) {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 1lh;
+}
+</style>

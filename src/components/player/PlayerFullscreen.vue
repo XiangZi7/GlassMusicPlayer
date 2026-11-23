@@ -904,6 +904,9 @@ const dust = [
 .fs .fs-main .fs-lyrics.keyboard-browsing {
   scroll-behavior: auto;
 }
+.fs-lyrics:has(> .fl-group) {
+  overflow-anchor: none;
+}
 .fs-paused .amb,
 .fs-paused .fs-giant {
   animation-play-state: paused;
@@ -1070,6 +1073,12 @@ const dust = [
     &::before,
     &::after {
       flex-shrink: 0;
+    }
+    & :deep(.fl-group) {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      gap: inherit;
     }
     & :deep(.fl-line) {
       position: relative;

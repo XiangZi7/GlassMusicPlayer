@@ -193,6 +193,7 @@ export const usePlayerStore = defineStore('player', () => {
     /** 平台对接和歌曲电台默认使用整行内容宽度。 */
     npWideOpen: false,
     stage: false,
+    /** 首次打开全屏时正在加载舞台组件，可再次点击或按 Escape 取消。 */ stageLoading: false,
     /** 首页内容筛选。 */ chip: '全部',
     /** 当前页面和选中的歌单、专辑或歌手。 */ page: 'home' as PlayerPage,
     playlistIdx: 0,

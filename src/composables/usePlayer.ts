@@ -7,7 +7,7 @@ export interface PlayerController extends SourcePlayer {
   refresh(): void
   navigate(page: PlayerPage, index?: number, fromRoute?: boolean): void
   selectTrack(index: number, autoplay?: boolean, direction?: number): void
-  openStage(): void
+  openStage(trigger?: HTMLElement): void
   reloadPlayback(resume?: boolean): void
   playTracks(indices: number[], index: number): void
   toggleRadio(): void

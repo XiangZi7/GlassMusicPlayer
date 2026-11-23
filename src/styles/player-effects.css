@@ -1992,7 +1992,8 @@ input[type='range']::-moz-range-thumb {
   @apply font-mono text-[11px] opacity-[.6];
 }
 
-.glass-win .fsq-item:hover {
+.glass-win .fsq-item:hover,
+.glass-win .main-queue .fsq-item.on {
   background: rgba(255, 255, 255, 0.07);
 }
 
@@ -2001,7 +2002,8 @@ input[type='range']::-moz-range-thumb {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-.liquid-win .fsq-item:hover {
+.liquid-win .fsq-item:hover,
+.liquid-win .main-queue .fsq-item.on {
   background: rgba(255, 255, 255, 0.09);
 }
 
@@ -2012,6 +2014,11 @@ input[type='range']::-moz-range-thumb {
     rgba(255, 255, 255, 0.06)
   );
   border-color: rgba(255, 255, 255, 0.34);
+}
+
+.win .main-queue .fsq-item.on {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 1020px) {
