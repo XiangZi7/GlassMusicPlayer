@@ -32,7 +32,7 @@ async function loadClient(baseURL: string): Promise<AxiosInstance> {
     if (cause.code === 'ECONNABORTED' || cause.code === 'ETIMEDOUT')
       throw new Error('音乐服务响应超时，请重试。')
     if (!cause.response)
-      throw new Error('无法连接音乐服务，请确认 FastAPI 已启动。')
+      throw new Error('无法连接音乐服务，请检查网络连接后重试。')
     const code = cause.response.data?.detail?.code
     const error = new Error(
       (code && errorMessages[code]) ||
@@ -79,7 +79,7 @@ export function createRequest(baseURL: string) {
 }
 
 const origin = (
-  import.meta.env.VITE_APP_BASE_API || 'http://127.0.0.1:8000'
+  import.meta.env.VITE_APP_BASE_API || 'https://music-api.yxcr.top'
 ).replace(/\/+$/, '')
 export const apiBaseUrl = `${origin}/api/v1`
 export const { httpGet, httpPost } = createRequest(apiBaseUrl)

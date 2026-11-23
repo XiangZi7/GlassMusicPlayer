@@ -219,7 +219,7 @@ async function runBrowserChecks() {
       await pendingPlayback
       data = {
         status: 'full',
-        url: 'http://127.0.0.1:8000/api/v1/netease/tracks/1/audio',
+        url: new URL('audio', request.url).href,
       }
     } else if (/^\/api\/v1\/netease\/tracks\/\d+\/playback$/.test(path)) {
       data = { status: 'unavailable', url: null }
@@ -380,6 +380,26 @@ async function runBrowserChecks() {
     await waitFor('长队列打开并定位当前歌曲', `${queue}?.querySelector('[aria-current=true]')?.dataset.qpos === '420'`)
     const mountedRows = await evaluate(`${queue}.querySelectorAll('.qrow').length`)
     assert(mountedRows > 0 && mountedRows < 35, String(mountedRows))
+    const current = `${queue}.querySelector('[aria-current=true]')`
+    const neighbour = `${queue}.querySelector('[data-qpos="419"]')`
+    // 在两个材质下实际悬停相邻行，比较播放行底色，并确认只有当前曲目显示三条指示。
+    for (const material of ['glass', 'liquid']) {
+      await evaluate(`fixturePlayer.state.settings.glassStyle = '${material}'`)
+      await evaluate(`${neighbour}.scrollIntoView({ block: 'nearest' })`)
+      await waitFor('队列展开过渡完成', `!${queue}.getAnimations().length`)
+      const point = await evaluate(`(() => {
+        const rect = ${neighbour}.getBoundingClientRect()
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+      })()`)
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+      await waitFor(material + ' 队列高亮与悬停一致', `(() => {
+        const active = getComputedStyle(${current}), hover = getComputedStyle(${neighbour})
+        return ${neighbour}.matches(':hover') && active.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+          active.backgroundColor === hover.backgroundColor && active.backgroundImage === 'none' &&
+          active.boxShadow === 'none' && active.outlineStyle === 'none' &&
+          ${current}.querySelectorAll('.bars i').length === 3 && !${neighbour}.querySelector('.bars i')
+      })()`)
+    }
     await key('End', 35)
     await waitFor('虚拟队列定位末行', `document.activeElement?.dataset.qpos === '776'`)
     await evaluate(`(() => {
@@ -421,6 +441,10 @@ async function runBrowserChecks() {
       const grid = `document.querySelector('[data-panel="${page}"].active .collection-viewport')`
       const cards = `${grid}.querySelectorAll('[data-position]')`
       await waitFor(page, `${grid}?.querySelector('[data-position="0"]')`)
+      assert.deepEqual(await evaluate(`(() => {
+        const style = getComputedStyle(${grid})
+        return [style.colorScheme, style.scrollbarWidth, style.scrollbarColor, style.scrollbarGutter]
+      })()`), ['dark', 'thin', 'rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0)', 'stable'])
       const count = await evaluate(`${cards}.length`)
       assert(count > 0 && count < 60)
       await evaluate(`${cards}[0].focus()`)
@@ -441,6 +465,23 @@ async function runBrowserChecks() {
       assert(await evaluate(`[...${cards}].every(card => card.querySelector('img').loading === 'lazy')`))
       await evaluate(`[...${cards}].at(-1).click()`)
       await waitFor('实际曲库索引', `location.hash.startsWith('#/${kind}?') && fixturePlayer.tracks[fixturePlayer.state.playlistIdx]['${kind}'] === '${lastTitle}'`)
+      await resize(1240, 820)
+      const detail = `document.querySelector('[data-panel="${kind}"].active')`
+      const toggle = "document.querySelector('.win-body > .np-toggle')"
+      // 展开与收起面板时都测量实际中心线，保证导航、按钮和资料区互不挤占。
+      for (let cycle = 0; cycle < 2; cycle++) {
+        await waitFor(kind + ' 顶栏对齐', `(() => {
+          const tabs = ${detail}?.querySelector('.pg-tabs')?.getBoundingClientRect()
+          const head = ${detail}?.querySelector('.pl-head')?.getBoundingClientRect()
+          const button = ${toggle}.getBoundingClientRect()
+          return tabs && head && button.height > 0 && tabs.right < button.left &&
+            Math.abs(tabs.top + tabs.height / 2 - button.top - button.height / 2) < 1 &&
+            head.top - tabs.bottom >= 15
+        })()`)
+        const before = await evaluate(`${toggle}.getAttribute('aria-expanded')`)
+        await evaluate(`${toggle}.click()`)
+        await waitFor('面板切换', `${toggle}.getAttribute('aria-expanded') !== '${before}'`)
+      }
       console.log(`PASS ${page} 宽窗挂载 ${count} 张卡片，窄窗首末行、焦点和详情入口正常`)
     }
     await resize(1240, 820)
@@ -450,7 +491,7 @@ async function runBrowserChecks() {
   await send('Runtime.enable')
   await send('Fetch.enable', {
     patterns: [
-      { urlPattern: 'http://127.0.0.1:8000/*' },
+      { urlPattern: '*/api/v1/*' },
       { urlPattern: '*/components/equalizer-panel.vue*' },
       { urlPattern: '*/components/storage-panel.vue*' },
       ...(stagePerformance ? [{ urlPattern: '*/player/PlayerFullscreen.vue*' }] : []),
@@ -704,6 +745,16 @@ async function runBrowserChecks() {
   await evaluate(`${playButton}.click()`)
   await waitFor('再次点击开始获取', `${playButton}.getAttribute('aria-busy') === 'true'`)
   releasePlayback()
+  const trackBars = `document.querySelectorAll('.home-content .trow[aria-current=true] .bars i')`
+  await waitFor('当前歌曲的三条播放指示交错跳动', `${trackBars}.length === 3 &&
+    [...${trackBars}].every(bar => getComputedStyle(bar).animationName === 'eq') &&
+    new Set([...${trackBars}].map(bar => getComputedStyle(bar).animationDelay)).size === 3`)
+  await evaluate("document.querySelector('[data-bottom-queue-toggle]').click()")
+  await waitFor('底栏队列的当前歌曲同步跳动', `(() => {
+    const bars = document.querySelectorAll('.main-queue [aria-current=true] .bars i')
+    return bars.length === 3 && [...bars].every(bar => bar.clientWidth > 0 && getComputedStyle(bar).animationName === 'eq')
+  })()`)
+  await key('Escape', 27)
   await waitFor(
     '横幅与底栏显示实频',
     `
@@ -745,7 +796,8 @@ async function runBrowserChecks() {
   await waitFor(
     '减少动态效果时频谱静止，歌曲继续播',
     `
-    ${bannerSpectrum}.dataset.spectrumMode === 'static' && !document.querySelector('audio').paused
+    ${bannerSpectrum}.dataset.spectrumMode === 'static' && !document.querySelector('audio').paused &&
+    [...${trackBars}].every(bar => getComputedStyle(bar).animationName === 'none')
   `
   )
   await send('Emulation.setEmulatedMedia', { features: [] })
@@ -756,7 +808,8 @@ async function runBrowserChecks() {
   await evaluate(`${bannerPlay}.click()`)
   await waitFor(
     '暂停时保留静态频谱',
-    `${bannerSpectrum}.dataset.spectrumMode === 'static' && document.querySelector('audio').paused`
+    `${bannerSpectrum}.dataset.spectrumMode === 'static' && document.querySelector('audio').paused &&
+      ${trackBars}.length === 3 && [...${trackBars}].every(bar => getComputedStyle(bar).animationName === 'none')`
   )
   const capsule = `document.querySelector('.lyric-capsule')`
   const capsuleLine = `${capsule}.querySelector('[data-capsule-text]')`
@@ -846,7 +899,9 @@ async function runBrowserChecks() {
     [100, 40, 0]
   )
   const stagePlay = `document.querySelector('.fs-dock [data-play]')`
-  const coverIsStill = `(() => {
+  const artwork = "document.querySelector('.fs-artwork')"
+  const artworkFloating = `${artwork}.getAnimations().some(animation => animation.playState === 'running' && animation.animationName?.includes('artwork-float'))`
+  const coverFrameIsStill = `(() => {
     const frame = document.querySelector('.fs-coverwrap')
     const inner = frame.querySelector('.fs-coverkb')
     return getComputedStyle(inner).animationName === 'none' &&
@@ -862,10 +917,43 @@ async function runBrowserChecks() {
     '继续播放时逐字进度随真实媒体时钟前进',
     `${wordFills}[1] > 33 && !document.querySelector('audio').paused`
   )
-  await waitFor('时尚播放时双层极光浮动，封面固定', `${aurora}.display !== 'none' && ${aurora}.backgroundImage.includes('radial-gradient') && ${aurora}.animationName.includes('scenery-drift') && ${coverIsStill}`)
+  await waitFor('时尚播放时极光和整组封面浮动', `${aurora}.display !== 'none' && ${aurora}.backgroundImage.includes('radial-gradient') && ${aurora}.animationName.includes('scenery-drift') && ${artworkFloating} && ${coverFrameIsStill}`)
+  await evaluate("document.querySelector('.fs-top [data-fsq-toggle]').click()")
+  await waitFor('全屏队列的当前歌曲同步跳动', `(() => {
+    const bars = document.querySelectorAll('.fs-queue:not([inert]) [aria-current=true] .bars i')
+    return bars.length === 3 && [...bars].every(bar => bar.clientWidth > 0 && getComputedStyle(bar).animationName === 'eq')
+  })()`)
+  await evaluate("document.querySelector('.fs-queue [data-fsq-toggle]').click()")
   await evaluate(`${stagePlay}.click()`)
   await waitFor('暂停媒体', `document.querySelector('audio').paused`)
-  await waitFor('暂停时极光静止', `${aurora}.animationName === 'none' && ${coverIsStill}`)
+  await waitFor('暂停时封面组继续浮动，极光静止', `${aurora}.animationName === 'none' && ${artworkFloating} && ${coverFrameIsStill}`)
+  // 在同一动画的两个相位测量整组实际位移，同时检查歌词和控制栏的位置。
+  async function measureArtworkTravel() {
+    return evaluate(`(() => {
+      const animation = ${artwork}.getAnimations()[0]
+      const start = animation.currentTime
+      const selectors = ['.fs-cover', '.fs-titleblock h4', '.fs-titleblock p', '.fs-titleactions', '.fs-reflect', '.fs-lyrics', '.fs-dock']
+      const positions = () => selectors.map(selector => {
+        const element = document.querySelector(selector)
+        return element.getClientRects().length ? element.getBoundingClientRect().top : null
+      })
+      try {
+        animation.currentTime = 0
+        const before = positions()
+        animation.currentTime = animation.effect.getTiming().duration * 0.7
+        return positions().map((y, i) => y === null ? null : before[i] - y)
+      } finally {
+        animation.currentTime = start
+      }
+    })()`)
+  }
+  const wideTravel = await measureArtworkTravel()
+  assert(wideTravel[0] > 8 && wideTravel.slice(0, 5).every(y => Math.abs(y - wideTravel[0]) < 0.1))
+  assert.deepEqual(wideTravel.slice(5), [0, 0])
+  for (const motion of [false, true]) {
+    await evaluate(`(async () => { (await import('/src/stores/player.ts')).usePlayerStore().state.settings.motion = ${motion} })()`)
+    await waitFor('全屏浮动跟随动效设置', `(${artworkFloating}) === ${motion}`)
+  }
   await evaluate(`document.querySelector('audio').currentTime = 0.32`)
   await waitFor('后跳后重新填色', `JSON.stringify(${wordFills}) === '[40,0,0]'`)
   await send('Emulation.setEmulatedMedia', {
@@ -873,7 +961,7 @@ async function runBrowserChecks() {
   })
   await waitFor(
     '少动效时按词段边界高亮',
-    `JSON.stringify(${wordFills}) === '[100,0,0]'`
+    `JSON.stringify(${wordFills}) === '[100,0,0]' && !${artworkFloating} && getComputedStyle(${artwork}).transform === 'none'`
   )
   await send('Emulation.setEmulatedMedia', { features: [] })
   await evaluate(`document.querySelector('audio').currentTime = 8.1`)
@@ -912,7 +1000,7 @@ async function runBrowserChecks() {
   const magazineDesktopLayout = await evaluate(coverLayout)
   assert.notEqual(magazineDesktopLayout.reflection, 'none')
   assert(await evaluate(`${titleBox}.left < ${coverBox}.right && ${titleBox}.top < ${coverBox}.bottom`))
-  assert(await evaluate(coverIsStill))
+  assert(await evaluate(coverFrameIsStill))
   await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1180, y: 760 })
   await delay(300)
   assert(await evaluate(`(() => { const cover = getComputedStyle(document.querySelector('.fs-coverwrap')); return cover.transform === 'none' && cover.translate === 'none' })()`))
@@ -920,6 +1008,10 @@ async function runBrowserChecks() {
   await delay(200)
   const magazineNarrow = await evaluate(coverSize)
   const magazineNarrowLayout = await evaluate(coverLayout)
+  const narrowTravel = await measureArtworkTravel()
+  assert(narrowTravel[0] > 0 && narrowTravel[0] < wideTravel[0])
+  assert(narrowTravel.slice(0, 4).every(y => Math.abs(y - narrowTravel[0]) < 0.1))
+  assert.deepEqual(narrowTravel.slice(4), [null, 0, 0])
   await resize(1240, 820)
   const themeTabs = 'document.querySelector(".fs-theme-seg")'
   const activeTheme = `${lyrics}.closest('[data-lyric-theme]').dataset.lyricTheme`
@@ -953,7 +1045,7 @@ async function runBrowserChecks() {
     assert.notEqual(await evaluate(`getComputedStyle(${stageShape}).transform`), before)
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
     await waitFor('减少动态效果停用背景动画', `getComputedStyle(${stageShape}).animationName === 'none'`)
-    assert(await evaluate(coverIsStill))
+    assert(await evaluate(`!${artworkFloating} && ${coverFrameIsStill}`))
     await send('Emulation.setEmulatedMedia', { features: [] })
   }
   await verifyAmbient()
@@ -1012,7 +1104,7 @@ async function runBrowserChecks() {
   await captureLyricsTheme('cinema')
   await chooseTheme('magazine')
   await waitFor('恢复时尚排版', `${activeTheme} === 'magazine'`)
-  console.log('PASS 真实媒体时钟逐字填色、整句回退、少动效与四种歌词主题、微光偏好迁移与静态封面')
+  console.log('PASS 四种歌词主题与媒体时钟，封面、倒影和曲目信息同幅浮动，窄窗减幅与少动效静止')
   await evaluate(`${reading}.click()`)
   await waitFor(
     '阅读模式居中且沿用当前句',
@@ -1022,7 +1114,7 @@ async function runBrowserChecks() {
     const bounds = viewport.getBoundingClientRect()
     const win = viewport.closest('.fs').getBoundingClientRect()
     return Math.abs(bounds.left + bounds.width / 2 - (win.left + win.width / 2)) < 10 &&
-      !!viewport.querySelector('.fl-line.on')
+      !!viewport.querySelector('.fl-line.on') && !${artworkFloating} && !${artwork}.getClientRects().length
   })()`
   )
   await evaluate(`${reading}.click()`)

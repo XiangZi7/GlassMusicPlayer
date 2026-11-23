@@ -802,38 +802,44 @@ h1 .thin {
   @apply text-right font-mono text-[11.5px] opacity-[.6];
 }
 
-.glass-win .win :is(.trow, .srow, .qrow)[aria-current='true'] {
-  background: linear-gradient(105deg, rgb(164 193 255 / 19%), rgb(255 255 255 / 7%));
-  box-shadow: inset 3px 0 #b7ceff, inset 0 0 0 1px rgb(201 218 255 / 18%);
+.glass-win {
+  --track-row-hover: rgb(255 255 255 / 5.5%);
 }
-.liquid-win .win :is(.trow, .srow, .qrow)[aria-current='true'] {
-  background: linear-gradient(155deg, rgb(222 236 255 / 29%), rgb(154 196 255 / 12%) 65%);
-  box-shadow: inset 3px 0 #d1e3ff, inset 0 1px 0 rgb(255 255 255 / 55%);
+.liquid-win {
+  --track-row-hover: rgb(255 255 255 / 7%);
 }
-.win .trow[aria-current='true'] .tt > span { opacity: 1; }
+
+:is(.trow, .srow, .qrow):is(:hover:not(:disabled), [aria-current='true']) {
+  background-color: var(--track-row-hover);
+}
+
+:is(.trow, .srow, .qrow):focus-visible {
+  outline: 2px solid rgb(255 255 255 / 75%);
+  outline-offset: -2px;
+}
 
 .bars i {
   @apply h-[40%] w-[3px] rounded-[2px] bg-current;
 }
 
-.playing .trow.on .bars,
-.playing .qitem.on .bars {
-  @apply flex;
-}
-
-.playing .trow.on .bars i,
-.playing .qitem.on .bars i {
-  animation: eq 0.9s ease-in-out infinite alternate;
-}
-
-.playing .trow.on .bars i:nth-child(2),
-.playing .qitem.on .bars i:nth-child(2) {
+.bars i:nth-child(2) {
+  height: 85%;
   animation-delay: 0.25s;
 }
 
-.playing .trow.on .bars i:nth-child(3),
-.playing .qitem.on .bars i:nth-child(3) {
+.bars i:nth-child(3) {
+  height: 60%;
   animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(body:not(.calm) .win) :is(.trow, .srow, .qrow) {
+    transition: background-color 150ms ease;
+  }
+
+  :where(body:not(.calm) .win.playing) .bars i {
+    animation: eq 0.9s ease-in-out infinite alternate;
+  }
 }
 
 @keyframes eq {
@@ -1222,25 +1228,6 @@ input[type='range']::-moz-range-thumb {
   color: #14141c;
 }
 
-.glass-win .trow:hover {
-  background: rgba(255, 255, 255, 0.055);
-}
-
-.glass-win .trow.on {
-  background: rgba(255, 255, 255, 0.1);
-  outline: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.glass-win .qitem {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.glass-win .qitem.on {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: -2px;
-}
-
 .glass-win .lyricbox {
   @apply rounded-[14px];
   background: rgba(255, 255, 255, 0.08);
@@ -1428,41 +1415,12 @@ input[type='range']::-moz-range-thumb {
   color: #10181b;
 }
 
-.liquid-win .trow {
+.liquid-win :is(.trow, .qitem) {
   @apply rounded-full;
-}
-
-.liquid-win .trow:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.liquid-win .trow.on {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.17),
-    rgba(255, 255, 255, 0.05)
-  );
-  outline: 1px solid rgba(255, 255, 255, 0.34);
 }
 
 .liquid-win .r-cover {
   @apply rounded-[24px];
-}
-
-.liquid-win .qitem {
-  @apply rounded-full;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.045)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
-}
-
-.liquid-win .qitem.on {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
-  outline-offset: -2px;
 }
 
 .liquid-win .lyricbox {
@@ -1990,35 +1948,6 @@ input[type='range']::-moz-range-thumb {
 
 .fsq-item .qd {
   @apply font-mono text-[11px] opacity-[.6];
-}
-
-.glass-win .fsq-item:hover,
-.glass-win .main-queue .fsq-item.on {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.glass-win .fsq-item.on {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.liquid-win .fsq-item:hover,
-.liquid-win .main-queue .fsq-item.on {
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.liquid-win .fsq-item.on {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.22),
-    rgba(255, 255, 255, 0.06)
-  );
-  border-color: rgba(255, 255, 255, 0.34);
-}
-
-.win .main-queue .fsq-item.on {
-  border-color: transparent;
-  box-shadow: none;
 }
 
 @media (max-width: 1020px) {
@@ -2827,11 +2756,10 @@ input[type='range']::-moz-range-thumb {
     display: none;
   }
   .trow {
-    grid-template-columns: minmax(0, 1fr) 48px;
+    grid-template-columns: minmax(0, 1fr) 48px 16px;
   }
   .trow .num,
-  .trow .alb,
-  .trow .bars {
+  .trow .alb {
     display: none !important;
   }
   .side-search {
@@ -2890,9 +2818,6 @@ input[type='range']::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   .r-cover {
     transition: none;
-  }
-  .playing .bars i {
-    animation: none;
   }
   .playing .playbtn {
     animation: none;
@@ -4000,6 +3925,13 @@ body.calm .fs-giant {
     background 0.2s ease;
 }
 
+/* 音乐库收展按钮跟随分类栏的实际中心，标签换行时也保持对齐。 */
+.library-layout .np-toggle {
+  top: 39px;
+  top: anchor(--library-tabs center, 39px);
+  translate: 0 -50%;
+}
+
 .np-toggle svg {
   @apply h-[14px] w-[14px];
   transition: transform 0.35s ease;
@@ -4569,7 +4501,7 @@ img.fs-cover.fs-xghost.fs-peek {
 }
 
 /* ---------- this round : borrowed from real community shots, not a house style —
-   (1) 指针仅带动背景巨字和前景粒子，封面保持固定。
+   (1) 指针仅带动背景巨字和前景粒子，封面组独立上下浮动。
    (2) a whisper of film grain over the stage, the texture Behance dark-player concepts
    (e.g. Beatflow's glassmorphic case study) lay over big blurred fields so they don't
    band into flat gradients: an SVG-noise tile at 5% opacity, decorative only. ---------- */
@@ -4791,42 +4723,6 @@ kbd {
 
 .stag {
   border: 1px solid rgba(255, 255, 255, 0.28);
-}
-
-.glass-win .srow {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.glass-win .srow:hover {
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.glass-win .srow.on {
-  background: rgba(255, 255, 255, 0.11);
-  outline: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.liquid-win .srow {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.13),
-    rgba(255, 255, 255, 0.04)
-  );
-  border-color: rgba(255, 255, 255, 0.24);
-}
-
-.liquid-win .srow:hover {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.19),
-    rgba(255, 255, 255, 0.06)
-  );
-}
-
-.liquid-win .srow.on {
-  outline: 2px solid rgba(255, 255, 255, 0.55);
-  outline-offset: -2px;
 }
 
 /* ---------- this round : radio seed card + smart playlists ---------- */

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toRefs } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { formatTime } from '@/utils/format'
 defineProps<{ index: number; meta: string; showAlbum?: boolean }>()
@@ -56,5 +57,6 @@ const { idx } = toRefs(state)
         />
         <path d="M21 5v14" /></svg></BaseButton
     ><span class="qd">{{ formatTime(tracks[index]!.dur) }}</span>
+    <TrackPlaybackBars :active="index === idx" />
   </div>
 </template>

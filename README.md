@@ -87,7 +87,7 @@ Windows 客户端通过本机服务或 HTTPS 服务扫码后，将设备授权�
 
 ## 运行和验证
 
-先在 MiraiMusic-Server 仓库启动 `uv run --locked uvicorn main:app`。播放器默认请求 `http://127.0.0.1:8000`，也可以在 Vite 环境中设置 `VITE_APP_BASE_API` 指向其他服务地址。公开歌单导入支持三平台带数字 ID 的歌单详情链接。
+播放器默认连接 `https://music-api.yxcr.top`。本地联调时，在 MiraiMusic-Server 仓库运行 `uv run --locked uvicorn main:app`，将播放器的 `VITE_APP_BASE_API` 设为 `http://127.0.0.1:8000`，再启动或重新构建播放器。公开歌单导入支持三平台带数字 ID 的歌单详情链接。
 
 ```sh
 pnpm install

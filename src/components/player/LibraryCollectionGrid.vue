@@ -116,7 +116,7 @@ async function browse(event: KeyboardEvent): Promise<void> {
 <template>
   <div
     ref="viewport"
-    class="collection-viewport mt-4 min-h-0 flex-1 overflow-y-auto"
+    class="collection-viewport panel-scroll mt-4 min-h-0 flex-1 overflow-y-auto"
     @scroll.passive="syncScroll"
     @keydown="browse"
   >
@@ -169,6 +169,5 @@ async function browse(event: KeyboardEvent): Promise<void> {
 <style scoped>
 .collection-viewport {
   overflow-anchor: none;
-  scrollbar-gutter: stable;
 }
 </style>

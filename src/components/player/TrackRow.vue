@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
+import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
 import type { SourceTrack } from '@/types/prototype'
 import { formatTime } from '@/utils/format'
 
@@ -31,8 +32,6 @@ const emit = defineEmits<{ play: [] }>()
     </span>
     <span class="alb">{{ track.album }}</span>
     <span class="dur">{{ track.dur ? formatTime(track.dur) : '—' }}</span>
-    <span class="bars hidden h-[14px] items-end justify-center gap-[2.5px]"
-      ><i /><i /><i
-    /></span>
+    <TrackPlaybackBars :active="active" />
   </BaseButton>
 </template>

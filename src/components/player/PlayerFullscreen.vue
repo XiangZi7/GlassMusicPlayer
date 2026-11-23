@@ -440,60 +440,66 @@ const dust = [
     <div
       class="fs-main relative z-[3] flex min-h-[0] flex-1 items-center p-[6px_46px_4px_58px]"
     >
-      <div class="fs-coverwrap relative w-[min(328px,100%)]">
-        <div class="fs-coverkb relative">
-          <img
-            decoding="async"
-            loading="lazy"
-            class="fs-cover"
-            data-cover
-            alt="专辑封面"
-          />
-          <div
-            class="fs-reflect"
-            aria-hidden="true"
-          >
+      <!-- 封面、倒影、曲目信息和收藏操作共用浮动层，内层继续负责入场与切歌。 -->
+      <div
+        class="fs-artwork flex min-w-0 items-center"
+        :class="{ 'fs-artwork-floating': stage && settings.motion && !reading }"
+      >
+        <div class="fs-coverwrap relative w-[min(328px,100%)]">
+          <div class="fs-coverkb relative">
             <img
               decoding="async"
               loading="lazy"
+              class="fs-cover"
               data-cover
-              alt=""
+              alt="专辑封面"
             />
+            <div
+              class="fs-reflect"
+              aria-hidden="true"
+            >
+              <img
+                decoding="async"
+                loading="lazy"
+                data-cover
+                alt=""
+              />
+            </div>
+          </div>
+          <div
+            class="fs-sheen"
+            aria-hidden="true"
+          >
+            <i />
           </div>
         </div>
         <div
-          class="fs-sheen"
-          aria-hidden="true"
+          class="fs-titleblock pointer-events-none relative z-[4] ml-[-58px] max-w-[400px] min-w-[0]"
         >
-          <i />
-        </div>
-      </div>
-      <div
-        class="fs-titleblock pointer-events-none relative z-[4] ml-[-58px] max-w-[400px] min-w-[0]"
-      >
-        <div
-          class="fs-kicker overflow-hidden font-mono text-[10.5px] font-bold tracking-[.14em] text-ellipsis whitespace-nowrap opacity-[.62]"
-          data-fs-spec
-        ></div>
-        <h4 data-title></h4>
-        <p data-artist></p>
-        <div
-          class="fs-titleactions pointer-events-auto mt-[14px] flex items-center gap-[6px]"
-        >
-          <BaseButton
-            class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
-            data-like
-            aria-label="收藏"
-            ><svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M12 20.7C6.4 17 3 13.6 3 9.9 3 7.2 5 5 7.6 5c1.7 0 3.4 1 4.4 2.6C13 6 14.7 5 16.4 5 19 5 21 7.2 21 9.9c0 3.7-3.4 7.1-9 10.8z"
-              /></svg></BaseButton
-          ><span>收藏到音乐库</span>
+          <div
+            class="fs-kicker overflow-hidden font-mono text-[10.5px] font-bold tracking-[.14em] text-ellipsis whitespace-nowrap opacity-[.62]"
+            data-fs-spec
+          ></div>
+          <h4 data-title></h4>
+          <p data-artist></p>
+          <div
+            class="fs-titleactions pointer-events-auto mt-[14px] flex items-center gap-[6px]"
+          >
+            <BaseButton
+              class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
+              data-like
+              aria-label="收藏"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 20.7C6.4 17 3 13.6 3 9.9 3 7.2 5 5 7.6 5c1.7 0 3.4 1 4.4 2.6C13 6 14.7 5 16.4 5 19 5 21 7.2 21 9.9c0 3.7-3.4 7.1-9 10.8z"
+                /></svg></BaseButton
+            ><span>收藏到音乐库</span>
+          </div>
         </div>
       </div>
       <div class="fs-lyrcol">
@@ -915,12 +921,45 @@ const dust = [
   font-variant-numeric: tabular-nums;
 }
 
+.fs-artwork {
+  --artwork-lift: min(15px, 1.8vh);
+}
+
+/* 紧凑版沿用舞台的封面列和文字列，歌词继续独占下一行。 */
+:where(.fs[data-lyric-theme='cinema']) .fs-artwork {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  --artwork-lift: 5px;
+}
+
+@media (max-width: 640px) {
+  .fs-artwork {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    --artwork-lift: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fs-artwork-floating {
+    animation: artwork-float 12s ease infinite;
+  }
+}
+
+@keyframes artwork-float {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(calc(var(--artwork-lift) * -0.67)); }
+  50% { transform: translateY(calc(var(--artwork-lift) * 0.27)); }
+  70% { transform: translateY(calc(var(--artwork-lift) * -1)); }
+}
+
 /* 阅读模式直接切换空间布局，不用长过渡拖慢高频操作。 */
 .fs-reading .fs-main {
   justify-content: center;
 }
-.fs-reading .fs-main .fs-coverwrap,
-.fs-reading .fs-titleblock {
+.fs-reading .fs-artwork {
   display: none;
 }
 .fs-reading .fs-main .fs-lyrcol {

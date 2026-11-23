@@ -16,6 +16,7 @@ const options = [
 <template>
   <PlayerTabs
     class="pg-tabs inline-flex max-w-full flex-none flex-wrap gap-1 self-start rounded-full p-1"
+    style="anchor-name: --library-tabs"
     :class="{ 'mt-4': !flush }"
     role="tablist"
     aria-label="音乐库分类"

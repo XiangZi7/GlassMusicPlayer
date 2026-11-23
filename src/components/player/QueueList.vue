@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, reactive, toRefs, watch } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { formatTime } from '@/utils/format'
 
@@ -206,11 +207,6 @@ const { idx } = toRefs(state)
           ><b>{{ tracks[index]!.title }}</b
           ><span>{{ tracks[index]!.artist }}</span></span
         >
-        <span
-          v-if="!compact"
-          class="bars hidden h-[14px] items-end justify-center gap-[2.5px]"
-          ><i /><i /><i
-        /></span>
         <BaseButton
           class="qnext grid h-[26px] w-[26px] flex-none place-items-center rounded-[8px] border-none bg-transparent p-0 text-inherit opacity-[.5]"
           title="下一首播放"
@@ -238,6 +234,7 @@ const { idx } = toRefs(state)
             <path d="M21 5v14" /></svg
         ></BaseButton>
         <span class="qd">{{ formatTime(tracks[index]!.dur) }}</span>
+        <TrackPlaybackBars :active="index === idx" />
       </div>
     </div>
   </div>

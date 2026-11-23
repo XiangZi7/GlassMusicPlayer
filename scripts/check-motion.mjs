@@ -175,7 +175,7 @@ function motionHandlers(source) {
 }
 // 仅将进度条时间来源替换为真实媒体时钟，保留鼠标提示和其余动效的原始校验。
 const expectedSeek = originalScript
-  // 封面保持静止，背景巨字和粒子的指针通道照旧校验。
+  // 封面组独立上下浮动，背景巨字和粒子的指针通道照旧校验。
   .replace(/fsEl\.style\.setProperty\("--t[xy]",(?:n[xy]\.toFixed\(3\)|0)\);/g, '')
   .replace(
     'var tr=TRACKS[state.idx]; state.t=seek.value/1000*tr.dur; render();',
