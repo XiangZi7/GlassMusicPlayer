@@ -16,9 +16,12 @@ const code = ts.transpileModule(
   }
 ).outputText
 const profile = { userId: '123', displayName: '测试账号', avatarUrl: null }
+const day = 86_400_000
+const start = Date.now()
+let now = start
 const grant = {
   token: 'a'.repeat(43),
-  expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+  expiresAt: new Date(start + 30 * day).toISOString(),
   remembered: true,
   isVip: true,
   vipLevel: 6,
@@ -36,6 +39,8 @@ let restore = async () => result
 
 // 每次创建独立的客户端内存，只有模拟的系统凭据库在重启间保留。
 function launch(native = true) {
+  const timers = new Map()
+  let timerId = 0
   const modules = {
     vue: { shallowRef: value => ({ value }) },
     '@tauri-apps/api/core': {
@@ -68,14 +73,19 @@ function launch(native = true) {
     require: name => modules[name],
     URL,
     Error,
+    Date: class extends Date {
+      static now() { return now }
+    },
     location: { href: 'http://tauri.localhost' },
     navigator: { userAgent: 'Windows NT' },
-    clearTimeout() {},
-    setTimeout(_fn, ms) {
+    clearTimeout(id) { timers.delete(id) },
+    setTimeout(fn, ms) {
       assert(ms <= 2147483647)
+      timers.set(++timerId, { fn, ms })
+      return timerId
     },
   })
-  return exports
+  return { ...exports, timers }
 }
 
 await launch().acceptPlaybackGrant(profile, grant)
@@ -89,6 +99,32 @@ await Promise.all([
 assert.equal(restoreCalls, 1)
 assert.equal(restarted.playbackBearer(), grant.token)
 assert.equal(restarted.playbackAccount.value.badge, 'VIP 6')
+
+// 从托盘重新打开后续期，替换原到期定时器；普通点播和短时间聚焦复用现有授权。
+restarted.onPlaybackWindowOpened()
+await new Promise(resolve => setImmediate(resolve))
+assert.equal(restoreCalls, 1)
+now += 20 * day
+restore = async () => ({
+  ...result,
+  playback: { ...grant, expiresAt: new Date(now + 30 * day).toISOString() },
+})
+restarted.onPlaybackWindowOpened()
+restarted.onPlaybackWindowOpened()
+await restarted.restorePlaybackGrant('open')
+assert.equal(restoreCalls, 2)
+assert.equal(restarted.timers.size, 1)
+assert.equal(restarted.playbackRevision.value, 0)
+now = start + 31 * day
+assert.equal(restarted.playbackBearer(), grant.token)
+await restarted.restorePlaybackGrant()
+assert.equal(restoreCalls, 2)
+restore = async () => { throw new Error('临时断网') }
+await assert.rejects(restarted.restorePlaybackGrant('open'), /临时断网/)
+assert.equal(restarted.playbackBearer(), grant.token)
+assert.equal(saved.token, grant.token)
+now = start
+restore = async () => result
 
 const offline = launch()
 restore = async () => {
@@ -132,6 +168,11 @@ await new Promise(resolve => setImmediate(resolve))
 assert.equal(saved, null)
 await launch(false).acceptPlaybackGrant(profile, grant)
 assert.equal(saved, null)
+const temporary = launch()
+const beforeTemporary = restoreCalls
+await temporary.acceptPlaybackGrant(profile, { ...grant, remembered: false })
+await temporary.restorePlaybackGrant('open')
+assert.equal(restoreCalls, beforeTemporary)
 const switching = launch()
 await switching.acceptPlaybackGrant(profile, grant)
 assert.equal(await launch().previousPlaybackToken(), grant.token)
@@ -144,6 +185,7 @@ assert.equal(saved.token, replacement.token)
 assert.equal(switching.playbackAccount.value.userId, '456')
 assert.equal(switching.playbackBearer(), replacement.token)
 console.log('PASS 重扫成功调用旧会话退出接口并保存新账号')
+console.log('PASS 模拟前台续期、跨原到期日播放、连续聚焦合并与临时会话隔离')
 console.log(
   'PASS 模拟客户端跨重启恢复、首次点播并发、离线重试、撤销与过期，以及浏览器临时会话'
 )

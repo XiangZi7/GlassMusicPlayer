@@ -45,7 +45,13 @@ import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import { getStorageInfo } from '@/services/storage'
 import { emptyTrack } from '@/constants/music'
-import { clearPlaybackGrant, initializePlaybackGrant, playbackAccount, playbackRevision } from '@/services/player/playback-session'
+import {
+  clearPlaybackGrant,
+  initializePlaybackGrant,
+  onPlaybackWindowOpened,
+  playbackAccount,
+  playbackRevision,
+} from '@/services/player/playback-session'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
 const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
@@ -307,6 +313,9 @@ onMounted(async () => {
     notify('无法恢复窗口关闭设置，请重试', 'error')
   })
   const callbacks = await Promise.all([
+    getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+      if (focused) onPlaybackWindowOpened()
+    }),
     listen<SourceAction>('player-action', event => {
       void handleAction(event.payload)
     }),

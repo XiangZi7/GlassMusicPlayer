@@ -24,6 +24,8 @@ let expiry: ReturnType<typeof setTimeout> | undefined
 let generation = 0
 let initialized = false
 let restoring: Promise<void> | undefined
+// 刚核验过的窗口合并一分钟内的重复聚焦，临时会话不参与前台续期。
+let nextForegroundCheck = Infinity
 let vaultWrites = Promise.resolve()
 let linkedUser: () => string | undefined = () => undefined
 
@@ -78,6 +80,7 @@ function resetSession(): void {
   clearTimeout(expiry)
   bearer = ''
   deadline = 0
+  nextForegroundCheck = Infinity
   playbackAccount.value = null
 }
 
@@ -111,6 +114,7 @@ function applyGrant(profile: QrLoginProfile, grant?: PlaybackGrant): boolean {
     return false
   bearer = grant.token
   deadline = until
+  nextForegroundCheck = grant.remembered ? Date.now() + 60_000 : Infinity
   const level = grant.vipLevel
   const badge =
     grant.isVip === true
@@ -122,6 +126,7 @@ function applyGrant(profile: QrLoginProfile, grant?: PlaybackGrant): boolean {
         : 'VIP'
       : ''
   playbackAccount.value = { ...profile, badge }
+  clearTimeout(expiry)
   scheduleExpiry()
   return true
 }
@@ -193,13 +198,28 @@ async function restore(version: number): Promise<void> {
   }
 }
 
-// 启动与首次点播共用恢复请求，临时网络故障留待下次点播重试。
-export function restorePlaybackGrant(): Promise<void> {
-  if (initialized || !rememberPlayback) return Promise.resolve()
+// 首次点播共用启动请求，回到前台时核验已保存的授权，播放中沿用仍有效的凭证。
+export function restorePlaybackGrant(
+  reason: 'playback' | 'open' = 'playback'
+): Promise<void> {
+  if (
+    !rememberPlayback ||
+    (initialized && (reason === 'playback' || Date.now() < nextForegroundCheck))
+  )
+    return Promise.resolve()
   const version = generation
   return (restoring ??= restore(version).finally(() => {
     if (version === generation) restoring = undefined
   }))
+}
+
+// 启动及从托盘回到前台时静默续期，只有平台确认登录失效才提示重扫。
+export function onPlaybackWindowOpened(): void {
+  if (restoring) return
+  void restorePlaybackGrant('open').catch(error => {
+    if (error instanceof Error && error.name === 'playback_session_expired')
+      notify(error.message, 'error')
+  })
 }
 
 // 在播放器挂载时启动恢复，公开资料只用于比对，不能据此签发播放授权。
@@ -207,10 +227,7 @@ export function initializePlaybackGrant(
   getUser: () => string | undefined
 ): void {
   linkedUser = getUser
-  void restorePlaybackGrant().catch(error => {
-    if (error instanceof Error && error.name === 'playback_session_expired')
-      notify(error.message, 'error')
-  })
+  onPlaybackWindowOpened()
 }
 
 // 每次点播及处理旧请求错误前都检查当前仍然生效的凭证。
