@@ -75,8 +75,9 @@ function spectrumAudio() {
     )
     wav.writeInt16LE(Math.round(value * 1150), 44 + index * 2)
   }
-  return wav.toString('base64')
+  return wav
 }
+const wav = spectrumAudio()
 
 let socket
 let send
@@ -85,8 +86,14 @@ const playlistResponse = new Promise(resolve => {
   releasePlaylistResponse = resolve
 })
 try {
-  await until('Edge 调试端口', () => existsSync(portFile))
-  const port = readFileSync(portFile, 'utf8').split(/\r?\n/)[0]
+  const port = await until('Edge 调试端口', () => {
+    try {
+      return readFileSync(portFile, 'utf8').match(/^\d+(?=\r?\n)/)?.[0]
+    } catch (error) {
+      if (!['ENOENT', 'EBUSY'].includes(error.code)) throw error
+      return null
+    }
+  })
   const tabs = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
   const tab = tabs.find(item => item.type === 'page')
   assert(tab)
@@ -132,11 +139,21 @@ try {
     const path = new URL(request.url).pathname
     const headers = [{ name: 'Access-Control-Allow-Origin', value: origin }]
     let data
-    if (path === '/api/v1/netease/users/123/playlists') {
+    if (path === '/mirai-avatar-fixture.svg') {
+      return send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'image/svg+xml' }],
+        body: Buffer.from(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#e59173"/></svg>'
+        ).toString('base64'),
+      })
+    } else if (path === '/api/v1/netease/users/123/playlists') {
       data = {
         platform: 'netease',
         userId: '123',
         displayName: '验证账号',
+        avatarUrl: 'http://p1.music.126.net/mirai-avatar-fixture.svg',
         pageNum: 1,
         pageSize: 20,
         hasMore: false,
@@ -165,15 +182,45 @@ try {
         status: 'full',
         url: 'http://127.0.0.1:8000/api/v1/netease/tracks/1/audio',
       }
+    } else if (/^\/api\/v1\/netease\/tracks\/\d+\/playback$/.test(path)) {
+      data = { status: 'unavailable', url: null }
+    } else if (path === '/api/v1/netease/tracks/1/lyrics') {
+      data = {
+        lrc: '[00:00.00]街灯落在静水上\n[00:04.00]夜色穿过城市\n[00:08.00]The sky opens up again',
+        translatedLrc:
+          '[00:00.00]Streetlights settle on the still water\n[00:04.00]Evening moves through the city',
+        yrc: '[0,3800](0,800,0)街灯(800,1200,0)落在(2000,1800,0)静水上\n[4000,3800](4000,1000,0)夜色(5000,1000,0)穿过(6000,1800,0)城市',
+        ytlrc:
+          '[0,3800](0,600,0)Streetlights (600,1500,0)settle on (2200,1500,0)the still water\n[00:04.00]Evening moves through the city',
+      }
     } else if (path === '/api/v1/netease/tracks/1/audio') {
+      const range = Object.entries(request.headers).find(
+        ([name]) => name.toLowerCase() === 'range'
+      )?.[1]
+      const requested = /^bytes=(\d+)-(\d*)$/.exec(range || '')
+      const start = Number(requested?.[1] ?? 0)
+      const end = Math.min(
+        requested?.[2] ? Number(requested[2]) : wav.length - 1,
+        wav.length - 1
+      )
       return send('Fetch.fulfillRequest', {
         requestId,
-        responseCode: 200,
+        responseCode: requested ? 206 : 200,
         responseHeaders: [
           ...headers,
           { name: 'Content-Type', value: 'audio/wav' },
+          { name: 'Accept-Ranges', value: 'bytes' },
+          { name: 'Content-Length', value: String(end - start + 1) },
+          ...(requested
+            ? [
+                {
+                  name: 'Content-Range',
+                  value: `bytes ${start}-${end}/${wav.length}`,
+                },
+              ]
+            : []),
         ],
-        body: spectrumAudio(),
+        body: wav.subarray(start, end + 1).toString('base64'),
       })
     }
     if (!data) {
@@ -230,6 +277,7 @@ try {
       { urlPattern: 'http://127.0.0.1:8000/*' },
       { urlPattern: 'https://api.open-meteo.com/*' },
       { urlPattern: '*/*missing-banner-cover.webp' },
+      { urlPattern: 'https://p1.music.126.net/mirai-avatar-fixture.svg' },
     ],
   })
   await resize(1240, 820)
@@ -290,17 +338,20 @@ try {
     const { usePlayerStore } = await import('/src/stores/player.ts')
     usePlayerStore().registerCatalogTracks([{
       platform: 'netease', id: '99', title: '首次导入', artists: ['歌手'],
-      album: '即时展示', durationMs: 120000, coverUrl: null,
+      album: '首次导入', durationMs: 120000, coverUrl: null,
       sourceUrl: 'https://music.163.com/song?id=99',
     }])
   })()`)
   await waitFor(
     '空曲库补入第一首歌后立即展示横幅',
-    `document.querySelector('[data-banner-title]')?.textContent === '即时展示'`
+    `document.querySelector('[data-banner-title]')?.textContent === '首次导入' &&
+    document.querySelector('[data-banner-sub]')?.textContent === '歌手'`
   )
   console.log('PASS 空曲库、资料登记、直接进入详情和动态挂载横幅')
 
-  await evaluate(`localStorage.setItem('miraiMusic.publicPlaylists.v1', JSON.stringify([{
+  await evaluate(`localStorage.setItem('miraiMusic.publicPlatformProfiles.v1', JSON.stringify({
+    netease: { userId: '123', displayName: '原有关联', syncedAt: 1 },
+  })); localStorage.setItem('miraiMusic.publicPlaylists.v1', JSON.stringify([{
     platform: 'netease', id: '100', title: '浏览器验证歌单', coverUrl: null,
     tracks: Array.from({ length: 13 }, (_, i) => ({
       platform: 'netease', id: String(i + 1), title: '曲目 ' + (i + 1),
@@ -311,6 +362,20 @@ try {
     })),
   }])); location.hash = '#/'`)
   await send('Page.reload')
+  await waitFor(
+    '旧关联补齐并加载网易云 HTTPS 头像',
+    `(() => {
+    const avatar = document.querySelector('[data-account-menu] .account-avatar img')
+    const stored = JSON.parse(localStorage.getItem('miraiMusic.publicPlatformProfiles.v1')).netease
+    return avatar?.src === 'https://p1.music.126.net/mirai-avatar-fixture.svg' &&
+      avatar.naturalWidth > 0 && stored.avatarUrl === avatar.src && stored.syncedAt === 1
+  })()`
+  )
+  await evaluate(`(async () => {
+    const { usePlayerStore } = await import('/src/stores/player.ts')
+    usePlayerStore().setLinkedProfile('netease', null)
+  })()`)
+  console.log('PASS 旧网易云关联补齐公开头像并保留关联时间')
   const firstCard = `document.querySelector('.home-content .feat b')?.textContent`
   const prev = `document.querySelector('[aria-label="上一页推荐专辑"]')`
   const next = `document.querySelector('[aria-label="下一页推荐专辑"]')`
@@ -318,7 +383,8 @@ try {
   await waitFor(
     '主打封面颜色和标题',
     `
-    document.querySelector('[data-banner-title]')?.textContent === '专辑 1' &&
+    document.querySelector('[data-banner-title]')?.textContent === '曲目 1' &&
+    document.querySelector('[data-banner-sub]')?.textContent === '歌手 1 · 专辑 1' &&
     document.querySelector('[data-banner-mini-cover]')?.naturalWidth > 0 &&
     document.querySelector('.banner-girl')?.naturalWidth > 0 &&
     !!document.querySelector('[data-banner-bg]')?.style.getPropertyValue('--banner-accent')
@@ -360,16 +426,30 @@ try {
     const stage = banner.querySelector('.banner-stage')
     const portrait = stage.querySelector('img').getBoundingClientRect()
     return { width, height, relativeX: (x + width / 2 - bounds.x) / bounds.width,
-      offsetY: y + height / 2 - (bounds.y + bounds.height / 2),
+      relativeY: (y + height / 2 - bounds.y) / bounds.height,
       titleGap: x - text.right, behindPortrait: x + width > portrait.left &&
         Number(getComputedStyle(stage).zIndex) > Number(getComputedStyle(spectrum).zIndex) }
   })()`)
-  assert(spectrumLayout.width > 250 && spectrumLayout.height >= 76)
+  assert(spectrumLayout.width > 250 && spectrumLayout.height <= 76)
   assert(
-    spectrumLayout.relativeX > 0.67 && Math.abs(spectrumLayout.offsetY) < 1
+    spectrumLayout.relativeX > 0.67 &&
+      spectrumLayout.relativeY > 0.55 &&
+      spectrumLayout.relativeY < 0.68
   )
   assert(spectrumLayout.titleGap >= 0 && spectrumLayout.behindPortrait)
   const bannerPlay = `document.querySelector('.banner-content [data-banner-play]')`
+  await resize(760, 740)
+  await waitFor(
+    '窄窗口保留完整曲名与播放按钮',
+    `(() => {
+    const bounds = document.querySelector('[data-banner]').getBoundingClientRect()
+    const title = document.querySelector('[data-banner-title]')
+    const action = ${bannerPlay}.getBoundingClientRect()
+    return bounds.width < 560 && title.scrollWidth === title.clientWidth &&
+      action.left >= bounds.left && action.right <= bounds.right && action.bottom < bounds.bottom
+  })()`
+  )
+  await resize(1240, 820)
   await evaluate(`${bannerPlay}.focus()`)
   await key('Enter', 13)
   await waitFor(
@@ -390,6 +470,7 @@ try {
   })()`
   )
   if (process.env.MIRAI_QA_SCREENSHOTS === '1') {
+    await evaluate(`${bannerPlay}.blur()`)
     await resize(1620, 820)
     await evaluate('document.fonts.ready.then(() => true)')
     await delay(250)
@@ -425,6 +506,181 @@ try {
     '暂停时保留静态频谱',
     `${bannerSpectrum}.dataset.spectrumMode === 'static' && document.querySelector('audio').paused`
   )
+  await evaluate(
+    `document.querySelector('.win-bottom [data-stage-toggle]').click()`
+  )
+  const lyrics = `document.querySelector('.fs-open [data-fs-lyrics]')`
+  const reading = `document.querySelector('[aria-label="歌词阅读模式"]')`
+  await waitFor(
+    '全屏大字歌词接近中央，亮句与译文融入舞台',
+    `(() => {
+    const viewport = ${lyrics}
+    const current = viewport?.querySelector('.fl-line.on')
+    if (!current?.querySelector('.fl-tr')) return false
+    const column = viewport.closest('.fs-lyrcol')
+    const stage = column.closest('.fs')
+    const frame = stage.getBoundingClientRect()
+    const bounds = viewport.getBoundingClientRect()
+    return bounds.left - frame.left < frame.width * 0.62 && bounds.width > frame.width * 0.34 &&
+      getComputedStyle(column).borderLeftWidth === '0px' &&
+      getComputedStyle(stage).backgroundColor === 'rgb(20, 22, 32)' &&
+      getComputedStyle(viewport).maskImage.includes('linear-gradient') &&
+      parseFloat(getComputedStyle(current.querySelector('.fl-o')).fontSize) > 30 &&
+      Number(getComputedStyle(current.nextElementSibling).opacity) < Number(getComputedStyle(current).opacity)
+  })()`
+  )
+  const wordFills = `Array.from(${lyrics}.querySelectorAll('.fl-line.on .fl-o .fl-word'), word =>
+    parseFloat(word.style.getPropertyValue('--sung')))`
+  await evaluate(`document.querySelector('audio').currentTime = 1.2`)
+  await waitFor(
+    '实际媒体已定位',
+    `Math.abs(document.querySelector('audio').currentTime - 1.2) < 0.01 && !document.querySelector('audio').seeking`
+  )
+  const wordPositions = await evaluate(`(() => ({
+    fills: ${wordFills},
+    time: document.querySelector('audio').currentTime,
+    lyric: ${lyrics}.querySelector('.fl-line.on')?.innerHTML,
+  }))()`)
+  assert.deepEqual(
+    wordPositions.fills,
+    [100, 33, 0],
+    JSON.stringify(wordPositions)
+  )
+  assert.deepEqual(
+    await evaluate(`Array.from(${lyrics}.querySelectorAll('.fl-line.on .fl-tr .fl-word'), word =>
+    parseFloat(word.style.getPropertyValue('--sung')))`),
+    [100, 40, 0]
+  )
+  const stagePlay = `document.querySelector('.fs-dock [data-play]')`
+  await evaluate(`${stagePlay}.click()`)
+  await waitFor(
+    '继续播放时逐字进度随真实媒体时钟前进',
+    `${wordFills}[1] > 33 && !document.querySelector('audio').paused`
+  )
+  await evaluate(`${stagePlay}.click()`)
+  await waitFor('暂停媒体', `document.querySelector('audio').paused`)
+  await evaluate(`document.querySelector('audio').currentTime = 0.32`)
+  await waitFor('后跳后重新填色', `JSON.stringify(${wordFills}) === '[40,0,0]'`)
+  await send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+  })
+  await waitFor(
+    '少动效时按词段边界高亮',
+    `JSON.stringify(${wordFills}) === '[100,0,0]'`
+  )
+  await send('Emulation.setEmulatedMedia', { features: [] })
+  await evaluate(`document.querySelector('audio').currentTime = 8.1`)
+  await waitFor(
+    '只有 LRC 的句子继续整句高亮',
+    `${lyrics}.querySelector('.fl-line.on .fl-o')?.textContent === 'The sky opens up again' &&
+      ${wordFills}.length === 0`
+  )
+  await evaluate(`document.querySelector('audio').currentTime = 1.2`)
+  await waitFor('恢复逐字高亮', `JSON.stringify(${wordFills}) === '[100,33,0]'`)
+  if (process.env.MIRAI_QA_SCREENSHOTS === '1') {
+    await delay(550)
+    const file = join(profile, 'fullscreen-lyrics.png')
+    const image = await send('Page.captureScreenshot', { format: 'png' })
+    writeFileSync(file, Buffer.from(image.data, 'base64'))
+    console.log(file)
+  }
+  const themeControl = `document.querySelector('button[aria-label="歌词主题"]')`
+  const activeTheme = `${lyrics}.closest('[data-lyric-theme]').dataset.lyricTheme`
+  // 从真实菜单入口验证主题应用、持久化和连续切换。
+  async function chooseTheme(theme) {
+    const option = `document.querySelector('[role="menu"][aria-label="歌词主题"] [data-choice="${theme}"]')`
+    await evaluate(`${themeControl}.click()`)
+    await waitFor(
+      '主题菜单打开',
+      `${themeControl}.getAttribute('aria-expanded') === 'true' && !!${option}`
+    )
+    await evaluate(`${option}.click()`)
+  }
+  await evaluate(`${themeControl}.focus()`)
+  await key('End', 35)
+  await waitFor(
+    '键盘定位到末尾主题',
+    `document.activeElement?.dataset.choice === 'cinema'`
+  )
+  await key('Escape', 27)
+  await waitFor(
+    'Escape 关闭主题菜单并恢复入口焦点',
+    `document.activeElement === ${themeControl} &&
+    ${themeControl}.getAttribute('aria-expanded') === 'false' && !!${lyrics}`
+  )
+  // 用真实主题和字体渲染生成预览。
+  async function captureLyricsTheme(name) {
+    if (process.env.MIRAI_QA_SCREENSHOTS !== '1') return
+    await delay(300)
+    const file = join(profile, `fullscreen-lyrics-${name}.png`)
+    const image = await send('Page.captureScreenshot', { format: 'png' })
+    writeFileSync(file, Buffer.from(image.data, 'base64'))
+    console.log(file)
+  }
+  await chooseTheme('ink')
+  await waitFor(
+    '应用手书主题并保存选择',
+    `${activeTheme} === 'ink' &&
+      getComputedStyle(${lyrics}.querySelector('.fl-line.on .fl-o')).fontFamily.includes('Ma Shan Zheng') &&
+      localStorage.getItem('miraiMusic.lyricTheme') === 'ink'`
+  )
+  assert.equal(
+    await evaluate(
+      `document.fonts.load('400 34px "Ma Shan Zheng"', '街灯').then(faces => faces.length)`
+    ),
+    1
+  )
+  await captureLyricsTheme('ink')
+  await chooseTheme('glow')
+  await chooseTheme('cinema')
+  await waitFor(
+    '连续切换以字幕主题为准，歌词居中且保留词段进度',
+    `${activeTheme} === 'cinema' &&
+      getComputedStyle(${lyrics}.querySelector('.fl-line.on')).textAlign === 'center' &&
+      JSON.stringify(${wordFills}) === '[100,33,0]'`
+  )
+  await captureLyricsTheme('cinema')
+  await chooseTheme('glow')
+  await waitFor('恢复微光排版', `${activeTheme} === 'glow'`)
+  console.log('PASS 真实媒体时钟逐字填色、整句回退、少动效与三种歌词主题')
+  await evaluate(`${reading}.click()`)
+  await waitFor(
+    '阅读模式居中且沿用当前句',
+    `(() => {
+    const viewport = ${lyrics}
+    if (!viewport?.closest('.fs-reading') || ${reading}.getAttribute('aria-pressed') !== 'true') return false
+    const bounds = viewport.getBoundingClientRect()
+    const win = viewport.closest('.fs').getBoundingClientRect()
+    return Math.abs(bounds.left + bounds.width / 2 - (win.left + win.width / 2)) < 10 &&
+      !!viewport.querySelector('.fl-line.on')
+  })()`
+  )
+  await evaluate(`${reading}.click()`)
+  await waitFor(
+    '退出阅读模式',
+    `${reading}.getAttribute('aria-pressed') === 'false'`
+  )
+  await resize(620, 740)
+  await delay(220)
+  const narrowStage = await evaluate(`(() => {
+    const stage = document.querySelector('.fs-open .fs')
+    const cover = stage.querySelector('.fs-coverwrap').getBoundingClientRect()
+    const dock = stage.querySelector('.fs-dock').getBoundingClientRect()
+    const bounds = ${lyrics}.getBoundingClientRect()
+    return { width: bounds.width, height: bounds.height,
+      coverGap: bounds.top - cover.bottom, dockGap: dock.top - bounds.bottom }
+  })()`)
+  assert(
+    narrowStage.width > 500 &&
+      narrowStage.height > 90 &&
+      narrowStage.coverGap > 0 &&
+      narrowStage.dockGap >= 0,
+    `窄窗口歌词位于封面和控制栏之间 ${JSON.stringify(narrowStage)}`
+  )
+  await resize(1240, 820)
+  await evaluate(
+    `document.querySelector('.fs-top [data-stage-toggle]').click()`
+  )
   await evaluate(`document.querySelector('.main').scrollTop = 110`)
   await waitFor(
     '滚动时折叠横幅',
@@ -439,7 +695,7 @@ try {
     '重新展开横幅',
     `(() => {
       const banner = document.querySelector('[data-banner]')
-      return banner.getBoundingClientRect().height === 208 &&
+      return banner.getBoundingClientRect().height === 224 &&
         !banner.getAnimations().some(animation => animation.playState === 'running')
     })()`
   )
@@ -490,11 +746,54 @@ try {
     `(() => {
     const img = document.querySelector('[data-banner-mini-cover]')
     const bg = document.querySelector('[data-banner-bg]')
-    return document.querySelector('[data-banner-title]')?.textContent === ${JSON.stringify(secondAlbum)} &&
+    return document.querySelector('[data-banner-title]')?.textContent === ${JSON.stringify(secondTrack)} &&
       img?.getAttribute('src') === '/images/music-placeholder.svg' && img.naturalWidth > 0 &&
       !bg.style.getPropertyValue('--banner-accent') && getComputedStyle(bg).transitionDuration === '0s'
   })()`
   )
+  const toast = `document.querySelector('.notification-toast')`
+  const toastText = '当前曲目没有可用的播放地址，可在原平台打开。'
+  await waitFor(
+    '首页播放失败时显示毛玻璃提示并让出歌词与控件',
+    `(() => {
+    const notice = ${toast}
+    const capsule = document.querySelector('.lyric-capsule')
+    if (notice?.textContent.trim() !== ${JSON.stringify(toastText)}) return false
+    const css = getComputedStyle(notice)
+    return notice.closest('.glass-win') && css.backdropFilter.includes('blur(') &&
+      css.backgroundImage === 'none' && css.pointerEvents === 'none' &&
+      notice.getBoundingClientRect().bottom < capsule.getBoundingClientRect().top
+  })()`
+  )
+  await evaluate(`(async () => {
+    const { usePlayerStore } = await import('/src/stores/player.ts')
+    usePlayerStore().state.settings.glassStyle = 'liquid'
+    document.querySelector('.win-bottom [data-stage-toggle]').click()
+  })()`)
+  await waitFor(
+    '全屏沿用提示位置并切换为液态玻璃',
+    `(() => {
+    const notice = ${toast}
+    const stage = document.querySelector('.fs-open .fs-dock')
+    if (!notice?.closest('.liquid-win') || !stage) return false
+    const css = getComputedStyle(notice)
+    return css.backgroundImage.includes('linear-gradient') && css.boxShadow.includes('inset') &&
+      notice.getBoundingClientRect().top > document.querySelector('.fs-top').getBoundingClientRect().bottom &&
+      notice.getBoundingClientRect().bottom < stage.getBoundingClientRect().top
+  })()`
+  )
+  if (process.env.MIRAI_QA_SCREENSHOTS === '1') {
+    const file = join(profile, 'fullscreen-notification.png')
+    const image = await send('Page.captureScreenshot', { format: 'png' })
+    writeFileSync(file, Buffer.from(image.data, 'base64'))
+    console.log(file)
+  }
+  await evaluate(`(async () => {
+    document.querySelector('.fs-top [data-stage-toggle]').click()
+    const { usePlayerStore } = await import('/src/stores/player.ts')
+    usePlayerStore().state.settings.glassStyle = 'match'
+  })()`)
+  console.log('PASS 首页和全屏播放失败提示位置及玻璃样式')
   await evaluate(`location.hash = '#/recent'`)
   await waitFor(
     '播放失败不会伪造最近播放',

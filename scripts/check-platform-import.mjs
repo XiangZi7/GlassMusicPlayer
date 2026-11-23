@@ -191,6 +191,15 @@ async function check(name, test) {
   count++
   console.log(`PASS ${name}`)
 }
+await check('only the known NetEase avatar CDN upgrades legacy HTTP links', () => {
+  const { publicAvatar } = avatarModule.exports
+  assert.equal(
+    publicAvatar('http://p1.music.126.net/public.jpg'),
+    'https://p1.music.126.net/public.jpg'
+  )
+  assert.equal(publicAvatar('http://p1.music.126.net.example.org/public.jpg'), null)
+  assert.equal(publicAvatar('http://name@p1.music.126.net/public.jpg'), null)
+})
 await check('refresh preserves the same verified UID avatar', async () => {
   const avatar = 'https://p1.music.126.net/public.jpg'
   const h = harness({

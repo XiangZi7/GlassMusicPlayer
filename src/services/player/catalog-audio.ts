@@ -1,7 +1,6 @@
 import {
   getCatalogAudioUrl,
   getCatalogPlayback,
-  type CatalogLyrics,
   type PlaybackStatus,
 } from '@/api'
 import { notify } from '@/services/notification'
@@ -341,6 +340,11 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
       audio.currentTime = Math.max(0, time)
   }
 
+  // 逐字填色读取当前媒体元素的位置，切源和原声回退后仍使用真实时钟。
+  function position(): number | undefined {
+    return loaded ? audio.currentTime : undefined
+  }
+
   // 只保存有限、脱离调用方的曲线；真实图是否生效通过独立状态回调告知根层。
   function setEqualizer(config: EqualizerConfig): void {
     equalizerConfig = normalizeEqualizerConfig(config)
@@ -397,6 +401,7 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     pause,
     reset,
     seek,
+    position,
     setEqualizer,
     bindSpectrumViews,
     setSpectrumMotion,
@@ -405,28 +410,4 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     setVolume,
     destroy,
   }
-}
-
-// 读取 LRC 一行内的多个时间戳，并按时间匹配翻译文本。
-export function parseCatalogLyrics(
-  lyrics: CatalogLyrics
-): { t: number; o: string; tr: string }[] {
-  // 同一时间只保留第一条非空文本，忽略标题和制作者等无时间戳的字段。
-  function parse(lrc: string): Map<number, string> {
-    const lines = new Map<number, string>()
-    for (const line of lrc.split(/\r?\n/)) {
-      const stamps = [...line.matchAll(/\[(\d+):(\d{1,2}(?:\.\d+)?)\]/g)]
-      const text = line.replace(/\[\d+:\d{1,2}(?:\.\d+)?\]/g, '').trim()
-      if (!text) continue
-      for (const [, minutes, seconds] of stamps) {
-        const ms = Math.round((Number(minutes) * 60 + Number(seconds)) * 1000)
-        if (Number.isFinite(ms) && !lines.has(ms)) lines.set(ms, text)
-      }
-    }
-    return lines
-  }
-  const translated = parse(lyrics.translatedLrc)
-  return [...parse(lyrics.lrc)]
-    .sort(([a], [b]) => a - b)
-    .map(([ms, o]) => ({ t: ms / 1000, o, tr: translated.get(ms) || '' }))
 }

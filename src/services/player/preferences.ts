@@ -176,6 +176,7 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
         settings: Object.fromEntries(
           Object.entries(preferences.settings).filter(([key]) =>
             [
+              'closeToTray',
               'gapless',
               'crossfadeOn',
               'normalize',

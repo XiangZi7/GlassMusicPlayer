@@ -173,7 +173,7 @@ export function createSpectrum(
     paintBanner()
   }
 
-  // 低频从横幅中线向左右展开，较高频率逐渐向两端延伸。
+  // 从中线向左右映射实频，并逐渐降低边缘高度，让频谱融入横幅背景。
   function paintBanner(): void {
     if (!banner || destroyed) return
     const { canvas, paint } = banner
@@ -186,9 +186,9 @@ export function createSpectrum(
     const barWidth = Math.min(3, step * 0.6)
     const live = mode === 'live'
     const color = currentColor.map(channel =>
-      Math.round(channel * 0.7 + 255 * 0.3)
+      Math.round(channel * 0.76 + 255 * 0.24)
     )
-    paint.fillStyle = `rgba(${color.join(',')},${live ? 0.6 : 0.26})`
+    paint.fillStyle = `rgba(${color.join(',')},${live ? 0.46 : 0.19})`
     for (let band = 0; band < count; band++) {
       let barHeight: number
       if (live) {
@@ -201,9 +201,10 @@ export function createSpectrum(
         let peak = 0
         for (let index = start; index < end; index++)
           peak = Math.max(peak, levels[index] ?? 0)
-        barHeight = 2 + peak ** 0.9 * Math.max(0, height - 8)
-      } else
-        barHeight = 3 + 12 * Math.sin((Math.PI * (band + 0.5)) / count) ** 2
+        const falloff =
+          0.32 + 0.68 * Math.cos((Math.PI * (outward + 0.5)) / (2 * half))
+        barHeight = 2 + peak ** 1.08 * Math.max(0, height - 8) * falloff
+      } else barHeight = 2 + 7 * Math.sin((Math.PI * (band + 0.5)) / count) ** 2
       barHeight = Math.min(height, barHeight)
       const x = band * step + (step - barWidth) / 2
       const y = (height - barHeight) / 2

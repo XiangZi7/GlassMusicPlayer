@@ -13,9 +13,9 @@ use tauri::{
 };
 
 pub(crate) const TRAY_LABEL: &str = "tray";
-const TRAY_ICON_ID: &str = "mirai-player-tray";
 const CONTENT_WIDTH: f64 = 288.0;
 const INITIAL_HEIGHT: f64 = 440.0;
+const MENU_GAP: f64 = 4.0;
 
 pub(crate) struct TrayMenuState {
     ready: AtomicBool,
@@ -27,7 +27,7 @@ pub(crate) struct TrayMenuState {
     // 只在后台命令/纠偏任务中取得；UI 回调永不等待此锁。
     placement: Mutex<()>,
     height: Mutex<f64>,
-    anchor: Mutex<Option<PhysicalPosition<f64>>>,
+    anchor: Mutex<Option<PhysicalRect<f64, u32>>>,
     fallback: Mutex<Option<Menu<Wry>>>,
 }
 impl Default for TrayMenuState {
@@ -187,7 +187,7 @@ fn restore_native_menu(app: &AppHandle) {
     state.generation.fetch_add(1, Ordering::AcqRel);
     if state.ready.swap(false, Ordering::AcqRel) {
         let menu = state.fallback.lock().ok().and_then(|menu| menu.clone());
-        if let (Some(icon), Some(menu)) = (app.tray_by_id(TRAY_ICON_ID), menu) {
+        if let (Some(icon), Some(menu)) = (app.tray_by_id(tray::TRAY_ICON_ID), menu) {
             if let Err(error) = icon.set_menu(Some(menu)) {
                 eprintln!("恢复原生托盘菜单失败：{error}");
             }
@@ -228,33 +228,44 @@ fn constrained_size(height: f64, work: PhysicalSize<u32>, scale: f64) -> Logical
         (height.ceil() + SURFACE_INSET * 2.0).min((work.height as f64 / scale - 16.0).max(1.0)),
     )
 }
+/// 按托盘图标和工作区对齐菜单本体，允许可穿透的透明阴影伸到任务栏上。
 fn popup_position(
-    pointer: PhysicalPosition<f64>,
+    icon: PhysicalRect<f64, u32>,
     size: PhysicalSize<u32>,
     area: PhysicalRect<i32, u32>,
     scale: f64,
 ) -> PhysicalPosition<i32> {
-    let margin = 8.0 * scale;
-    let min_x = area.position.x as f64 + margin;
-    let min_y = area.position.y as f64 + margin;
-    let max_x =
-        (area.position.x as f64 + area.size.width as f64 - size.width as f64 - margin).max(min_x);
-    let max_y =
-        (area.position.y as f64 + area.size.height as f64 - size.height as f64 - margin).max(min_y);
-    let above = pointer.y - size.height as f64 + SURFACE_INSET * scale - 12.0 * scale;
-    let below = pointer.y - SURFACE_INSET * scale + 12.0 * scale;
-    let above_space = pointer.y - area.position.y as f64;
-    let below_space = area.position.y as f64 + area.size.height as f64 - pointer.y;
-    let y = if above >= min_y || above_space >= below_space {
-        above
+    let gap = MENU_GAP * scale;
+    let inset = SURFACE_INSET * scale;
+    let width = size.width as f64 - 2.0 * inset;
+    let height = size.height as f64 - 2.0 * inset;
+    let left = area.position.x as f64;
+    let top = area.position.y as f64;
+    let right = left + area.size.width as f64;
+    let bottom = top + area.size.height as f64;
+    let min_x = left + gap;
+    let min_y = top + gap;
+    let max_x = (right - width - gap).max(min_x);
+    let max_y = (bottom - height - gap).max(min_y);
+    let icon_right = icon.position.x + icon.size.width as f64;
+    let icon_bottom = icon.position.y + icon.size.height as f64;
+    let icon_center_x = (icon.position.x + icon_right) / 2.0;
+    let (x, y) = if icon_center_x < left {
+        (min_x, icon_bottom - height)
+    } else if icon_center_x >= right {
+        (max_x, icon_bottom - height)
     } else {
-        below
+        let above = icon.position.y - height - gap;
+        let y = if above >= min_y || icon.position.y - top >= bottom - icon_bottom {
+            above
+        } else {
+            icon_bottom + gap
+        };
+        (icon_right - width, y)
     };
     PhysicalPosition::new(
-        (pointer.x - size.width as f64 + SURFACE_INSET * scale + 12.0 * scale)
-            .clamp(min_x, max_x)
-            .round() as i32,
-        y.clamp(min_y, max_y).round() as i32,
+        (x.clamp(min_x, max_x) - inset).round() as i32,
+        (y.clamp(min_y, max_y) - inset).round() as i32,
     )
 }
 fn contains(
@@ -280,13 +291,19 @@ fn update_popup(window: &WebviewWindow, update: Option<(f64, u64)>) -> Result<()
         ensure_generation(state.generation.load(Ordering::Acquire), generation)?;
         *state.height.lock().map_err(|_| "托盘尺寸状态不可用")? = height;
     }
-    let pointer = *state.anchor.lock().map_err(|_| "托盘位置状态不可用")?;
+    let icon = *state.anchor.lock().map_err(|_| "托盘位置状态不可用")?;
+    let center = icon.map(|icon| {
+        PhysicalPosition::new(
+            icon.position.x + icon.size.width as f64 / 2.0,
+            icon.position.y + icon.size.height as f64 / 2.0,
+        )
+    });
     let monitor = window
         .available_monitors()
         .map_err(|error| error.to_string())?
         .into_iter()
         .find(|monitor| {
-            pointer.is_some_and(|point| contains(point, *monitor.position(), *monitor.size()))
+            center.is_some_and(|point| contains(point, *monitor.position(), *monitor.size()))
         })
         .or_else(|| window.current_monitor().ok().flatten())
         .or_else(|| window.primary_monitor().ok().flatten())
@@ -317,11 +334,14 @@ fn update_popup(window: &WebviewWindow, update: Option<(f64, u64)>) -> Result<()
             (outer.height as f64 / current_scale * scale).round() as u32,
         )
     };
-    let pointer = pointer.unwrap_or(PhysicalPosition::new(
-        area.position.x as f64 + area.size.width as f64 - 16.0 * scale,
-        area.position.y as f64 + area.size.height as f64,
-    ));
-    let position = popup_position(pointer, predicted, area, scale);
+    let icon = icon.unwrap_or(PhysicalRect {
+        position: PhysicalPosition::new(
+            area.position.x as f64 + area.size.width as f64 - 16.0 * scale,
+            area.position.y as f64 + area.size.height as f64,
+        ),
+        size: PhysicalSize::new(0, 0),
+    });
+    let position = popup_position(icon, predicted, area, scale);
     if window.outer_position().map_err(|error| error.to_string())? != position {
         window
             .set_position(position)
@@ -334,7 +354,7 @@ fn request_snapshot(app: &AppHandle) {
     let _ = app.emit_to("main", "settings-ready", ());
 }
 
-/// 在原生右键 Up 回调内捕获开合代号，之后才排入 async 任务。
+/// 在原生右键 Up 回调内记录图标边界和开合代号，图标无有效尺寸时沿用点击坐标。
 pub(crate) fn request_open(
     app: &AppHandle,
     pointer: PhysicalPosition<f64>,
@@ -347,16 +367,17 @@ pub(crate) fn request_open(
     if !pointer.x.is_finite() || !pointer.y.is_finite() {
         return Err("托盘位置无效".into());
     }
-    let position = rect.position.to_physical::<i32>(1.0);
+    let position = rect.position.to_physical::<f64>(1.0);
     let size = rect.size.to_physical::<u32>(1.0);
-    let anchor = if size.width > 0 && size.height > 0 {
-        PhysicalPosition::new(
-            position.x as f64 + size.width as f64 / 2.0,
-            position.y as f64 + size.height as f64 / 2.0,
-        )
-    } else {
-        pointer
-    };
+    let anchor =
+        if size.width > 0 && size.height > 0 && position.x.is_finite() && position.y.is_finite() {
+            PhysicalRect { position, size }
+        } else {
+            PhysicalRect {
+                position: pointer,
+                size: PhysicalSize::new(0, 0),
+            }
+        };
     *state.anchor.lock().map_err(|_| "托盘位置状态不可用")? = Some(anchor);
     Ok(Some(new_request(&state)))
 }
@@ -434,7 +455,9 @@ pub(crate) async fn resize_tray_menu(
         let state = app.state::<TrayMenuState>();
         ensure_generation(state.generation.load(Ordering::Acquire), generation)?;
         if !state.ready.load(Ordering::Acquire) {
-            let icon = app.tray_by_id(TRAY_ICON_ID).ok_or("系统托盘尚未就绪")?;
+            let icon = app
+                .tray_by_id(tray::TRAY_ICON_ID)
+                .ok_or("系统托盘尚未就绪")?;
             icon.set_menu(None::<Menu<Wry>>)
                 .map_err(|error| error.to_string())?;
             state.ready.store(true, Ordering::Release);
@@ -642,40 +665,75 @@ mod tests {
             assert!(serde_json::from_str::<TrayAction>(&format!("\"{action}\"")).is_err());
         }
     }
+    /// 核对四个任务栏方向的可见菜单间距、图标对齐和工作区边界。
     #[test]
-    fn menu_and_shadow_stay_in_each_taskbar_work_area() {
+    fn visible_menu_sits_next_to_each_taskbar_edge() {
         for scale in [1.0, 1.25, 1.5, 2.0] {
-            for (x, y, width, height) in [
-                (0, 0, 1920, 1040),
-                (0, 48, 1920, 1032),
-                (48, 0, 1872, 1080),
-                (0, 0, 1872, 1080),
-                (-1920, -1080, 1920, 1040),
+            for ((x, y, width, height), (icon_x, icon_y), expected) in [
+                ((0, 0, 1920, 1040), (1760, 1048), (1496.0, 556.0)),
+                ((0, 48, 1920, 1032), (1760, 12), (1496.0, 52.0)),
+                ((48, 0, 1872, 1080), (12, 960), (52.0, 504.0)),
+                ((0, 0, 1872, 1080), (1884, 960), (1580.0, 504.0)),
+                ((-1920, -1080, 1920, 1040), (-160, -32), (-424.0, -524.0)),
             ] {
                 let area = PhysicalRect {
-                    position: PhysicalPosition::new(x, y),
-                    size: PhysicalSize::new(width, height),
+                    position: PhysicalPosition::new(
+                        (x as f64 * scale) as i32,
+                        (y as f64 * scale) as i32,
+                    ),
+                    size: PhysicalSize::new(
+                        (width as f64 * scale) as u32,
+                        (height as f64 * scale) as u32,
+                    ),
+                };
+                let icon = PhysicalRect {
+                    position: PhysicalPosition::new(icon_x as f64 * scale, icon_y as f64 * scale),
+                    size: PhysicalSize::new((24.0 * scale) as u32, (24.0 * scale) as u32),
                 };
                 let logical = constrained_size(480.0, area.size, scale);
                 let size = PhysicalSize::new(
                     (logical.width * scale).round() as u32,
                     (logical.height * scale).round() as u32,
                 );
-                for pointer in [
-                    PhysicalPosition::new(x as f64 + 8.0, y as f64 + 8.0),
-                    PhysicalPosition::new(
-                        x as f64 + width as f64 - 8.0,
-                        y as f64 + height as f64 + 24.0,
-                    ),
-                ] {
-                    let position = popup_position(pointer, size, area, scale);
-                    let margin = (8.0 * scale) as i32;
-                    assert!(position.x >= x + margin && position.y >= y + margin);
-                    assert!(position.x + size.width as i32 <= x + width as i32 - margin);
-                    assert!(position.y + size.height as i32 <= y + height as i32 - margin);
-                }
+                let position = popup_position(icon, size, area, scale);
+                let inset = SURFACE_INSET * scale;
+                assert_eq!(
+                    (position.x as f64 + inset, position.y as f64 + inset),
+                    (expected.0 * scale, expected.1 * scale)
+                );
             }
         }
+    }
+
+    /// 工作区内的隐藏托盘图标也保留贴边间距，空间不足时翻到图标下方。
+    #[test]
+    fn popup_flips_and_clamps_next_to_icon_inside_work_area() {
+        let area = PhysicalRect {
+            position: PhysicalPosition::new(0, 0),
+            size: PhysicalSize::new(1280, 720),
+        };
+        let size = PhysicalSize::new(352, 544);
+        let icon_size = PhysicalSize::new(24, 24);
+        let position = popup_position(
+            PhysicalRect {
+                position: PhysicalPosition::new(8.0, 12.0),
+                size: icon_size,
+            },
+            size,
+            area,
+            1.0,
+        );
+        assert_eq!(position, PhysicalPosition::new(-28, 8));
+        let position = popup_position(
+            PhysicalRect {
+                position: PhysicalPosition::new(1240.0, 650.0),
+                size: icon_size,
+            },
+            size,
+            area,
+            1.0,
+        );
+        assert_eq!(position, PhysicalPosition::new(944, 134));
     }
     #[test]
     fn small_work_area_constrains_only_the_menu_viewport() {

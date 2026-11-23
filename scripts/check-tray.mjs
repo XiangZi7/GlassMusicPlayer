@@ -405,6 +405,7 @@ assert.equal(
 const native = read('src-tauri/src/desktop/tray_menu.rs')
 const tray = read('src-tauri/src/desktop/tray.rs')
 const app = read('src-tauri/src/app.rs')
+const windows = read('src-tauri/src/desktop/windows.rs')
 for (const command of [
   'start_tray_session',
   'resize_tray_menu',
@@ -444,6 +445,34 @@ assert.match(
 console.log(
   'PASS native bridge wiring, minimal permissions, Windows warm-up, native fallback and shared snapshots'
 )
+
+const preferencesStorage = new Map()
+const preferences = loadTs(
+  'src/services/player/preferences.ts',
+  { '@/constants/music': { defaultCover: '/images/test-cover.webp' } },
+  {
+    localStorage: {
+      getItem: key => preferencesStorage.get(key) ?? null,
+      setItem: (key, value) => preferencesStorage.set(key, value),
+    },
+  }
+)
+preferencesStorage.set(preferences.preferencesKey, '{"version":1,"settings":{}}')
+const previous = preferences.readPlayerPreferences({ closeToTray: true })
+assert.equal(previous.settings.closeToTray, true)
+previous.settings.closeToTray = false
+assert.equal(preferences.writePlayerPreferences(previous), true)
+assert.equal(
+  preferences.readPlayerPreferences({ closeToTray: true }).settings.closeToTray,
+  false
+)
+assert.match(app, /tray::set_close_to_tray/)
+assert.match(
+  windows,
+  /window\.label\(\) == "main"[\s\S]*?\.close_to_tray\(\)[\s\S]*?api\.prevent_close\(\)[\s\S]*?window\.hide\(\)[\s\S]*?return;[\s\S]*?app\.exit\(0\)/
+)
+assert.match(tray, /id == "tray-exit"\s*\{\s*app\.exit\(0\)/)
+console.log('PASS close-to-tray preference migration, persistence and native wiring')
 
 if (process.argv.includes('--built')) {
   const assets = path.join(root, 'dist/assets')

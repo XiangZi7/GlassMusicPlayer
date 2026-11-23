@@ -122,6 +122,8 @@ export type SortMode = 'def' | 'title' | 'artist' | 'dur'
 // 设置弹窗重置和播放器首次启动共用原稿默认值，每次返回独立对象。
 export function createDefaultSettings() {
   return {
+    // 关闭主窗口时收起到系统托盘并继续播放。
+    closeToTray: true,
     gapless: true,
     crossfadeOn: true,
     normalize: false,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue'
 import { useNativeWindowFrame } from '@/composables/useNativeWindowFrame'
+import NotificationHost from '@/components/ui/NotificationHost.vue'
 
 const props = defineProps<{ cover?: string; glassStyle?: string }>()
 const element = useTemplateRef<HTMLElement>('element')
@@ -38,6 +39,7 @@ defineExpose({ element })
           />
           <div class="win-veil absolute inset-0 z-[1]" />
           <slot />
+          <NotificationHost />
           <!-- 原生外框缩放入口：仅覆盖可见窗口内侧，不占用穿透的阴影留白。 -->
           <template v-if="needsCustomFrame">
             <div

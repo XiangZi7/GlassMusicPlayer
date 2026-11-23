@@ -16,6 +16,7 @@ pub fn run() {
             windows::set_desktop_lock,
             windows::set_lyric_island,
             tray::set_tray_mini,
+            tray::set_close_to_tray,
             tray_menu::start_tray_session,
             tray_menu::resize_tray_menu,
             tray_menu::dismiss_tray_menu,

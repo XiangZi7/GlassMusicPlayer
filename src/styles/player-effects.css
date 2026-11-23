@@ -492,6 +492,7 @@ h1 .thin {
 .banner {
   --bx: 0;
   --by: 0;
+  --banner-inset: clamp(20px, 3.5cqw, 46px);
   container-type: inline-size;
   transition:
     height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
@@ -507,38 +508,58 @@ h1 .thin {
 .banner-bg {
   background:
     radial-gradient(
-      ellipse 58% 125% at 88% 43%,
-      color-mix(in srgb, var(--banner-accent) 30%, transparent),
-      transparent 85%
+      ellipse 47% 133% at 82% 71%,
+      color-mix(in srgb, var(--banner-accent) 24%, transparent),
+      transparent 91%
     ),
-    linear-gradient(112deg, #161720 12%, #1b1d29 68%, #22222f);
+    radial-gradient(
+      ellipse 45% 115% at 81% 0%,
+      color-mix(in srgb, var(--banner-accent) 12%, transparent),
+      transparent 88%
+    ),
+    linear-gradient(108deg, #14161f 10%, #181a24 47%, #222430);
   transition: --banner-accent 200ms ease;
 }
 
 .banner-spectrum {
-  right: 0;
-  width: min(55%, 720px);
-  height: clamp(44px, 12cqw, 88px);
+  top: 61%;
+  right: 1%;
+  width: min(50%, 680px);
+  height: clamp(50px, 10cqw, 76px);
   mask-image:
-    linear-gradient(to right, transparent, #000 17%, #000 80%, transparent),
-    linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
-  mask-composite: intersect;
+    radial-gradient(ellipse 57% 70% at 58% 50%, #000 28%, rgb(0 0 0 / 60%) 67%, transparent 100%);
+}
+
+.banner-content {
+  left: var(--banner-inset);
+  width: min(calc(49% - var(--banner-inset)), 520px);
 }
 
 @container (max-width: 35rem) {
   .banner-spectrum {
-    right: 1%;
-    width: 49%;
-    opacity: 0.75;
+    right: 0;
+    width: 54%;
+    opacity: 0.68;
   }
 
   .banner-content {
-    width: calc(50% - 30px);
+    width: calc(64% - var(--banner-inset));
+  }
+
+  .banner-stage {
+    width: 61%;
+    mask-image: linear-gradient(to right, transparent, #000 44%);
+  }
+
+  .banner .banner-girl {
+    right: -14px;
+    height: 88%;
   }
 }
 
 .banner-content h4 {
-  @apply m-[9px_0_0] overflow-hidden text-[29px] leading-[1.12] font-extrabold tracking-[-.015em] text-ellipsis whitespace-nowrap;
+  @apply m-[8px_0_0] overflow-hidden leading-[1.08] font-extrabold tracking-[-.035em] text-ellipsis whitespace-nowrap;
+  font-size: clamp(1.625rem, 4.6cqw, 2.875rem);
 }
 
 .banner-play svg {
@@ -546,6 +567,9 @@ h1 .thin {
 }
 
 .banner-girl {
+  right: clamp(14px, 4.4cqw, 67px);
+  bottom: -3px;
+  height: calc(100% - 8px);
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.42));
   mask-image:
     linear-gradient(to right, transparent, #000 26%, #000 94%, transparent),
@@ -676,15 +700,6 @@ h1 .thin {
   .banner {
     height: 188px;
     margin-top: 2px;
-  }
-  .banner-content h4 {
-    font-size: 23px;
-  }
-  .banner-girl {
-    height: 176px;
-    top: auto;
-    bottom: 0;
-    right: 4px;
   }
   .feat-head {
     margin-top: 18px;
@@ -1682,6 +1697,14 @@ input[type='range']::-moz-range-thumb {
 
 /* ---------- fullscreen now-playing page ---------- */
 
+.fs {
+  background-color: #141620;
+}
+
+.liquid-win .fs {
+  background-color: #111c22;
+}
+
 .win.fs-open .fs {
   @apply flex;
   animation: fsIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1806,28 +1829,32 @@ input[type='range']::-moz-range-thumb {
   transition: transform 0.25s ease-out;
 }
 
-.fs-cover {
+.fs-cover,
+.fs-reflect img {
   @apply aspect-square w-full rounded-[22px] object-cover;
+}
+
+.fs-cover {
   box-shadow:
     0 34px 64px rgba(0, 0, 0, 0.55),
     0 0 64px var(--glow, rgba(255, 255, 255, 0.2));
 }
 
-.liquid-win .fs-cover {
+.liquid-win :is(.fs-cover, .fs-reflect img) {
   @apply rounded-[26px];
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .fs-reflect {
-  object-position: center top;
+  @apply pointer-events-none absolute top-full left-0 mt-[2px] h-[38px] w-full overflow-hidden opacity-[.26];
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 92%);
+}
+
+/* 先等比翻转整张封面，再由短窗裁出紧邻封面下沿的部分。 */
+.fs-reflect img {
+  @apply absolute top-0 left-0;
   transform: scaleY(-1);
   filter: blur(1px);
-  -webkit-mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.85),
-    transparent 92%
-  );
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent 92%);
 }
 
 .fs-right {
@@ -2091,6 +2118,11 @@ input[type='range']::-moz-range-thumb {
 
 /* ---------- fullscreen page : magazine editorial layout ---------- */
 
+.fs-main {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
 .fs-giant {
   -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
   animation: fsDrift 38s ease-in-out infinite alternate;
@@ -2119,11 +2151,9 @@ input[type='range']::-moz-range-thumb {
 }
 
 .fs-main .fs-coverwrap {
-  @apply z-[2] w-[min(322px,30vw)] flex-none;
-}
-
-.fs-main .fs-reflect {
-  @apply mt-[7px] h-[38px];
+  @apply z-[2] w-[min(292px,24vw)] flex-none;
+  /* 保留原稿的倒影占位，封面呼吸层仍以封面本身为中心。 */
+  padding-bottom: 45px;
 }
 
 .fs-titleblock h4 {
@@ -2144,8 +2174,9 @@ input[type='range']::-moz-range-thumb {
 }
 
 .fs-main .fs-lyrcol {
-  @apply relative m-[0_0_0_auto] flex min-h-[0] w-[318px] flex-none flex-col self-stretch pl-[22px];
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  @apply relative ml-auto flex min-h-0 min-w-0 flex-col self-stretch;
+  flex: 0 0 52%;
+  padding-inline-start: clamp(18px, 3.5vw, 54px);
 }
 
 /* lyrics column is a drag surface, never a text selection : dragging must not
@@ -2243,11 +2274,6 @@ input[type='range']::-moz-range-thumb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 12px 26px rgba(0, 0, 0, 0.4);
-}
-
-/* fullscreen lyrics column head — standard display only */
-.fs-lyrhead {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .fs-lyrhead > span {
@@ -2381,7 +2407,7 @@ input[type='range']::-moz-range-thumb {
     padding: 4px 26px 2px 44px;
   }
   .fs-main .fs-coverwrap {
-    width: min(238px, 32vw);
+    width: min(232px, 26vw);
   }
   .fs-titleblock {
     margin-left: -42px;
@@ -2391,8 +2417,7 @@ input[type='range']::-moz-range-thumb {
     font-size: 42px;
   }
   .fs-main .fs-lyrcol {
-    width: 256px;
-    padding-left: 16px;
+    padding-inline-start: 18px;
   }
   .fs-main .fl-line.on {
     font-size: 21px;
@@ -2428,20 +2453,22 @@ input[type='range']::-moz-range-thumb {
     display: none;
   }
   .fs-main {
-    flex-wrap: wrap;
-    align-content: center;
+    display: grid;
+    grid-template-columns: min(138px, 30vw) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     padding: 2px 20px;
     row-gap: 8px;
   }
   .fs-main .fs-coverwrap {
-    width: 138px;
+    width: 100%;
+    padding-bottom: 0;
   }
   .fs-main .fs-reflect {
     display: none;
   }
   .fs-titleblock {
-    margin-left: -24px;
-    max-width: 56%;
+    margin-left: 14px;
+    max-width: 100%;
   }
   .fs-titleblock h4 {
     font-size: 31px;
@@ -2455,12 +2482,10 @@ input[type='range']::-moz-range-thumb {
     margin-top: 8px;
   }
   .fs-main .fs-lyrcol {
-    width: 100%;
-    margin: 2px 0 0;
-    max-height: 54%;
-    align-self: auto;
-    border-left: none;
-    padding-left: 2px;
+    grid-column: 1 / -1;
+    margin: 0;
+    align-self: stretch;
+    padding-inline-start: 2px;
   }
   .fs-lyrhead {
     padding-bottom: 7px;

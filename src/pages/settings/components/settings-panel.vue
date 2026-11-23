@@ -24,7 +24,38 @@ function updateCrossfade(event: Event): void {
   >
     <!-- 设置分组：保留原稿控件，按左侧分类展示。 -->
     <template v-if="section === 'general'"
-      ><section>
+      ><!-- 窗口设置：选择关闭主窗口后是否在托盘继续运行。 -->
+      <section>
+        <h3
+          class="pg-secttl m-[0_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
+        >
+          窗口
+        </h3>
+        <div
+          class="set-card rounded-[16px] border border-transparent p-[4px_14px]"
+        >
+          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-0 flex-1">
+              <b>关闭时收起到系统托盘</b>
+              <span id="close-to-tray-help"
+                >开启后继续播放，可从托盘恢复窗口。关掉此选项后，关闭主窗口会退出播放器。</span
+              >
+            </div>
+            <!-- 设置开关：只修改草稿，应用或保存后生效。 -->
+            <BaseButton
+              class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
+              :class="{ on: settings.closeToTray }"
+              role="switch"
+              :aria-checked="settings.closeToTray"
+              aria-label="关闭时收起到系统托盘"
+              aria-describedby="close-to-tray-help"
+              @click="setSetting('closeToTray', !settings.closeToTray)"
+              ><i></i
+            ></BaseButton>
+          </div>
+        </div>
+      </section>
+      <section>
         <h3
           class="pg-secttl m-[0_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
         >

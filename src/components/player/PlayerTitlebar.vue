@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { toRefs, watch } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { useRouter } from 'vue-router'
-import type { MusicPlatform } from '@/api'
+import { getPublicUserPlaylists, type MusicPlatform } from '@/api'
 import { usePlayer } from '@/composables/usePlayer'
 import { openSettingsWindow } from '@/services/desktop'
+import { publicAvatar } from '@/services/public-avatar'
+import { usePlayerStore } from '@/stores/player'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerSearchBox from '@/components/player/PlayerSearchBox.vue'
 import AccountMenu from '@/components/player/AccountMenu.vue'
@@ -14,6 +16,41 @@ import WindowControls from '@/components/ui/WindowControls.vue'
 const { state } = usePlayer()
 const { settings, linkedProfiles } = toRefs(state)
 const router = useRouter()
+const { setLinkedProfile } = usePlayerStore()
+
+// 旧公开关联缺少头像时，按原 UID 补齐一次；取消关联或切换账号后丢弃旧响应。
+watch(
+  () => state.linkedProfiles.netease?.userId,
+  async (userId, _, onCleanup) => {
+    if (!userId || publicAvatar(state.linkedProfiles.netease?.avatarUrl)) return
+    const request = new AbortController()
+    onCleanup(() => request.abort())
+    try {
+      const profile = await getPublicUserPlaylists(
+        'netease',
+        userId,
+        1,
+        1,
+        request.signal
+      )
+      const current = state.linkedProfiles.netease
+      const avatarUrl = publicAvatar(profile.avatarUrl)
+      if (
+        !request.signal.aborted &&
+        profile.platform === 'netease' &&
+        profile.userId === userId &&
+        current?.userId === userId &&
+        !publicAvatar(current.avatarUrl) &&
+        avatarUrl
+      )
+        setLinkedProfile('netease', { ...current, avatarUrl })
+    } catch {
+      // 头像补齐失败时保留关联和已有的中性头像。
+    }
+  },
+  { immediate: true }
+)
+
 function connectPlatform(platform: MusicPlatform): void {
   void router.push({
     path: '/connect',

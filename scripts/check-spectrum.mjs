@@ -254,7 +254,10 @@ assert.equal(analyserReads - readsBefore, 1, 'Both canvases share one FFT read')
 assert.equal(frames.size, 1, 'Both canvases share one animation loop')
 assert.equal(bannerCalls.length, 84)
 assert(bannerCalls.every(bar => bar.y * 2 + bar.height === 90))
-assert(bannerCalls.every(bar => bar.height > 30 && bar.width === 3))
+const mid = bannerCalls.length / 2
+assert(bannerCalls.every(bar => bar.height > 2 && bar.width === 3))
+assert(bannerCalls[mid].height > 30)
+assert(bannerCalls[0].height < bannerCalls[mid].height * 0.5)
 
 // 即使音源只含低频，画布左右也应获得相同的峰值分布。
 fillBins = bins => {
@@ -264,7 +267,6 @@ fillBins = bins => {
 renderer.stop()
 bannerCalls.length = 0
 renderer.update()
-const mid = bannerCalls.length / 2
 assert(
   bannerCalls.every(
     (bar, index) => bar.height === bannerCalls.at(-1 - index).height
@@ -284,7 +286,7 @@ renderer.setMotion(false)
 assert.equal(frames.size, 0, 'Reduced motion setting should stop rendering')
 assert.equal(bannerCanvas.dataset.spectrumMode, 'static')
 assert.equal(bannerCalls.length, 84)
-assert(bannerCalls.every(bar => bar.height <= 15))
+assert(bannerCalls.every(bar => bar.height <= 9))
 renderer.setBannerCanvas(null)
 bannerCalls.length = 0
 renderer.stop()

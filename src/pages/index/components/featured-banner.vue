@@ -19,11 +19,16 @@ const featuredIndex = computed(() =>
     : tracks.findIndex(track => track.catalog)
 )
 const featured = computed(() => tracks[featuredIndex.value])
-const title = computed(() => {
+// 副标题保留歌手与不同名的专辑，曲名只在主标题出现。
+const credit = computed(() => {
   const track = featured.value
-  return track && track.album !== '—' && track.album
-    ? track.album
-    : track?.title
+  if (!track) return ''
+  const album = track.album.trim()
+  const distinctAlbum =
+    album !== '—' && album.toLowerCase() !== track.title.trim().toLowerCase()
+      ? album
+      : ''
+  return [track.artist, distinctAlbum].filter(Boolean).join(' · ')
 })
 const duration = computed(
   () =>
@@ -76,7 +81,7 @@ function playFeatured(): void {
   <!-- 首页主打区：人物立于右侧频谱前，折叠时显示缩略图。 -->
   <section
     v-if="featured"
-    class="banner relative z-[3] m-[2px_0_8px] h-[208px] flex-none overflow-hidden rounded-[20px]"
+    class="banner relative z-[3] m-[2px_0_8px] h-[224px] flex-none overflow-hidden rounded-[20px]"
     :class="{ 'banner-calm': !playerState.settings.motion }"
     data-banner
     aria-label="今日主打横幅"
@@ -88,35 +93,36 @@ function playFeatured(): void {
     ></div>
     <!-- 横幅频谱：与底部播放栏共用音频分析的画布。 -->
     <canvas
-      class="banner-spectrum pointer-events-none absolute top-1/2 z-[2] -translate-y-1/2"
+      class="banner-spectrum pointer-events-none absolute z-[2] -translate-y-1/2"
       data-banner-spectrum
       aria-hidden="true"
     />
     <div
-      class="banner-content pointer-events-none absolute top-[0] bottom-[0] left-[22px] z-[4] flex w-[39%] flex-col justify-center"
+      class="banner-content pointer-events-none absolute inset-y-0 z-[4] flex flex-col justify-center"
     >
-      <span
-        class="banner-kicker text-[10.5px] font-extrabold tracking-[.16em] opacity-[.78]"
-        >今日主打 · FEATURED</span
+      <span class="text-[11px] font-semibold tracking-[.12em] text-white/65"
+        >今日主打</span
       >
       <h4
         data-banner-title
-        :title="title"
+        :title="featured.title"
       >
-        {{ title }}
+        {{ featured.title }}
       </h4>
       <p
-        class="banner-sub m-[7px_0_0] overflow-hidden text-[13px] font-semibold text-ellipsis whitespace-nowrap opacity-[.78]"
+        v-if="credit"
+        class="mt-1.5 mb-0 truncate text-[14px] font-medium text-white/75"
+        :title="credit"
         data-banner-sub
       >
-        {{ [featured.title, featured.artist].filter(Boolean).join(' — ') }}
+        {{ credit }}
       </p>
       <div
-        class="banner-actions pointer-events-auto mt-[15px] flex items-center gap-[12px]"
+        class="banner-actions pointer-events-auto mt-[18px] flex flex-wrap items-center gap-x-3.5 gap-y-1.5"
       >
         <!-- 页面操作按钮：立即播放。 -->
         <BaseButton
-          class="banner-play inline-flex min-h-[38px] items-center gap-[8px] rounded-full border-none p-[9px_18px] text-[13px] font-extrabold"
+          class="banner-play inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border-none px-[17px] text-[13px] font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
           data-banner-play
           @click="playFeatured"
           ><svg
@@ -144,7 +150,7 @@ function playFeatured(): void {
       class="banner-stage pointer-events-none absolute top-[0] right-[0] bottom-[0] z-[3] w-[50%]"
     >
       <img
-        class="banner-girl absolute top-[auto] right-[12px] bottom-[0] z-[5] h-[198px] w-[auto] max-w-none"
+        class="banner-girl absolute z-[5] w-auto max-w-none"
         src="/images/featured-singer-clean.png"
         alt="二次元女主唱立绘"
       />
@@ -160,7 +166,7 @@ function playFeatured(): void {
         @error="fallbackCover"
       />
       <div style="min-width: 0">
-        今日主打 · <span data-banner-mini-title>{{ title }}</span>
+        今日主打 · <span data-banner-mini-title>{{ featured.title }}</span>
       </div>
       <!-- 页面操作按钮：播放。 -->
       <BaseButton

@@ -26,6 +26,7 @@ import {
   type PlayerSettings,
 } from '@/stores/player'
 import { notify } from '@/services/notification'
+import { setCloseToTray } from '@/services/desktop'
 import { defaultCover } from '@/constants/music'
 import { getStorageInfo, updateStorageConfig } from '@/services/storage'
 import type {
@@ -54,7 +55,7 @@ const sections: {
     key: 'general',
     label: '通用',
     title: '通用设置',
-    description: '播放衔接、音量与睡眠定时。',
+    description: '窗口关闭、播放衔接、音量与睡眠定时。',
     icon: 'M4 7h16M4 17h16M8 4v6m8 4v6',
   },
   {
@@ -210,6 +211,9 @@ async function applySettings(): Promise<boolean> {
       })
       action.settings.cacheDirectory = stored.cacheDirectory
       action.settings.downloadDirectory = stored.downloadDirectory
+      if (action.settings.closeToTray !== state.baseline.closeToTray) {
+        await setCloseToTray(action.settings.closeToTray)
+      }
       Object.assign(playerState.settings, action.settings)
       await emitTo('main', 'settings-change', action)
     } else {

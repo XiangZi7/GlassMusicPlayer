@@ -7,9 +7,14 @@ import {
   nextTick,
   onBeforeUnmount,
 } from 'vue'
-import { useResizeObserver, useEventListener } from '@vueuse/core'
+import {
+  useResizeObserver,
+  useEventListener,
+  useLocalStorage,
+} from '@vueuse/core'
 import { artworkColor } from '@/services/player/artwork-color'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
 import QueueList from '@/components/player/QueueList.vue'
 import LocalWeather from '@/components/player/LocalWeather.vue'
 import { usePlayer } from '@/composables/usePlayer'
@@ -18,6 +23,25 @@ const player = usePlayer()
 const { settings, stage, playing } = toRefs(player.state)
 const lyrics = useTemplateRef<HTMLElement>('lyrics')
 const fullscreen = useTemplateRef<HTMLElement>('fullscreen')
+const themes = [
+  {
+    value: 'glow',
+    label: '微光',
+    icon: 'M12 2 9.2 9.2 2 12l7.2 2.8L12 22l2.8-7.2L22 12l-7.2-2.8L12 2Z',
+  },
+  {
+    value: 'ink',
+    label: '手书',
+    icon: 'm13.5 6.5 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z',
+  },
+  {
+    value: 'cinema',
+    label: '字幕',
+    icon: 'M3 6h18v12H3zM6 14h4m4 0h4M6 10h12',
+  },
+] as const
+type LyricsTheme = (typeof themes)[number]['value']
+const savedTheme = useLocalStorage<string>('miraiMusic.lyricTheme', 'glow')
 
 // 响应式状态
 const state = reactive({
@@ -25,12 +49,15 @@ const state = reactive({
   showTranslation: true,
   // 阅读模式将歌词放到舞台中央，不改变播放或全局布局设置。
   reading: false,
+  // 全屏歌词的样式，跨会话保留。
+  theme:
+    themes.find(option => option.value === savedTheme.value)?.value ?? 'glow',
 })
-const { showTranslation, reading } = toRefs(state)
+const { showTranslation, reading, theme } = toRefs(state)
 
 let switchRun = 0
 let switchAnimation: Animation | undefined
-let requested = { reading: false, showTranslation: true }
+let requested = { ...state }
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 // 退出、切歌或关闭动效时释放本次过渡，旧 Promise 不得恢复旧布局。
@@ -39,23 +66,19 @@ function stopLyricsSwitch(commit = false): void {
   switchAnimation?.cancel()
   switchAnimation = undefined
   if (commit && player.state.stage) Object.assign(state, requested)
-  else
-    requested = {
-      reading: state.reading,
-      showTranslation: state.showTranslation,
-    }
+  else requested = { ...state }
 }
 
-// 离散阅读/译文切换先淡出旧内容再淡入新内容，快速连点以最后意图为准。
-async function toggleLyricsView(
-  kind: 'reading' | 'showTranslation'
+// 阅读、译文和主题共用一次可打断的淡入淡出，最后一次操作生效。
+async function applyLyricsView(
+  patch: Partial<typeof state>,
+  affectsLayout: boolean
 ): Promise<void> {
-  requested[kind] = !requested[kind]
+  Object.assign(requested, patch)
   const run = ++switchRun
-  const element =
-    kind === 'reading'
-      ? fullscreen.value?.querySelector<HTMLElement>('.fs-main')
-      : lyrics.value
+  const element = affectsLayout
+    ? fullscreen.value?.querySelector<HTMLElement>('.fs-main')
+    : lyrics.value
   const opacity = element ? Number(getComputedStyle(element).opacity) : 1
   switchAnimation?.cancel()
   switchAnimation = undefined
@@ -103,6 +126,18 @@ async function toggleLyricsView(
   }
 }
 
+// 阅读与译文沿用原来的两个独立开关。
+function toggleLyricsView(kind: 'reading' | 'showTranslation'): void {
+  void applyLyricsView({ [kind]: !requested[kind] }, kind === 'reading')
+}
+
+// 从公共选择菜单选中主题，排版切换提交后再保存选择。
+function selectLyricsTheme(value: string): void {
+  const selected = themes.find(option => option.value === value)
+  if (selected && selected.value !== requested.theme)
+    void applyLyricsView({ theme: selected.value }, true)
+}
+
 // 非必要动效随系统偏好即时关闭，保留用户已请求的阅读方式。
 useEventListener(reducedMotion, 'change', () => {
   if (reducedMotion.matches) stopLyricsSwitch(true)
@@ -126,10 +161,17 @@ function alignLyrics(): void {
 }
 
 // 歌词显示方式变化后等待 Vue 完成布局，再交还原有歌词跟随逻辑。
-watch(() => [state.showTranslation, state.reading], alignLyrics, {
+watch(() => [state.showTranslation, state.reading, state.theme], alignLyrics, {
   flush: 'post',
 })
+watch(theme, (value: LyricsTheme) => {
+  savedTheme.value = value
+})
 useResizeObserver(lyrics, alignLyrics)
+// 本地手书字体加载后行宽可能改变，重新居中当前唱句。
+useEventListener(document.fonts, 'loadingdone', () => {
+  if (state.theme === 'ink') alignLyrics()
+})
 
 // 在线封面复用频谱的取色缓存；切歌、退出或图片无 CORS 时不沿用上一首颜色。
 watch(
@@ -178,6 +220,7 @@ const dust = [
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
   <div
     ref="fullscreen"
+    :data-lyric-theme="theme"
     :class="{
       'fs-reading': reading,
       'fs-no-translation': !showTranslation,
@@ -242,8 +285,7 @@ const dust = [
           class="fs-specmono overflow-hidden font-mono text-[10.5px] font-bold tracking-[.1em] text-ellipsis whitespace-nowrap opacity-[.6]"
           data-fs-spec
           data-tauri-drag-region
-          ></span
-        >
+        ></span>
       </div>
       <span
         class="fs-toptitle text-[11px] font-extrabold tracking-[.16em] opacity-[.65]"
@@ -281,7 +323,7 @@ const dust = [
       </div>
     </div>
     <div
-      class="fs-giant pointer-events-none absolute top-[9%] left-[-12px] z-[1] text-[clamp(96px,13.5vw,172px)] leading-[1] font-extrabold tracking-[-.02em] whitespace-nowrap text-transparent opacity-[.5]"
+      class="fs-giant pointer-events-none absolute top-[9%] left-[-12px] z-[1] text-[clamp(96px,13.5vw,172px)] leading-[1] font-extrabold tracking-[-.02em] whitespace-nowrap text-transparent opacity-[.29]"
       data-fs-giant
       aria-hidden="true"
     ></div>
@@ -301,13 +343,13 @@ const dust = [
             data-cover
             alt="专辑封面"
           />
+          <div
+            class="fs-reflect"
+            aria-hidden="true"
+          >
+            <img data-cover alt="" />
+          </div>
         </div>
-        <img
-          class="fs-reflect mt-[8px] block h-[46px] w-full rounded-[22px] object-cover opacity-[.26]"
-          data-cover
-          alt=""
-          aria-hidden="true"
-        />
         <div
           class="fs-sheen"
           aria-hidden="true"
@@ -345,11 +387,18 @@ const dust = [
       </div>
       <div class="fs-lyrcol">
         <div
-          class="fs-lyrhead mb-[6px] flex flex-none items-center justify-between gap-[10px] p-[0_2px_10px]"
+          class="fs-lyrhead relative z-[3] mb-[6px] flex flex-none items-center justify-end gap-[10px] p-[0_2px_10px]"
         >
-          <span>歌词 · LYRICS</span>
           <!-- 歌词工具区：按需显示译文、切换阅读模式和恢复当前句。 -->
           <div class="fs-lyrtools flex min-w-0 items-center gap-[4px]">
+            <BaseChoiceMenu
+              :value="theme"
+              :options="themes"
+              :motion="settings.motion"
+              :enabled="stage"
+              label="歌词主题"
+              @select="selectLyricsTheme"
+            />
             <BaseButton
               class="fs-lyrreturn fs-tool min-h-[30px] rounded-full px-[9px] text-[11px] font-semibold"
               data-lyrreturn
@@ -358,13 +407,26 @@ const dust = [
               >回到当前</BaseButton
             >
             <BaseButton
-              class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px] text-[11px] font-bold"
+              class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
               :aria-pressed="showTranslation"
               aria-label="显示译文"
               :title="showTranslation ? '隐藏译文' : '显示译文'"
               @click="toggleLyricsView('showTranslation')"
-              >译</BaseButton
             >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 5h12M9 3v2M5 8c1 4 4.1 7.4 8 9m0-12c-.7 5.8-4.2 9.9-9 12m10 4 4-9 4 9m-6.5-3h5"
+                />
+              </svg>
+            </BaseButton>
             <BaseButton
               class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
               :aria-pressed="reading"
@@ -409,7 +471,7 @@ const dust = [
         >
       </div>
       <div
-        class="fs-index pointer-events-none absolute right-[30px] bottom-[8px] z-[2] text-[64px] leading-[1] font-extrabold tracking-[-.02em] text-transparent opacity-[.55]"
+        class="fs-index pointer-events-none absolute right-[30px] bottom-[8px] z-[2] text-[64px] leading-[1] font-extrabold tracking-[-.02em] text-transparent opacity-[.24]"
         data-fsnum
         aria-hidden="true"
       ></div>
@@ -536,8 +598,7 @@ const dust = [
             <span
               class="quality-badge rounded-full p-[5px_8px] font-mono text-[9.5px] leading-[1] font-bold tracking-[.05em] whitespace-nowrap"
               data-meta1
-              ></span
-            >
+            ></span>
           </div>
           <BaseButton
             class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
@@ -643,6 +704,13 @@ const dust = [
 </template>
 
 <style scoped>
+@font-face {
+  font-family: 'Ma Shan Zheng';
+  src: url('/fonts/ma-shan-zheng.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
 /* 歌词工具只在需要时突出，避免和当前歌词竞争注意力。 */
 .fs-tool {
   cursor: pointer;
@@ -673,9 +741,6 @@ const dust = [
 .fs-lyrhead {
   flex-wrap: wrap;
 }
-.fs-lyrhead > span {
-  letter-spacing: 0.1em;
-}
 
 /* 行高保持稳定，强调通过透明度与轻微缩放完成，不逐句动画字号。 */
 .fs .fs-main :deep(.fl-line) {
@@ -688,40 +753,52 @@ const dust = [
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  font-size: 17px;
-  line-height: 1.5;
-  opacity: 0.34;
-  filter: blur(0.45px);
-  transform: scale(0.97);
+  padding: clamp(9px, 1.3vh, 14px) 12px;
+  opacity: 0.25;
+  filter: blur(0.75px);
+  transform: scale(0.98);
   transform-origin: left center;
   transition:
     opacity 240ms ease,
     transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .fs .fs-main :deep(.fl-line .fl-o) {
-  font-size: clamp(17px, 1.4vw, 20px);
-  line-height: 1.5;
+  font-size: clamp(21px, 3vw, 42px);
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
-  text-wrap: pretty;
 }
 .fs .fs-main :deep(.fl-line .fl-tr) {
-  font-size: 12px;
-  line-height: 1.5;
-  margin-top: 5px;
+  font-size: clamp(12px, 1.2vw, 16px);
+  line-height: 1.4;
+  margin-top: 6px;
   overflow-wrap: anywhere;
 }
 .fs .fs-main :deep(.fl-line.d1) {
-  opacity: 0.62;
-  filter: none;
+  opacity: 0.46;
+  filter: blur(0.25px);
 }
 .fs .fs-main :deep(.fl-line.on) {
   opacity: 1;
   filter: none;
-  transform: scale(1.04);
+  transform: none;
 }
 .fs .fs-main :deep(.fl-line.on .fl-o) {
-  font-size: clamp(17px, 1.4vw, 20px);
-  line-height: 1.5;
+  text-shadow: 0 3px 22px rgb(255 255 255 / 14%);
+}
+.fs .fs-main :deep(.fl-timed) {
+  white-space: break-spaces;
+}
+.fs .fs-main :deep(.fl-line.on .fl-word) {
+  background: linear-gradient(
+    to right,
+    var(--lyric-ink, #fff) 0 var(--sung, 0%),
+    var(--lyric-unsung, rgb(255 255 255 / 48%)) var(--sung, 0%) 100%
+  );
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
 }
 .fs .fs-main :deep(.fl-line:hover),
 .fs .fs-main :deep(.fl-line.focus),
@@ -739,10 +816,23 @@ const dust = [
 }
 .fs .fs-main .fs-lyrics {
   position: relative;
-  padding-top: var(--lyric-space, 12px);
-  padding-bottom: var(--lyric-space, 12px);
+  padding-block: 0;
   overscroll-behavior: contain;
   touch-action: pan-y;
+  mask-image: linear-gradient(
+    180deg,
+    transparent,
+    #000 17%,
+    #000 80%,
+    transparent
+  );
+}
+/* 把首尾留白放进可滚动内容，缩窗时留白随视口缩小。 */
+.fs-lyrics::before,
+.fs-lyrics::after {
+  content: '';
+  display: block;
+  height: var(--lyric-space, 12px);
 }
 .fs .fs-main .fs-lyrics.keyboard-browsing {
   scroll-behavior: auto;
@@ -764,11 +854,10 @@ const dust = [
   display: none;
 }
 .fs-reading .fs-main .fs-lyrcol {
-  width: min(640px, 100%);
+  flex: 0 1 720px;
   max-height: none;
   margin: 0;
-  padding-left: 0;
-  border-left: 0;
+  padding-inline-start: 0;
   align-self: stretch;
 }
 .fs-reading .fs-giant {
@@ -780,22 +869,110 @@ const dust = [
 }
 .fs-reading .fs-main :deep(.fl-line) {
   filter: none;
-  opacity: 0.54;
+  opacity: 0.46;
   padding: 12px 16px;
 }
 .fs-reading .fs-main :deep(.fl-line.on) {
   opacity: 1;
 }
-.fs-reading .fs-main :deep(.fl-line .fl-o),
-.fs-reading .fs-main :deep(.fl-line.on .fl-o) {
-  font-size: clamp(20px, 2vw, 28px);
+.fs-reading .fs-main :deep(.fl-line .fl-o) {
+  font-size: clamp(24px, 3.3vw, 48px);
 }
 .fs-reading .fs-main :deep(.fl-line .fl-tr) {
   font-size: 14px;
 }
-.fs-reading .fs-main .fs-lyrics {
-  padding-top: var(--lyric-space, 14px);
-  padding-bottom: var(--lyric-space, 14px);
+.fs .fs-main .lyrics-unavailable :deep(.fl-line .fl-o) {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 58%);
+  text-shadow: none;
+}
+
+/* 手书用暖色笔画和较大的行距，字幕把唱词放到舞台中央。 */
+.fs[data-lyric-theme='ink'] {
+  --lyric-ink: #fff0d8;
+  --lyric-unsung: rgb(255 228 200 / 46%);
+}
+.fs[data-lyric-theme='ink'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-o) {
+  font-family: 'Ma Shan Zheng', 'KaiTi', 'Segoe Print', sans-serif;
+  font-weight: 400;
+  line-height: 1.38;
+  letter-spacing: 0.015em;
+}
+.fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
+  color: var(--lyric-ink);
+}
+.fs[data-lyric-theme='cinema'] .fs-main {
+  display: grid;
+  grid-template-columns: min(66px, 16vw) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  row-gap: 8px;
+}
+.fs[data-lyric-theme='cinema'].fs-reading .fs-main {
+  grid-template-rows: minmax(0, 1fr);
+}
+.fs[data-lyric-theme='cinema'] .fs-main .fs-coverwrap {
+  width: 100%;
+  padding-bottom: 0;
+}
+.fs[data-lyric-theme='cinema'] .fs-titleblock {
+  margin-left: 14px;
+  max-width: 100%;
+}
+.fs[data-lyric-theme='cinema'] .fs-titleblock h4 {
+  margin-top: 0;
+  font-size: clamp(19px, 2vw, 26px);
+  line-height: 1.14;
+  -webkit-line-clamp: 2;
+}
+.fs[data-lyric-theme='cinema'] .fs-titleblock p {
+  margin-top: 4px;
+  font-size: 12px;
+}
+.fs[data-lyric-theme='cinema']
+  :is(.fs-reflect, .fs-kicker, .fs-titleactions, .fs-side, .fs-index) {
+  display: none;
+}
+.fs[data-lyric-theme='cinema'] .fs-main .fs-lyrcol {
+  grid-column: 1 / -1;
+  width: min(100%, 780px);
+  margin-inline: auto;
+  padding-inline-start: 0;
+}
+.fs[data-lyric-theme='cinema'] :deep(.fl-line) {
+  text-align: center;
+  transform-origin: center;
+}
+.fs[data-lyric-theme='cinema']
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-o) {
+  font-size: clamp(23px, 3.8vw, 56px);
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fs:not(.fs-calm):is([data-lyric-theme='ink'], [data-lyric-theme='cinema'])
+    :deep(.fl-line.on .fl-o) {
+    animation: lyric-reveal 250ms ease-out both;
+  }
+}
+@keyframes lyric-reveal {
+  from {
+    opacity: 0.65;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .fs-reading .fs-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

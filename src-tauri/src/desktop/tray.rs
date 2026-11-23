@@ -5,32 +5,56 @@ use std::sync::{
 #[cfg(desktop)]
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    AppHandle, Manager, PhysicalPosition, State, Wry,
+    AppHandle, Manager, PhysicalPosition, State, WebviewWindow, Wry,
     menu::{MenuBuilder, MenuItem},
 };
 
-/// 桌面入口只保留在系统托盘，迷你卡偏好同时控制对应原生菜单项。
+pub(crate) const TRAY_ICON_ID: &str = "mirai-player-tray";
+
+/// 保存原生窗口关闭动作和托盘菜单所需的当前偏好。
 pub(crate) struct TrayPreferences {
     enabled: AtomicBool,
+    close_to_tray: AtomicBool,
     mini_item: Mutex<Option<MenuItem<Wry>>>,
     anchor: Mutex<Option<PhysicalPosition<f64>>>,
 }
 impl Default for TrayPreferences {
+    /// 偏好恢复前保留播放器在托盘运行，避免启动时关闭窗口直接退出。
     fn default() -> Self {
         Self {
             enabled: AtomicBool::new(true),
+            close_to_tray: AtomicBool::new(true),
             mini_item: Mutex::new(None),
             anchor: Mutex::new(None),
         }
     }
 }
 impl TrayPreferences {
+    /// 主窗口关闭时读取已应用的后台运行偏好。
+    pub(crate) fn close_to_tray(&self) -> bool {
+        self.close_to_tray.load(Ordering::Relaxed)
+    }
+
     pub(crate) fn enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
     pub(crate) fn anchor(&self) -> Option<PhysicalPosition<f64>> {
         self.anchor.lock().ok().and_then(|value| *value)
     }
+}
+
+/// 主窗口恢复已保存偏好，设置窗口在应用或保存草稿时更新原生关闭行为。
+#[tauri::command]
+pub(crate) fn set_close_to_tray(
+    window: WebviewWindow,
+    preferences: State<'_, TrayPreferences>,
+    enabled: bool,
+) -> Result<(), String> {
+    if !matches!(window.label(), "main" | "settings") {
+        return Err("只有播放器和设置窗口可以修改关闭行为".into());
+    }
+    preferences.close_to_tray.store(enabled, Ordering::Relaxed);
+    Ok(())
 }
 
 #[tauri::command]
@@ -99,7 +123,7 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
         .lock()
         .map_err(|_| std::io::Error::other("托盘菜单状态不可用"))? = Some(mini_item);
     super::tray_menu::remember_native_menu(app.handle(), &menu)?;
-    TrayIconBuilder::with_id("mirai-player-tray")
+    TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(image)
         .tooltip("Mirai Music · 右键打开桌面菜单")
         .menu(&menu)
@@ -202,6 +226,16 @@ mod tests {
         assert!(preferences.enabled());
         preferences.enabled.store(false, Ordering::Relaxed);
         assert!(!preferences.enabled());
+    }
+    /// 主窗口默认可收进托盘，关闭偏好可以独立于迷你播放器禁用。
+    #[test]
+    fn close_to_tray_defaults_on_and_is_independent_of_mini() {
+        let preferences = TrayPreferences::default();
+        assert!(preferences.close_to_tray());
+        preferences.enabled.store(false, Ordering::Relaxed);
+        assert!(preferences.close_to_tray());
+        preferences.close_to_tray.store(false, Ordering::Relaxed);
+        assert!(!preferences.close_to_tray());
     }
     #[test]
     fn desktop_entries_route_to_their_own_windows() {

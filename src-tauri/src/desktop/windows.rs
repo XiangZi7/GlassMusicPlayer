@@ -281,7 +281,7 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     Ok(())
 }
 
-/// 主窗口退出仍结束应用；迷你卡和托盘菜单失焦隐藏，其他桌面卡片保持原行为。
+/// 按通用设置关闭主窗口，桌面小窗沿用各自的隐藏和失焦行为。
 pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     super::tray_menu::handle_window_event(window, event);
     #[cfg(target_os = "windows")]
@@ -307,7 +307,18 @@ pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
             api.prevent_close();
             let _ = window.hide();
         } else if window.label() == "main" {
-            window.app_handle().exit(0);
+            let app = window.app_handle();
+            #[cfg(desktop)]
+            if app.state::<super::tray::TrayPreferences>().close_to_tray()
+                && app.tray_by_id(super::tray::TRAY_ICON_ID).is_some()
+            {
+                api.prevent_close();
+                if let Err(error) = window.hide() {
+                    eprintln!("收起主播放器到托盘失败：{error}");
+                }
+                return;
+            }
+            app.exit(0);
         }
     }
 }

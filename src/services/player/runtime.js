@@ -1,10 +1,8 @@
 import { createFullscreenMotion } from '@/services/player/fullscreen-motion'
 import { fullscreenTitleClass } from '@/services/player/fullscreen-title'
 import { parseEqualizerGains } from '@/services/player/equalizer'
-import {
-  createCatalogAudio,
-  parseCatalogLyrics,
-} from '@/services/player/catalog-audio'
+import { createCatalogAudio } from '@/services/player/catalog-audio'
+import { parseCatalogLyrics } from '@/services/player/catalog-lyrics'
 import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
 
@@ -123,6 +121,8 @@ export function mountSourcePlayer(root, options = {}) {
   }
   let catalogLyrics = null
   let lyricRequest
+  let wordCue
+  let wordFrame
   const audio = createCatalogAudio(root, {
     time(time, duration) {
       if (state.resumeTime > 0 && duration > 0) {
@@ -210,6 +210,7 @@ export function mountSourcePlayer(root, options = {}) {
   }
   function syncStageMotionPreference() {
     if (stageMotionPreference.matches) cancelStageMotion()
+    if (wordCue) paintLyricWords(audio.position() ?? state.t)
   }
   stageMotionPreference.addEventListener('change', syncStageMotionPreference)
   cleanups.push(() => {
@@ -219,6 +220,75 @@ export function mountSourcePlayer(root, options = {}) {
     )
     cancelStageMotion()
   })
+
+  // 仅更新正在唱的句子，暂停和拖动时也用真实媒体位置重算填色。
+  function paintLyricWords(time) {
+    const smooth = state.settings.motion && !stageMotionPreference.matches
+    for (const part of wordCue.parts) {
+      const elapsed = time - part.word.start
+      const progress = smooth && part.word.duration > 0
+        ? Math.max(0, Math.min(1, elapsed / part.word.duration))
+        : Number(elapsed >= 0)
+      const percent = Math.round(progress * 100)
+      if (part.percent === percent) continue
+      part.percent = percent
+      part.node.style.setProperty('--sung', percent + '%')
+    }
+  }
+
+  // 全屏播放时跟随媒体时钟跨越句边界，离开全屏或暂停后停止逐帧更新。
+  function tickLyricWords() {
+    wordFrame = undefined
+    if (!wordCue || !state.stage || !state.playing) return
+    const time = audio.position()
+    if (time === undefined) return
+    if (time + 0.001 >= wordCue.next || time + 0.001 < wordCue.start) {
+      state.t = time
+      render()
+      return
+    }
+    paintLyricWords(time)
+    wordFrame = requestAnimationFrame(tickLyricWords)
+  }
+
+  // 只缓存当前歌词按钮的字节点，切歌和回退 LRC 时释放旧引用。
+  function syncLyricWords(lines, index) {
+    if (!state.stage || !catalogLyrics?.some(line => line.words || line.trWords)) {
+      wordCue = undefined
+    } else {
+      const line = lines[index]
+      const viewport = root.querySelector('[data-fs-lyrics]')
+      const row = line?.words || line?.trWords ? viewport?.children[index] : undefined
+      const parts = row && row === wordCue?.row ? wordCue.parts : []
+      if (row && row !== wordCue?.row) {
+        const timings = [...(line.words ?? []), ...(line.trWords ?? [])]
+        row.querySelectorAll('.fl-word').forEach((node, wordIndex) => {
+          parts.push({ node, word: timings[wordIndex], percent: -1 })
+        })
+      }
+      wordCue = {
+        row,
+        parts,
+        start: line?.t ?? -Infinity,
+        next: lines[index + 1]?.t ?? Infinity,
+      }
+      paintLyricWords(audio.position() ?? state.t)
+    }
+    if (wordCue && state.playing) {
+      if (wordFrame === undefined) wordFrame = requestAnimationFrame(tickLyricWords)
+    } else if (wordFrame !== undefined) {
+      cancelAnimationFrame(wordFrame)
+      wordFrame = undefined
+    }
+  }
+
+  // 保持歌词拼接文本转义，只有附带词段时间的原文或译文才生成逐字节点。
+  function lyricMarkup(className, text, words) {
+    const inner = words
+      ? words.map(word => '<span class="fl-word">' + escHtml(word.text) + '</span>').join('')
+      : escHtml(text)
+    return '<span class="' + className + (words ? ' fl-timed' : '') + '">' + inner + '</span>'
+  }
 
   // 按原稿格式显示播放时间。
   function fmt(s) {
@@ -1163,6 +1233,7 @@ export function mountSourcePlayer(root, options = {}) {
         }
         var fl = p.querySelector('[data-fs-lyrics]')
         if (fl) {
+          fl.classList.toggle('lyrics-unavailable', !catalogLyrics)
           var lineCls = function (j) {
             return (
               'fl-line' +
@@ -1194,12 +1265,9 @@ export function mountSourcePlayer(root, options = {}) {
                   lineCls(j) +
                   '" data-lj="' +
                   j +
-                  '"><span class="fl-o">' +
-                  escHtml(L.o) +
-                  '</span>' +
-                  (L.tr
-                    ? '<span class="fl-tr">' + escHtml(L.tr) + '</span>'
-                    : '') +
+                  '">' +
+                  lyricMarkup('fl-o', L.o, L.words) +
+                  (L.tr ? lyricMarkup('fl-tr', L.tr, L.trWords) : '') +
                   '</button>'
                 )
               })
@@ -1252,6 +1320,7 @@ export function mountSourcePlayer(root, options = {}) {
       }
     })
     state._lyrKey = lyrKey
+    syncLyricWords(fls, fli)
     renderVolume()
     var pgSig =
       state.query +

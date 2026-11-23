@@ -173,13 +173,11 @@ export function usePlatformImport() {
       player.setLinkedProfile(platform, {
         userId: result.userId,
         displayName: verifiedDisplayName || result.displayName,
-        // 同一 UID 的公开歌单刷新不能抹去已验证的头像，也不能沿用另一账号的头像。
+        // 优先使用本次返回的头像，无头像时仅沿用同一 UID 的有效缓存。
         avatarUrl:
-          verifiedAvatarUrl !== undefined
-            ? publicAvatar(verifiedAvatarUrl)
-            : saved?.userId === uid
-              ? publicAvatar(saved.avatarUrl)
-              : null,
+          publicAvatar(verifiedAvatarUrl) ??
+          publicAvatar(result.avatarUrl) ??
+          (saved?.userId === uid ? publicAvatar(saved.avatarUrl) : null),
         syncedAt: Date.now(),
       })
       state.active = platform

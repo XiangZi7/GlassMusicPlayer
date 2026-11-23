@@ -37,9 +37,11 @@ import { mountSourcePlayer } from '@/services/player/runtime'
 import {
   openDesktop,
   openSettingsWindow,
+  setCloseToTray,
   setDesktopIsland,
   setTrayMini,
 } from '@/services/desktop'
+import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import { getStorageInfo } from '@/services/storage'
 import { emptyTrack } from '@/constants/music'
@@ -113,6 +115,7 @@ function applySettingsAction(action: SettingsAction): void {
     }
     saveIslandPreferences()
     state.npOpen = action.npOpen
+    savePreferences()
     player.value?.render()
     publishSettings()
     return
@@ -265,6 +268,7 @@ watch(
   }
 )
 
+// 初始化播放器、恢复原生关闭偏好并订阅独立窗口事件。
 onMounted(async () => {
   if (!root.value) return
   player.value = mountSourcePlayer(root.value, {
@@ -278,6 +282,9 @@ onMounted(async () => {
   await syncRoute()
   if (!isTauri()) return
   void setTrayMini(state.settings.trayMini)
+  await setCloseToTray(state.settings.closeToTray).catch(() => {
+    notify('无法恢复窗口关闭设置，请重试', 'error')
+  })
   const callbacks = await Promise.all([
     listen<SourceAction>('player-action', event => {
       void handleAction(event.payload)

@@ -13,6 +13,22 @@ const component = fs.readFileSync(
   path.join(root, 'src/components/player/PlayerFullscreen.vue'),
   'utf8'
 )
+const lyricParser = ts.transpileModule(
+  fs.readFileSync(
+    path.join(root, 'src/services/player/catalog-lyrics.ts'),
+    'utf8'
+  ),
+  {
+    compilerOptions: {
+      target: ts.ScriptTarget.ESNext,
+      module: ts.ModuleKind.ESNext,
+    },
+  }
+)
+const { parseCatalogLyrics } = await import(
+  'data:text/javascript;base64,' +
+    Buffer.from(lyricParser.outputText).toString('base64')
+)
 const tree = ts.createSourceFile(
   'runtime.js',
   source,
@@ -309,6 +325,84 @@ check(
     assert(source.includes('!state.settings.motion ||'))
   }
 )
+check('YRC keeps original word starts, durations and translation', () => {
+  const lines = parseCatalogLyrics({
+    lrc: '[00:02.20]Under the sky\n[00:05.00]Line only',
+    translatedLrc: '[00:02.20]译文\n[00:05.00]整句译文',
+    yrc: [
+      '{"t":0,"c":[{"tx":"metadata"}]}',
+      '[2000,1500](2000,330,0)Under (2400,240,0)the (2700,500,0)sky',
+    ].join('\n'),
+  })
+  assert.deepEqual(lines, [
+    {
+      t: 2,
+      o: 'Under the sky',
+      tr: '译文',
+      words: [
+        { start: 2, duration: 0.33, text: 'Under ' },
+        { start: 2.4, duration: 0.24, text: 'the ' },
+        { start: 2.7, duration: 0.5, text: 'sky' },
+      ],
+    },
+    { t: 5, o: 'Line only', tr: '整句译文' },
+  ])
+})
+check(
+  'broken word timing falls back while an older LRC response still works',
+  () => {
+    const input = {
+      lrc: '[ti:Ignored]\n[00:02.00][00:08.00]Repeated',
+      translatedLrc: '[00:08.00]末句',
+    }
+    const expected = [
+      { t: 2, o: 'Repeated', tr: '' },
+      { t: 8, o: 'Repeated', tr: '末句' },
+    ]
+    assert.deepEqual(parseCatalogLyrics(input), expected)
+    assert.deepEqual(
+      parseCatalogLyrics({
+        ...input,
+        yrc: '[2000,1000](100,150,0)relative time\n[8000,500](8000,0,0)invalid',
+      }),
+      expected
+    )
+  }
+)
+check(
+  'translated words use their own timestamps and plain YTLRC keeps line timing',
+  () => {
+    const lines = parseCatalogLyrics({
+      lrc: '[00:01.00]A song\n[00:03.00]Another line',
+      translatedLrc: '[00:01.00]原译文\n[00:03.00]旧译文',
+      yrc: '[1000,1000](1000,250,0)A (1250,750,0)song',
+      ytlrc: '[1000,1000](1100,200,0)一(1300,600,0)首歌\n[00:03.00]另一句',
+    })
+    assert.deepEqual(lines[0].trWords, [
+      { start: 1.1, duration: 0.2, text: '一' },
+      { start: 1.3, duration: 0.6, text: '首歌' },
+    ])
+    assert.equal(lines[0].tr, '一首歌')
+    assert.deepEqual(lines[1], { t: 3, o: 'Another line', tr: '另一句' })
+  }
+)
 console.log(
   `Fullscreen verified: ${cases} mocked lyric interaction and display cases; no live login or native WebView verification implied.`
 )
+
+const effects = fs.readFileSync(
+  path.join(root, 'src/styles/player-effects.css'),
+  'utf8'
+)
+// 防止倒影退回独立裁切的横条，或脱离封面共用的呼吸层。
+assert.match(
+  component,
+  /class="fs-coverkb relative">\s*<img\s+class="fs-cover"[^>]*\/\s*>\s*<div\s+class="fs-reflect"[^>]*>\s*<img\s+data-cover\s+alt=""/
+)
+assert.match(
+  effects,
+  /\.fs-cover,\s*\.fs-reflect img\s*\{\s*@apply aspect-square w-full [^;]*object-cover;/
+)
+assert.match(effects, /\.fs-reflect\s*\{[^}]*overflow-hidden[^}]*linear-gradient\(to bottom,/)
+assert.match(effects, /\.fs-reflect img\s*\{[^}]*transform: scaleY\(-1\)/)
+console.log('PASS full-size mirrored cover shares the cover transform and fades below its lower edge')

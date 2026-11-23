@@ -28,6 +28,11 @@ export function setTrayMini(enabled: boolean): Promise<void> {
   return trayPreference
 }
 
+// 将已保存或已提交的偏好交给原生关闭事件，覆盖标题栏和系统关闭操作。
+export function setCloseToTray(enabled: boolean): Promise<void> {
+  return invoke('set_close_to_tray', { enabled })
+}
+
 // 执行自定义标题栏的真实窗口操作，浏览器预览时给出统一反馈。
 export async function controlWindow(
   action: 'minimize' | 'maximize' | 'close'

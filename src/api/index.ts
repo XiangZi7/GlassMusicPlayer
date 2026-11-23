@@ -32,6 +32,8 @@ export interface CatalogPlaylist extends CatalogPage {
 export interface CatalogLyrics {
   lrc: string
   translatedLrc: string
+  yrc?: string
+  ytlrc?: string
 }
 
 export interface PublicPlaylistSummary {
@@ -45,6 +47,7 @@ export interface PublicUserPlaylists {
   platform: PublicProfilePlatform
   userId: string
   displayName: string | null
+  avatarUrl?: string | null
   pageNum: number
   pageSize: number
   hasMore: boolean
@@ -135,7 +138,7 @@ export function getCatalogAudioUrl(
   return `${apiBaseUrl}/${platform}/tracks/${encodeURIComponent(id)}/audio`
 }
 
-// 获取原始及翻译 LRC，供主窗口和独立歌词窗展示。
+// 获取原文、译文及平台提供的逐字时间轴，供主窗口和独立歌词窗展示。
 export function getCatalogLyrics(
   platform: MusicPlatform,
   id: string,
