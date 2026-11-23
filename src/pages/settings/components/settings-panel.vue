@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { playbackQualities } from '@/constants/music'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import EqualizerPanel from '@/pages/settings/components/equalizer-panel.vue'
 import StoragePanel from '@/pages/settings/components/storage-panel.vue'
@@ -176,7 +177,7 @@ function updateCrossfade(event: Event): void {
             <div class="set-txt min-w-[0] flex-1">
               <b>默认音质</b
               ><span
-                >播放音质由音源决定，下载音质可单独设置</span
+                >网易云点播将请求所选音质，实际档位由平台授权决定。</span
               >
             </div>
             <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
@@ -185,12 +186,7 @@ function updateCrossfade(event: Event): void {
               class="set-seg flex flex-none flex-wrap justify-end gap-[4px]"
               setting-key="quality"
               hook="data-set-seg"
-              :options="[
-                { label: '标准', value: '标准' },
-                { label: 'FLAC 16', value: 'FLAC · 16-BIT' },
-                { label: 'FLAC 24', value: 'FLAC · 24-BIT' },
-                { label: 'DSD', value: 'DSD · 1-BIT' },
-              ]"
+              :options="playbackQualities"
             />
           </div>
           <div class="set-row flex items-center gap-[14px] py-[5px]">
@@ -248,6 +244,14 @@ function updateCrossfade(event: Event): void {
                 { label: '液态玻璃', value: 'liquid' },
               ]"
             />
+          </div>
+          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-[0] flex-1">
+              <b>底栏频谱</b><span>在播放进度条下方显示音频频谱</span>
+            </div>
+            <BaseButton class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0"
+              :class="{ on: settings.bottomSpectrum }" role="switch" aria-label="底栏频谱"
+              :aria-checked="settings.bottomSpectrum" @click="setSetting('bottomSpectrum', !settings.bottomSpectrum)"><i /></BaseButton>
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
@@ -386,7 +390,7 @@ function updateCrossfade(event: Event): void {
             <div class="set-txt min-w-[0] flex-1">
               <b>托盘迷你播放器</b
               ><span
-                >桌面区任务栏右下角的 Aura 托盘图标 —
+                >桌面区任务栏右下角的 MiraiPlayer 托盘图标 —
                 关掉即隐藏，点开是迷你播放器</span
               >
             </div>
@@ -471,7 +475,7 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>Mirai Music</b><span>桌面音乐播放器</span>
+              <b>MiraiPlayer</b><span>桌面音乐播放器</span>
             </div>
             <span
               class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"

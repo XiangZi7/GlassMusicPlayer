@@ -1,5 +1,5 @@
 {
-  "name": "miraimusic",
+  "name": "miraiplayer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -12,6 +12,7 @@
     "check:motion": "node scripts/check-motion.mjs",
     "check:fullscreen": "node scripts/check-fullscreen.mjs",
     "check:equalizer": "node scripts/check-equalizer.mjs",
+    "check:player-ui": "node scripts/check-home-settings.mjs",
     "check:queue-menu": "node scripts/check-queue-menu.mjs",
     "check:storage": "node src-tauri/scripts/check-storage.mjs",
     "check:spectrum": "node scripts/check-spectrum.mjs",

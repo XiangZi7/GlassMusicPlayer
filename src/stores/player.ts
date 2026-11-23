@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 import type { SourceTrack } from '@/types/prototype'
 import { publicAvatar } from '@/services/public-avatar'
+import { normalizePlaybackQuality } from '@/constants/music'
 import {
   preferenceTrackKey,
   readPlayerPreferences,
@@ -131,7 +132,9 @@ export function createDefaultSettings() {
     motion: true,
     glassStyle: 'match',
     crossfade: 6,
-    quality: 'FLAC · 24-BIT',
+    quality: 'auto',
+    // 主窗口底部频谱独立于首页横幅。
+    bottomSpectrum: true,
     output: '桌面音箱',
     eq: '平直',
     eqEnabled: false,
@@ -157,6 +160,7 @@ export function createDefaultSettings() {
 export const usePlayerStore = defineStore('player', () => {
   const tracks = reactive<SourceTrack[]>([])
   const preferences = readPlayerPreferences(createDefaultSettings())
+  preferences.settings.quality = normalizePlaybackQuality(preferences.settings.quality)
   const islandPreferences = useLocalStorage('miraiMusic.lyricIsland', {
     lyricIsland: true,
     lyricIslandDesktop: false,
@@ -172,6 +176,10 @@ export const usePlayerStore = defineStore('player', () => {
       'bypassed' as 'active' | 'bypassed' | 'pending' | 'unavailable',
     /** 当前在线音频的实际时长与播放状态。 */
     streamDuration: 0,
+    /** 当前播放请求正在取源或等待媒体启动，供播放按钮显示加载状态。 */
+    audioLoading: false,
+    /** 服务端为本曲实际返回的音质或码率。 */
+    actualQuality: '',
     catalogStatus: null as PlaybackStatus | 'loading' | 'error' | null,
     /** 收藏集合。 */ liked: {} as Record<number, boolean>,
     /** 播放顺序模式。 */ shuffle: false,

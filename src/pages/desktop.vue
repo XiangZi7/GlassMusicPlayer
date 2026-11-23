@@ -241,7 +241,7 @@ onUnmounted(() => {
         id="deskLyrHead"
         data-tauri-drag-region
       >
-        <span aria-hidden="true">⠿</span><span>桌面歌词 · AURA</span
+        <span aria-hidden="true">⠿</span><span>桌面歌词 · MiraiPlayer</span
         ><span
           class="desk-lyr-state ml-auto font-mono text-[10px] tracking-normal"
           id="deskLyrState"
@@ -292,7 +292,7 @@ onUnmounted(() => {
       <div
         class="tray-pop-head mb-[11px] flex items-center justify-between text-[11px] font-extrabold tracking-[.1em]"
       >
-        <span>正在播放 · AURA PLAYER</span><!-- 页面操作按钮：打开主窗口。 -->
+        <span>正在播放 · MiraiPlayer</span><!-- 页面操作按钮：打开主窗口。 -->
         <BaseButton
           type="button"
           data-desk-open
@@ -301,7 +301,7 @@ onUnmounted(() => {
         >
       </div>
       <div class="tray-pop-main flex items-center gap-[11px]">
-        <img
+        <img decoding="async" loading="lazy"
           :src="track.cover"
           data-desk-cover
           alt="专辑封面"
@@ -420,7 +420,7 @@ onUnmounted(() => {
         class="smtc-tag absolute top-[-9px] left-[12px] rounded-[99px] bg-white p-[2px_8px] text-[9px] font-extrabold tracking-[.08em]"
         >系统媒体控制 · SMTC</span
       >
-      <img
+      <img decoding="async" loading="lazy"
         :src="track.cover"
         data-desk-cover
         alt="专辑封面"

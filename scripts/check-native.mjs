@@ -88,7 +88,7 @@ if (process.platform !== 'win32') {
     record =>
       record.reason === 'compiler-artifact' &&
       record.profile?.test &&
-      record.target?.name === 'miraimusic_lib' &&
+      record.target?.name === 'miraiplayer_lib' &&
       typeof record.executable === 'string'
   )
   assert.equal(
@@ -103,7 +103,7 @@ if (process.platform !== 'win32') {
     'Refusing to modify an executable outside this project.'
   )
   assert(
-    /^miraimusic_lib-[a-f\d]+\.exe$/i.test(path.basename(executable)) &&
+    /^miraiplayer_lib-[a-f\d]+\.exe$/i.test(path.basename(executable)) &&
       fs.statSync(executable).isFile(),
     'Refusing to modify an unexpected executable.'
   )

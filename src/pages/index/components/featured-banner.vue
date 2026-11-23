@@ -149,7 +149,7 @@ function playFeatured(): void {
     <div
       class="banner-stage pointer-events-none absolute top-[0] right-[0] bottom-[0] z-[3] w-[50%]"
     >
-      <img
+      <img decoding="async" loading="lazy"
         class="banner-girl absolute z-[5] w-auto max-w-none"
         src="/images/featured-singer-clean.png"
         alt="二次元女主唱立绘"
@@ -158,7 +158,7 @@ function playFeatured(): void {
     <div
       class="banner-mini absolute top-[0] right-[16px] bottom-[0] left-[16px] z-[5] hidden items-center gap-[10px] text-[13.5px] font-extrabold"
     >
-      <img
+      <img decoding="async" loading="lazy"
         :key="cover"
         data-banner-mini-cover
         :src="cover"

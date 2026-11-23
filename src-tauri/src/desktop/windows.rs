@@ -30,21 +30,21 @@ impl DesktopWindowKind {
         match self {
             Self::Lyrics => DesktopWindowOptions {
                 label: "lyrics",
-                title: "Mirai · 桌面歌词",
+                title: "MiraiPlayer · 桌面歌词",
                 width: 440.0,
                 height: 178.0,
                 radius: 16.0,
             },
             Self::Mini => DesktopWindowOptions {
                 label: "mini",
-                title: "Mirai · 迷你播放器",
+                title: "MiraiPlayer · 迷你播放器",
                 width: 324.0,
                 height: 178.0,
                 radius: 18.0,
             },
             Self::Media => DesktopWindowOptions {
                 label: "media",
-                title: "Mirai · 系统媒体控制",
+                title: "MiraiPlayer · 系统媒体控制",
                 width: 368.0,
                 height: 78.0,
                 radius: 16.0,
@@ -261,7 +261,7 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
         "island",
         WebviewUrl::App("index.html#/desktop/island".into()),
     )
-    .title("Mirai Music · 灵动岛")
+    .title("MiraiPlayer · 灵动岛")
     // 胶囊本体继续为 320 × 40；外面留透明阴影，不拉伸成矩形卡片。
     .inner_size(320.0 + SURFACE_INSET * 2.0, 40.0 + SURFACE_INSET * 2.0)
     .decorations(false)

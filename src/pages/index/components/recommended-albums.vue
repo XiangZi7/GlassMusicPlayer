@@ -125,7 +125,7 @@ function turnPage(direction: number): void {
             :title="`${track.album} · ${track.artist}`"
             @click="controller()?.playTracks(indices, indices[0]!)"
           >
-            <img
+            <img decoding="async" loading="lazy"
               :src="track.cover"
               alt=""
             />

@@ -12,13 +12,14 @@ const emit = defineEmits<{ play: [] }>()
   <BaseButton
     class="trow grid min-h-[52px] w-full grid-cols-[28px_minmax(0,1.6fr)_minmax(0,1fr)_52px_34px] items-center gap-[10px] rounded-[12px] border-none bg-transparent p-[0_10px] pt-[7px] pb-[7px] text-left text-[13px] text-inherit"
     :class="{ on: active }"
+    :aria-current="active ? 'true' : undefined"
     :disabled="!!track.mine && !track.catalog"
     :title="track.mine && !track.catalog ? '已登记曲目信息，暂无音源' : undefined"
     @click="emit('play')"
   >
     <span class="num">{{ String(number).padStart(2, '0') }}</span>
     <span class="tt">
-      <img
+      <img decoding="async"
         :src="track.cover"
         alt=""
         loading="lazy"

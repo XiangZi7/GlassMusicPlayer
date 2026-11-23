@@ -8,7 +8,7 @@
 <title>Music Player Desktop — Frosted vs Liquid Glass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@600;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <!-- Tailwind CSS 4: the stylesheet below is the compiled output of the Tailwind 4 source kept in the inert text block right before it (theme tokens plus apply-based component rules). To regenerate: run the Tailwind 4 CLI on that source. -->
 <script type="text/x-tailwind-source" data-note="Tailwind CSS 4 source: @theme tokens + @apply component rules. Not executed; kept for regeneration and for the future Vue/Tauri codebase.">
 @import "tailwindcss";
@@ -701,8 +701,59 @@ h1 .thin{
   @apply text-[11.5px] opacity-[.55] font-bold tracking-[.05em] whitespace-nowrap;
 }
 
+.feat-nav{
+  @apply flex items-center gap-[8px];
+}
+
+.feat-arrow{
+  @apply w-[32px] h-[32px] rounded-full grid place-items-center flex-none text-inherit border border-transparent bg-transparent p-0;
+  transition:background .2s ease,opacity .2s ease;
+}
+
+.feat-arrow svg{
+  @apply w-[16px] h-[16px];
+}
+
+.feat-arrow:disabled{
+  @apply opacity-[.30] cursor-default;
+}
+
+.glass-win .feat-arrow{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16)}
+
+.glass-win .feat-arrow:not(:disabled):hover{background:rgba(255,255,255,.17)}
+
+.liquid-win .feat-arrow{background:linear-gradient(160deg,rgba(255,255,255,.24),rgba(255,255,255,.06));border-color:rgba(255,255,255,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+
+.liquid-win .feat-arrow:not(:disabled):hover{background:linear-gradient(160deg,rgba(255,255,255,.32),rgba(255,255,255,.10))}
+
 .feat-grid{
   @apply grid grid-cols-[repeat(4,minmax(0,1fr))] gap-[14px];
+}
+
+/* home featured strip : single horizontal row, no wrapping — the direction
+   buttons in the head scroll it by one page; native wheel / touch / drag
+   scrolling works too. Card width matches the albums grid exactly
+   ((100% - 3 gaps) / 4) so the row stays the same size it was as a grid.
+   The albums page keeps the plain wrapping .feat-grid. */
+.feat-scroll{
+  @apply flex flex-nowrap overflow-x-auto;
+  scroll-behavior:smooth; scroll-snap-type:x proximity; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+
+.feat-scroll::-webkit-scrollbar{
+  @apply hidden;
+}
+
+.feat-scroll>.feat{
+  flex:0 0 calc((100% - 42px)/4); scroll-snap-align:start;
+}
+
+@media(max-width:640px){
+  .feat-scroll>.feat{flex-basis:43%}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .feat-scroll{scroll-behavior:auto}
 }
 
 .feat{
@@ -4131,6 +4182,239 @@ kbd{
   .fs-titleblock h4.t-long,.fs-titleblock h4.t-xlong{font-size:29px;line-height:1.12}
 }
 
+/* ---------- this round : fullscreen stage themes, rebuilt to the full
+   Folia standard — every theme is a finished stage, not a layout swap.
+   state.settings.fsTheme drives [data-theme] on .fs, switchable from the
+   in-stage theme capsule (no caption text any more) and from Settings.
+   The lyrics column carries no header either.
+   Type (loaded in <head>) : --font-art = Cormorant Garamond + Noto Serif SC
+   (PV art serif); --font-hand = Ma Shan Zheng brush + Caveat (handwriting).
+   · magazine — the existing editorial layout, untouched;
+   · flow （流光） — a text-PV centre stage: the cover becomes a slowly
+     spinning disc over a centred serif title, a hairline rule, then the
+     lyrics as kinetic type — lines drift in from alternating sides, the
+     current line blooms to ~48px art serif with opening tracking and an
+     album-colour glow, its translation set in italic serif beneath;
+   · steps （云阶） — stair-stacked terraces, refined: every tread carries
+     its mono step number (CSS counter) and a hairline underside, lines set
+     in art serif, the current tread returns to the margin at 30px 900
+     with a lit number and a soft album glow;
+   · script （手书） — a handwritten manuscript: brush-font lines at
+     alternating tilts and indents down a centred column, the current line
+     straightens and swells to ~54px brush calligraphy with a soft ink
+     stroke swept under it, translations in Caveat hand;
+   · chat （对话） — Apple iMessage, but melted into the stage: NO panel
+     or backdrop of its own — the bubbles float straight on the shared
+     cover-blur + album-ambience background, each bubble translucent
+     glass (backdrop blur) so the stage glows through; odd lines received
+     (white glass, left, cover avatar, tail corner), even lines sent
+     (translucent iMessage blue, right, tail corner), translation rides
+     inside as a caption, the current bubble pops slightly.
+   Whole-line highlight everywhere — no per-word karaoke, per the standing
+   veto. Switching themes crossfades (setFsTheme in JS): fade/blur out
+   ~170ms, swap, fade/rise in ~330ms; rapid switches cancel cleanly;
+   · dynamic typesetting (later round) — no theme is a fixed template
+     any more: JS seeds every line with choreography vars (see the
+     magazine rules below); each theme maps them to its own ranges, so
+     position, size, tilt, indent and entrance direction differ line by
+     line — stable per song, reshuffled per track.
+   calm / reduced-motion switches instantly. ---------- */
+.fs-themebar{position:relative;z-index:3;display:flex;align-items:center;justify-content:center;padding:10px 20px 0}
+.fs-theme-seg{flex:none}
+.fs{--font-art:"Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;--font-hand:"Ma Shan Zheng","Caveat","Zhi Mang Xing","KaiTi",cursive}
+/* dynamic typesetting : every lyric line carries seeded per-line vars
+   (--vx/--vy entrance drift, --vr tilt, --vs size, --vi indent ladder,
+   --vb bubble-width seed) generated in JS from (track, line) — see
+   lineVars in the render loop. Each theme consumes them in its own
+   ranges, so within one theme no two lines share a position / size /
+   alignment / entrance direction, yet a song's choreography is stable
+   and only reshuffles on track change. magazine (below) previously had
+   no per-line variation at all; flow/steps/script/chat had theirs
+   replaced from fixed nth-child patterns to the seeded vars. */
+.fs[data-theme="magazine"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45);transform:translate(calc(var(--vx,0px)*.5),5px) scale(.985) rotate(calc(var(--vr,0deg)*.4));transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{transform:translate(calc(var(--vx,0px)*.22),2px) scale(.995) rotate(calc(var(--vr,0deg)*.2))}
+.fs[data-theme="magazine"] .fs-main .fl-line.on{margin-left:0;transform:translate(0,0)}
+.fs[data-theme="magazine"] .fs-main .fl-line .fl-o{font-size:calc(15px*var(--vs,1))}
+.fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(24px*var(--vs,1))}
+.fs[data-theme="flow"] .fs-amb{filter:blur(24px) saturate(1.3)}
+.fs[data-theme="flow"] .amb.a1{animation-duration:17s}
+.fs[data-theme="flow"] .amb.a2{animation-duration:14s}
+.fs[data-theme="flow"] .amb.a3{animation-duration:21s}
+.fs[data-theme="flow"] .fs-amb::after{content:"";position:absolute;inset:-18%;background:radial-gradient(42% 34% at 32% 38%,var(--amb2,rgba(255,255,255,.16)),transparent 70%);opacity:.55;animation:ambFlow 15s ease-in-out infinite alternate}
+@keyframes ambFlow{from{transform:translate(-4%,-2%) scale(1)}to{transform:translate(5%,4%) scale(1.13)}}
+body.calm .fs[data-theme="flow"] .fs-amb::after{animation:none}
+@media(prefers-reduced-motion:reduce){.fs[data-theme="flow"] .fs-amb::after{animation:none}}
+@keyframes fsDiscSpin{to{transform:rotate(360deg)}}
+.win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:fsDiscSpin 28s linear infinite}
+body.calm .win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:none}
+@media(prefers-reduced-motion:reduce){.win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:none}}
+.fs[data-theme="flow"] .fs-giant,.fs[data-theme="flow"] .fs-side,.fs[data-theme="flow"] .fs-index{display:none}
+.fs[data-theme="flow"] .fs-main{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-start;padding:8px 40px 6px;gap:0}
+.fs[data-theme="flow"] .fs-main .fs-coverwrap{width:104px;flex:none}
+.fs[data-theme="flow"] .fs-main .fs-reflect{display:none}
+.fs[data-theme="flow"] .fs-main .fs-cover{border-radius:50%;box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 70px var(--amb1,rgba(255,255,255,.18))}
+.fs[data-theme="flow"] .fs-main .fs-titleblock{flex:none;margin:18px 0 0;max-width:720px;text-align:center}
+.fs[data-theme="flow"] .fs-main .fs-titleblock h4{font-family:var(--font-art);font-size:31px;font-weight:900;line-height:1.18;letter-spacing:.01em}
+.fs[data-theme="flow"] .fs-main .fs-titleblock p{margin-top:7px;font-size:13.5px}
+.fs[data-theme="flow"] .fs-titleactions{justify-content:center;margin-top:9px}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol{width:100%;max-width:880px;margin:4px auto 0;border-left:none;padding-left:0;flex:1 1 auto;min-height:0}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol::before{content:"";display:block;flex:none;width:190px;height:1px;margin:12px auto 2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent)}
+.fs[data-theme="flow"] .fs-main .fs-lyrics{padding:24px 12px 30px}
+.fs[data-theme="flow"] .fs-main .fl-line{text-align:center;padding:10px 26px}
+.fs[data-theme="flow"] .fs-main .fl-line .fl-o{font-family:var(--font-art);font-size:calc(20px*var(--vs,1));font-weight:600;line-height:1.4;letter-spacing:.01em;transform:translate(var(--vx,0px),var(--vy,7px)) rotate(calc(var(--vr,0deg)*.7));transition:font-size .6s cubic-bezier(.22,1,.36,1),letter-spacing .9s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1 .fl-o{font-size:calc(23px*var(--vs,1));transform:translate(calc(var(--vx,0px)*.3),3px) rotate(calc(var(--vr,0deg)*.3))}
+.fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:clamp(32px,calc(4.6vw*var(--vs,1)),50px);font-weight:900;line-height:1.24;letter-spacing:.022em;transform:translate(0,0);text-shadow:0 0 42px var(--amb1,rgba(255,255,255,.22)),0 6px 34px rgba(0,0,0,.4)}
+.fs[data-theme="flow"] .fs-main .fl-line.on .fl-tr{font-family:var(--font-art);font-style:italic;font-size:16.5px;letter-spacing:.05em;margin-top:9px}
+.fs[data-theme="steps"] .fs-main .fs-coverwrap{width:min(268px,26vw)}
+.fs[data-theme="steps"] .fs-main .fs-lyrcol{width:428px}
+.fs[data-theme="steps"] .fs-main .fs-lyrics{counter-reset:fsstep}
+.fs[data-theme="steps"] .fs-main .fl-line{position:relative;border-radius:10px;padding-left:46px;margin-left:var(--vi,0px);box-shadow:inset 0 -1px 0 rgba(255,255,255,.05);transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .55s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="steps"] .fs-main .fl-line::before{counter-increment:fsstep;content:counter(fsstep,decimal-leading-zero);position:absolute;left:13px;top:50%;transform:translateY(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;opacity:.32}
+.fs[data-theme="steps"] .fs-main .fl-line.on::before{opacity:.85}
+.fs[data-theme="steps"] .fs-main .fl-line .fl-o{font-family:var(--font-art);font-size:calc(17px*var(--vs,1));font-weight:600;letter-spacing:.01em;transform:translateX(calc(var(--vx,0px)*.4)) rotate(calc(var(--vr,0deg)*.35));transition:font-size .5s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="steps"] .fs-main .fl-line.on:nth-child(n){margin-left:0}
+.fs[data-theme="steps"] .fs-main .fl-line.on{background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 78%)}
+.fs[data-theme="steps"] .fs-main .fl-line.on .fl-o{font-size:calc(30px*var(--vs,1));font-weight:900;line-height:1.2;transform:translateX(0) rotate(0deg);text-shadow:0 0 30px var(--amb1,rgba(255,255,255,.18))}
+.fs[data-theme="steps"] .fs-main .fl-line.on .fl-tr{font-family:var(--font-art);font-style:italic;font-size:13.5px}
+.fs[data-theme="script"] .fs-giant,.fs[data-theme="script"] .fs-side,.fs[data-theme="script"] .fs-index{display:none}
+.fs[data-theme="script"] .fs-main{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-start;padding:8px 40px 6px;gap:0}
+.fs[data-theme="script"] .fs-main .fs-coverwrap{width:86px;flex:none}
+.fs[data-theme="script"] .fs-main .fs-reflect{display:none}
+.fs[data-theme="script"] .fs-main .fs-cover{border-radius:14px;box-shadow:0 16px 38px rgba(0,0,0,.48)}
+.fs[data-theme="script"] .fs-main .fs-titleblock{flex:none;margin:14px 0 0;max-width:680px;text-align:center}
+.fs[data-theme="script"] .fs-main .fs-titleblock h4{font-family:var(--font-art);font-size:28px;font-weight:900;line-height:1.2}
+.fs[data-theme="script"] .fs-main .fs-titleblock p{margin-top:6px;font-size:13px}
+.fs[data-theme="script"] .fs-titleactions{justify-content:center;margin-top:8px}
+.fs[data-theme="script"] .fs-main .fs-lyrcol{width:100%;max-width:780px;margin:8px auto 0;border-left:none;padding-left:0;flex:1 1 auto;min-height:0}
+.fs[data-theme="script"] .fs-main .fs-lyrics{padding:20px 8px 26px}
+.fs[data-theme="script"] .fs-main .fl-line{padding:8px 14px;margin-left:calc(var(--vi,0px)*1.25);transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-o{font-family:var(--font-hand);font-size:calc(24px*var(--vs,1));font-weight:400;line-height:1.5;letter-spacing:.04em;transform:translateX(calc(var(--vx,0px)*.3)) rotate(var(--vr,0deg));transform-origin:0 50%;transition:font-size .6s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1),letter-spacing .8s ease}
+.fs[data-theme="script"] .fs-main .fl-line.d1 .fl-o{font-size:calc(27px*var(--vs,1));transform:translateX(calc(var(--vx,0px)*.15)) rotate(calc(var(--vr,0deg)*.5))}
+.fs[data-theme="script"] .fs-main .fl-line.on{margin-left:0}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-o{position:relative;font-size:clamp(36px,calc(4.9vw*var(--vs,1)),56px);line-height:1.3;letter-spacing:.06em;transform:translateX(0) rotate(0deg);text-shadow:0 4px 30px rgba(0,0,0,.35)}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-o::after{content:"";position:absolute;left:3px;right:10%;bottom:0;height:6px;border-radius:99px;background:var(--amb1,rgba(255,255,255,.3));opacity:.45;filter:blur(1.2px)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-tr{font-family:var(--font-hand);font-size:15px;letter-spacing:.03em}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-tr{font-size:18px;margin-top:5px}
+.fs[data-theme="chat"] .fs-giant,.fs[data-theme="chat"] .fs-side,.fs[data-theme="chat"] .fs-index{display:none}
+.fs[data-theme="chat"] .fs-main .fs-coverwrap{width:min(196px,20vw)}
+.fs[data-theme="chat"] .fs-main .fs-titleblock{margin-left:-30px;max-width:308px}
+.fs[data-theme="chat"] .fs-main .fs-titleblock h4{font-size:33px;line-height:1.1}
+.fs[data-theme="chat"] .fs-main .fs-lyrcol{width:min(452px,100%);border-left:none;padding:2px 2px 0;background:transparent;border-radius:0;box-shadow:none}
+.fs[data-theme="chat"] .fs-main .fs-lyrics{display:flex;flex-direction:column;gap:5px;padding:14px 8px 14px 4px}
+.fs[data-theme="chat"] .fs-main .fl-line{position:relative;max-width:calc(66% + var(--vb,.5)*18%);margin:0;margin-top:calc((var(--vy,8px) - 8px)*.7);padding:9px 14px 10px;border-radius:20px;font-size:15px;line-height:1.4;filter:none;opacity:.5;transform:translateX(calc(var(--vx,0px)*.16));border:1px solid rgba(255,255,255,.20);backdrop-filter:blur(14px) saturate(1.5);-webkit-backdrop-filter:blur(14px) saturate(1.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 18px rgba(0,0,0,.20);transition:opacity .4s ease,transform .45s cubic-bezier(.22,1.3,.36,1),box-shadow .4s ease}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd){align-self:flex-start;margin-left:38px;max-width:calc(62% + var(--vb,.5)*18%);background:linear-gradient(180deg,rgba(255,255,255,.21),rgba(255,255,255,.10));color:#fff;border-bottom-left-radius:6px}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd)::before{content:"";position:absolute;left:-38px;bottom:0;width:29px;height:29px;border-radius:50%;background-image:var(--fs-cover,none);background-size:cover;background-position:center;border:1px solid rgba(255,255,255,.35);box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(even){align-self:flex-end;background:linear-gradient(180deg,rgba(64,168,255,.55),rgba(10,110,240,.48));color:#fff;border-bottom-right-radius:6px}
+.fs[data-theme="chat"] .fs-main .fl-line .fl-o{font-size:calc(15px*var(--vs,1));line-height:1.4;font-weight:500;letter-spacing:0}
+.fs[data-theme="chat"] .fs-main .fl-line .fl-tr{font-size:12px;font-weight:400;opacity:.75;margin-top:3px}
+.fs[data-theme="chat"] .fs-main .fl-line.d1{opacity:.8;filter:none;transform:translateX(calc(var(--vx,0px)*.08))}
+.fs[data-theme="chat"] .fs-main .fl-line.on{opacity:1;filter:none;transform:translateX(0) scale(1.045);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 12px 28px rgba(0,0,0,.32)}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(even).on{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 12px 30px rgba(10,110,255,.4)}
+.fs[data-theme="chat"] .fs-main .fl-line.on .fl-o{font-size:calc(16.5px*var(--vs,1));font-weight:700}
+.fs[data-theme="chat"] .fs-main .fl-line.on .fl-tr{opacity:.88}
+.fs[data-theme="chat"] .fs-main .fl-line.focus{opacity:.97;outline:2px solid rgba(255,255,255,.55);outline-offset:2px}
+.fs[data-theme="chat"] .fs-lyrseek{left:auto;right:12px}
+@media(max-width:1020px){
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:86px}
+  .fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:calc(33px*var(--vs,1))}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(20px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:74px}
+  .fs[data-theme="script"] .fs-main .fl-line.on .fl-o{font-size:calc(38px*var(--vs,1))}
+  .fs[data-theme="steps"] .fs-main .fs-lyrcol{width:330px}
+  .fs[data-theme="steps"] .fs-main .fl-line.on .fl-o{font-size:calc(25px*var(--vs,1))}
+  .fs[data-theme="chat"] .fs-main .fs-lyrcol{width:396px}
+  .fs[data-theme="chat"] .fs-main .fs-titleblock h4{font-size:28px}
+}
+@media(max-width:640px){
+  .fs-themebar{padding-top:7px}
+  .fs[data-theme="magazine"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.28)}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on{margin-left:0}
+  .fs[data-theme="magazine"] .fs-main .fl-line .fl-o{font-size:calc(14px*var(--vs,1))}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(18px*var(--vs,1))}
+  .fs[data-theme="flow"] .fs-main{padding:4px 18px 2px}
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:62px}
+  .fs[data-theme="flow"] .fs-main .fs-titleblock h4{font-size:24px}
+  .fs[data-theme="flow"] .fs-main .fl-line{padding:8px 10px}
+  .fs[data-theme="flow"] .fs-main .fl-line .fl-o{font-size:calc(16.5px*var(--vs,1))}
+  .fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:calc(27px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main{padding:4px 18px 2px}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:56px}
+  .fs[data-theme="script"] .fs-main .fs-titleblock h4{font-size:22px}
+  .fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.55)}
+  .fs[data-theme="script"] .fs-main .fl-line .fl-o{font-size:calc(19px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main .fl-line.on .fl-o{font-size:calc(29px*var(--vs,1))}
+  .fs[data-theme="steps"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+  .fs[data-theme="chat"] .fs-main .fs-lyrcol{width:100%;max-height:56%}
+  .fs[data-theme="chat"] .fs-main .fl-line{max-width:calc(72% + var(--vb,.5)*16%)}
+  .fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd){max-width:calc(66% + var(--vb,.5)*16%)}
+}
+@media(prefers-reduced-motion:reduce){.fs[data-theme="chat"] .fs-main .fl-line{transition:none}.fs[data-theme="flow"] .fs-main .fl-line .fl-o,.fs[data-theme="script"] .fs-main .fl-line .fl-o{transition:none}.fs[data-theme="magazine"] .fs-main .fl-line,.fs[data-theme="steps"] .fs-main .fl-line,.fs[data-theme="steps"] .fs-main .fl-line .fl-o{transition:none}}
+
+/* flow / script stage repair (see round-stage-balance in the compiled
+   styles) : shared baseline per theme, lifted off-line dimming for the
+   short column viewport, compacted header stack. */
+.fs[data-theme="flow"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="flow"] .fs-main .fl-line.on,.fs[data-theme="flow"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="flow"] .fs-main .fl-line .fl-o{transform:translateY(4px) rotate(0deg)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1 .fl-o{transform:translateY(2px) rotate(0deg)}
+.fs[data-theme="script"] .fs-main .fl-line{opacity:.52;filter:blur(.8px)}
+.fs[data-theme="script"] .fs-main .fl-line.d1{opacity:.8;filter:blur(.25px)}
+.fs[data-theme="script"] .fs-main .fl-line.on,.fs[data-theme="script"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-o{transform:rotate(var(--vr,0deg))}
+.fs[data-theme="script"] .fs-main .fl-line.d1 .fl-o{transform:rotate(calc(var(--vr,0deg)*.5))}
+.fs[data-theme="flow"] .fs-main .fs-coverwrap{width:92px}
+.fs[data-theme="flow"] .fs-main .fs-titleblock{margin-top:12px}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol{margin-top:0}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol::before{margin:8px auto 0}
+.fs[data-theme="flow"] .fs-main .fs-lyrics{padding-top:12px}
+.fs[data-theme="script"] .fs-main .fs-coverwrap{width:78px}
+.fs[data-theme="script"] .fs-main .fs-titleblock{margin-top:10px}
+.fs[data-theme="script"] .fs-main .fs-lyrcol{margin-top:2px}
+.fs[data-theme="script"] .fs-main .fs-lyrics{padding-top:12px}
+@media(max-width:1020px){
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:80px}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:70px}
+}
+@media(max-width:640px){
+  .fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.3)}
+}
+
+/* magazine / steps / chat stage balance (see round-stage-balance-2 in
+   the compiled styles) : the same standard as the flow / script repair
+   above, carried through the remaining three themes.
+   · magazine — drift + tilt zero out off the current line (the line
+     returns to the base depth posture on the column's left axis); the
+     shallow indent ladder (×.45, the same taming script got) and the
+     per-line size variation stay.
+   · steps — the stair ladder is tamed ×1 → ×.45 like script's, and the
+     text loses its sideways drift / tilt, keeping a small vertical
+     settle, so every tread hangs off the same numbered rail.
+   · chat — the seeded sideways drift (×.16) is zeroed so bubbles rest
+     flush on their two rails (received left / sent right); bubble-width
+     and vertical-rhythm seeds stay.
+   · readability — magazine / steps still inherited the base dimming
+     (opacity .26 / blur 1.6px, d1 .5 / .55px): lifted to the flow /
+     script values (.55 / .8px, d1 .82 / .25px). Chat has no blur by
+     design; its bubble opacity goes .5 → .75 (d1 .8 → .9).
+   · vertical balance — all three are row layouts whose lyrics column
+     stretches the full .fs-main height, so the follow-scroll centre is
+     already the stage's visual centre; theme switches re-centre via
+     the same scheduleFsRecenter commit path as flow / script. */
+.fs[data-theme="magazine"] .fs-main .fl-line{transform:translate(0,5px) scale(.985) rotate(0deg)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{transform:translate(0,2px) scale(.995) rotate(0deg)}
+.fs[data-theme="magazine"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="magazine"] .fs-main .fl-line.on,.fs[data-theme="magazine"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="steps"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+.fs[data-theme="steps"] .fs-main .fl-line .fl-o{transform:translateY(3px)}
+.fs[data-theme="steps"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="steps"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="steps"] .fs-main .fl-line.on,.fs[data-theme="steps"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="chat"] .fs-main .fl-line{opacity:.75;transform:translateX(0)}
+.fs[data-theme="chat"] .fs-main .fl-line.d1{opacity:.9;transform:translateX(0)}
+
 </script>
 <style>
 /* Tailwind CSS v4.3.5 — compiled output (@tailwindcss/cli). Source preserved above. */
@@ -7133,10 +7417,79 @@ h1 .thin {
   white-space: nowrap;
   opacity: .55;
 }
+.feat-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.feat-arrow {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 9999px;
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: transparent;
+  background-color: transparent;
+  padding: 0px;
+  color: inherit;
+  transition: background .2s ease,opacity .2s ease;
+}
+.feat-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+.feat-arrow:disabled {
+  cursor: default;
+  opacity: .30;
+}
+.glass-win .feat-arrow {
+  background: rgba(255,255,255,.09);
+  border-color: rgba(255,255,255,.16);
+}
+.glass-win .feat-arrow:not(:disabled):hover {
+  background: rgba(255,255,255,.17);
+}
+.liquid-win .feat-arrow {
+  background: linear-gradient(160deg,rgba(255,255,255,.24),rgba(255,255,255,.06));
+  border-color: rgba(255,255,255,.38);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+}
+.liquid-win .feat-arrow:not(:disabled):hover {
+  background: linear-gradient(160deg,rgba(255,255,255,.32),rgba(255,255,255,.10));
+}
 .feat-grid {
   display: grid;
   grid-template-columns: repeat(4,minmax(0,1fr));
   gap: 14px;
+}
+.feat-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.feat-scroll::-webkit-scrollbar {
+  display: none;
+}
+.feat-scroll>.feat {
+  flex: 0 0 calc((100% - 42px)/4);
+  scroll-snap-align: start;
+}
+@media(max-width:640px) {
+  .feat-scroll>.feat {
+    flex-basis: 43%;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .feat-scroll {
+    scroll-behavior: auto;
+  }
 }
 .feat {
   position: relative;
@@ -12919,6 +13272,259 @@ kbd {
   .fs-titleblock h4.t-long,.fs-titleblock h4.t-xlong{font-size:29px;line-height:1.12}
 }
 </style>
+<style id="round-stage-themes">
+/* this round : fullscreen stage themes rebuilt to the full Folia standard
+   (compiled counterparts of the Tailwind-source rules above)
+   + dynamic typesetting : per-line seeded choreography vars (--vx/--vy/
+   --vr/--vs/--vi/--vb from JS lineVars) replace every fixed nth-child
+   pattern, so no two lines in any theme share a layout. */
+.fs-themebar{position:relative;z-index:3;display:flex;align-items:center;justify-content:center;padding:10px 20px 0}
+.fs-theme-seg{flex:none}
+.fs{--font-art:"Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;--font-hand:"Ma Shan Zheng","Caveat","Zhi Mang Xing","KaiTi",cursive}
+/* dynamic typesetting : every lyric line carries seeded per-line vars
+   (--vx/--vy entrance drift, --vr tilt, --vs size, --vi indent ladder,
+   --vb bubble-width seed) generated in JS from (track, line) — see
+   lineVars in the render loop. Each theme consumes them in its own
+   ranges, so within one theme no two lines share a position / size /
+   alignment / entrance direction, yet a song's choreography is stable
+   and only reshuffles on track change. magazine (below) previously had
+   no per-line variation at all; flow/steps/script/chat had theirs
+   replaced from fixed nth-child patterns to the seeded vars. */
+.fs[data-theme="magazine"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45);transform:translate(calc(var(--vx,0px)*.5),5px) scale(.985) rotate(calc(var(--vr,0deg)*.4));transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{transform:translate(calc(var(--vx,0px)*.22),2px) scale(.995) rotate(calc(var(--vr,0deg)*.2))}
+.fs[data-theme="magazine"] .fs-main .fl-line.on{margin-left:0;transform:translate(0,0)}
+.fs[data-theme="magazine"] .fs-main .fl-line .fl-o{font-size:calc(15px*var(--vs,1))}
+.fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(24px*var(--vs,1))}
+.fs[data-theme="flow"] .fs-amb{filter:blur(24px) saturate(1.3)}
+.fs[data-theme="flow"] .amb.a1{animation-duration:17s}
+.fs[data-theme="flow"] .amb.a2{animation-duration:14s}
+.fs[data-theme="flow"] .amb.a3{animation-duration:21s}
+.fs[data-theme="flow"] .fs-amb::after{content:"";position:absolute;inset:-18%;background:radial-gradient(42% 34% at 32% 38%,var(--amb2,rgba(255,255,255,.16)),transparent 70%);opacity:.55;animation:ambFlow 15s ease-in-out infinite alternate}
+@keyframes ambFlow{from{transform:translate(-4%,-2%) scale(1)}to{transform:translate(5%,4%) scale(1.13)}}
+body.calm .fs[data-theme="flow"] .fs-amb::after{animation:none}
+@media(prefers-reduced-motion:reduce){.fs[data-theme="flow"] .fs-amb::after{animation:none}}
+@keyframes fsDiscSpin{to{transform:rotate(360deg)}}
+.win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:fsDiscSpin 28s linear infinite}
+body.calm .win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:none}
+@media(prefers-reduced-motion:reduce){.win.playing .fs[data-theme="flow"] .fs-coverkb>img.fs-cover{animation:none}}
+.fs[data-theme="flow"] .fs-giant,.fs[data-theme="flow"] .fs-side,.fs[data-theme="flow"] .fs-index{display:none}
+.fs[data-theme="flow"] .fs-main{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-start;padding:8px 40px 6px;gap:0}
+.fs[data-theme="flow"] .fs-main .fs-coverwrap{width:104px;flex:none}
+.fs[data-theme="flow"] .fs-main .fs-reflect{display:none}
+.fs[data-theme="flow"] .fs-main .fs-cover{border-radius:50%;box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 70px var(--amb1,rgba(255,255,255,.18))}
+.fs[data-theme="flow"] .fs-main .fs-titleblock{flex:none;margin:18px 0 0;max-width:720px;text-align:center}
+.fs[data-theme="flow"] .fs-main .fs-titleblock h4{font-family:var(--font-art);font-size:31px;font-weight:900;line-height:1.18;letter-spacing:.01em}
+.fs[data-theme="flow"] .fs-main .fs-titleblock p{margin-top:7px;font-size:13.5px}
+.fs[data-theme="flow"] .fs-titleactions{justify-content:center;margin-top:9px}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol{width:100%;max-width:880px;margin:4px auto 0;border-left:none;padding-left:0;flex:1 1 auto;min-height:0}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol::before{content:"";display:block;flex:none;width:190px;height:1px;margin:12px auto 2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent)}
+.fs[data-theme="flow"] .fs-main .fs-lyrics{padding:24px 12px 30px}
+.fs[data-theme="flow"] .fs-main .fl-line{text-align:center;padding:10px 26px}
+.fs[data-theme="flow"] .fs-main .fl-line .fl-o{font-family:var(--font-art);font-size:calc(20px*var(--vs,1));font-weight:600;line-height:1.4;letter-spacing:.01em;transform:translate(var(--vx,0px),var(--vy,7px)) rotate(calc(var(--vr,0deg)*.7));transition:font-size .6s cubic-bezier(.22,1,.36,1),letter-spacing .9s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1 .fl-o{font-size:calc(23px*var(--vs,1));transform:translate(calc(var(--vx,0px)*.3),3px) rotate(calc(var(--vr,0deg)*.3))}
+.fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:clamp(32px,calc(4.6vw*var(--vs,1)),50px);font-weight:900;line-height:1.24;letter-spacing:.022em;transform:translate(0,0);text-shadow:0 0 42px var(--amb1,rgba(255,255,255,.22)),0 6px 34px rgba(0,0,0,.4)}
+.fs[data-theme="flow"] .fs-main .fl-line.on .fl-tr{font-family:var(--font-art);font-style:italic;font-size:16.5px;letter-spacing:.05em;margin-top:9px}
+.fs[data-theme="steps"] .fs-main .fs-coverwrap{width:min(268px,26vw)}
+.fs[data-theme="steps"] .fs-main .fs-lyrcol{width:428px}
+.fs[data-theme="steps"] .fs-main .fs-lyrics{counter-reset:fsstep}
+.fs[data-theme="steps"] .fs-main .fl-line{position:relative;border-radius:10px;padding-left:46px;margin-left:var(--vi,0px);box-shadow:inset 0 -1px 0 rgba(255,255,255,.05);transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .55s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="steps"] .fs-main .fl-line::before{counter-increment:fsstep;content:counter(fsstep,decimal-leading-zero);position:absolute;left:13px;top:50%;transform:translateY(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;opacity:.32}
+.fs[data-theme="steps"] .fs-main .fl-line.on::before{opacity:.85}
+.fs[data-theme="steps"] .fs-main .fl-line .fl-o{font-family:var(--font-art);font-size:calc(17px*var(--vs,1));font-weight:600;letter-spacing:.01em;transform:translateX(calc(var(--vx,0px)*.4)) rotate(calc(var(--vr,0deg)*.35));transition:font-size .5s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="steps"] .fs-main .fl-line.on:nth-child(n){margin-left:0}
+.fs[data-theme="steps"] .fs-main .fl-line.on{background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 78%)}
+.fs[data-theme="steps"] .fs-main .fl-line.on .fl-o{font-size:calc(30px*var(--vs,1));font-weight:900;line-height:1.2;transform:translateX(0) rotate(0deg);text-shadow:0 0 30px var(--amb1,rgba(255,255,255,.18))}
+.fs[data-theme="steps"] .fs-main .fl-line.on .fl-tr{font-family:var(--font-art);font-style:italic;font-size:13.5px}
+.fs[data-theme="script"] .fs-giant,.fs[data-theme="script"] .fs-side,.fs[data-theme="script"] .fs-index{display:none}
+.fs[data-theme="script"] .fs-main{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-start;padding:8px 40px 6px;gap:0}
+.fs[data-theme="script"] .fs-main .fs-coverwrap{width:86px;flex:none}
+.fs[data-theme="script"] .fs-main .fs-reflect{display:none}
+.fs[data-theme="script"] .fs-main .fs-cover{border-radius:14px;box-shadow:0 16px 38px rgba(0,0,0,.48)}
+.fs[data-theme="script"] .fs-main .fs-titleblock{flex:none;margin:14px 0 0;max-width:680px;text-align:center}
+.fs[data-theme="script"] .fs-main .fs-titleblock h4{font-family:var(--font-art);font-size:28px;font-weight:900;line-height:1.2}
+.fs[data-theme="script"] .fs-main .fs-titleblock p{margin-top:6px;font-size:13px}
+.fs[data-theme="script"] .fs-titleactions{justify-content:center;margin-top:8px}
+.fs[data-theme="script"] .fs-main .fs-lyrcol{width:100%;max-width:780px;margin:8px auto 0;border-left:none;padding-left:0;flex:1 1 auto;min-height:0}
+.fs[data-theme="script"] .fs-main .fs-lyrics{padding:20px 8px 26px}
+.fs[data-theme="script"] .fs-main .fl-line{padding:8px 14px;margin-left:calc(var(--vi,0px)*1.25);transition:opacity .55s ease,filter .55s ease,transform .65s cubic-bezier(.22,1.25,.36,1),font-size .5s cubic-bezier(.22,1,.36,1),margin-left .6s cubic-bezier(.22,1,.36,1)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-o{font-family:var(--font-hand);font-size:calc(24px*var(--vs,1));font-weight:400;line-height:1.5;letter-spacing:.04em;transform:translateX(calc(var(--vx,0px)*.3)) rotate(var(--vr,0deg));transform-origin:0 50%;transition:font-size .6s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1),letter-spacing .8s ease}
+.fs[data-theme="script"] .fs-main .fl-line.d1 .fl-o{font-size:calc(27px*var(--vs,1));transform:translateX(calc(var(--vx,0px)*.15)) rotate(calc(var(--vr,0deg)*.5))}
+.fs[data-theme="script"] .fs-main .fl-line.on{margin-left:0}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-o{position:relative;font-size:clamp(36px,calc(4.9vw*var(--vs,1)),56px);line-height:1.3;letter-spacing:.06em;transform:translateX(0) rotate(0deg);text-shadow:0 4px 30px rgba(0,0,0,.35)}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-o::after{content:"";position:absolute;left:3px;right:10%;bottom:0;height:6px;border-radius:99px;background:var(--amb1,rgba(255,255,255,.3));opacity:.45;filter:blur(1.2px)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-tr{font-family:var(--font-hand);font-size:15px;letter-spacing:.03em}
+.fs[data-theme="script"] .fs-main .fl-line.on .fl-tr{font-size:18px;margin-top:5px}
+.fs[data-theme="chat"] .fs-giant,.fs[data-theme="chat"] .fs-side,.fs[data-theme="chat"] .fs-index{display:none}
+.fs[data-theme="chat"] .fs-main .fs-coverwrap{width:min(196px,20vw)}
+.fs[data-theme="chat"] .fs-main .fs-titleblock{margin-left:-30px;max-width:308px}
+.fs[data-theme="chat"] .fs-main .fs-titleblock h4{font-size:33px;line-height:1.1}
+.fs[data-theme="chat"] .fs-main .fs-lyrcol{width:min(452px,100%);border-left:none;padding:2px 2px 0;background:transparent;border-radius:0;box-shadow:none}
+.fs[data-theme="chat"] .fs-main .fs-lyrics{display:flex;flex-direction:column;gap:5px;padding:14px 8px 14px 4px}
+.fs[data-theme="chat"] .fs-main .fl-line{position:relative;max-width:calc(66% + var(--vb,.5)*18%);margin:0;margin-top:calc((var(--vy,8px) - 8px)*.7);padding:9px 14px 10px;border-radius:20px;font-size:15px;line-height:1.4;filter:none;opacity:.5;transform:translateX(calc(var(--vx,0px)*.16));border:1px solid rgba(255,255,255,.20);backdrop-filter:blur(14px) saturate(1.5);-webkit-backdrop-filter:blur(14px) saturate(1.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 18px rgba(0,0,0,.20);transition:opacity .4s ease,transform .45s cubic-bezier(.22,1.3,.36,1),box-shadow .4s ease}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd){align-self:flex-start;margin-left:38px;max-width:calc(62% + var(--vb,.5)*18%);background:linear-gradient(180deg,rgba(255,255,255,.21),rgba(255,255,255,.10));color:#fff;border-bottom-left-radius:6px}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd)::before{content:"";position:absolute;left:-38px;bottom:0;width:29px;height:29px;border-radius:50%;background-image:var(--fs-cover,none);background-size:cover;background-position:center;border:1px solid rgba(255,255,255,.35);box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(even){align-self:flex-end;background:linear-gradient(180deg,rgba(64,168,255,.55),rgba(10,110,240,.48));color:#fff;border-bottom-right-radius:6px}
+.fs[data-theme="chat"] .fs-main .fl-line .fl-o{font-size:calc(15px*var(--vs,1));line-height:1.4;font-weight:500;letter-spacing:0}
+.fs[data-theme="chat"] .fs-main .fl-line .fl-tr{font-size:12px;font-weight:400;opacity:.75;margin-top:3px}
+.fs[data-theme="chat"] .fs-main .fl-line.d1{opacity:.8;filter:none;transform:translateX(calc(var(--vx,0px)*.08))}
+.fs[data-theme="chat"] .fs-main .fl-line.on{opacity:1;filter:none;transform:translateX(0) scale(1.045);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 12px 28px rgba(0,0,0,.32)}
+.fs[data-theme="chat"] .fs-main .fl-line:nth-child(even).on{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 12px 30px rgba(10,110,255,.4)}
+.fs[data-theme="chat"] .fs-main .fl-line.on .fl-o{font-size:calc(16.5px*var(--vs,1));font-weight:700}
+.fs[data-theme="chat"] .fs-main .fl-line.on .fl-tr{opacity:.88}
+.fs[data-theme="chat"] .fs-main .fl-line.focus{opacity:.97;outline:2px solid rgba(255,255,255,.55);outline-offset:2px}
+.fs[data-theme="chat"] .fs-lyrseek{left:auto;right:12px}
+@media(max-width:1020px){
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:86px}
+  .fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:calc(33px*var(--vs,1))}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(20px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:74px}
+  .fs[data-theme="script"] .fs-main .fl-line.on .fl-o{font-size:calc(38px*var(--vs,1))}
+  .fs[data-theme="steps"] .fs-main .fs-lyrcol{width:330px}
+  .fs[data-theme="steps"] .fs-main .fl-line.on .fl-o{font-size:calc(25px*var(--vs,1))}
+  .fs[data-theme="chat"] .fs-main .fs-lyrcol{width:396px}
+  .fs[data-theme="chat"] .fs-main .fs-titleblock h4{font-size:28px}
+}
+@media(max-width:640px){
+  .fs-themebar{padding-top:7px}
+  .fs[data-theme="magazine"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.28)}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on{margin-left:0}
+  .fs[data-theme="magazine"] .fs-main .fl-line .fl-o{font-size:calc(14px*var(--vs,1))}
+  .fs[data-theme="magazine"] .fs-main .fl-line.on .fl-o{font-size:calc(18px*var(--vs,1))}
+  .fs[data-theme="flow"] .fs-main{padding:4px 18px 2px}
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:62px}
+  .fs[data-theme="flow"] .fs-main .fs-titleblock h4{font-size:24px}
+  .fs[data-theme="flow"] .fs-main .fl-line{padding:8px 10px}
+  .fs[data-theme="flow"] .fs-main .fl-line .fl-o{font-size:calc(16.5px*var(--vs,1))}
+  .fs[data-theme="flow"] .fs-main .fl-line.on .fl-o{font-size:calc(27px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main{padding:4px 18px 2px}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:56px}
+  .fs[data-theme="script"] .fs-main .fs-titleblock h4{font-size:22px}
+  .fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.55)}
+  .fs[data-theme="script"] .fs-main .fl-line .fl-o{font-size:calc(19px*var(--vs,1))}
+  .fs[data-theme="script"] .fs-main .fl-line.on .fl-o{font-size:calc(29px*var(--vs,1))}
+  .fs[data-theme="steps"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+  .fs[data-theme="chat"] .fs-main .fs-lyrcol{width:100%;max-height:56%}
+  .fs[data-theme="chat"] .fs-main .fl-line{max-width:calc(72% + var(--vb,.5)*16%)}
+  .fs[data-theme="chat"] .fs-main .fl-line:nth-child(odd){max-width:calc(66% + var(--vb,.5)*16%)}
+}
+@media(prefers-reduced-motion:reduce){.fs[data-theme="chat"] .fs-main .fl-line{transition:none}.fs[data-theme="flow"] .fs-main .fl-line .fl-o,.fs[data-theme="script"] .fs-main .fl-line .fl-o{transition:none}.fs[data-theme="magazine"] .fs-main .fl-line,.fs[data-theme="steps"] .fs-main .fl-line,.fs[data-theme="steps"] .fs-main .fl-line .fl-o{transition:none}}
+</style>
+<style id="round-main-queue">
+/* this round : the bottom bar's queue button opens a standalone queue panel
+   inside the main window — it no longer jumps into the fullscreen page.
+   The panel floats above the bottom bar, is fed by the same queue model as
+   the right rail and the fullscreen queue (same rows, drag reorder and
+   play-next), and follows each window's own glass recipe. The fullscreen
+   queue keeps its own separate toggle inside the stage. */
+.main-queue{position:absolute;z-index:12;right:14px;bottom:88px;width:352px;max-width:calc(100% - 28px);max-height:calc(100% - 176px);overflow-y:auto;border-radius:18px;padding:12px;display:none;scrollbar-width:none;color:#fff;text-align:left}
+.main-queue::-webkit-scrollbar{display:none}
+.win.mq-open .main-queue{display:block;animation:mqIn .28s cubic-bezier(.22,1,.36,1)}
+.win.fs-open .main-queue{display:none}
+@keyframes mqIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.glass-win .main-queue{background:rgba(18,18,26,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 48px rgba(0,0,0,.45)}
+.liquid-win .main-queue{background:linear-gradient(165deg,rgba(30,42,46,.93),rgba(14,20,22,.95));backdrop-filter:blur(12px) saturate(1.7);-webkit-backdrop-filter:blur(12px) saturate(1.7);border:1px solid rgba(255,255,255,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 24px 48px rgba(0,0,0,.45)}
+.mq-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.1em;margin:2px 4px 10px}
+.mq-count{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;letter-spacing:.02em;opacity:.55;white-space:nowrap}
+.mq-close{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;flex:none;color:#fff;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);padding:0;cursor:pointer}
+.mq-close svg{width:14px;height:14px}
+.mq-close:hover{background:rgba(255,255,255,.18)}
+.liquid-win .mq-close{background:linear-gradient(160deg,rgba(255,255,255,.30),rgba(255,255,255,.08));border-color:rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+@media(max-width:640px){.main-queue{left:12px;right:12px;width:auto;top:54px;bottom:auto;max-height:calc(100% - 230px)}}
+@media(prefers-reduced-motion:reduce){.win.mq-open .main-queue{animation:none}}
+</style>
+<style id="round-stage-balance">
+/* this round : flow / script stage repair. The two centred column themes
+   read as scattered and top-heavy: every line carried the full seeded
+   drift + tilt + indent at once (no shared baseline), the depth dimming
+   tuned for the tall magazine column (opacity .26 / blur 1.6px) left the
+   few visible lines of the short column viewport murky, and the header
+   stack (cover + title block + actions + divider + deep lyrics padding)
+   ate so much height that the lyrics were squeezed into a thin band
+   above the Dock.
+   · flow lines return to one shared centre axis — per-line size still
+     varies, but horizontal drift and tilt no longer apply off the
+     current line
+   · script lines share one left baseline — the indent ladder is tamed
+     to a shallow manuscript stagger and the sideways drift is gone;
+     the hand tilt stays (it is the theme's handwriting)
+   · off lines in both themes are lifted (opacity / blur) so the context
+     around the current line stays readable; the current line keeps its
+     full size + glow, so it still dominates
+   · the header stack is compacted (smaller cover, tighter margins,
+     shallower lyrics top padding) so the lyric viewport gains height
+     and the centred current line lands near the stage's visual centre */
+.fs[data-theme="flow"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="flow"] .fs-main .fl-line.on,.fs[data-theme="flow"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="flow"] .fs-main .fl-line .fl-o{transform:translateY(4px) rotate(0deg)}
+.fs[data-theme="flow"] .fs-main .fl-line.d1 .fl-o{transform:translateY(2px) rotate(0deg)}
+.fs[data-theme="script"] .fs-main .fl-line{opacity:.52;filter:blur(.8px)}
+.fs[data-theme="script"] .fs-main .fl-line.d1{opacity:.8;filter:blur(.25px)}
+.fs[data-theme="script"] .fs-main .fl-line.on,.fs[data-theme="script"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+.fs[data-theme="script"] .fs-main .fl-line .fl-o{transform:rotate(var(--vr,0deg))}
+.fs[data-theme="script"] .fs-main .fl-line.d1 .fl-o{transform:rotate(calc(var(--vr,0deg)*.5))}
+.fs[data-theme="flow"] .fs-main .fs-coverwrap{width:92px}
+.fs[data-theme="flow"] .fs-main .fs-titleblock{margin-top:12px}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol{margin-top:0}
+.fs[data-theme="flow"] .fs-main .fs-lyrcol::before{margin:8px auto 0}
+.fs[data-theme="flow"] .fs-main .fs-lyrics{padding-top:12px}
+.fs[data-theme="script"] .fs-main .fs-coverwrap{width:78px}
+.fs[data-theme="script"] .fs-main .fs-titleblock{margin-top:10px}
+.fs[data-theme="script"] .fs-main .fs-lyrcol{margin-top:2px}
+.fs[data-theme="script"] .fs-main .fs-lyrics{padding-top:12px}
+@media(max-width:1020px){
+  .fs[data-theme="flow"] .fs-main .fs-coverwrap{width:80px}
+  .fs[data-theme="script"] .fs-main .fs-coverwrap{width:70px}
+}
+@media(max-width:640px){
+  .fs[data-theme="script"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.3)}
+}
+</style>
+<style id="round-stage-balance-2">
+/* this round : the stage-balance standard set by round-stage-balance
+   for flow / script, carried through the remaining three themes.
+   · magazine — non-current lines carried the full seeded drift + tilt
+     on top of the indent ladder, so the editorial column had no shared
+     axis: drift and tilt now zero out off the current line (the line
+     returns to the base depth posture, translateY + slight scale), the
+     shallow ladder (×.45, ≈26px max — the same taming script got) and
+     the per-line size variation stay; the current line already returns
+     to margin 0 / translate(0,0) as the anchor.
+   · steps — the stair indent ran at the full ladder (×1, 57px) with
+     sideways drift + tilt on the text: the ladder is tamed to ×.45
+     like script's and the text keeps only a small vertical settle, so
+     every tread hangs off the same numbered rail; the current tread
+     already returns to margin 0.
+   · chat — bubbles sit on two rails (received left / sent right); the
+     seeded sideways drift (×.16) is zeroed so they rest flush on their
+     rails — the bubble-width and vertical-rhythm seeds stay, they are
+     the theme's typesetting. The current bubble's pop is untouched.
+   · readability — magazine / steps still inherited the base depth
+     dimming (opacity .26 / blur 1.6px, d1 .5 / .55px) tuned before this
+     standard existed: lifted to the flow / script values (.55 / .8px,
+     d1 .82 / .25px, current + focus full). Chat has no blur by design;
+     its flat .5 bubble opacity (d1 .8) is lifted to .75 / .9 so the
+     context bubbles stay legible against the stage.
+   · vertical balance — these three are row layouts: the lyrics column
+     already stretches the full .fs-main height (self-stretch), so the
+     follow-scroll centre IS the stage's visual centre and no header
+     compaction is needed; theme switches re-centre through the same
+     scheduleFsRecenter commit path as flow / script, so all five
+     themes land the current line at centre after a switch. */
+.fs[data-theme="magazine"] .fs-main .fl-line{transform:translate(0,5px) scale(.985) rotate(0deg)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{transform:translate(0,2px) scale(.995) rotate(0deg)}
+.fs[data-theme="magazine"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="magazine"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="magazine"] .fs-main .fl-line.on,.fs[data-theme="magazine"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="steps"] .fs-main .fl-line{margin-left:calc(var(--vi,0px)*.45)}
+.fs[data-theme="steps"] .fs-main .fl-line .fl-o{transform:translateY(3px)}
+.fs[data-theme="steps"] .fs-main .fl-line{opacity:.55;filter:blur(.8px)}
+.fs[data-theme="steps"] .fs-main .fl-line.d1{opacity:.82;filter:blur(.25px)}
+.fs[data-theme="steps"] .fs-main .fl-line.on,.fs[data-theme="steps"] .fs-main .fl-line.focus{opacity:1;filter:blur(0)}
+.fs[data-theme="chat"] .fs-main .fl-line{opacity:.75;transform:translateX(0)}
+.fs[data-theme="chat"] .fs-main .fl-line.d1{opacity:.9;transform:translateX(0)}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -13029,8 +13635,8 @@ kbd {
                 <button class="banner-play" data-banner-play>播放</button>
               </div>
             </section>
-            <div class="feat-head"><h5>为你推荐</h5><span>专辑 · 点击即播</span></div>
-            <div class="feat-grid" data-feat-grid></div>
+            <div class="feat-head"><h5>为你推荐</h5><div class="feat-nav"><span>专辑 · 点击即播</span><button class="feat-arrow" type="button" data-feat-prev aria-label="为你推荐向左滚动" title="向左滚动"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></button><button class="feat-arrow" type="button" data-feat-next aria-label="为你推荐向右滚动" title="向右滚动"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg></button></div></div>
+            <div class="feat-grid feat-scroll" data-feat-grid></div>
             <div class="table-head"><span>#</span><span>标题</span><span>专辑</span><span style="text-align:right">时长</span><span></span></div>
             <div data-tracklist></div>
               <div class="pager" data-pager="home"></div>
@@ -13137,6 +13743,7 @@ kbd {
               <div class="pg-secttl">界面 · INTERFACE</div>
               <div class="set-card">
                 <div class="set-row"><div class="set-txt"><b>玻璃质感</b><span>整个窗口的材质风格 — 选毛玻璃或液态玻璃会同时应用到两个窗口；选跟随窗口恢复 A 毛玻璃、B 液态玻璃</span></div><div class="set-seg" data-set-seg="glassStyle"><button data-val="match">跟随窗口</button><button data-val="frosted">毛玻璃</button><button data-val="liquid">液态玻璃</button></div></div>
+                <div class="set-row"><div class="set-txt"><b>全屏主题</b><span>全屏播放页的舞台样式 — 杂志是现版编辑式排版；流光是文字 PV 式居中大字：艺术字、动态排版、封面转成唱片；云阶把歌词错层堆叠成带序号的台阶；手书是手写字体的大字手稿、逐行微倾；对话是苹果信息式半透玻璃气泡、直接浮在舞台的专辑色氛围背景上。切换带淡入淡出过渡，歌词始终整句高亮、不做逐字；五套主题均为动态排版 — 每句歌词的位置、大小、倾斜、缩进与入场方向逐句不同，按歌曲生成、整首固定，换歌重新编排</span></div><div class="set-seg" data-set-seg="fsTheme"><button data-val="magazine">杂志</button><button data-val="flow">流光</button><button data-val="steps">云阶</button><button data-val="script">手书</button><button data-val="chat">对话</button></div></div>
                 <div class="set-row"><div class="set-txt"><b>天气胶囊</b><span>在顶栏与全屏页右上角显示本地天气 — 关掉这里会立刻隐藏</span></div><button class="switch" data-set-toggle="weather" role="switch" aria-checked="true" aria-label="天气胶囊"><i></i></button></div>
                 <div class="set-row"><div class="set-txt"><b>界面动效</b><span>天气图标漂移、全屏背景巨字缓漂等动态效果</span></div><button class="switch" data-set-toggle="motion" role="switch" aria-checked="true" aria-label="界面动效"><i></i></button></div>
                 <div class="set-row"><div class="set-txt"><b>正在播放面板</b><span>右侧大封面、歌词与播放队列面板 — 关掉即收起，给中间列表腾出横向空间；也可以点主区与右栏接缝处的小箭头</span></div><button class="switch" data-np-switch role="switch" aria-checked="true" aria-label="正在播放面板"><i></i></button></div>
@@ -13280,6 +13887,7 @@ kbd {
             <span class="fs-toptitle">正在播放 · NOW PLAYING</span>
             <div class="fs-topright"><div class="fs-weather" role="img" aria-label="本地天气：夜晚多云，19度，演示数据" title="本地天气 · 演示数据"><svg class="wx-icon wx-icon-sm" viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle class="wx-star" cx="7.5" cy="6.5" r="1.3" fill="#FFE9A8"/><circle class="wx-star s2" cx="14.5" cy="3.6" r=".9" fill="#ffffff"/><path class="wx-moon" d="M24.6 3.4a8.2 8.2 0 1 0 7.9 11.9A9.6 9.6 0 0 1 24.6 3.4z" fill="#F6DC8A"/><g class="wx-cloud"><path d="M8.4 27.8a5.2 5.2 0 0 1-.7-10.35 7.2 7.2 0 0 1 13.9-1.55A5.6 5.6 0 0 1 26.2 21.3c.3 3.4-2.2 6.5-6 6.5H8.4z" fill="rgba(255,255,255,.94)"/></g></svg><span class="wx-temp">19°</span><span class="wx-cond">多云</span></div><button class="fs-topbtn" data-fsq-toggle aria-label="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button></div>
           </div>
+          <div class="fs-themebar"><div class="set-seg fs-theme-seg" data-set-seg="fsTheme" role="group" aria-label="全屏舞台主题"><button data-val="magazine">杂志</button><button data-val="flow">流光</button><button data-val="steps">云阶</button><button data-val="script">手书</button><button data-val="chat">对话</button></div></div>
           <div class="fs-giant" data-fs-giant aria-hidden="true">NEON COAST</div>
           <div class="fs-side" aria-hidden="true">NOW PLAYING — AURA PLAYER</div>
           <div class="fs-main">
@@ -13290,7 +13898,7 @@ kbd {
               <p data-artist></p>
               <div class="fs-titleactions"><button class="heart" data-like aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.7C6.4 17 3 13.6 3 9.9 3 7.2 5 5 7.6 5c1.7 0 3.4 1 4.4 2.6C13 6 14.7 5 16.4 5 19 5 21 7.2 21 9.9c0 3.7-3.4 7.1-9 10.8z"/></svg></button><span>收藏到音乐库</span></div>
             </div>
-            <div class="fs-lyrcol"><div class="fs-lyrhead"><span>歌词 · LYRICS</span></div><div class="fs-lyrics" data-fs-lyrics></div><button class="fs-lyrseek" data-lyrseek aria-label="跳到定位的这句歌词"><span class="fs-lyrseek-t" data-lyrseek-t>0:00</span><span class="fs-lyrseek-go">▶ 跳到这句</span></button></div>
+            <div class="fs-lyrcol"><div class="fs-lyrics" data-fs-lyrics></div><button class="fs-lyrseek" data-lyrseek aria-label="跳到定位的这句歌词"><span class="fs-lyrseek-t" data-lyrseek-t>0:00</span><span class="fs-lyrseek-go">▶ 跳到这句</span></button></div>
             <div class="fs-index" data-fsnum aria-hidden="true">01 / 04</div>
           </div>
           <div class="fs-dock">
@@ -13313,6 +13921,10 @@ kbd {
             <div data-fs-queue-list></div>
           </div>
         </div>
+        <div class="main-queue" data-main-queue aria-label="播放队列面板">
+            <div class="mq-head"><span>播放队列 · QUEUE</span><span class="q-radio-chip" data-radio-chip hidden>电台续播中</span><span class="mq-count" data-mq-count></span><button class="mq-close" data-mq-close aria-label="关闭播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+            <div data-main-queue-list></div>
+          </div>
         <button class="lyric-capsule" data-stage-toggle aria-label="打开全屏播放"><span class="cap-eq"><i></i><i></i><i></i></span><span class="cap-text" data-capsule-text></span><span class="cap-arrow">▸</span></button>
 
         <div class="win-bottom">
@@ -13327,7 +13939,7 @@ kbd {
             </div>
           </div>
           <div class="right-ctl">
-            <button class="ctl small" data-queuebtn aria-label="播放队列" title="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctl small" data-queuebtn aria-expanded="false" aria-label="播放队列" title="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button>
             <button class="ctl small" data-device aria-label="输出设备：桌面音箱" title="输出设备 · 桌面音箱"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
             <button class="ctl small" data-volbtn aria-label="音量 70% — 点击静音" title="音量 70% — 点击静音"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.6 5.4a9.5 9.5 0 010 13.2"/></svg></button>
             <input type="range" class="vol" min="0" max="100" value="70" aria-label="音量" style="--p:70%">
@@ -13420,8 +14032,8 @@ kbd {
                 <button class="banner-play" data-banner-play>播放</button>
               </div>
             </section>
-            <div class="feat-head"><h5>为你推荐</h5><span>专辑 · 点击即播</span></div>
-            <div class="feat-grid" data-feat-grid></div>
+            <div class="feat-head"><h5>为你推荐</h5><div class="feat-nav"><span>专辑 · 点击即播</span><button class="feat-arrow" type="button" data-feat-prev aria-label="为你推荐向左滚动" title="向左滚动"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></button><button class="feat-arrow" type="button" data-feat-next aria-label="为你推荐向右滚动" title="向右滚动"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg></button></div></div>
+            <div class="feat-grid feat-scroll" data-feat-grid></div>
             <div class="table-head"><span>#</span><span>标题</span><span>专辑</span><span style="text-align:right">时长</span><span></span></div>
             <div data-tracklist></div>
               <div class="pager" data-pager="home"></div>
@@ -13528,6 +14140,7 @@ kbd {
               <div class="pg-secttl">界面 · INTERFACE</div>
               <div class="set-card">
                 <div class="set-row"><div class="set-txt"><b>玻璃质感</b><span>整个窗口的材质风格 — 选毛玻璃或液态玻璃会同时应用到两个窗口；选跟随窗口恢复 A 毛玻璃、B 液态玻璃</span></div><div class="set-seg" data-set-seg="glassStyle"><button data-val="match">跟随窗口</button><button data-val="frosted">毛玻璃</button><button data-val="liquid">液态玻璃</button></div></div>
+                <div class="set-row"><div class="set-txt"><b>全屏主题</b><span>全屏播放页的舞台样式 — 杂志是现版编辑式排版；流光是文字 PV 式居中大字：艺术字、动态排版、封面转成唱片；云阶把歌词错层堆叠成带序号的台阶；手书是手写字体的大字手稿、逐行微倾；对话是苹果信息式半透玻璃气泡、直接浮在舞台的专辑色氛围背景上。切换带淡入淡出过渡，歌词始终整句高亮、不做逐字；五套主题均为动态排版 — 每句歌词的位置、大小、倾斜、缩进与入场方向逐句不同，按歌曲生成、整首固定，换歌重新编排</span></div><div class="set-seg" data-set-seg="fsTheme"><button data-val="magazine">杂志</button><button data-val="flow">流光</button><button data-val="steps">云阶</button><button data-val="script">手书</button><button data-val="chat">对话</button></div></div>
                 <div class="set-row"><div class="set-txt"><b>天气胶囊</b><span>在顶栏与全屏页右上角显示本地天气 — 关掉这里会立刻隐藏</span></div><button class="switch" data-set-toggle="weather" role="switch" aria-checked="true" aria-label="天气胶囊"><i></i></button></div>
                 <div class="set-row"><div class="set-txt"><b>界面动效</b><span>天气图标漂移、全屏背景巨字缓漂等动态效果</span></div><button class="switch" data-set-toggle="motion" role="switch" aria-checked="true" aria-label="界面动效"><i></i></button></div>
                 <div class="set-row"><div class="set-txt"><b>正在播放面板</b><span>右侧大封面、歌词与播放队列面板 — 关掉即收起，给中间列表腾出横向空间；也可以点主区与右栏接缝处的小箭头</span></div><button class="switch" data-np-switch role="switch" aria-checked="true" aria-label="正在播放面板"><i></i></button></div>
@@ -13671,6 +14284,7 @@ kbd {
             <span class="fs-toptitle">正在播放 · NOW PLAYING</span>
             <div class="fs-topright"><div class="fs-weather" role="img" aria-label="本地天气：夜晚多云，19度，演示数据" title="本地天气 · 演示数据"><svg class="wx-icon wx-icon-sm" viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle class="wx-star" cx="7.5" cy="6.5" r="1.3" fill="#FFE9A8"/><circle class="wx-star s2" cx="14.5" cy="3.6" r=".9" fill="#ffffff"/><path class="wx-moon" d="M24.6 3.4a8.2 8.2 0 1 0 7.9 11.9A9.6 9.6 0 0 1 24.6 3.4z" fill="#F6DC8A"/><g class="wx-cloud"><path d="M8.4 27.8a5.2 5.2 0 0 1-.7-10.35 7.2 7.2 0 0 1 13.9-1.55A5.6 5.6 0 0 1 26.2 21.3c.3 3.4-2.2 6.5-6 6.5H8.4z" fill="rgba(255,255,255,.94)"/></g></svg><span class="wx-temp">19°</span><span class="wx-cond">多云</span></div><button class="fs-topbtn" data-fsq-toggle aria-label="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button></div>
           </div>
+          <div class="fs-themebar"><div class="set-seg fs-theme-seg" data-set-seg="fsTheme" role="group" aria-label="全屏舞台主题"><button data-val="magazine">杂志</button><button data-val="flow">流光</button><button data-val="steps">云阶</button><button data-val="script">手书</button><button data-val="chat">对话</button></div></div>
           <div class="fs-giant" data-fs-giant aria-hidden="true">NEON COAST</div>
           <div class="fs-side" aria-hidden="true">NOW PLAYING — AURA PLAYER</div>
           <div class="fs-main">
@@ -13681,7 +14295,7 @@ kbd {
               <p data-artist></p>
               <div class="fs-titleactions"><button class="heart" data-like aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.7C6.4 17 3 13.6 3 9.9 3 7.2 5 5 7.6 5c1.7 0 3.4 1 4.4 2.6C13 6 14.7 5 16.4 5 19 5 21 7.2 21 9.9c0 3.7-3.4 7.1-9 10.8z"/></svg></button><span>收藏到音乐库</span></div>
             </div>
-            <div class="fs-lyrcol"><div class="fs-lyrhead"><span>歌词 · LYRICS</span></div><div class="fs-lyrics" data-fs-lyrics></div><button class="fs-lyrseek" data-lyrseek aria-label="跳到定位的这句歌词"><span class="fs-lyrseek-t" data-lyrseek-t>0:00</span><span class="fs-lyrseek-go">▶ 跳到这句</span></button></div>
+            <div class="fs-lyrcol"><div class="fs-lyrics" data-fs-lyrics></div><button class="fs-lyrseek" data-lyrseek aria-label="跳到定位的这句歌词"><span class="fs-lyrseek-t" data-lyrseek-t>0:00</span><span class="fs-lyrseek-go">▶ 跳到这句</span></button></div>
             <div class="fs-index" data-fsnum aria-hidden="true">01 / 04</div>
           </div>
           <div class="fs-dock">
@@ -13704,6 +14318,10 @@ kbd {
             <div data-fs-queue-list></div>
           </div>
         </div>
+        <div class="main-queue" data-main-queue aria-label="播放队列面板">
+            <div class="mq-head"><span>播放队列 · QUEUE</span><span class="q-radio-chip" data-radio-chip hidden>电台续播中</span><span class="mq-count" data-mq-count></span><button class="mq-close" data-mq-close aria-label="关闭播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+            <div data-main-queue-list></div>
+          </div>
         <button class="lyric-capsule" data-stage-toggle aria-label="打开全屏播放"><span class="cap-eq"><i></i><i></i><i></i></span><span class="cap-text" data-capsule-text></span><span class="cap-arrow">▸</span></button>
 
         <div class="win-bottom">
@@ -13718,7 +14336,7 @@ kbd {
             </div>
           </div>
           <div class="right-ctl">
-            <button class="ctl small" data-queuebtn aria-label="播放队列" title="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctl small" data-queuebtn aria-expanded="false" aria-label="播放队列" title="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h13M4 12h13M4 17h9"/><circle cx="20" cy="17" r="2.2" fill="currentColor" stroke="none"/></svg></button>
             <button class="ctl small" data-device aria-label="输出设备：桌面音箱" title="输出设备 · 桌面音箱"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
             <button class="ctl small" data-volbtn aria-label="音量 70% — 点击静音" title="音量 70% — 点击静音"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.6 5.4a9.5 9.5 0 010 13.2"/></svg></button>
             <input type="range" class="vol" min="0" max="100" value="70" aria-label="音量" style="--p:70%">
@@ -13864,7 +14482,7 @@ kbd {
   </section>
 
   <footer>
-    操作说明：顶部「同步切歌」、任意窗口里的歌曲列表、右侧队列、播放键和进度条都会同步到另一个窗口，方便同曲同进度只比材质。B 窗口把鼠标移进去可看高光跟随；窗口变窄时右栏会自动收到下方（页面缩到手机宽时可直接验证）。主区顶部 Banner：两版 Banner 都直接贴在标题下方、顶部不留空带，人物已收回卡片内——站在卡内最前层、边缘由卡片裁切，靠卡内分层与视差造深度，收起时人物随 Banner 一起隐藏；把鼠标放在 B 版 Banner 上可看封面与人物的视差倾斜，A 版保持平面；主区向下滚动时 Banner 会自动收成一条小横幅，滚回顶部恢复。底部播放器：控制区仍是单行——封面 48px、播放键 40px，左曲目 + 收藏键、中控制、右队列/输出/音量；进度是原本的顶边设计——进度线就是播放栏的 2px 上边框（已播部分亮、未播部分淡），鼠标移到边线上时线变粗到 6px、拖动圆点浮现，时间只保留一个跟随光标的小玻璃气泡显示「光标位置时间 / 总时长」（等宽字、带小指针尖、位置钳制在栏宽内），两端不常驻时长数字；密排频峰细柱只作背景：上百根细柱沿栏底内侧铺满整宽、直接画在栏的玻璃背景上、位于内容下层，不承担进度、点它拖它都不跳播、也没有自己的时间标注——播放《敢爱敢做》时它由真实音频驱动：这首歌的 MP3 经 Web Audio 分析仪实时取频峰，柱高跟着音频的频峰走，颜色取当前专辑色、随切歌与背景一起换；链接失效或音频不可用时自动回落到原来的模拟律动，暂停或关闭界面动效时回落静止；B 版底栏按反馈去掉高饱和专辑色糊面：填充不透明度与饱和大降、backdrop blur 加深到 24px，背景透得出来，只留折射亮边与随鼠标高光，封面旁的「点封面 · 全屏播放」提示小字已删（收进封面悬浮提示）、封面不再叠发糊光晕，底栏已去掉四周边距与圆角、整条贴边铺满窗口底部（与 A 版一样 flush，只留低饱和液态材质与折射亮边）；悬浮歌词胶囊随进度换句，换句时文字上滑淡出、新句由虚变实滑入；点封面或歌词胶囊打开全屏播放页——底部播放栏先向下滑出窗口收起，全屏页为杂志编辑式排版：带轻微鼠标倾斜的大封面（下沿带专辑色倒影）居左，64px 歌名横压封面右缘（封面拐角不再有大播放键，播放控制只在底部 Dock），歌手名描边巨字在背景低透明缓漂，歌词为右侧通高宽栏（占满舞台高度、每首 8–10 句）、中英双语显示（原文大字 + 译文小字副行）、标准整句高亮滚动（当前句原文 24px、整句高亮，其余渐隐；切句带景深过渡——上一行上滑、变暗并糊掉约 1.5px，新当前行从下方浮上来由虚变实，整列以平滑滚动居中，相邻行轻糊、远行重糊）；歌词可拖动定位：拖动或滚动时自动跟随暂停，居中行被聚焦高亮、左侧浮出该句起始时间的玻璃气泡，点气泡或直接点任意一句即跳到该句播放，松手数秒后恢复自动跟随；歌词列整列禁用文字选取（拖动不再出现蓝色选区高亮），列头只保留「歌词 · LYRICS」标题，不再放「中英双语 · 拖动定位」这类提示小字，进度、切歌与音量下沉为底部中央悬浮的双层 Dock（约 880px 宽、圆角 28px、离底 20px 悬浮）：上层整条进度、左右端为已播与剩余时间，hover 时进度条变粗并出现拖动圆点；下层三区——左区小封面 + 歌名歌手 + 收藏键，中区随机/上一首/播放/下一首/循环（播放键 52px，带专辑色光晕），右区「下一首 · 歌名」小字（随队列更新）、等宽字音质徽标（随曲目显示 FLAC · 24-BIT 等）、队列与输出设备图标（可点切换高亮）和音量；贴边通栏已取消，左缘有竖排 NOW PLAYING 小字、右下角有空心序号、左上角有等宽字专辑与规格标注，右上角可打开队列面板，点左上角箭头或按 Esc 关闭——关闭带镜像退场动画：全屏页淡出、向下滑落并微微缩小约 0.35 秒，Dock 同步下沉，播放栏随之滑回原位；打开时每次都播一段约 1 秒的完整入场编排：背景模糊层与氛围色团先轻微放大沉降淡入，描边巨字从侧方缓漂入，大封面自下方升起（.92→1、由虚变实、倒影与光晕随后亮起），歌名区按 kicker→大标题→歌手→收藏行错峰上浮，歌词列从右侧轻滑入，竖排 NOW PLAYING、空心序号与左上规格字最后淡入，Dock 自底部升起落定；退场中途重开会取消在飞动画无缝重播、连点不叠影，关界面动效或系统减少动态时直接静止显示，入场与切歌共用同一套 WAAPI 取消机制；全屏大标题带长标题适配：按长度分档缩小字号（64→52→44→40px）、最多 3 行、与 kicker 保持间距不重叠，短标题维持 64px；播放键光晕按当前封面色呼吸。全屏播放氛围（仅播放时运行）：全屏背景在压暗罩下铺三团由当前专辑色生成的流体色团（本色 / 提亮 / 压深），以 30–42 秒的极慢周期互相漂移交融，切歌时整层淡出换色再淡入；大封面做 Ken Burns 式微缩放漂移（7 秒过渡，暂停缓缓回落原位），封面后专辑色光晕以 7 秒节拍呼吸、Dock 播放键光晕同拍，舞台上十粒专辑色微光尘缓慢上浮；暂停时全部平滑停下，关闭界面动效（calm）或系统减少动态时全部静止，颜色只来自当前专辑色、无频谱。本轮参考方式纠正：实地去看 Dribbble / Behance 上设计师的播放器作品、借具体招式——全屏舞台新增分层鼠标视差（源自 Aurélien Salomon 的 Apple Music 3D 视差概念：描边巨字移动最慢、封面居中、光尘最快，各层带惯性跟随，移动鼠标即可验证纵深）与一层 5% 不透明度的胶片颗粒覆膜（Behance 深色播放器的惯用处理，压住大面积模糊背景的色带感）；切歌时封面的停顿感已修：Ken Burns 呼吸改到封面的外层元素、切歌入场只动封面本体，一条 ease-out 曲线无延时滑入落位、终点与静止状态完全一致，交接零台阶，旧封面残影与新封面同帧交叉淡化，连按切歌的取消逻辑不变。天气：主界面窗口顶栏右上角（窗口键左侧）与全屏页右上角（队列按钮左侧）各有一颗玻璃天气胶囊，内含 SVG 动态图标（云朵漂移、星光闪烁、月亮微光，非 GIF 文件）+ 温度 19° + 多云状况，窄屏时自动只留图标与温度；温度与状况为演示数据，正式版接定位与天气接口后显示本地实时天气。本页为设计原型，其余歌曲与歌词为演示内容；林子祥《敢爱敢做 (Live From Hong Kong/1995)》已作为正式曲目加入曲库（列表中带「真音频 · 频峰」标记，搜「林子祥」或「敢爱敢做」即可找到），它是曲库里唯一带真实音频的歌：选中它播放时，底部频谱由这首歌的真实频峰实时驱动（网易云 MP3 · 320K，签名链接过期后自动回落模拟律动），播放其他歌曲时频谱只是模拟律动。键盘：空格播放 / 暂停、←/→ 快退快进 5 秒、↑/↓ 音量、M 静音、Esc 关闭全屏 / 返回（设置页有完整一览）。侧边栏导航：选中高亮是一颗会滑动的胶囊——原本停在 Night Drive 时点 Amber Season，高亮背景会从原位置平滑滑过去（约 0.5 秒、带轻微回弹），任意时刻只有一处高亮；侧边栏已收纳为五个主入口：首页 / 搜索 / 音乐库 / 内容导入与「我的歌单」——专辑 / 歌手 / 我喜欢的 / 最近播放是音乐库页顶部的分类标签，平台对接 / 上传歌曲 / 下载管理是内容导入页的标签，功能全景从内容导入页进入；歌单、专辑详情、歌手详情均可播放全部，搜索可输入筛选，长列表均带玻璃分页条（每页 10 首、换筛选回第 1 页），两窗口同步，Esc 返回首页；天气位于窗口标题栏右上角与全屏页右上角。顶栏与搜索：搜索框位于窗口顶栏天气胶囊的左侧（侧边栏已不再放搜索框），点击或聚焦即跳搜索页并聚焦其输入框、在顶栏直接输入也会同步筛选；顶栏为红绿灯 + 前进/后退箭头（带页面历史，可用时点亮）、居中的当前页面名、右侧搜索框 + 天气与窗口键。本轮四处收尾：两版底部播放栏四角改直角、与窗口内缘齐平贴边，无圆角缺口与内缩缝；顶栏搜索框与天气胶囊统一为同一胶囊规格（同高 32px、同圆角、同材质、同内高光与同一档投影），不再一凸一扁；侧边栏底部新增「设置」入口——设置页含播放（无缝播放 / 交叉淡化开关与时长 / 音量标准化）、音质（默认音质与输出设备分段选择）、界面（玻璃质感：跟随窗口 / 毛玻璃 / 液态玻璃，全局切换两个窗口；天气胶囊显示开关，关闭即隐藏顶栏与全屏页天气；界面动效开关）三组偏好，修改即时生效、两窗口同步；侧边栏现可纵向滚动（无定制滚动条样式，用系统默认滚动），滚到底可达桌面独有、设置与用户信息，窄屏横排时自动关闭滚动。平台对接与上传：侧边栏新增「平台对接」（网易云 / 酷狗 / 酷我连接、歌单勾选与链接导入、同步开关，导入歌单进侧边栏）、「上传歌曲」（拖放 / 选文件读文件名与大小进队列、手动加歌进曲库）、「下载管理」与「功能全景」（已有 / 新增 / 正式版缺口三列），「我的歌单」旁可新建歌单，设置新增均衡器与睡眠定时器；对接为原型演示流程，不登录真实第三方账号。右侧正在播放面板可折叠：桌面宽时点主区与右栏接缝顶部的小箭头，整栏收起、主区变宽，再点展开，设置页「界面」组有同名开关，窄屏时用面板标题旁的收起键、收起后原位留一条展开条，两窗口同步。标签条与分页条的当前项高亮与侧边栏同款：一颗胶囊在标签 / 页码间平滑滑动（翻页、出现省略号都对齐），标签与页码自身不刷背景、只有文字变色，首次定位不闪跳；分页胶囊已按 FLIP 方式修复——翻页重渲染列表前先记下胶囊的当前位置、重建后从原位带着弹簧滑到新页码，不再瞬间跳过去；排序分段条与设置页全部分段控件（玻璃质感 / 默认音质 / 输出设备 / 均衡器 / 睡眠定时器）也统一成同一颗滑动胶囊：点新选项时从上一个选项的位置滑过去，选项自身不刷背景、只有文字变色。桌面包与聆听包：页面下方有模拟桌面区 — 桌面歌词悬浮窗（可拖动、锁定后点击穿透、字号与透明度在工具条调）、任务栏托盘迷你播放器（点托盘图标弹出，含进度与音量）、系统媒体控制卡（侧边栏「桌面独有」里开关），三处与两窗口同步；侧边栏「歌曲电台」以当前歌为种子自动续播，音乐库「智能歌单」按播放次数与上次播放时间生成三张自动歌单，队列条目可拖拽排序、带「下一首播放」按钮，电台开启时队列头会亮起「电台续播中」。桌面包切歌动画：从任意入口切歌（列表、队列、托盘、SMTC、电台续播、播完自动切）时，桌面歌词窗、系统媒体控制卡与托盘迷你播放器都同步播放方向性过渡——封面旧图残影反向滑出淡去、新图同帧滑入（位移与缩放一条曲线、落点与静止态一致），歌名 / 歌手分拍错峰跟入，桌面歌词的上一行 / 当前行 / 下一行顺次漂入（当前行带轻微缩放与去模糊），各卡播放键像全屏 Dock 小封面一样轻落定，卡片外壳以最慢一层微微漂移，任务栏托盘图标轻弹一下；桌面歌词在同一首歌内换句时也有上浮去模糊的翻句动画；连按切歌先取消在飞动画并清掉残影、不叠影，隐藏的表面不播动画（打开时已是新曲的静止态），关闭界面动效或系统减少动态时全部静止；这三处不做光扫（光扫只在全屏大封面）。
+    操作说明：顶部「同步切歌」、任意窗口里的歌曲列表、右侧队列、播放键和进度条都会同步到另一个窗口，方便同曲同进度只比材质。B 窗口把鼠标移进去可看高光跟随；窗口变窄时右栏会自动收到下方（页面缩到手机宽时可直接验证）。主区顶部 Banner：两版 Banner 都直接贴在标题下方、顶部不留空带，人物已收回卡片内——站在卡内最前层、边缘由卡片裁切，靠卡内分层与视差造深度，收起时人物随 Banner 一起隐藏；把鼠标放在 B 版 Banner 上可看封面与人物的视差倾斜，A 版保持平面；主区向下滚动时 Banner 会自动收成一条小横幅，滚回顶部恢复。底部播放器：控制区仍是单行——封面 48px、播放键 40px，左曲目 + 收藏键、中控制、右队列/输出/音量；进度是原本的顶边设计——进度线就是播放栏的 2px 上边框（已播部分亮、未播部分淡），鼠标移到边线上时线变粗到 6px、拖动圆点浮现，时间只保留一个跟随光标的小玻璃气泡显示「光标位置时间 / 总时长」（等宽字、带小指针尖、位置钳制在栏宽内），两端不常驻时长数字；密排频峰细柱只作背景：上百根细柱沿栏底内侧铺满整宽、直接画在栏的玻璃背景上、位于内容下层，不承担进度、点它拖它都不跳播、也没有自己的时间标注——播放《敢爱敢做》时它由真实音频驱动：这首歌的 MP3 经 Web Audio 分析仪实时取频峰，柱高跟着音频的频峰走，颜色取当前专辑色、随切歌与背景一起换；链接失效或音频不可用时自动回落到原来的模拟律动，暂停或关闭界面动效时回落静止；B 版底栏按反馈去掉高饱和专辑色糊面：填充不透明度与饱和大降、backdrop blur 加深到 24px，背景透得出来，只留折射亮边与随鼠标高光，封面旁的「点封面 · 全屏播放」提示小字已删（收进封面悬浮提示）、封面不再叠发糊光晕，底栏已去掉四周边距与圆角、整条贴边铺满窗口底部（与 A 版一样 flush，只留低饱和液态材质与折射亮边）；悬浮歌词胶囊随进度换句，换句时文字上滑淡出、新句由虚变实滑入；点封面或歌词胶囊打开全屏播放页——底部播放栏先向下滑出窗口收起，全屏页为杂志编辑式排版：带轻微鼠标倾斜的大封面（下沿带专辑色倒影）居左，64px 歌名横压封面右缘（封面拐角不再有大播放键，播放控制只在底部 Dock），歌手名描边巨字在背景低透明缓漂，歌词为右侧通高宽栏（占满舞台高度、每首 8–10 句）、中英双语显示（原文大字 + 译文小字副行）、标准整句高亮滚动（当前句原文 24px、整句高亮，其余渐隐；切句带景深过渡——上一行上滑、变暗并糊掉约 1.5px，新当前行从下方浮上来由虚变实，整列以平滑滚动居中，相邻行轻糊、远行重糊）；歌词可拖动定位：拖动或滚动时自动跟随暂停，居中行被聚焦高亮、左侧浮出该句起始时间的玻璃气泡，点气泡或直接点任意一句即跳到该句播放，松手数秒后恢复自动跟随；歌词列整列禁用文字选取（拖动不再出现蓝色选区高亮），列头不放任何标题或提示小字，进度、切歌与音量下沉为底部中央悬浮的双层 Dock（约 880px 宽、圆角 28px、离底 20px 悬浮）：上层整条进度、左右端为已播与剩余时间，hover 时进度条变粗并出现拖动圆点；下层三区——左区小封面 + 歌名歌手 + 收藏键，中区随机/上一首/播放/下一首/循环（播放键 52px，带专辑色光晕），右区「下一首 · 歌名」小字（随队列更新）、等宽字音质徽标（随曲目显示 FLAC · 24-BIT 等）、队列与输出设备图标（可点切换高亮）和音量；贴边通栏已取消，左缘有竖排 NOW PLAYING 小字、右下角有空心序号、左上角有等宽字专辑与规格标注，右上角可打开队列面板，点左上角箭头或按 Esc 关闭——关闭带镜像退场动画：全屏页淡出、向下滑落并微微缩小约 0.35 秒，Dock 同步下沉，播放栏随之滑回原位；打开时每次都播一段约 1 秒的完整入场编排：背景模糊层与氛围色团先轻微放大沉降淡入，描边巨字从侧方缓漂入，大封面自下方升起（.92→1、由虚变实、倒影与光晕随后亮起），歌名区按 kicker→大标题→歌手→收藏行错峰上浮，歌词列从右侧轻滑入，竖排 NOW PLAYING、空心序号与左上规格字最后淡入，Dock 自底部升起落定；退场中途重开会取消在飞动画无缝重播、连点不叠影，关界面动效或系统减少动态时直接静止显示，入场与切歌共用同一套 WAAPI 取消机制；全屏大标题带长标题适配：按长度分档缩小字号（64→52→44→40px）、最多 3 行、与 kicker 保持间距不重叠，短标题维持 64px；播放键光晕按当前封面色呼吸。全屏播放氛围（仅播放时运行）：全屏背景在压暗罩下铺三团由当前专辑色生成的流体色团（本色 / 提亮 / 压深），以 30–42 秒的极慢周期互相漂移交融，切歌时整层淡出换色再淡入；大封面做 Ken Burns 式微缩放漂移（7 秒过渡，暂停缓缓回落原位），封面后专辑色光晕以 7 秒节拍呼吸、Dock 播放键光晕同拍，舞台上十粒专辑色微光尘缓慢上浮；暂停时全部平滑停下，关闭界面动效（calm）或系统减少动态时全部静止，颜色只来自当前专辑色、无频谱。本轮参考方式纠正：实地去看 Dribbble / Behance 上设计师的播放器作品、借具体招式——全屏舞台新增分层鼠标视差（源自 Aurélien Salomon 的 Apple Music 3D 视差概念：描边巨字移动最慢、封面居中、光尘最快，各层带惯性跟随，移动鼠标即可验证纵深）与一层 5% 不透明度的胶片颗粒覆膜（Behance 深色播放器的惯用处理，压住大面积模糊背景的色带感）；切歌时封面的停顿感已修：Ken Burns 呼吸改到封面的外层元素、切歌入场只动封面本体，一条 ease-out 曲线无延时滑入落位、终点与静止状态完全一致，交接零台阶，旧封面残影与新封面同帧交叉淡化，连按切歌的取消逻辑不变。天气：主界面窗口顶栏右上角（窗口键左侧）与全屏页右上角（队列按钮左侧）各有一颗玻璃天气胶囊，内含 SVG 动态图标（云朵漂移、星光闪烁、月亮微光，非 GIF 文件）+ 温度 19° + 多云状况，窄屏时自动只留图标与温度；温度与状况为演示数据，正式版接定位与天气接口后显示本地实时天气。本页为设计原型，其余歌曲与歌词为演示内容；林子祥《敢爱敢做 (Live From Hong Kong/1995)》已作为正式曲目加入曲库（列表中带「真音频 · 频峰」标记，搜「林子祥」或「敢爱敢做」即可找到），它是曲库里唯一带真实音频的歌：选中它播放时，底部频谱由这首歌的真实频峰实时驱动（网易云 MP3 · 320K，签名链接过期后自动回落模拟律动），播放其他歌曲时频谱只是模拟律动。键盘：空格播放 / 暂停、←/→ 快退快进 5 秒、↑/↓ 音量、M 静音、Esc 关闭全屏 / 返回（设置页有完整一览）。侧边栏导航：选中高亮是一颗会滑动的胶囊——原本停在 Night Drive 时点 Amber Season，高亮背景会从原位置平滑滑过去（约 0.5 秒、带轻微回弹），任意时刻只有一处高亮；侧边栏已收纳为五个主入口：首页 / 搜索 / 音乐库 / 内容导入与「我的歌单」——专辑 / 歌手 / 我喜欢的 / 最近播放是音乐库页顶部的分类标签，平台对接 / 上传歌曲 / 下载管理是内容导入页的标签，功能全景从内容导入页进入；歌单、专辑详情、歌手详情均可播放全部，搜索可输入筛选，长列表均带玻璃分页条（每页 10 首、换筛选回第 1 页），两窗口同步，Esc 返回首页；天气位于窗口标题栏右上角与全屏页右上角。顶栏与搜索：搜索框位于窗口顶栏天气胶囊的左侧（侧边栏已不再放搜索框），点击或聚焦即跳搜索页并聚焦其输入框、在顶栏直接输入也会同步筛选；顶栏为红绿灯 + 前进/后退箭头（带页面历史，可用时点亮）、居中的当前页面名、右侧搜索框 + 天气与窗口键。本轮四处收尾：两版底部播放栏四角改直角、与窗口内缘齐平贴边，无圆角缺口与内缩缝；顶栏搜索框与天气胶囊统一为同一胶囊规格（同高 32px、同圆角、同材质、同内高光与同一档投影），不再一凸一扁；侧边栏底部新增「设置」入口——设置页含播放（无缝播放 / 交叉淡化开关与时长 / 音量标准化）、音质（默认音质与输出设备分段选择）、界面（玻璃质感：跟随窗口 / 毛玻璃 / 液态玻璃，全局切换两个窗口；天气胶囊显示开关，关闭即隐藏顶栏与全屏页天气；界面动效开关）三组偏好，修改即时生效、两窗口同步；侧边栏现可纵向滚动（无定制滚动条样式，用系统默认滚动），滚到底可达桌面独有、设置与用户信息，窄屏横排时自动关闭滚动。平台对接与上传：侧边栏新增「平台对接」（网易云 / 酷狗 / 酷我连接、歌单勾选与链接导入、同步开关，导入歌单进侧边栏）、「上传歌曲」（拖放 / 选文件读文件名与大小进队列、手动加歌进曲库）、「下载管理」与「功能全景」（已有 / 新增 / 正式版缺口三列），「我的歌单」旁可新建歌单，设置新增均衡器与睡眠定时器；对接为原型演示流程，不登录真实第三方账号。右侧正在播放面板可折叠：桌面宽时点主区与右栏接缝顶部的小箭头，整栏收起、主区变宽，再点展开，设置页「界面」组有同名开关，窄屏时用面板标题旁的收起键、收起后原位留一条展开条，两窗口同步。标签条与分页条的当前项高亮与侧边栏同款：一颗胶囊在标签 / 页码间平滑滑动（翻页、出现省略号都对齐），标签与页码自身不刷背景、只有文字变色，首次定位不闪跳；分页胶囊已按 FLIP 方式修复——翻页重渲染列表前先记下胶囊的当前位置、重建后从原位带着弹簧滑到新页码，不再瞬间跳过去；排序分段条与设置页全部分段控件（玻璃质感 / 默认音质 / 输出设备 / 均衡器 / 睡眠定时器）也统一成同一颗滑动胶囊：点新选项时从上一个选项的位置滑过去，选项自身不刷背景、只有文字变色。桌面包与聆听包：页面下方有模拟桌面区 — 桌面歌词悬浮窗（可拖动、锁定后点击穿透、字号与透明度在工具条调）、任务栏托盘迷你播放器（点托盘图标弹出，含进度与音量）、系统媒体控制卡（侧边栏「桌面独有」里开关），三处与两窗口同步；侧边栏「歌曲电台」以当前歌为种子自动续播，音乐库「智能歌单」按播放次数与上次播放时间生成三张自动歌单，队列条目可拖拽排序、带「下一首播放」按钮，电台开启时队列头会亮起「电台续播中」。桌面包切歌动画：从任意入口切歌（列表、队列、托盘、SMTC、电台续播、播完自动切）时，桌面歌词窗、系统媒体控制卡与托盘迷你播放器都同步播放方向性过渡——封面旧图残影反向滑出淡去、新图同帧滑入（位移与缩放一条曲线、落点与静止态一致），歌名 / 歌手分拍错峰跟入，桌面歌词的上一行 / 当前行 / 下一行顺次漂入（当前行带轻微缩放与去模糊），各卡播放键像全屏 Dock 小封面一样轻落定，卡片外壳以最慢一层微微漂移，任务栏托盘图标轻弹一下；桌面歌词在同一首歌内换句时也有上浮去模糊的翻句动画；连按切歌先取消在飞动画并清掉残影、不叠影，隐藏的表面不播动画（打开时已是新曲的静止态），关闭界面动效或系统减少动态时全部静止；这三处不做光扫（光扫只在全屏大封面）。
   </footer>
 </div>
 
@@ -13960,7 +14578,7 @@ var VOL_SPK='<path d="M11 5L6 9H3v6h3l5 4z"/>';
 var ICON_VOL_HIGH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+VOL_SPK+'<path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.6 5.4a9.5 9.5 0 010 13.2"/></svg>';
 var ICON_VOL_LOW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+VOL_SPK+'<path d="M15.5 10a2.9 2.9 0 010 4"/></svg>';
 var ICON_VOL_MUTE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+VOL_SPK+'<path d="M16 9.6l5.4 5.4M21.4 9.6L16 15"/></svg>';
-var state={idx:0,playing:false,t:42,liked:{},shuffle:false,repeat:0,vol:70,muted:false,lastVol:70,fsQ:false,npOpen:true,chip:"全部",timer:null,stage:false,_lyrKey:"",page:"home",playlistIdx:0,query:"",recent:[],_util:null,_pageKey:"",_hist:[],_fwd:[],settings:{gapless:true,crossfadeOn:true,normalize:false,weather:true,motion:true,glassStyle:"match",crossfade:6,quality:"FLAC · 24-BIT",output:"桌面音箱",eq:"流行",sleep:"关闭",deskLyrics:true,deskLock:false,trayMini:true,smtc:false},platforms:{netease:false,kugou:false,kuwo:false},srcToggles:{},impPicked:{},imported:[],customPl:null,uploads:[],upAdded:0,myLists:[],dlPaused:{},impMsg:"",upMsg:"",linkMsg:"",lastSync:"",pg:{},_pgSig:"",sorts:{},_renaming:-1,_delPl:null,_renameP:null,_plSeq:0,queue:null,radioOn:false,radioSeed:null,smartOpen:null};
+var state={idx:0,playing:false,t:42,liked:{},shuffle:false,repeat:0,vol:70,muted:false,lastVol:70,fsQ:false,mainQ:false,npOpen:true,chip:"全部",timer:null,stage:false,_lyrKey:"",page:"home",playlistIdx:0,query:"",recent:[],_util:null,_pageKey:"",_hist:[],_fwd:[],settings:{gapless:true,crossfadeOn:true,normalize:false,weather:true,motion:true,glassStyle:"match",crossfade:6,quality:"FLAC · 24-BIT",output:"桌面音箱",eq:"流行",sleep:"关闭",deskLyrics:true,deskLock:false,trayMini:true,smtc:false,fsTheme:"magazine"},platforms:{netease:false,kugou:false,kuwo:false},srcToggles:{},impPicked:{},imported:[],customPl:null,uploads:[],upAdded:0,myLists:[],dlPaused:{},impMsg:"",upMsg:"",linkMsg:"",lastSync:"",pg:{},_pgSig:"",sorts:{},_renaming:-1,_delPl:null,_renameP:null,_plSeq:0,queue:null,radioOn:false,radioSeed:null,smartOpen:null};
 var ICON_RENAME='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
 var ICON_TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>';
 var fsCloseTimer=null;
@@ -14168,6 +14786,7 @@ function buildLists(){
     /* right queue + fullscreen queue : the shared queue model, draggable */
     buildQueueInto(p.querySelector("[data-queue]"),false);
     buildQueueInto(p.querySelector("[data-fs-queue-list]"),true);
+    buildQueueInto(p.querySelector("[data-main-queue-list]"),true);
   });
 }
 function trowHTML(tr,i){ return '<span class="num">'+String(i+1).padStart(2,"0")+'</span><span class="tt"><img src="'+tr.cover+'" alt=""><span style="min-width:0"><b>'+tr.title+'</b><span>'+tr.artist+'</span></span>'+(tr.audio?'<span class="realtag">真音频 · 频峰</span>':'')+'</span><span class="alb">'+tr.album+'</span><span class="dur">'+fmt(tr.dur)+'</span><span class="bars"><i></i><i></i><i></i></span>'; }
@@ -14816,8 +15435,10 @@ function render(){
     p.classList.toggle("np-collapsed",!state.npOpen);
     p.querySelectorAll(".np-toggle").forEach(function(el){ var lbl=state.npOpen?"收起正在播放面板":"展开正在播放面板"; el.setAttribute("aria-expanded",state.npOpen?"true":"false"); el.setAttribute("aria-label",lbl); el.setAttribute("title",lbl); });
     p.querySelectorAll("[data-np-switch]").forEach(function(el){ el.classList.toggle("on",state.npOpen); el.setAttribute("aria-checked",state.npOpen?"true":"false"); });
-    var fsx=p.querySelector("[data-fs]"); if(fsx)fsx.classList.toggle("qopen",state.fsQ);
-    p.querySelectorAll("[data-queuebtn]").forEach(function(el){el.classList.toggle("on",state.fsQ);});
+    var fsx=p.querySelector("[data-fs]"); if(fsx){ fsx.classList.toggle("qopen",state.fsQ); fsx.setAttribute("data-theme",state.settings.fsTheme||"magazine"); fsx.style.setProperty("--fs-cover","url("+tr.cover+")"); }
+    p.classList.toggle("mq-open",state.mainQ&&!state.stage);
+    p.querySelectorAll("[data-queuebtn]").forEach(function(el){el.classList.toggle("on",state.mainQ);el.setAttribute("aria-expanded",state.mainQ?"true":"false");});
+    p.querySelectorAll("[data-mq-count]").forEach(function(el){el.textContent=(state.queue?state.queue.length:TRACKS.length)+" 首";});
     p.style.setProperty("--glow",tr.glow);
     var _srgb=glowRGB(tr.glow); if(_srgb)p.style.setProperty("--spec-c","rgba("+_srgb[0]+","+_srgb[1]+","+_srgb[2]+",.55)");
     p.classList.toggle("spec-live",specLiveOn());
@@ -14865,6 +15486,7 @@ function render(){
     p.querySelectorAll(".trow").forEach(function(it,i){it.classList.toggle("on",i===state.idx);});
     p.querySelectorAll(".qitem").forEach(function(it){it.classList.toggle("on",parseInt(it.getAttribute("data-ti"),10)===state.idx);});
     p.querySelectorAll(".feat").forEach(function(it){ var ti=it.getAttribute("data-ti"); if(ti!==null&&TRACKS[parseInt(ti,10)]){ it.classList.toggle("on",TRACKS[parseInt(ti,10)].album===tr.album); } });
+    var featStrip=p.querySelector("[data-feat-grid].feat-scroll"); if(featStrip&&featStrip._updFeatArrows)featStrip._updFeatArrows();
     p.querySelectorAll(".fsq-item").forEach(function(it){it.classList.toggle("on",parseInt(it.getAttribute("data-ti"),10)===state.idx);});
     p.querySelectorAll("[data-capsule-text]").forEach(function(el){
       if(el.textContent!==lns[li]){
@@ -14886,9 +15508,28 @@ function render(){
       }
       var fl=p.querySelector("[data-fs-lyrics]");
       if(fl){
+        /* dynamic typesetting : seeded per-(track,line) choreography vars.
+           Deterministic — a song always performs the same layout, no line
+           repeats a neighbour's, and the set reshuffles per track.
+           --vx/--vy entrance drift, --vr tilt, --vs size multiplier,
+           --vi indent ladder (0/19/38/57px), --vb bubble-width seed;
+           each stage theme consumes them in its own ranges (CSS). The
+           vars ride inline styles, so class-only updates keep them. */
+        var lineVars=function(j){
+          var base=(((state.idx+1)*2654435761)^((j+1)*2246822519))>>>0;
+          var hv=function(k){ var x=(base^(k*3266489917))>>>0; x=Math.imul(x^(x>>>16),0x21F0AAAD); x=Math.imul(x^(x>>>15),0x735A2D97); return ((x^(x>>>15))>>>0)/4294967296; };
+          var side=(j%2===0?-1:1)*(hv(0)<0.24?-1:1); /* mostly alternating drift, seeded breaks */
+          var vx=(side*(11+hv(1)*17)).toFixed(1);
+          var vy=(4+hv(2)*8).toFixed(1);
+          var vr=((hv(3)*2-1)*1.7).toFixed(2);
+          var vs=(0.93+hv(4)*0.16).toFixed(3);
+          var vi=Math.floor(hv(5)*4)*19;
+          var vb=hv(6).toFixed(3);
+          return "--vx:"+vx+"px;--vy:"+vy+"px;--vr:"+vr+"deg;--vs:"+vs+";--vi:"+vi+"px;--vb:"+vb;
+        };
         var lineCls=function(j){return "fl-line"+(j===fli?" on":(Math.abs(j-fli)===1?" d1":""))+(fl._focus===j?" focus":"");};
         if(fl.getAttribute("data-track")!==String(state.idx)||fl.children.length!==fls.length){
-          fl.innerHTML=fls.map(function(L,j){return '<div class="'+lineCls(j)+'" data-lj="'+j+'"><span class="fl-o">'+escHtml(L.o)+"</span>"+(L.tr?'<span class="fl-tr">'+escHtml(L.tr)+"</span>":"")+"</div>";}).join("");
+          fl.innerHTML=fls.map(function(L,j){return '<div class="'+lineCls(j)+'" data-lj="'+j+'" style="'+lineVars(j)+'"><span class="fl-o">'+escHtml(L.o)+"</span>"+(L.tr?'<span class="fl-tr">'+escHtml(L.tr)+"</span>":"")+"</div>";}).join("");
           fl.setAttribute("data-track",String(state.idx));
           fl._focus=null;
           fl._progUntil=Date.now()+90;
@@ -15003,10 +15644,93 @@ function animateFsEntrance(){
     var idxEl=fs.querySelector("[data-fsnum]"); if(idxEl)track(idxEl.animate([{opacity:0,transform:"translateY(10px)"},{opacity:.55,transform:"translateY(0)"}],{duration:420,delay:680,easing:E,fill:"both"}));
     fs.querySelectorAll(".fs-specmono,.fs-toptitle").forEach(function(el){ track(el.animate([{opacity:0},{opacity:.62}],{duration:400,delay:660,easing:"ease-out",fill:"both"})); });
     var top=fs.querySelector(".fs-top"); if(top)track(top.animate([{opacity:0},{opacity:1}],{duration:420,delay:620,easing:"ease-out",fill:"both"}));
+    var tbar=fs.querySelector(".fs-themebar"); if(tbar)track(tbar.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"translateY(0)"}],{duration:420,delay:660,easing:"ease-out",fill:"both"}));
     /* 7 · Dock rises and lands — last element home, ~1.1s after the open */
     var dock=fs.querySelector(".fs-dock");
     if(dock)track(dock.animate([{transform:"translateY(32px)",opacity:0},{transform:"translateY(0)",opacity:1}],{duration:540,delay:560,easing:E,fill:"both"}));
     fs._xAnims=anims;
+  });
+}
+/* fullscreen stage themes — magazine / flow / steps / chat, switched with a
+   short crossfade (never a hard cut): the stage content fades out with a
+   touch of blur (~170ms), the theme swaps underneath, then the new layout
+   fades back in with a slight rise (~330ms) — about half a second in total.
+   A run token + a shared animation registry keep rapid consecutive switches
+   clean: a newer switch cancels the in-flight one and the stale run's commit
+   never lands, so nothing ghosts or sticks. Stage closed, calm (motion off)
+   or prefers-reduced-motion: the theme simply applies, no transition. */
+var fsThemeRun=0, fsThemeAnims=[];
+function fsFadeSet(p){
+  var fs=p.querySelector("[data-fs]"); if(!fs)return [];
+  var out=[];
+  var m=fs.querySelector(".fs-main"); if(m)out.push({el:m,op:1,main:true});
+  var g=fs.querySelector("[data-fs-giant]"); if(g)out.push({el:g,op:.5});
+  var s=fs.querySelector(".fs-side"); if(s)out.push({el:s,op:.5});
+  var i=fs.querySelector("[data-fsnum]"); if(i)out.push({el:i,op:.55});
+  return out;
+}
+/* a theme switch changes every lyric line's height, so the pixel scrollTop
+   the follow-scroll landed on in the old layout points at the wrong lines
+   in the new one — the current line sits off-screen and every visible line
+   is a far, dimmed one until the next line boundary re-runs the follow
+   scroll (up to a whole line's duration). Re-centre once the crossfade has
+   landed and the new line heights have settled. */
+var fsRecenterTimer=null;
+function scheduleFsRecenter(){
+  if(fsRecenterTimer){clearTimeout(fsRecenterTimer);fsRecenterTimer=null;}
+  fsRecenterTimer=setTimeout(function(){
+    fsRecenterTimer=null;
+    if(state._lyrHoldUntil&&Date.now()<state._lyrHoldUntil)return; /* user is drag-browsing */
+    var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    players().forEach(function(p){
+      var fl=p.querySelector("[data-fs-lyrics]"); if(!fl||!fl.clientHeight)return;
+      var act=fl.querySelector(".fl-line.on"); if(!act)return;
+      var target=Math.max(0,act.offsetTop-fl.offsetTop-fl.clientHeight/2+act.offsetHeight/2);
+      if(reduce){fl.scrollTop=target;}else{fl.scrollTo({top:target,behavior:"smooth"});}
+    });
+  },400);
+}
+function setFsTheme(v){
+  if(!v||state.settings.fsTheme===v){ renderSettings(); return; }
+  var commit=function(){ state.settings.fsTheme=v; state._lyrKey=""; render(); scheduleFsRecenter(); };
+  var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(!state.stage||document.body.classList.contains("calm")||reduce){ commit(); return; }
+  var sets=[];
+  players().forEach(function(p){ var s=fsFadeSet(p); if(s.length&&s[0].el.getClientRects().length)sets.push(s); });
+  if(!sets.length){ commit(); return; }
+  var run=++fsThemeRun;
+  /* sample current opacities BEFORE cancelling, so a switch that lands
+     mid-fade continues from where the stage actually is — no snap back */
+  var starts=sets.map(function(s){ return s.map(function(it){ var c=parseFloat(getComputedStyle(it.el).opacity); return isNaN(c)?it.op:c; }); });
+  fsThemeAnims.forEach(function(a){ try{a.cancel();}catch(e){} });
+  fsThemeAnims=[];
+  var E="cubic-bezier(.22,1,.36,1)", pending=[];
+  sets.forEach(function(s,si){
+    s.forEach(function(it,ii){
+      if(!it.el.animate)return;
+      var from={opacity:starts[si][ii]}, to={opacity:0};
+      if(it.main){ from.filter="blur("+((1-starts[si][ii])*7).toFixed(1)+"px)"; to.filter="blur(7px)"; }
+      var a=it.el.animate([from,to],{duration:170,easing:"ease-in",fill:"both"});
+      fsThemeAnims.push(a); pending.push(a.finished?a.finished.catch(function(){}):Promise.resolve());
+    });
+  });
+  Promise.all(pending).then(function(){
+    if(run!==fsThemeRun)return; /* a newer switch owns the stage now */
+    /* retire the fade-outs in the same task as the commit + fade-ins, so
+       their fill can never resurface under the new layout */
+    fsThemeAnims.forEach(function(a){ try{a.cancel();}catch(e){} });
+    fsThemeAnims=[];
+    commit();
+    players().forEach(function(p){
+      fsFadeSet(p).forEach(function(it){
+        if(!it.el.animate)return;
+        var from={opacity:0}, to={opacity:it.op};
+        if(it.main){ from.filter="blur(7px)"; from.transform="translateY(10px)"; to.filter="blur(0px)"; to.transform="translateY(0px)"; }
+        var a=it.el.animate([from,to],{duration:330,easing:E,fill:"both"});
+        fsThemeAnims.push(a);
+        a.onfinish=function(){ try{a.cancel();}catch(e){} };
+      });
+    });
   });
 }
 function setStage(open){
@@ -15014,12 +15738,13 @@ function setStage(open){
   if(open){
     if(fsCloseTimer){clearTimeout(fsCloseTimer);fsCloseTimer=null;}
     players().forEach(function(p){p.classList.remove("fs-closing");});
-    state.stage=true; state._lyrKey=""; render();
+    state.stage=true; state.mainQ=false; state._lyrKey=""; render();
     animateFsEntrance();
     return;
   }
   if(!state.stage)return;
   players().forEach(function(p){ var fs=p.querySelector("[data-fs]"); if(fs)cancelFsStageAnims(fs); });
+  fsThemeRun++; fsThemeAnims.forEach(function(a){ try{a.cancel();}catch(e){} }); fsThemeAnims=[];
   state.stage=false; state.fsQ=false; render();
   if(reduce)return;
   players().forEach(function(p){p.classList.add("fs-closing");});
@@ -15297,6 +16022,30 @@ players().forEach(function(p){
   }
   p.querySelectorAll("[data-next]").forEach(function(el){el.addEventListener("click",nextTrack);});
   p.querySelectorAll("[data-prev]").forEach(function(el){el.addEventListener("click",prevTrack);});
+  /* home featured strip : the head's direction buttons smooth-scroll the
+     single-row strip by one page; both windows' strips move together, and
+     each button disables itself at its end of the row */
+  var featGrid=p.querySelector("[data-feat-grid].feat-scroll");
+  if(featGrid){
+    var featPrev=p.querySelector("[data-feat-prev]"),featNext=p.querySelector("[data-feat-next]");
+    var updFeatArrows=function(){
+      var max=featGrid.scrollWidth-featGrid.clientWidth-2;
+      if(featPrev)featPrev.disabled=featGrid.scrollLeft<=2;
+      if(featNext)featNext.disabled=max<=0||featGrid.scrollLeft>=max;
+    };
+    featGrid._updFeatArrows=updFeatArrows;
+    var scrollFeat=function(dir){
+      var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.querySelectorAll("[data-feat-grid].feat-scroll").forEach(function(other){
+        other.scrollBy({left:dir*other.clientWidth,behavior:reduce?"auto":"smooth"});
+      });
+      setTimeout(function(){ players().forEach(function(pp){ var g=pp.querySelector("[data-feat-grid].feat-scroll"); if(g&&g._updFeatArrows)g._updFeatArrows(); }); },reduce?60:480);
+    };
+    if(featPrev)featPrev.addEventListener("click",function(){scrollFeat(-1);});
+    if(featNext)featNext.addEventListener("click",function(){scrollFeat(1);});
+    featGrid.addEventListener("scroll",updFeatArrows,{passive:true});
+    updFeatArrows();
+  }
   p.querySelectorAll("[data-like]").forEach(function(el){el.addEventListener("click",function(){state.liked[state.idx]=!state.liked[state.idx];render();});});
   p.querySelectorAll("[data-shuffle]").forEach(function(el){el.addEventListener("click",function(){state.shuffle=!state.shuffle;render();});});
   p.querySelectorAll("[data-repeat]").forEach(function(el){el.addEventListener("click",function(){state.repeat=(state.repeat+1)%3;render();});});
@@ -15430,7 +16179,8 @@ players().forEach(function(p){
   });
   p.querySelectorAll("[data-nav-back]").forEach(function(nb){ nb.addEventListener("click",navBack); });
   p.querySelectorAll("[data-nav-fwd]").forEach(function(nf){ nf.addEventListener("click",navFwd); });
-  p.querySelectorAll("[data-queuebtn]").forEach(function(qb){ qb.addEventListener("click",function(){ if(!state.stage){ state.fsQ=true; setStage(true); } else { state.fsQ=!state.fsQ; render(); } }); });
+  p.querySelectorAll("[data-queuebtn]").forEach(function(qb){ qb.addEventListener("click",function(){ state.mainQ=!state.mainQ; render(); }); });
+  p.querySelectorAll("[data-mq-close]").forEach(function(cb){ cb.addEventListener("click",function(){ state.mainQ=false; render(); }); });
   p.querySelectorAll("[data-radio-quick]").forEach(function(rb){ rb.addEventListener("click",function(){ if(!state.radioOn)startRadio(); setPage("radio"); }); });
   var si=p.querySelector("[data-search-input]");
   if(si){ si.addEventListener("input",function(){ state.query=si.value; syncSearchInputs(si); state._pageKey=""; render(); }); }
@@ -15439,7 +16189,7 @@ players().forEach(function(p){
   p.querySelectorAll("[data-ad-play]").forEach(function(pb){ pb.addEventListener("click",function(){ var dt=TRACKS[state.playlistIdx]; for(var i=0;i<TRACKS.length;i++){ if(TRACKS[i].album===dt.album){ selectTrack(i,true); break; } } }); });
   p.querySelectorAll("[data-ard-play]").forEach(function(pb){ pb.addEventListener("click",function(){ var dt=TRACKS[state.playlistIdx]; for(var i=0;i<TRACKS.length;i++){ if(TRACKS[i].artist===dt.artist){ selectTrack(i,true); break; } } }); });
   p.querySelectorAll("[data-set-toggle]").forEach(function(b){ b.addEventListener("click",function(){ var k=b.getAttribute("data-set-toggle"); state.settings[k]=!state.settings[k]; renderSettings(); }); });
-  p.querySelectorAll("[data-set-seg]").forEach(function(seg){ var key=seg.getAttribute("data-set-seg"); seg.querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ state.settings[key]=b.getAttribute("data-val"); renderSettings(); }); }); });
+  p.querySelectorAll("[data-set-seg]").forEach(function(seg){ var key=seg.getAttribute("data-set-seg"); seg.querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ if(key==="fsTheme"){ setFsTheme(b.getAttribute("data-val")); return; } state.settings[key]=b.getAttribute("data-val"); renderSettings(); }); }); });
   p.querySelectorAll("[data-set-range]").forEach(function(r){ r.addEventListener("input",function(){ state.settings[r.getAttribute("data-set-range")]=parseInt(r.value,10); renderSettings(); }); });
   /* sources : platform connect / import / upload / new playlist */
   p.querySelectorAll("[data-conn-btn]").forEach(function(b){ b.addEventListener("click",function(){
@@ -15574,6 +16324,7 @@ players().forEach(function(p){
 document.getElementById("syncPlay").addEventListener("click",function(){setPlaying(!state.playing);});
 document.addEventListener("keydown",function(e){
   if(e.code==="Escape"&&state.stage){setStage(false);return;}
+  if(e.code==="Escape"&&state.mainQ){state.mainQ=false;render();return;}
   if(e.code==="Escape"&&state.page!=="home"){setPage("home");return;}
   if(e.code==="Space"&&!/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();setPlaying(!state.playing);}
   if(e.code==="Space"&&document.activeElement.tagName==="BODY"){e.preventDefault();setPlaying(!state.playing);}

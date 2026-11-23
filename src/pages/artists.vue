@@ -39,7 +39,7 @@ const indices = computed(() =>
             :key="index"
             class="artist-card cursor-pointer rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit"
             @click="controller()?.navigate('artist', index)"
-            ><img
+            ><img decoding="async" loading="lazy"
               :src="tracks[index]!.cover"
               :alt="tracks[index]!.artist"
             /><b>{{ tracks[index]!.artist }}</b

@@ -398,7 +398,7 @@ onDeactivated(() => {
             class="playlist-pick mb-[7px] flex min-h-[62px] cursor-pointer items-center gap-[12px] rounded-[13px] border border-white/8 bg-white/3 px-[12px] py-[9px] transition-colors hover:bg-white/6"
             :class="{ 'playlist-picked': selected.includes(item.id) }"
           >
-            <img
+            <img decoding="async"
               :src="item.coverUrl || defaultCover"
               alt=""
               loading="lazy"

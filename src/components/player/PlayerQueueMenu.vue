@@ -16,10 +16,11 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 
 const player = usePlayer()
-const { settings } = toRefs(player.state)
+const { settings, radioOn } = toRefs(player.state)
 const root = useTemplateRef<HTMLElement>('root')
 const panel = useTemplateRef<HTMLElement>('panel')
 const trigger = useTemplateRef<HTMLButtonElement>('trigger')
+const queueList = useTemplateRef<InstanceType<typeof QueueList>>('queueList')
 const menuId = useId()
 const count = computed(() => player.state.queue?.length || 0)
 // 响应式状态
@@ -35,11 +36,13 @@ function close(restoreFocus = false): void {
   if (restoreFocus) trigger.value?.focus()
 }
 
-// 点击入口切换气泡，打开后滚到当前曲目但不跳页、不改变播放。
+// 将焦点交给已展开的非模态面板，并让当前曲目进入可见范围。
 async function toggle(): Promise<void> {
   state.open = !state.open
   if (!state.open) return
   await nextTick()
+  if (!state.open) return
+  panel.value?.focus({ preventScroll: true })
   panel.value
     ?.querySelector<HTMLElement>('.qrow.on')
     ?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
@@ -60,33 +63,21 @@ async function keydown(event: KeyboardEvent): Promise<void> {
     state.open = true
     await nextTick()
   }
-  const rows = Array.from(
-    panel.value?.querySelectorAll<HTMLElement>('.qrow') || []
-  )
-  if (!rows.length) return
-  const current = rows.indexOf(
-    document.activeElement?.closest('.qrow') as HTMLElement
-  )
-  const index =
-    event.key === 'Home'
-      ? 0
-      : event.key === 'End'
-        ? rows.length - 1
-        : event.key === 'ArrowUp'
-          ? current <= 0
-            ? rows.length - 1
-            : current - 1
-          : (current + 1) % rows.length
-  rows[index]?.focus({ preventScroll: true })
-  rows[index]?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+  queueList.value?.browse(event)
 }
 
-// 点击外部、焦点移出或窗口失焦时收起；不影响其它窗口和全屏状态。
+// 按钮和面板位于不同的 DOM 容器，两个区域之间移动焦点时保持打开。
+function containsTarget(target: EventTarget | null): boolean {
+  return target instanceof Node &&
+    !!(root.value?.contains(target) || panel.value?.contains(target))
+}
+
+// 点击外部、焦点移出或窗口失焦时收起队列。
 useEventListener(document, 'pointerdown', event => {
-  if (!root.value?.contains(event.target as Node)) close()
+  if (state.open && !containsTarget(event.target)) close()
 })
-useEventListener(root, 'focusout', event => {
-  if (!root.value?.contains(event.relatedTarget as Node)) close()
+useEventListener(document, 'focusin', event => {
+  if (state.open && !containsTarget(event.target)) close()
 })
 useEventListener(window, 'blur', () => close())
 // 打开全屏后隐藏底栏气泡，两个队列入口不会抢同一个开关。
@@ -104,7 +95,6 @@ onBeforeUnmount(() => close())
   <div
     ref="root"
     class="player-queue-control relative flex-none"
-    :class="{ 'queue-calm': !settings.motion }"
     @keydown="keydown"
   >
     <button
@@ -138,36 +128,37 @@ onBeforeUnmount(() => close())
         />
       </svg>
     </button>
-    <Transition name="queue-bubble">
+    <Teleport defer to="[data-player]">
+    <Transition name="queue-bubble" :css="settings.motion">
       <section
         v-if="open"
         :id="menuId"
         ref="panel"
         role="dialog"
         aria-label="播放队列"
-        class="queue-bubble absolute right-[-10px] bottom-[calc(100%+16px)] z-[80] flex w-[340px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[18px] border border-white/15 bg-[#1b1c26]/95 text-white shadow-[0_20px_64px_rgba(0,0,0,.48)]"
+        tabindex="-1"
+        class="main-queue absolute right-[14px] bottom-[88px] z-[12] flex max-h-[calc(100%-176px)] w-[352px] max-w-[calc(100%-28px)] flex-col rounded-[18px] p-[12px] text-left text-white outline-none"
+        :class="{ 'queue-calm': !settings.motion }"
+        @keydown="keydown"
       >
         <!-- 气泡标题区：当前队列计数与关闭操作。 -->
         <header
-          class="flex shrink-0 items-center justify-between border-b border-white/10 px-[14px] py-[10px]"
+          class="m-[2px_4px_10px] flex shrink-0 items-center gap-[8px]"
         >
-          <div>
-            <h3 class="m-0 text-[13px] font-bold">播放队列</h3>
-            <p class="mt-[3px] mb-0 text-[11px] text-white/55">
-              {{ count }} 首 · 点击播放，拖动排序
-            </p>
-          </div>
+          <h3 class="m-0 text-[12px] font-extrabold tracking-[.1em]">播放队列 · QUEUE</h3>
+          <span v-if="radioOn" class="q-radio-chip rounded-full px-2 py-[3px] text-[9.5px] font-extrabold">电台续播中</span>
+          <span class="ml-auto font-mono text-[10.5px] font-bold tracking-[.02em] whitespace-nowrap text-white/55">{{ count }} 首</span>
           <BaseButton
-            class="grid size-[30px] place-items-center rounded-[9px] bg-transparent text-white/65 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="关闭播放队列气泡"
+            class="mq-close grid size-[30px] shrink-0 place-items-center rounded-full border border-white/22 bg-white/10 p-0 text-white transition-colors hover:bg-white/18"
+            aria-label="关闭播放队列"
             @click="close(true)"
           >
             <svg
-              class="size-4"
+              class="size-[14px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="1.8"
+              stroke-width="2.4"
               stroke-linecap="round"
               aria-hidden="true"
             >
@@ -176,53 +167,46 @@ onBeforeUnmount(() => close())
           </BaseButton>
         </header>
         <!-- 气泡列表区：复用真实队列与下一首播放操作，空态不展示演示曲目。 -->
-        <div
-          class="queue-bubble-list max-h-[min(420px,calc(100dvh-180px))] min-h-0 overflow-y-auto p-[8px]"
-        >
-          <QueueList v-if="count" />
+          <QueueList ref="queueList" v-if="count" compact />
           <EmptyState
             v-else
             class="min-h-[140px]"
             icon="playlist"
             label="播放队列为空"
           />
-        </div>
       </section>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-.queue-bubble {
+.main-queue {
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(18 18 26 / 94%);
   backdrop-filter: blur(20px);
-  transform-origin: bottom right;
+  box-shadow: 0 24px 48px rgb(0 0 0 / 45%);
 }
-.queue-bubble-list {
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+.liquid-win .main-queue {
+  border-color: rgb(255 255 255 / 38%);
+  background: linear-gradient(165deg, rgb(30 42 46 / 93%), rgb(14 20 22 / 95%));
+  backdrop-filter: blur(12px) saturate(1.7);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), 0 24px 48px rgb(0 0 0 / 45%);
 }
-.queue-bubble-list :deep(.qrow) {
-  margin-bottom: 5px;
-  border-radius: 10px;
-  padding: 8px;
-  min-height: 48px;
+.liquid-win .mq-close {
+  border-color: rgb(255 255 255 / 45%);
+  background: linear-gradient(160deg, rgb(255 255 255 / 30%), rgb(255 255 255 / 8%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
 }
-.queue-bubble-list :deep(.qrow img) {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+.main-queue :deep(.qt span) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.queue-bubble-list :deep(.qt) {
-  min-width: 0;
-}
-.queue-bubble-list :deep(.qt b) {
-  font-size: 12px;
-  line-height: 1.5;
-}
-.queue-bubble-list :deep(.qt span),
-.queue-bubble-list :deep(.qd) {
-  font-size: 10.5px;
+.main-queue :deep(:focus-visible) {
+  outline: 2px solid rgb(255 255 255 / 0.75);
+  outline-offset: -2px;
 }
 .player-queue-control :deep(:focus-visible) {
   outline: 2px solid rgb(255 255 255 / 0.75);
@@ -237,15 +221,19 @@ onBeforeUnmount(() => close())
 .queue-bubble-enter-from,
 .queue-bubble-leave-to {
   opacity: 0;
-  transform: translateY(6px) scale(0.98);
+  transform: translateY(10px);
 }
-.queue-calm .queue-bubble-enter-active,
-.queue-calm .queue-bubble-leave-active {
+.queue-calm.queue-bubble-enter-active,
+.queue-calm.queue-bubble-leave-active {
   transition: none;
 }
-.queue-calm .queue-bubble-enter-from,
-.queue-calm .queue-bubble-leave-to {
-  transform: none;
+@media (max-width: 640px) {
+  .main-queue {
+    inset: 54px 12px auto;
+    width: auto;
+    max-width: none;
+    max-height: calc(100% - 230px);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .queue-bubble-enter-active,

@@ -46,7 +46,7 @@ function load(relative, dependencies = {}, globals = {}) {
   return module.exports
 }
 const service = load('src/services/local-weather.ts')
-const dependencies = { vue, '@/services/local-weather': service }
+const dependencies = { vue, '@tauri-apps/api/core': { isTauri: () => false }, '@/services/local-weather': service }
 const weatherModule = load('src/composables/useLocalWeather.ts', dependencies)
 const deferred = () => {
   let resolve, reject
@@ -126,6 +126,7 @@ function harness(overrides = {}, initial) {
       : response(payload(clock))
   }
   const deps = {
+    resetPermission: overrides.resetPermission ?? null,
     geolocation: overrides.unsupported ? null : native,
     permissions: overrides.noPermissions
       ? null
@@ -840,6 +841,24 @@ await check(
     assert.equal(h.permissionStatus.listeners.size, 0)
   }
 )
+await check('主动重试重置定位权限一次并继续拉取天气', async () => {
+  const reset = deferred()
+  let resets = 0
+  const h = harness({ permissionStatus: permission('denied'), resetPermission() { resets++; return reset.promise } })
+  const stop = h.subscribe()
+  await flush()
+  assert.equal(h.client.problem.value, '定位未授权')
+  h.client.refresh()
+  h.client.refresh()
+  assert.equal(resets, 1)
+  assert.equal(h.positions.length, 0)
+  reset.resolve()
+  await flush()
+  assert.equal(h.positions.length, 1)
+  assert.equal(h.requests.length, 1)
+  assert.equal(h.client.retrying.value, false)
+  stop()
+})
 await check(
   'native host code=1 denial also disables retries when Permissions API cannot reflect it',
   async () => {
@@ -1325,7 +1344,7 @@ await check(
           vue: { ...vue, Transition },
           '@vueuse/core': { usePreferredReducedMotion: () => motion },
           '@/composables/useLocalWeather': {
-            useLocalWeather: () => ({ weather }),
+            useLocalWeather: () => ({ weather, problem: vue.ref(''), retrying: vue.ref(false), refresh() {} }),
           },
           '@/services/local-weather': service,
         })[name],

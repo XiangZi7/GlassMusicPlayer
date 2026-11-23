@@ -28,7 +28,7 @@ const playing = computed(() => props.snapshot?.playing === true)
 <template>
   <div class="tray-now-playing">
     <div class="tray-cover">
-      <img
+      <img decoding="async" loading="lazy"
         v-if="snapshot?.track.cover && !coverFailed"
         :src="snapshot.track.cover"
         alt="当前歌曲专辑封面"

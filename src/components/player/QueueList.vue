@@ -1,12 +1,43 @@
 <script setup lang="ts">
-import { toRefs } from 'vue'
-import { reactive } from 'vue'
+import { computed, nextTick, onMounted, reactive, toRefs } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { formatTime } from '@/utils/format'
 
-defineProps<{ fullscreen?: boolean }>()
+const props = defineProps<{ compact?: boolean }>()
 const { state, tracks, controller } = usePlayer()
+const rowHeight = 53
+const indices = computed(() => [...(state.queue ?? [])])
+const { list, wrapperProps, containerProps, scrollTo } = useVirtualList(indices, {
+  itemHeight: rowHeight,
+  overscan: 4,
+})
+// 根据真实队列位置滚动，再将焦点交给已挂载行。
+async function reveal(position: number, focus = false): Promise<void> {
+  const viewport = containerProps.ref.value
+  if (!viewport || position < 0 || position >= indices.value.length) return
+  const top = position * rowHeight
+  if (top < viewport.scrollTop || top + rowHeight > viewport.scrollTop + viewport.clientHeight)
+    scrollTo(position, { block: 'nearest', behavior: 'instant' })
+  await nextTick()
+  if (focus) viewport.querySelector<HTMLElement>(`[data-qpos="${position}"]`)?.focus({ preventScroll: true })
+}
+// 弹出队列直接显示当前曲目，侧栏保持自己的滚动位置。
+onMounted(() => { if (props.compact) void reveal(indices.value.indexOf(state.idx)) })
+// 用绝对队列位置导航，Home 和 End 也能访问屏幕以外的曲目。
+function browse(event: KeyboardEvent): void {
+  if (!['Home','End','ArrowUp','ArrowDown'].includes(event.key)) return
+  event.stopPropagation()
+  event.preventDefault()
+  const length = indices.value.length
+  if (!length) return
+  const position = Number((event.target as HTMLElement)?.closest?.<HTMLElement>('[data-qpos]')?.dataset.qpos ?? -1)
+  const target = event.key === 'Home' ? 0 : event.key === 'End' ? length - 1 :
+    event.key === 'ArrowUp' ? (position <= 0 ? length - 1 : position - 1) : (position + 1) % length
+  void reveal(target, true)
+}
+defineExpose({ browse })
 const drag = reactive({
   /** 正在拖拽的队列位置。 */ from: null as number | null,
   /** 放置位置。 */ over: null as number | null,
@@ -45,17 +76,18 @@ function drop(event: DragEvent, position: number): void {
     controller()?.moveQueue(drag.from, position + (drag.after ? 1 : 0))
   end()
 }
-const { queue, idx } = toRefs(state)
+const { idx } = toRefs(state)
 </script>
 
 <template>
-  <div :class="fullscreen ? 'fsq-list' : 'queue'">
+  <div v-bind="containerProps" class="queue-viewport panel-scroll min-h-0" :class="{ 'sidebar-queue': !compact }" @keydown="browse">
+  <div v-bind="wrapperProps" :class="compact ? 'fsq-list' : 'queue'">
     <div
-      v-for="(index, position) in queue || []"
-      :key="`${position}-${index}`"
+      v-for="{data: index, index: position} in list"
+      :key="index"
       class="qrow cursor-pointer"
       :class="[
-        fullscreen ? 'fsq-item' : 'qitem',
+        compact ? 'fsq-item' : 'qitem',
         {
           on: index === idx,
           dragging: drag.from === position,
@@ -116,7 +148,7 @@ const { queue, idx } = toRefs(state)
             r="1.6"
           /></svg
       ></span>
-      <img
+      <img decoding="async" loading="lazy"
         :src="tracks[index]!.cover"
         alt=""
       /><span class="qt"
@@ -124,7 +156,7 @@ const { queue, idx } = toRefs(state)
         ><span>{{ tracks[index]!.artist }}</span></span
       >
       <span
-        v-if="!fullscreen"
+        v-if="!compact"
         class="bars hidden h-[14px] items-end justify-center gap-[2.5px]"
         ><i /><i /><i
       /></span>
@@ -157,4 +189,12 @@ const { queue, idx } = toRefs(state)
       <span class="qd">{{ formatTime(tracks[index]!.dur) }}</span>
     </div>
   </div>
+  </div>
 </template>
+<style scoped>
+.queue-viewport { overflow-anchor: none; overscroll-behavior: contain; }
+.sidebar-queue { max-height: max(240px, 55vh); }
+.queue, .fsq-list { display: block; }
+.queue-viewport .qrow { box-sizing: border-box; height: 49px; margin-bottom: 4px; }
+.qt span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>

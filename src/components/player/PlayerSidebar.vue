@@ -115,9 +115,9 @@ const {
       data-pill
       aria-hidden="true"
     ></div>
-    <div class="brand flex items-center gap-[10px] p-[4px_8px_14px]">
+    <div class="brand flex items-center gap-[12px] p-[6px_8px_16px]">
       <div class="logo">♪</div>
-      <div><b>Aura Player</b><span>FROSTED EDITION</span></div>
+      <div class="min-w-0"><b>Mirai Player</b><span>{{ state.settings.glassStyle === 'liquid' ? 'LIQUID EDITION' : 'FROSTED EDITION' }}</span></div>
     </div>
     <BaseButton
       class="navitem on flex min-h-[38px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[9px_10px] text-left text-[13.5px] font-bold text-inherit"
@@ -226,7 +226,7 @@ const {
             tracks[playlistIdx]?.album === tracks[index]!.album,
         }"
         @click="openPlaylist(index)"
-        ><img
+        ><img decoding="async" loading="lazy"
           :src="tracks[index]!.cover"
           alt=""
         /><span>{{ tracks[index]!.album }}</span></BaseButton
@@ -284,7 +284,7 @@ const {
             :data-custom="item.name"
             :class="{ on: page === 'playlist' && customPl?.name === item.name }"
             @click="openCustom(item)"
-            ><img
+            ><img decoding="async" loading="lazy"
               :src="item.cover || defaultCover"
               alt=""
             /><span>{{ item.name }}</span></BaseButton
@@ -331,7 +331,7 @@ const {
         :data-custom="item.id"
         :class="{ on: page === 'playlist' && customPl?.id === item.id }"
         @click="openCustom(item)"
-        ><img
+        ><img decoding="async" loading="lazy"
           :src="item.cover || defaultCover"
           alt=""
         /><span>{{ item.name }}</span></BaseButton

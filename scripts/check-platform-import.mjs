@@ -123,6 +123,7 @@ function harness(options = {}) {
     AbortController,
     require: name => {
       if (name === 'vue') return vue
+      if (name === '@/constants/music') return musicModule.exports
       if (name === 'pinia') return { defineStore: (_id, setup) => setup }
       if (name === '@vueuse/core')
         return { useLocalStorage: () => ({ value: {} }) }

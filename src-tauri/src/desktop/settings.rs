@@ -24,7 +24,7 @@ pub(crate) async fn open_settings_window(app: AppHandle) -> Result<(), String> {
     let main = app.get_webview_window("main").ok_or("主窗口尚未创建")?;
     let config = WindowConfig {
         label: "settings".into(),
-        title: "设置 · Mirai Music".into(),
+        title: "设置 · MiraiPlayer".into(),
         url: WebviewUrl::App("index.html#/settings".into()),
         width: 860.0,
         height: 740.0,

@@ -247,7 +247,7 @@ fn save_config(app: &AppHandle, config: &StorageConfig) -> Result<(), String> {
     result
 }
 
-// 默认 app cache 与 Downloads/Mirai Music；损坏配置明确失败，不静默重置用户路径。
+// 默认 app cache 与 Downloads/MiraiPlayer；损坏配置明确失败，不静默重置用户路径。
 fn load_config_unlocked(app: &AppHandle) -> Result<StorageConfig, String> {
     let path = config_path(app)?;
     if path.exists() {
@@ -267,7 +267,7 @@ fn load_config_unlocked(app: &AppHandle) -> Result<StorageConfig, String> {
         .path()
         .download_dir()
         .map_err(|_| "系统没有可用的下载目录，请选择目录。")?
-        .join("Mirai Music");
+        .join("MiraiPlayer");
     let config = normalize_config(StorageConfig {
         cache_directory: display_path(&cache),
         download_directory: display_path(&downloads),
@@ -766,8 +766,8 @@ pub(crate) async fn choose_storage_directory(
     tauri::async_runtime::spawn_blocking(move || {
         let config = config_for(&app)?;
         let (title, current) = match kind.as_str() {
-            "cache" => ("选择 Mirai Music 缓存目录", config.cache_directory),
-            "download" => ("选择 Mirai Music 下载目录", config.download_directory),
+            "cache" => ("选择 MiraiPlayer 缓存目录", config.cache_directory),
+            "download" => ("选择 MiraiPlayer 下载目录", config.download_directory),
             _ => return Err("未知目录类型。".into()),
         };
         app.dialog()

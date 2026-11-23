@@ -2,14 +2,15 @@
 import { useTemplateRef } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useSlidingPill } from '@/composables/useSlidingPill'
-const selected = defineModel<string>({ required: true })
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const root = useTemplateRef<HTMLElement>('root')
 const props = defineProps<{
-  options: { label: string; value: string }[]
+  modelValue: string
+  options: readonly { label: string; value: string }[]
   kind?: 'tabs' | 'segment'
   group?: string
 }>()
-useSlidingPill(root, () => selected.value, props.group)
+useSlidingPill(root, () => props.modelValue, props.group)
 </script>
 <template>
   <div ref="root">
@@ -17,13 +18,13 @@ useSlidingPill(root, () => selected.value, props.group)
       v-for="option in options"
       :key="option.value"
       :data-slide-value="option.value"
-      :class="{ on: selected === option.value }"
+      :class="{ on: modelValue === option.value }"
       :role="kind === 'segment' ? undefined : 'tab'"
       :aria-selected="
-        kind !== 'segment' ? selected === option.value : undefined
+        kind !== 'segment' ? modelValue === option.value : undefined
       "
-      :aria-pressed="kind === 'segment' ? selected === option.value : undefined"
-      @click="selected = option.value"
+      :aria-pressed="kind === 'segment' ? modelValue === option.value : undefined"
+      @click="emit('update:modelValue', option.value)"
       >{{ option.label }}</BaseButton
     >
     <span

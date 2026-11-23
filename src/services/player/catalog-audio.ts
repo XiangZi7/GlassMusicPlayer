@@ -23,6 +23,8 @@ interface AudioEvents {
   time: (time: number, duration: number) => void
   playing: (playing: boolean) => void
   status: (status: CatalogAudioStatus) => void
+  loading?: (loading: boolean) => void
+  quality?: (quality: string) => void
   ended: () => void
   equalizer?: (status: EqualizerStatus) => void
 }
@@ -226,6 +228,8 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     pending?.abort()
     pending = undefined
     loaded = null
+    events.quality?.('')
+    events.loading?.(false)
     equalizer.setSourceSupported(null)
     spectrum?.reset()
     audio.pause()
@@ -237,8 +241,10 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
   function pause(): void {
     requestedPlaying = false
     version++
+    if (pending && !loaded) events.status(null)
     pending?.abort()
     pending = undefined
+    events.loading?.(false)
     equalizer.cancel()
     audio.pause()
     events.playing(false)
@@ -254,7 +260,7 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
   }
 
   // 点击曲目后现取允许的音频地址；先激活 Context，但仅成功 CORS 播放后才接管。
-  async function play(track: CatalogSource): Promise<void> {
+  async function play(track: CatalogSource, preferredQuality = 'auto'): Promise<void> {
     if (destroyed || pending) return
     requestedPlaying = true
     spectrum?.resume()
@@ -263,6 +269,8 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     pending = operation
     const key = catalogKey(track)
     const needsLoad = loaded !== key || !!audio.error
+    const quality = track.platform === 'netease' && preferredQuality !== 'auto' ? preferredQuality : undefined
+    events.loading?.(needsLoad || audio.readyState < 3)
     if (needsLoad) equalizer.setSourceSupported(null)
     void equalizer.prepare()
     try {
@@ -271,7 +279,8 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
         const response = await getCatalogPlayback(
           track.platform,
           track.id,
-          operation.signal
+          operation.signal,
+          quality
         )
         if (destroyed || operation.signal.aborted || playVersion !== version)
           return
@@ -289,8 +298,9 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
         loaded = key
         nativeFallback = false
         events.status(response.status)
+        events.quality?.(response.quality ?? (response.bitrateKbps ? `${response.bitrateKbps} kbps` : ''))
         audio.crossOrigin = 'anonymous'
-        audio.src = getCatalogAudioUrl(track.platform, track.id)
+        audio.src = response.accountPlayback ? stream.href : getCatalogAudioUrl(track.platform, track.id, quality)
         const proxyElement = audio
         try {
           await proxyElement.play()
@@ -330,7 +340,10 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
         )
       }
     } finally {
-      if (pending === operation) pending = undefined
+      if (pending === operation) {
+        pending = undefined
+        events.loading?.(false)
+      }
     }
   }
 

@@ -185,6 +185,7 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
               'glassStyle',
               'crossfade',
               'quality',
+              'bottomSpectrum',
               'output',
               'eq',
               'eqEnabled',

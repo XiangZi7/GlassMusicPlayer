@@ -38,7 +38,7 @@ const indices = computed(() =>
             :key="index"
             class="feat relative rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
             @click="controller()?.navigate('album', index)"
-            ><img
+            ><img decoding="async" loading="lazy"
               :src="tracks[index]!.cover"
               :alt="tracks[index]!.album"
             /><b>{{ tracks[index]!.album }}</b

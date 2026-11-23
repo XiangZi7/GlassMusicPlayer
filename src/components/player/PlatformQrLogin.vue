@@ -65,7 +65,7 @@ const showQr = computed(
       v-if="showQr"
       class="mx-auto grid size-[212px] place-items-center rounded-[14px] bg-white p-3 shadow-[0_4px_14px_rgba(0,0,0,.18)]"
     >
-      <img
+      <img decoding="async" loading="lazy"
         :src="qrCodeUrl"
         :alt="'使用' + platformLabel + ' App 扫描此登录二维码'"
         class="block size-full"
@@ -169,8 +169,9 @@ const showQr = computed(
       v-if="supported"
       class="mt-4 mb-0 text-[11px] leading-relaxed text-white/55"
     >
-      扫码仅关联公开资料，平台 Cookie/token
-      不传给客户端、不保存到本机，也不会开启会员音频授权。酷狗账户歌单暂不读取，公开分享链接仍可导入。
+      {{ platform === 'netease'
+        ? '扫码后，本次会话可使用你的网易云会员权益。可播曲目和音质以网易云授权为准。'
+        : '酷狗扫码可关联公开资料，公开歌单可通过分享链接导入。' }}
     </p>
   </section>
 </template>

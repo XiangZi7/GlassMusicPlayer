@@ -246,11 +246,11 @@ h1 .thin {
 }
 
 .brand b {
-  @apply block text-[15px] leading-[1.1] tracking-[-.01em];
+  @apply block text-[15px] leading-[1.2] whitespace-nowrap;
 }
 
 .brand span {
-  @apply mt-[2px] block text-[11px] opacity-[.6];
+  @apply mt-[4px] block text-[9px] leading-[1.3] tracking-[.12em] whitespace-nowrap opacity-[.64];
 }
 
 .navitem svg {
@@ -801,6 +801,16 @@ h1 .thin {
 .trow .dur {
   @apply text-right font-mono text-[11.5px] opacity-[.6];
 }
+
+.glass-win .win :is(.trow, .srow, .qrow)[aria-current='true'] {
+  background: linear-gradient(105deg, rgb(164 193 255 / 19%), rgb(255 255 255 / 7%));
+  box-shadow: inset 3px 0 #b7ceff, inset 0 0 0 1px rgb(201 218 255 / 18%);
+}
+.liquid-win .win :is(.trow, .srow, .qrow)[aria-current='true'] {
+  background: linear-gradient(155deg, rgb(222 236 255 / 29%), rgb(154 196 255 / 12%) 65%);
+  box-shadow: inset 3px 0 #d1e3ff, inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+.win .trow[aria-current='true'] .tt > span { opacity: 1; }
 
 .bars i {
   @apply h-[40%] w-[3px] rounded-[2px] bg-current;
@@ -1945,27 +1955,21 @@ input[type='range']::-moz-range-thumb {
 }
 
 .fs-queue {
-  scrollbar-width: none;
-}
-
-.fs-queue::-webkit-scrollbar {
-  @apply hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease, visibility 0s linear 200ms;
 }
 
 .fs.qopen .fs-queue {
-  @apply block;
-  animation: fsQIn 0.3s ease;
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
 }
 
-@keyframes fsQIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.fs.fs-calm .fs-queue {
+  transition: none;
 }
 
 .glass-win .fs-queue {
@@ -2106,7 +2110,7 @@ input[type='range']::-moz-range-thumb {
     animation: none;
   }
   .fs-queue {
-    animation: none;
+    transition: none;
   }
   .fs-coverwrap {
     transition: none;

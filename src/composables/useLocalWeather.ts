@@ -2,10 +2,13 @@ import {
   computed,
   onScopeDispose,
   reactive,
+  ref,
   toValue,
   watch,
   type MaybeRefOrGetter,
+  type Ref,
 } from 'vue'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import {
   buildLocalWeatherUrl,
   isWeatherFresh,
@@ -26,6 +29,7 @@ type WeatherPermission = Pick<
 >
 
 export interface WeatherDependencies {
+  resetPermission: (() => Promise<unknown>) | null
   geolocation: Pick<Geolocation, 'getCurrentPosition'> | null
   permissions: Pick<Permissions, 'query'> | null
   fetch:
@@ -45,6 +49,8 @@ export interface WeatherSnapshot {
 }
 
 export interface LocalWeatherClient {
+  readonly problem: Readonly<Ref<string>>
+  readonly retrying: Readonly<Ref<boolean>>
   subscribe: (listener: WeatherListener) => () => void
   refresh: () => void
   dispose: () => void
@@ -81,6 +87,8 @@ export function createLocalWeatherClient(
 ): LocalWeatherClient {
   const deps: WeatherDependencies = {
     ...browserLocation(),
+    resetPermission: typeof window !== 'undefined' && isTauri()
+      ? () => invoke('reset_location_permission') : null,
     fetch:
       typeof globalThis.fetch === 'function'
         ? globalThis.fetch.bind(globalThis)
@@ -91,6 +99,10 @@ export function createLocalWeatherClient(
     ...dependencies,
   }
   const listeners = new Set<WeatherListener>()
+  // 对外只公布失败类别，不暴露坐标、请求 URL 或原始错误。
+  const problem = ref('')
+  // 主动重试期间保留原位按钮，重复点击共享同一次请求。
+  const retrying = ref(false)
   const initialNow = deps.now()
   let lastAttempt =
     typeof initial?.lastAttempt === 'number' &&
@@ -104,6 +116,7 @@ export function createLocalWeatherClient(
   let timer: Timer | null = null
   let active: AbortController | null = null
   let generation = 0
+  let retryGeneration = 0
   let disposed = false
   let permissionChecked = false
   let permissionStatus: WeatherPermission | null = null
@@ -204,7 +217,9 @@ export function createLocalWeatherClient(
   }
 
   function stop(): void {
+    retryGeneration++
     cancelRequest()
+    retrying.value = false
     permissionStatus?.removeEventListener('change', permissionChanged)
     permissionStatus = null
     permissionChecked = false
@@ -216,6 +231,7 @@ export function createLocalWeatherClient(
   function permissionChanged(): void {
     if (!subscribed()) return
     if (permissionStatus?.state === 'granted') {
+      problem.value = ''
       permissionPaused = false
       // 原生授权弹窗同意期间的请求仍然有效，不为 change 再启动一份定位。
       if (!active) {
@@ -226,6 +242,7 @@ export function createLocalWeatherClient(
     }
     // 已拒绝或已撤销到 prompt 时立即隐藏，并且不自动再次弹出授权请求。
     permissionPaused = true
+    problem.value = '定位未授权'
     authorizedByLocation = false
     cancelRequest()
     clearWeather()
@@ -261,12 +278,17 @@ export function createLocalWeatherClient(
         permissionStatus = status
         status.addEventListener('change', permissionChanged)
         permissionPaused = status.state === 'denied'
-        if (permissionPaused) clearWeather()
+        if (permissionPaused) {
+          problem.value = '定位未授权'
+          clearWeather()
+        }
       }
     } catch {
       // Permissions API 缺失/抛错仍可尝试原生定位；查询超时则本轮明确隐藏。
-      if (owns(id, controller) && controller.signal.aborted)
+      if (owns(id, controller) && controller.signal.aborted) {
+        problem.value = '定位暂不可用'
         lastAttempt = deps.now()
+      }
     } finally {
       if (owns(id, controller)) {
         permissionChecked = true
@@ -281,6 +303,7 @@ export function createLocalWeatherClient(
     if (!subscribed()) return
     const now = deps.now()
     if (!capable() || !Number.isFinite(now) || now <= 0) {
+      problem.value = '定位暂不可用'
       clearWeather()
       return
     }
@@ -321,6 +344,8 @@ export function createLocalWeatherClient(
     const controller = new AbortController()
     active = controller
     lastAttempt = deps.now()
+    problem.value = ''
+    let located = false
     clearWeather()
     try {
       const geolocation = deps.geolocation
@@ -347,7 +372,11 @@ export function createLocalWeatherClient(
       )
       if (!current(id, controller)) return
       const url = buildLocalWeatherUrl(position, deps.now())
-      if (!url) return
+      if (!url) {
+        problem.value = '定位暂不可用'
+        return
+      }
+      located = true
       authorizedByLocation = true
       const payload = await cancellable<unknown>(
         controller,
@@ -370,9 +399,13 @@ export function createLocalWeatherClient(
       )
       if (!current(id, controller)) return
       cached = parseCurrentWeather(payload, deps.now())
+      if (!cached) problem.value = '天气暂不可用'
     } catch {
-      // 权限拒绝、定位/网络失败等均保持隐藏；绝不输出 URL、位置或原始错误。
-      if (owns(id, controller) && subscribed()) clearWeather()
+      // 只显示失败类别，绝不输出 URL、位置或原始错误。
+      if (owns(id, controller) && subscribed()) {
+        problem.value = permissionPaused ? '定位未授权' : located ? '天气暂不可用' : '定位暂不可用'
+        clearWeather()
+      }
     } finally {
       if (owns(id, controller)) {
         active = null
@@ -381,7 +414,31 @@ export function createLocalWeatherClient(
     }
   }
 
+  // 由用户点击触发一次定位，可重新唤起系统询问；后台轮询始终尊重拒绝。
+  async function retry(): Promise<void> {
+    if (!subscribed() || active || retrying.value) return
+    const attempt = ++retryGeneration
+    retrying.value = true
+    try {
+      if (permissionPaused && deps.resetPermission) {
+        try { await deps.resetPermission() } catch { /* 仍通过宿主定位确认当前授权。 */ }
+        if (!subscribed() || attempt !== retryGeneration || !permissionPaused) return
+      }
+      if (!subscribed() || active) return
+      permissionPaused = false
+      lastAttempt = null
+      clearTimer()
+      clearWeather()
+      if (capable()) await request()
+      else reconcile()
+    } finally {
+      if (attempt === retryGeneration) retrying.value = false
+    }
+  }
+
   return {
+    problem,
+    retrying,
     subscribe(listener) {
       if (disposed) {
         notify(listener, null)
@@ -400,13 +457,7 @@ export function createLocalWeatherClient(
         if (listeners.size === 0) stop()
       }
     },
-    refresh() {
-      // 刷新在途时合并为同一轮；不叠加原生定位、网络或 deadline。
-      if (!subscribed() || active) return
-      lastAttempt = null
-      clearWeather()
-      reconcile()
-    },
+    refresh: retry,
     dispose() {
       if (disposed) return
       disposed = true
@@ -469,6 +520,8 @@ export function useLocalWeather(
     stopWatch()
   })
   return {
+    problem: client.problem,
+    retrying: client.retrying,
     weather: computed(() => (toValue(enabled) ? state.weather : null)),
     refresh: () => {
       if (!disposed && toValue(enabled)) client.refresh()

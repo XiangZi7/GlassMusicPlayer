@@ -11,12 +11,13 @@ const { idx } = toRefs(state)
   <div
     class="srow flex min-h-[48px] w-full cursor-pointer items-center gap-[10px] rounded-[13px] border border-transparent p-[7px]"
     :class="{ on: index === idx }"
+    :aria-current="index === idx ? 'true' : undefined"
     role="button"
     tabindex="0"
     @click="controller()?.selectTrack(index, true)"
     @keydown.enter="controller()?.selectTrack(index, true)"
   >
-    <img
+    <img decoding="async" loading="lazy"
       :src="tracks[index]!.cover"
       alt=""
     /><span class="qt"

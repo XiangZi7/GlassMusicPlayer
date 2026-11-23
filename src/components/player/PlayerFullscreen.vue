@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  computed,
   reactive,
   toRefs,
   useTemplateRef,
@@ -14,31 +15,23 @@ import {
 } from '@vueuse/core'
 import { artworkColor } from '@/services/player/artwork-color'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
+import SlidingTabs from '@/components/ui/SlidingTabs.vue'
+import PlayerPlayButton from '@/components/player/PlayerPlayButton.vue'
+import FullscreenScenery from '@/components/player/FullscreenScenery.vue'
 import QueueList from '@/components/player/QueueList.vue'
 import LocalWeather from '@/components/player/LocalWeather.vue'
 import { usePlayer } from '@/composables/usePlayer'
 
 const player = usePlayer()
-const { settings, stage, playing } = toRefs(player.state)
+const { settings, stage, playing, fsQ } = toRefs(player.state)
 const lyrics = useTemplateRef<HTMLElement>('lyrics')
 const fullscreen = useTemplateRef<HTMLElement>('fullscreen')
 const themes = [
-  {
-    value: 'glow',
-    label: '微光',
-    icon: 'M12 2 9.2 9.2 2 12l7.2 2.8L12 22l2.8-7.2L22 12l-7.2-2.8L12 2Z',
-  },
-  {
-    value: 'ink',
-    label: '手书',
-    icon: 'm13.5 6.5 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z',
-  },
-  {
-    value: 'cinema',
-    label: '字幕',
-    icon: 'M3 6h18v12H3zM6 14h4m4 0h4M6 10h12',
-  },
+  { value: 'magazine', label: '时尚' },
+  { value: 'glow', label: '微光' },
+  { value: 'ink', label: '手书' },
+  { value: 'cinema', label: '字幕' },
+  { value: 'chat', label: '对话' },
 ] as const
 type LyricsTheme = (typeof themes)[number]['value']
 const savedTheme = useLocalStorage<string>('miraiMusic.lyricTheme', 'glow')
@@ -54,17 +47,22 @@ const state = reactive({
     themes.find(option => option.value === savedTheme.value)?.value ?? 'glow',
 })
 const { showTranslation, reading, theme } = toRefs(state)
+// 对话主题用当前曲目封面作为来信头像，切歌时同步替换。
+const chatCover = computed(() => {
+  const cover = player.tracks[player.state.idx]?.cover
+  return state.theme === 'chat' && cover ? `url("${CSS.escape(cover)}")` : 'none'
+})
 
 let switchRun = 0
-let switchAnimation: Animation | undefined
+let switchAnimations: Animation[] = []
 let requested = { ...state }
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 // 退出、切歌或关闭动效时释放本次过渡，旧 Promise 不得恢复旧布局。
 function stopLyricsSwitch(commit = false): void {
   switchRun++
-  switchAnimation?.cancel()
-  switchAnimation = undefined
+  switchAnimations.forEach(animation => animation.cancel())
+  switchAnimations = []
   if (commit && player.state.stage) Object.assign(state, requested)
   else requested = { ...state }
 }
@@ -76,52 +74,44 @@ async function applyLyricsView(
 ): Promise<void> {
   Object.assign(requested, patch)
   const run = ++switchRun
-  const element = affectsLayout
-    ? fullscreen.value?.querySelector<HTMLElement>('.fs-main')
-    : lyrics.value
-  const opacity = element ? Number(getComputedStyle(element).opacity) : 1
-  switchAnimation?.cancel()
-  switchAnimation = undefined
-  const animate =
-    element &&
-    player.state.stage &&
-    player.state.settings.motion &&
-    !reducedMotion.matches &&
-    element.animate
+  const scene = affectsLayout || switchAnimations.some(animation =>
+    (animation.effect as KeyframeEffect)?.target?.matches('.fs-main')
+  )
+  const selector = scene ? '.fs-main, .fs-giant, .fs-side, .fs-scenery' : '.fs-lyrics'
+  const elements = [...fullscreen.value?.querySelectorAll<HTMLElement>(selector) ?? []]
+  const animate = player.state.stage && player.state.settings.motion && !reducedMotion.matches
+  // 先记录可见层的实际透明度，再取消旧动画，连续点击时从眼前的画面接续。
+  const outgoing = elements.filter(el => el.getClientRects().length).map(el => ({
+    el, opacity: getComputedStyle(el).opacity,
+  }))
+  switchAnimations.forEach(animation => animation.cancel())
+  switchAnimations = []
   if (animate) {
-    switchAnimation = element.animate([{ opacity }, { opacity: 0 }], {
-      duration: 120,
-      easing: 'ease-out',
-      fill: 'forwards',
-    })
-    try {
-      await switchAnimation.finished
-    } catch {
-      /* 下一次切换会取消旧过渡。 */
-    }
+    switchAnimations = outgoing.map(({ el, opacity }) =>
+      el.animate([{ opacity }, { opacity: 0 }], {
+        duration: 170, easing: 'ease-in', fill: 'both',
+      })
+    )
+    await Promise.allSettled(switchAnimations.map(animation => animation.finished))
     if (run !== switchRun || !player.state.stage) return
   }
   Object.assign(state, requested)
   await nextTick()
   if (run !== switchRun) return
-  switchAnimation?.cancel()
+  switchAnimations.forEach(animation => animation.cancel())
+  switchAnimations = []
   if (animate) {
-    const entrance = element.animate(
-      [
-        { opacity: 0, transform: 'translateY(4px)' },
-        { opacity: 1, transform: 'none' },
-      ],
-      { duration: 180, easing: 'cubic-bezier(.22,1,.36,1)' }
-    )
-    switchAnimation = entrance
-    try {
-      await entrance.finished
-    } catch {
-      /* 关闭或后续切换无需等待本次动画。 */
-    }
+    switchAnimations = elements.filter(el => el.getClientRects().length).map(el => {
+      const opacity = getComputedStyle(el).opacity
+      const frames = el.matches('.fs-main')
+        ? [{ opacity: 0, transform: 'translateY(10px)' }, { opacity, transform: 'none' }]
+        : [{ opacity: 0 }, { opacity }]
+      return el.animate(frames, { duration: scene ? 330 : 200, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' })
+    })
+    await Promise.allSettled(switchAnimations.map(animation => animation.finished))
     if (run === switchRun) {
-      entrance.cancel()
-      switchAnimation = undefined
+      switchAnimations.forEach(animation => animation.cancel())
+      switchAnimations = []
     }
   }
 }
@@ -131,11 +121,24 @@ function toggleLyricsView(kind: 'reading' | 'showTranslation'): void {
   void applyLyricsView({ [kind]: !requested[kind] }, kind === 'reading')
 }
 
-// 从公共选择菜单选中主题，排版切换提交后再保存选择。
+// 点击舞台胶囊切换主题，旧画面淡出后再提交排版和偏好。
 function selectLyricsTheme(value: string): void {
   const selected = themes.find(option => option.value === value)
   if (selected && selected.value !== requested.theme)
     void applyLyricsView({ theme: selected.value }, true)
+}
+
+// 在主题胶囊中即时移动键盘焦点，回车或空格沿用按钮的选择行为。
+function focusTheme(event: KeyboardEvent): void {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+  const buttons = [...(event.currentTarget as HTMLElement).querySelectorAll('button')]
+  const current = buttons.indexOf(event.target as HTMLButtonElement)
+  if (current < 0) return
+  event.preventDefault()
+  event.stopPropagation()
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+    : (current + (event.key === 'ArrowLeft' ? -1 : 1) + buttons.length) % buttons.length
+  buttons[next]?.focus()
 }
 
 // 非必要动效随系统偏好即时关闭，保留用户已请求的阅读方式。
@@ -221,6 +224,7 @@ const dust = [
   <div
     ref="fullscreen"
     :data-lyric-theme="theme"
+    :style="{ '--chat-cover': chatCover }"
     :class="{
       'fs-reading': reading,
       'fs-no-translation': !showTranslation,
@@ -242,6 +246,7 @@ const dust = [
       <i class="amb a1" /><i class="amb a2" /><i class="amb a3" />
     </div>
     <div class="fs-shade absolute inset-0 z-[1]"></div>
+    <FullscreenScenery :theme="theme" :moving="stage && settings.motion && (playing || theme === 'ink' || theme === 'chat')" />
     <div
       class="fs-grain"
       aria-hidden="true"
@@ -296,6 +301,48 @@ const dust = [
         class="fs-topright flex flex-none items-center gap-[8px]"
         data-tauri-drag-region
       >
+        <!-- 译文与阅读操作收进顶栏，歌词列留给对话与定位。 -->
+        <BaseButton
+          class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
+          :aria-pressed="showTranslation"
+          aria-label="显示译文"
+          :title="showTranslation ? '隐藏译文' : '显示译文'"
+          @click="toggleLyricsView('showTranslation')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 5h12M9 3v2M5 8c1 4 4.1 7.4 8 9m0-12c-.7 5.8-4.2 9.9-9 12m10 4 4-9 4 9m-6.5-3h5"
+            />
+          </svg>
+        </BaseButton>
+        <BaseButton
+          class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
+          :aria-pressed="reading"
+          aria-label="歌词阅读模式"
+          :title="reading ? '返回封面与歌词' : '专注阅读歌词'"
+          @click="toggleLyricsView('reading')"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 5.5c-2.7-1.6-5.6-1.7-9-.5v14c3.4-1.2 6.3-1.1 9 .5 2.7-1.6 5.6-1.7 9-.5V5c-3.4-1.2-6.3-1.1-9 .5Z"
+            />
+            <path d="M12 5.5v14" /></svg
+        ></BaseButton>
         <LocalWeather
           :enabled="settings.weather && stage"
           variant="fullscreen"
@@ -304,6 +351,7 @@ const dust = [
           class="fs-topbtn grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white"
           data-fsq-toggle
           aria-label="播放队列"
+          :aria-expanded="fsQ"
           ><svg
             viewBox="0 0 24 24"
             fill="none"
@@ -322,6 +370,18 @@ const dust = [
         ></BaseButton>
       </div>
     </div>
+    <div class="fs-themebar relative z-[3] flex flex-none justify-center px-5 pt-[10px] max-sm:pt-[7px]">
+      <SlidingTabs
+        class="set-seg fs-theme-seg flex flex-none"
+        role="group"
+        aria-label="全屏舞台主题"
+        kind="segment"
+        :model-value="theme"
+        :options="themes"
+        @update:model-value="selectLyricsTheme"
+        @keydown="focusTheme"
+      />
+    </div>
     <div
       class="fs-giant pointer-events-none absolute top-[9%] left-[-12px] z-[1] text-[clamp(96px,13.5vw,172px)] leading-[1] font-extrabold tracking-[-.02em] whitespace-nowrap text-transparent opacity-[.29]"
       data-fs-giant
@@ -331,14 +391,14 @@ const dust = [
       class="fs-side pointer-events-none absolute top-[50%] left-[16px] z-[3] text-[10px] font-extrabold tracking-[.34em] whitespace-nowrap opacity-[.5]"
       aria-hidden="true"
     >
-      NOW PLAYING — AURA PLAYER
+      NOW PLAYING — MiraiPlayer
     </div>
     <div
       class="fs-main relative z-[3] flex min-h-[0] flex-1 items-center p-[6px_46px_4px_58px]"
     >
       <div class="fs-coverwrap relative w-[min(328px,100%)]">
         <div class="fs-coverkb relative">
-          <img
+          <img decoding="async" loading="lazy"
             class="fs-cover"
             data-cover
             alt="专辑封面"
@@ -347,7 +407,7 @@ const dust = [
             class="fs-reflect"
             aria-hidden="true"
           >
-            <img data-cover alt="" />
+            <img decoding="async" loading="lazy" data-cover alt="" />
           </div>
         </div>
         <div
@@ -386,69 +446,13 @@ const dust = [
         </div>
       </div>
       <div class="fs-lyrcol">
-        <div
-          class="fs-lyrhead relative z-[3] mb-[6px] flex flex-none items-center justify-end gap-[10px] p-[0_2px_10px]"
+        <BaseButton
+          class="fs-lyrreturn fs-tool absolute right-2 top-1 z-[3] min-h-[30px] rounded-full px-[9px] text-[11px] font-semibold"
+          data-lyrreturn
+          hidden
+          title="回到当前播放的歌词"
+          >回到当前</BaseButton
         >
-          <!-- 歌词工具区：按需显示译文、切换阅读模式和恢复当前句。 -->
-          <div class="fs-lyrtools flex min-w-0 items-center gap-[4px]">
-            <BaseChoiceMenu
-              :value="theme"
-              :options="themes"
-              :motion="settings.motion"
-              :enabled="stage"
-              label="歌词主题"
-              @select="selectLyricsTheme"
-            />
-            <BaseButton
-              class="fs-lyrreturn fs-tool min-h-[30px] rounded-full px-[9px] text-[11px] font-semibold"
-              data-lyrreturn
-              hidden
-              title="回到当前播放的歌词"
-              >回到当前</BaseButton
-            >
-            <BaseButton
-              class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
-              :aria-pressed="showTranslation"
-              aria-label="显示译文"
-              :title="showTranslation ? '隐藏译文' : '显示译文'"
-              @click="toggleLyricsView('showTranslation')"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 5h12M9 3v2M5 8c1 4 4.1 7.4 8 9m0-12c-.7 5.8-4.2 9.9-9 12m10 4 4-9 4 9m-6.5-3h5"
-                />
-              </svg>
-            </BaseButton>
-            <BaseButton
-              class="fs-tool grid size-[30px] flex-none place-items-center rounded-[9px]"
-              :aria-pressed="reading"
-              aria-label="歌词阅读模式"
-              :title="reading ? '返回封面与歌词' : '专注阅读歌词'"
-              @click="toggleLyricsView('reading')"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.7"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12 5.5c-2.7-1.6-5.6-1.7-9-.5v14c3.4-1.2 6.3-1.1 9 .5 2.7-1.6 5.6-1.7 9-.5V5c-3.4-1.2-6.3-1.1-9 .5Z"
-                />
-                <path d="M12 5.5v14" /></svg
-            ></BaseButton>
-          </div>
-        </div>
         <div
           class="fs-lyrics mt-[16px] min-h-[0] flex-1 overflow-y-auto p-[4px_6px_4px_0]"
           data-fs-lyrics
@@ -501,7 +505,7 @@ const dust = [
       </div>
       <div class="fs-dock-main flex items-center gap-[14px]">
         <div class="dock-left flex min-w-[0] flex-1 items-center gap-[11px]">
-          <img
+          <img decoding="async" loading="lazy"
             class="dock-cover h-[44px] w-[44px] flex-none rounded-[10px] object-cover"
             data-cover
             alt="专辑封面"
@@ -551,11 +555,9 @@ const dust = [
             >
               <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg
           ></BaseButton>
-          <BaseButton
+          <PlayerPlayButton
             class="playbtn relative grid h-[48px] w-[48px] flex-none place-items-center rounded-full border-none"
-            data-play
-            aria-label="播放或暂停"
-          ></BaseButton>
+          />
           <BaseButton
             class="ctl grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
             data-next
@@ -603,6 +605,7 @@ const dust = [
           <BaseButton
             class="ctl small grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
             data-fsq-toggle
+            :aria-expanded="fsQ"
             aria-label="播放队列"
             ><svg
               viewBox="0 0 24 24"
@@ -673,7 +676,8 @@ const dust = [
       </div>
     </div>
     <div
-      class="fs-queue absolute top-[66px] right-[16px] z-[4] hidden max-h-[calc(100%_-_86px)] w-[302px] max-w-[calc(100%_-_32px)] overflow-y-auto rounded-[18px] p-[12px]"
+      class="fs-queue absolute top-[66px] right-[16px] z-[4] flex max-h-[calc(100%_-_86px)] w-[302px] max-w-[calc(100%_-_32px)] flex-col rounded-[18px] p-[12px]"
+      :inert="!fsQ"
     >
       <div
         class="fs-queue-head m-[2px_4px_10px] flex items-center justify-between text-[12px] font-extrabold tracking-[.1em]"
@@ -698,7 +702,7 @@ const dust = [
             <path d="M6 6l12 12M18 6L6 18" /></svg
         ></BaseButton>
       </div>
-      <QueueList fullscreen />
+      <QueueList v-if="stage && fsQ" compact />
     </div>
   </div>
 </template>
@@ -738,8 +742,8 @@ const dust = [
 .fs-lyrreturn {
   border-color: rgb(255 255 255 / 0.14);
 }
-.fs-lyrhead {
-  flex-wrap: wrap;
+.fs.fs-calm .fs-theme-seg :deep(.tab-pill) {
+  transition: none;
 }
 
 /* 行高保持稳定，强调通过透明度与轻微缩放完成，不逐句动画字号。 */
@@ -888,6 +892,20 @@ const dust = [
   text-shadow: none;
 }
 
+/* 时尚沿用原稿 magazine 的封面倒影、跨栏标题、背景大字和紧凑的歌词栏。 */
+.fs[data-lyric-theme='magazine'] .fs-main .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line) {
+  opacity: .55;
+  padding-block: 7px;
+}
+.fs[data-lyric-theme='magazine'] .fs-main :deep(.fl-line.d1) { opacity: .82; }
+.fs[data-lyric-theme='magazine'] .fs-main :deep(.fl-line:is(.on,.focus)) { opacity: 1; }
+.fs[data-lyric-theme='magazine'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-o) {
+  font-size: clamp(14px, 1.25vw, 17px);
+  line-height: 1.4;
+}
+.fs[data-lyric-theme='magazine'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line.on .fl-o) {
+  font-size: clamp(18px, 2vw, 24px);
+}
 /* 手书用暖色笔画和较大的行距，字幕把唱词放到舞台中央。 */
 .fs[data-lyric-theme='ink'] {
   --lyric-ink: #fff0d8;
@@ -901,6 +919,16 @@ const dust = [
 }
 .fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
   color: var(--lyric-ink);
+}
+.fs[data-lyric-theme='ink'] .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line:nth-child(even)) {
+  width: calc(100% - 22px);
+  margin-left: 22px;
+}
+.fs[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
+  text-decoration: underline;
+  text-decoration-color: rgb(221 171 99 / 45%);
+  text-underline-offset: .22em;
+  text-decoration-thickness: 1px;
 }
 .fs[data-lyric-theme='cinema'] .fs-main {
   display: grid;
@@ -951,11 +979,144 @@ const dust = [
   text-wrap: balance;
 }
 
+/* 对话直接叠在专辑氛围层上，来信和回信沿两侧排列。 */
+.fs[data-lyric-theme='chat'] {
+  & :is(.fs-giant, .fs-side, .fs-index) {
+    display: none;
+  }
+  & .fs-main .fs-titleblock {
+    margin-left: -30px;
+    max-width: 308px;
+  }
+  & .fs-titleblock h4 {
+    font-size: 33px;
+    line-height: 1.1;
+  }
+  & .fs-main .fs-lyrcol {
+    padding: 2px 2px 0;
+    border: 0;
+  }
+  &:not(.fs-reading) .fs-main .fs-lyrcol {
+    flex: 0 1 min(452px, 52%);
+  }
+  & .fs-lyrseek {
+    left: auto;
+    right: 12px;
+  }
+  & .fs-lyrics:not(.lyrics-unavailable) {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 2.4vh, 24px);
+    padding: 0 8px 0 4px;
+    /* 首尾留白和长句都保留实际高度，供滚动与按句定位测量。 */
+    &::before, &::after {
+      flex-shrink: 0;
+    }
+    & :deep(.fl-line) {
+      position: relative;
+      flex: none;
+      align-self: flex-start;
+      width: fit-content;
+      max-width: calc(62% + var(--chat-width) * 18%);
+      min-height: 0;
+      margin: var(--chat-gap) 0 0 38px;
+      padding: 12px 17px 13px;
+      border: 1px solid rgb(255 255 255 / 20%);
+      border-radius: 22px 22px 22px 7px;
+      background: linear-gradient(rgb(255 255 255 / 21%), rgb(255 255 255 / 10%));
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 6px 18px rgb(0 0 0 / 20%);
+      backdrop-filter: blur(14px) saturate(1.5);
+      filter: none;
+      transform: none;
+      opacity: .75;
+    }
+    & :deep(.fl-line:nth-child(odd)::before) {
+      content: '';
+      position: absolute;
+      left: -38px;
+      bottom: 0;
+      width: 29px;
+      height: 29px;
+      border: 1px solid rgb(255 255 255 / 35%);
+      border-radius: 50%;
+      background: rgb(255 255 255 / 10%) var(--chat-cover) center / cover;
+      box-shadow: 0 3px 8px rgb(0 0 0 / 35%);
+    }
+    & :deep(.fl-line:nth-child(even)) {
+      align-self: flex-end;
+      max-width: calc(66% + var(--chat-width) * 18%);
+      margin-left: 0;
+      border-radius: 22px 22px 7px 22px;
+      background: linear-gradient(rgb(64 168 255 / 55%), rgb(10 110 240 / 48%));
+      transform-origin: right center;
+    }
+    & :deep(.fl-line .fl-o) {
+      font-size: calc(15px * var(--chat-size));
+      font-weight: 500;
+      line-height: 1.4;
+      letter-spacing: normal;
+    }
+    & :deep(.fl-line .fl-tr) {
+      margin-top: 5px;
+      font-size: 12px;
+      opacity: .75;
+    }
+    & :deep(.fl-line.d1) {
+      opacity: .9;
+    }
+    & :deep(.fl-line.on) {
+      opacity: 1;
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 12px 28px rgb(0 0 0 / 32%);
+    }
+    & :deep(.fl-line:nth-child(even).on) {
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 32%), 0 6px 18px rgb(10 90 180 / 20%);
+    }
+    & :deep(.fl-line.on .fl-o) {
+      font-weight: 700;
+    }
+    & :deep(.fl-line:is(.focus, :focus-visible)) {
+      opacity: 1;
+      outline: 2px solid rgb(255 255 255 / 55%);
+      outline-offset: 2px;
+    }
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
-  .fs:not(.fs-calm):is([data-lyric-theme='ink'], [data-lyric-theme='cinema'])
-    :deep(.fl-line.on .fl-o) {
+  .fs[data-lyric-theme='chat']:not(.fs-calm) .fs-lyrics:not(.lyrics-unavailable) :deep(.fl-line.on) {
+    animation: bubble-arrive 340ms cubic-bezier(.2,.8,.25,1) both;
+  }
+}
+@keyframes bubble-arrive {
+  from { opacity: .68; transform: translateY(7px) scale(.96); }
+  70% { transform: translateY(-1px) scale(1.025); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 1020px) {
+  .fs[data-lyric-theme='chat'] .fs-titleblock h4 {
+    font-size: 28px;
+  }
+  .fs[data-lyric-theme='chat']:not(.fs-reading) .fs-main .fs-lyrcol {
+    flex-basis: min(396px, 52%);
+  }
+}
+@media (max-width: 640px) {
+  .fs[data-lyric-theme='chat'] .fs-main .fs-titleblock {
+    max-width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fs:not(.fs-calm)[data-lyric-theme='ink'] :deep(.fl-line.on .fl-o) {
+    animation: ink-reveal 300ms ease-out both;
+  }
+  .fs:not(.fs-calm)[data-lyric-theme='cinema'] :deep(.fl-line.on .fl-o) {
     animation: lyric-reveal 250ms ease-out both;
   }
+}
+@keyframes ink-reveal {
+  from { opacity: .55; transform: translateX(-9px) rotate(-1deg); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes lyric-reveal {
   from {
@@ -976,6 +1137,7 @@ const dust = [
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fs-theme-seg :deep(.tab-pill),
   .fs-tool,
   .fs .fs-main :deep(.fl-line) {
     transition: none;

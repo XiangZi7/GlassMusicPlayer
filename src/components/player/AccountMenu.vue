@@ -14,6 +14,7 @@ import type { MusicPlatform } from '@/api'
 import type { LinkedProfile, LinkedProfiles } from '@/stores/player'
 import { platformNames } from '@/services/player/catalog'
 import { publicAvatar } from '@/services/public-avatar'
+import { playbackAccount } from '@/services/player/playback-session'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = defineProps<{ profiles: LinkedProfiles }>()
@@ -28,7 +29,7 @@ const latest = computed(
       .filter((item): item is LinkedProfile => !!item)
       .sort((a, b) => b.syncedAt - a.syncedAt)[0]
 )
-const avatar = computed(() => publicAvatar(latest.value?.avatarUrl))
+const avatar = computed(() => publicAvatar((playbackAccount.value ?? latest.value)?.avatarUrl))
 
 // 响应式状态
 const state = reactive({
@@ -113,7 +114,7 @@ onBeforeUnmount(hide)
     <button
       ref="trigger"
       type="button"
-      class="account-avatar group grid size-9 cursor-pointer place-items-center rounded-[10px] border-0 bg-transparent text-white/70 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 aria-expanded:bg-white/8"
+      class="account-avatar group flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-white/70 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 aria-expanded:bg-white/8"
       aria-label="账号与音乐平台"
       aria-haspopup="menu"
       :aria-expanded="open"
@@ -123,7 +124,7 @@ onBeforeUnmount(hide)
       <span
         class="grid size-7 place-items-center rounded-full border border-white/8 bg-white/3 transition-colors duration-150 group-hover:border-white/15 group-hover:bg-white/6"
       >
-        <img
+        <img decoding="async" loading="lazy"
           v-if="avatar && !avatarFailed"
           :src="avatar"
           alt=""
@@ -149,6 +150,7 @@ onBeforeUnmount(hide)
           <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
         </svg>
       </span>
+      <span v-if="playbackAccount?.badge" class="rounded-full border border-amber-200/25 bg-amber-200/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-200" :aria-label="'网易云会员 ' + playbackAccount.badge">{{ playbackAccount.badge }}</span>
     </button>
     <Transition name="account-bubble">
       <div

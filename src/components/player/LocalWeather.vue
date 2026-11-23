@@ -9,6 +9,9 @@ const props = withDefaults(
   { variant: 'titlebar' }
 )
 const weatherState = useLocalWeather(() => props.enabled)
+const retryHint = computed(() => weatherState.problem.value === '定位未授权'
+  ? '点击重新请求定位权限。如果系统仍拒绝，请在 Windows 设置 → 隐私和安全性 → 位置，或浏览器的网站权限中开启位置。'
+  : '重新获取当前位置的天气')
 const preferredMotion = usePreferredReducedMotion()
 const presentation = computed(() =>
   props.variant === 'fullscreen'
@@ -157,6 +160,20 @@ function leaveImmediately(_element: Element, done: () => void): void {
         pill.label
       }}</span>
     </div>
+    <button
+      v-else-if="props.enabled && (weatherState.problem.value || weatherState.retrying.value)"
+      type="button"
+      class="weather-status inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 text-[11px] text-white/70 hover:bg-white/10 focus-visible:outline-2"
+      :title="retryHint"
+      :aria-label="retryHint"
+      :aria-busy="weatherState.retrying.value"
+      :class="variant === 'fullscreen' ? 'fs-weather' : 'weather-pill'"
+      :disabled="weatherState.retrying.value"
+      @click="weatherState.refresh"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 18a4 4 0 0 1 0-8 6 6 0 0 1 11.8-1A4.5 4.5 0 1 1 18 18Z"/></svg>
+      {{ weatherState.retrying.value ? '正在重新定位…' : weatherState.problem.value }}
+    </button>
   </Transition>
 </template>
 

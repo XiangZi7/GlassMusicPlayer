@@ -213,6 +213,15 @@ export function createFullscreenMotion({
             fill: 'both',
           })
         )
+      // 主题胶囊随顶栏分层淡入，复用同一动画登记以响应快速关闭或切歌。
+      var tbar = fs.querySelector('.fs-themebar')
+      if (tbar)
+        track(
+          tbar.animate(
+            [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'translateY(0)' }],
+            { duration: 420, delay: 660, easing: 'ease-out', fill: 'both' }
+          )
+        )
       var dock = fs.querySelector('.fs-dock')
       if (dock)
         track(

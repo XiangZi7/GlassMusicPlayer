@@ -45,6 +45,7 @@ import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import { getStorageInfo } from '@/services/storage'
 import { emptyTrack } from '@/constants/music'
+import { clearPlaybackGrant, playbackAccount } from '@/services/player/playback-session'
 import type { SettingsAction, SettingsSnapshot } from '@/types/settings'
 
 const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
@@ -55,6 +56,14 @@ const { state, tracks, saveIslandPreferences, savePreferences } =
   usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
+// 设置窗与底栏选音质共用重新取源流程，暂停时只让旧音源失效。
+watch(() => state.settings.quality, () => player.value?.reloadPlayback())
+// 登录切换或撤销后立即释放属于上一身份的音源。
+watch(playbackAccount, () => player.value?.reloadPlayback(false), { flush: 'sync' })
+// 主动解除关联或改绑其他 UID 时丢弃本次扫码的会员凭证。
+watch(() => state.linkedProfiles.netease, profile => {
+  if (playbackAccount.value && profile?.userId !== playbackAccount.value.userId) clearPlaybackGrant()
+})
 let disposed = false
 
 provide(playerKey, {

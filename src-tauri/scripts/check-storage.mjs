@@ -81,7 +81,7 @@ if (process.platform === 'win32') {
     record =>
       record.reason === 'compiler-artifact' &&
       record.profile?.test &&
-      record.target?.name === 'miraimusic_lib' &&
+      record.target?.name === 'miraiplayer_lib' &&
       typeof record.executable === 'string'
   )
   assert.equal(tests.length, 1)
@@ -92,7 +92,7 @@ if (process.platform === 'win32') {
     relative && !relative.startsWith('..') && !path.isAbsolute(relative),
     'Only the generated native target artifact may be modified.'
   )
-  assert(/^miraimusic_lib-[a-f\d]+\.exe$/i.test(path.basename(executable)))
+  assert(/^miraiplayer_lib-[a-f\d]+\.exe$/i.test(path.basename(executable)))
   assert(
     fs.lstatSync(executable).isFile() &&
       !fs.lstatSync(executable).isSymbolicLink()

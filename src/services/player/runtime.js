@@ -95,10 +95,6 @@ export function mountSourcePlayer(root, options = {}) {
     if (!TRACKS[idx]) return []
     return catalogLyrics || [{ t: 0, o: '暂无歌词', tr: '' }]
   }
-  var ICON_PLAY =
-    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>'
-  var ICON_PAUSE =
-    '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
   var VOL_SPK = '<path d="M11 5L6 9H3v6h3l5 4z"/>'
   var ICON_VOL_HIGH =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -150,6 +146,14 @@ export function mountSourcePlayer(root, options = {}) {
     },
     status(status) {
       state.catalogStatus = status
+    },
+    // 底栏与全屏按钮共用音频请求的生命周期。
+    loading(loading) {
+      state.audioLoading = loading
+    },
+    // 只公布音源实际返回的档位或码率。
+    quality(quality) {
+      state.actualQuality = quality
     },
     ended: finishPlayback,
   })
@@ -251,13 +255,13 @@ export function mountSourcePlayer(root, options = {}) {
     wordFrame = requestAnimationFrame(tickLyricWords)
   }
 
-  // 只缓存当前歌词按钮的字节点，切歌和回退 LRC 时释放旧引用。
+  // 所有全屏主题共享实际媒体位置和词段时钟，只更新当前唱句。
   function syncLyricWords(lines, index) {
-    if (!state.stage || !catalogLyrics?.some(line => line.words || line.trWords)) {
+    const viewport = state.stage && root.querySelector('[data-fs-lyrics]')
+    if (!viewport || !catalogLyrics?.some(line => line.words || line.trWords)) {
       wordCue = undefined
     } else {
       const line = lines[index]
-      const viewport = root.querySelector('[data-fs-lyrics]')
       const row = line?.words || line?.trWords ? viewport?.children[index] : undefined
       const parts = row && row === wordCue?.row ? wordCue.parts : []
       if (row && row !== wordCue?.row) {
@@ -288,6 +292,21 @@ export function mountSourcePlayer(root, options = {}) {
       ? words.map(word => '<span class="fl-word">' + escHtml(word.text) + '</span>').join('')
       : escHtml(text)
     return '<span class="' + className + (words ? ' fl-timed' : '') + '">' + inner + '</span>'
+  }
+
+  // 按原稿用曲目与行号生成固定的气泡宽度、字号及行距，仅在创建歌词行时计算。
+  function chatLineStyle(trackIndex, lineIndex) {
+    const seed = Math.imul(trackIndex + 1, 2654435761) ^ Math.imul(lineIndex + 1, 2246822519)
+    // 每个维度单独取样，切换主题再切回时仍得到同一排版。
+    function sample(channel) {
+      let value = seed ^ Math.imul(channel, 3266489917)
+      value = Math.imul(value ^ (value >>> 16), 0x21f0aaad)
+      value = Math.imul(value ^ (value >>> 15), 0x735a2d97)
+      return ((value ^ (value >>> 15)) >>> 0) / 4294967296
+    }
+    const gap = ((sample(2) * 8 - 4) * 0.7).toFixed(1)
+    const size = (0.93 + sample(4) * 0.16).toFixed(3)
+    return `--chat-gap:${gap}px;--chat-size:${size};--chat-width:${sample(6).toFixed(3)}`
   }
 
   // 按原稿格式显示播放时间。
@@ -1011,9 +1030,6 @@ export function mountSourcePlayer(root, options = {}) {
       p.querySelectorAll('[data-seek],[data-radio-quick]').forEach(function (el) {
         el.disabled = !current?.catalog
       })
-      p.querySelectorAll('[data-play]').forEach(function (el) {
-        el.disabled = current ? !current.catalog : !state.queue?.length
-      })
       p.querySelectorAll('[data-prev],[data-next]').forEach(function (el) {
         el.disabled = !current && !state.queue?.length
       })
@@ -1105,10 +1121,6 @@ export function mountSourcePlayer(root, options = {}) {
         seek.value = Math.round(ratio * 1000)
         seek.style.setProperty('--p', ratio * 100 + '%')
       })
-      p.querySelectorAll('[data-play]').forEach(function (el) {
-        el.innerHTML = state.playing ? ICON_PAUSE : ICON_PLAY
-        el.setAttribute('aria-label', state.playing ? '暂停' : '播放')
-      })
       p.querySelectorAll('[data-like]').forEach(function (el) {
         el.classList.toggle('liked', !!state.liked[state.idx])
         el.setAttribute(
@@ -1168,26 +1180,11 @@ export function mountSourcePlayer(root, options = {}) {
         el.textContent =
           tr.album.toUpperCase() + ' · ' + tr.q + ' · ' + fmt(tr.dur)
       })
-      p.querySelectorAll('.trow').forEach(function (it, i) {
-        it.classList.toggle('on', i === state.idx)
-      })
-      p.querySelectorAll('.qitem').forEach(function (it) {
-        it.classList.toggle(
-          'on',
-          parseInt(it.getAttribute('data-ti'), 10) === state.idx
-        )
-      })
       p.querySelectorAll('.feat').forEach(function (it) {
         var ti = it.getAttribute('data-ti')
         if (ti !== null && TRACKS[parseInt(ti, 10)]) {
           it.classList.toggle('on', TRACKS[parseInt(ti, 10)].album === tr.album)
         }
-      })
-      p.querySelectorAll('.fsq-item').forEach(function (it) {
-        it.classList.toggle(
-          'on',
-          parseInt(it.getAttribute('data-ti'), 10) === state.idx
-        )
       })
       p.querySelectorAll('[data-capsule-text]').forEach(function (el) {
         if (el.textContent !== capsuleLyric) {
@@ -1265,6 +1262,8 @@ export function mountSourcePlayer(root, options = {}) {
                   lineCls(j) +
                   '" data-lj="' +
                   j +
+                  '" style="' +
+                  chatLineStyle(state.idx, j) +
                   '">' +
                   lyricMarkup('fl-o', L.o, L.words) +
                   (L.tr ? lyricMarkup('fl-tr', L.tr, L.trWords) : '') +
@@ -1357,8 +1356,6 @@ export function mountSourcePlayer(root, options = {}) {
       '|' +
       TRACKS.length +
       '|' +
-      (state.queue ? state.queue.join(',') : '') +
-      '|' +
       (state.radioOn ? 'R' : '') +
       '|' +
       (state.smartOpen || '')
@@ -1406,9 +1403,26 @@ export function mountSourcePlayer(root, options = {}) {
     if (!source) return
     if (v) {
       if (!catalogLyrics && !lyricRequest) void loadCatalogLyrics(source)
-      void audio.play(source)
+      void audio.play(source, state.settings.quality)
     } else audio.pause()
   }
+  // 点击加载中的播放按钮也可取消取源，键盘和桌面控制沿用同一行为。
+  function togglePlayback() {
+    setPlaying(!state.playing && !state.audioLoading)
+  }
+
+  // 网易云音质或授权变化时释放旧媒体，保留真实进度，暂停中的歌曲等待下次播放。
+  function reloadPlayback(resume = true) {
+    if (TRACKS[state.idx]?.catalog?.platform !== 'netease') return
+    const shouldPlay = resume && (state.playing || state.audioLoading)
+    state.resumeTime = state.resumeTime || audio.position() || state.t
+    audio.reset()
+    state.playing = false
+    state.catalogStatus = null
+    if (shouldPlay) setPlaying(true)
+    render()
+  }
+
   // 同步最新版原稿：每次打开分层入场，关闭先取消入场/切歌，再镜像退场。
   function setStage(open) {
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -1547,7 +1561,7 @@ export function mountSourcePlayer(root, options = {}) {
   function bindPlayer(p) {
     p.querySelectorAll('[data-play]').forEach(function (el) {
       listenElement(el, 'click', function () {
-        setPlaying(!state.playing)
+        togglePlayback()
       })
     })
     p.querySelectorAll('[data-stage-toggle]').forEach(function (el) {
@@ -2305,11 +2319,11 @@ export function mountSourcePlayer(root, options = {}) {
       !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)
     ) {
       e.preventDefault()
-      setPlaying(!state.playing)
+      togglePlayback()
     }
     if (e.code === 'Space' && document.activeElement.tagName === 'BODY') {
       e.preventDefault()
-      setPlaying(!state.playing)
+      togglePlayback()
     }
     var ktag = document.activeElement.tagName
     if (/INPUT|TEXTAREA/.test(ktag)) return
@@ -2368,7 +2382,7 @@ export function mountSourcePlayer(root, options = {}) {
   }
   // 独立窗口的操作仍交给原稿方法执行，不引入另一套播放或页面逻辑。
   function dispatch(action) {
-    if (action.type === 'toggle') setPlaying(!state.playing)
+    if (action.type === 'toggle') togglePlayback()
     else if (action.type === 'next') nextTrack()
     else if (action.type === 'previous') prevTrack()
     else if (action.type === 'like' && TRACKS[state.idx]) {
@@ -2423,6 +2437,7 @@ export function mountSourcePlayer(root, options = {}) {
     refresh,
     navigate: setPage,
     selectTrack,
+    reloadPlayback,
     openStage,
     playTracks,
     toggleRadio,

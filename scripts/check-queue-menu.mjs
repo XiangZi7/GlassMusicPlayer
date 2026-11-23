@@ -64,6 +64,7 @@ function harness() {
   let focusedTrigger = 0
   const rows = Array.from({ length: 3 }, (_, index) => ({
     index,
+    dataset: { qpos: String(index) },
     closest() {
       return this
     },
@@ -72,7 +73,14 @@ function harness() {
     },
     scrollIntoView() {},
   }))
+  const virtualCode = fs.readFileSync(path.join(root, 'src/components/player/QueueList.vue'), 'utf8')
+  const script = parse(virtualCode).descriptor.scriptSetup.content
+  const browse = ts.createSourceFile('list.ts', script, ts.ScriptTarget.Latest, true).statements
+    .find(node => ts.isFunctionDeclaration(node) && node.name.text === 'browse')
   const context = {
+    indices: { value: [0, 1, 2] },
+    reveal: index => rows[index].focus(),
+    queueList: { value: {} },
     state,
     player,
     document,
@@ -85,10 +93,12 @@ function harness() {
       },
     },
     panel: {
-      value: { querySelector: () => rows[1], querySelectorAll: () => rows },
+      value: { focus() {}, querySelector: () => rows[1], querySelectorAll: () => rows },
     },
   }
   vm.createContext(context)
+  const browseCode = ts.transpileModule(browse.getText(), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
+  vm.runInContext(browseCode + '; queueList.value.browse = browse', context)
   vm.runInContext(code, context)
   return {
     ...context,

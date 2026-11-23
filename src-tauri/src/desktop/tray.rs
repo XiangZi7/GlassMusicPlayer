@@ -125,7 +125,7 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
     super::tray_menu::remember_native_menu(app.handle(), &menu)?;
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(image)
-        .tooltip("Mirai Music · 右键打开桌面菜单")
+        .tooltip("MiraiPlayer · 右键打开桌面菜单")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| {

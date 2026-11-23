@@ -2,13 +2,27 @@
 import BaseButton from '@/components/ui/BaseButton.vue'
 import LyricIsland from '@/components/player/LyricIsland.vue'
 import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
+import PlayerPlayButton from '@/components/player/PlayerPlayButton.vue'
+import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
+import { computed, toRefs } from 'vue'
+import { usePlayer } from '@/composables/usePlayer'
+import { playbackQualities } from '@/constants/music'
+
+const { state, tracks, setSetting } = usePlayer()
+const { settings, stage } = toRefs(state)
+const supportsQuality = computed(() => tracks[state.idx]?.catalog?.platform === 'netease')
+const qualityHint = computed(() => {
+  if (!supportsQuality.value) return '网易云曲目支持选择播放音质'
+  const actual = playbackQualities.find(item => item.value === state.actualQuality)?.label ?? state.actualQuality
+  return actual ? `当前音源实际音质：${actual}` : '选择请求的播放音质，实际音质由平台返回'
+})
 </script>
 
 <template>
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
   <LyricIsland />
   <div
-    class="win-bottom relative z-[4] grid h-[72px] flex-none grid-cols-[252px_minmax(0,1fr)_208px] items-center gap-[14px] p-[10px_18px_8px]"
+    class="win-bottom relative z-[4] grid h-[72px] flex-none grid-cols-[minmax(200px,1fr)_auto_minmax(295px,1fr)] items-center gap-[14px] p-[10px_18px_8px]"
   >
     <div class="mini flex min-w-[0] items-center gap-[11px]">
       <BaseButton
@@ -16,7 +30,7 @@ import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
         data-stage-toggle
         aria-label="打开全屏播放页"
         title="打开全屏播放"
-        ><img
+        ><img decoding="async" loading="lazy"
           data-cover
           alt="专辑封面"
       /></BaseButton>
@@ -64,11 +78,9 @@ import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
           >
             <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg
         ></BaseButton>
-        <BaseButton
+        <PlayerPlayButton
           class="playbtn relative grid h-[48px] w-[48px] flex-none place-items-center rounded-full border-none"
-          data-play
-          aria-label="播放或暂停"
-        ></BaseButton>
+        />
         <BaseButton
           class="ctl grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
           data-next
@@ -98,6 +110,16 @@ import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
       </div>
     </div>
     <div class="right-ctl flex flex-wrap items-center justify-end gap-[6px]">
+      <BaseChoiceMenu
+        label="音质"
+        :hint="qualityHint"
+        :value="supportsQuality ? settings.quality : 'auto'"
+        :enabled="supportsQuality && !stage"
+        :motion="settings.motion"
+        :options="playbackQualities"
+        above
+        @select="setSetting('quality', $event)"
+      />
       <!-- 底栏队列：从当前按钮上方弹出，不改变全屏或页面状态。 -->
       <PlayerQueueMenu />
       <BaseButton
@@ -174,6 +196,7 @@ import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
       >
     </div>
     <canvas
+      v-show="settings.bottomSpectrum"
       class="player-spectrum pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[14px] w-full"
       data-spectrum
       aria-hidden="true"

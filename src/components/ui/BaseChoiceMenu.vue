@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, useId, useTemplateRef, watch } from 'vue'
-import { useEventListener } from '@vueuse/core'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = withDefaults(
   defineProps<{
     label: string
     value: string
-    options: readonly { value: string; label: string; icon: string }[]
+    options: readonly { value: string; label: string; icon?: string }[]
+    above?: boolean
+    hint?: string
     motion?: boolean
     enabled?: boolean
   }>(),
@@ -23,7 +25,26 @@ const selected = computed(() =>
 const state = reactive({
   // 键盘和鼠标共用菜单的展开状态。
   open: false,
+  // 弹层以播放器内缘为基准，对齐入口右边和上下边缘。
+  position: {} as Record<string, string>,
 })
+
+// 将气泡放在独立玻璃层，使背景取样覆盖底栏以外的真实页面。
+function alignMenu(): void {
+  const anchor = root.value
+  const host = anchor?.closest<HTMLElement>('[data-player]')
+  if (!state.open || !anchor || !host) return
+  const button = anchor.getBoundingClientRect()
+  const frame = host.getBoundingClientRect()
+  state.position = {
+    right: Math.max(8, Math.min(host.clientWidth - 148, frame.right - host.clientLeft - button.right)) + 'px',
+    ...(props.above
+      ? { bottom: frame.bottom - host.clientTop - button.top + 8 + 'px' }
+      : { top: button.bottom - frame.top - host.clientTop + 8 + 'px' }),
+  }
+}
+useResizeObserver(root, alignMenu)
+useEventListener(window, 'resize', alignMenu)
 
 // 关闭气泡，主动选择或按 Escape 时将焦点还给入口。
 function close(restoreFocus = false): void {
@@ -36,6 +57,7 @@ function close(restoreFocus = false): void {
 async function open(edge?: 'first' | 'last'): Promise<void> {
   if (!props.enabled) return
   state.open = true
+  alignMenu()
   await nextTick()
   if (!state.open) return
   const items = menu.value?.querySelectorAll<HTMLButtonElement>(
@@ -99,12 +121,13 @@ function keydown(event: KeyboardEvent): void {
 }
 
 // 外部交互和窗口离开时收起菜单，背景上的原有操作仍可使用。
-useEventListener(document, 'pointerdown', event => {
-  if (state.open && !root.value?.contains(event.target as Node)) close()
-})
-useEventListener(root, 'focusout', event => {
-  if (state.open && !root.value?.contains(event.relatedTarget as Node)) close()
-})
+// Teleport 后按钮和弹层仍属同一焦点区域。
+function closeOutside(event: Event): void {
+  const target = event.target as Node
+  if (state.open && !root.value?.contains(target) && !menu.value?.contains(target)) close()
+}
+useEventListener(document, 'pointerdown', closeOutside)
+useEventListener(document, 'focusin', closeOutside)
 useEventListener(window, 'blur', () => close())
 watch(
   () => props.enabled,
@@ -124,7 +147,7 @@ watch(
     <BaseButton
       class="choice-trigger flex h-[30px] cursor-pointer items-center gap-1.5 rounded-[9px] border border-white/14 bg-white/5 px-2 text-[11px] font-semibold text-white/80 hover:bg-white/12"
       :aria-label="label"
-      :title="label"
+      :title="hint || label"
       aria-haspopup="menu"
       :aria-expanded="state.open"
       :aria-controls="state.open ? menuId : undefined"
@@ -132,7 +155,7 @@ watch(
       @click.stop="toggle"
     >
       <svg
-        v-if="selected"
+        v-if="selected?.icon"
         viewBox="0 0 24 24"
         class="size-3.5 shrink-0"
         fill="none"
@@ -144,7 +167,7 @@ watch(
       >
         <path :d="selected.icon" />
       </svg>
-      <span>{{ selected?.label ?? label }}</span>
+      <span>{{ label }} · {{ selected?.label ?? '自动' }}</span>
       <svg
         viewBox="0 0 16 16"
         class="size-3 shrink-0 opacity-65"
@@ -158,6 +181,7 @@ watch(
         <path d="m4 6 4 4 4-4" />
       </svg>
     </BaseButton>
+    <Teleport defer to="[data-player]">
     <Transition name="choice">
       <div
         v-if="state.open"
@@ -165,7 +189,10 @@ watch(
         ref="menu"
         role="menu"
         :aria-label="label"
-        class="choice-panel absolute top-[calc(100%+8px)] right-0 z-20 grid w-[140px] gap-0.5 rounded-xl border border-white/16 p-1.5 text-white"
+        class="choice-panel absolute z-20 grid w-[140px] gap-0.5 rounded-xl border p-1.5 text-white"
+        :class="{ 'choice-calm': !motion }"
+        :style="state.position"
+        @keydown="keydown"
       >
         <button
           v-for="option in options"
@@ -179,6 +206,7 @@ watch(
           @click="choose(option.value)"
         >
           <svg
+            v-if="option.icon"
             viewBox="0 0 24 24"
             class="size-4 shrink-0"
             fill="none"
@@ -207,24 +235,35 @@ watch(
         </button>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
 .choice-panel {
-  background: rgb(26 27 37 / 91%);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 12px 26px rgb(0 0 0 / 38%);
+  border-color: rgb(255 255 255 / 24%);
+  background: rgb(22 22 31 / 74%);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 14px 28px rgb(0 0 0 / 38%);
 }
 .liquid-win .choice-panel {
   background:
-    linear-gradient(160deg, rgb(255 255 255 / 18%), rgb(255 255 255 / 4%) 65%),
-    rgb(22 24 34 / 90%);
-  border-color: rgb(255 255 255 / 35%);
-  backdrop-filter: blur(22px) saturate(1.25);
+    linear-gradient(165deg, rgb(255 255 255 / 30%), rgb(255 255 255 / 9%) 55%),
+    rgb(14 20 24 / 48%);
+  border-color: rgb(255 255 255 / 48%);
+  backdrop-filter: blur(14px) saturate(1.25);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 36%),
-    0 12px 26px rgb(0 0 0 / 38%);
+    inset 0 1.5px 1px rgb(255 255 255 / 70%),
+    0 16px 30px rgb(0 0 0 / 34%);
+}
+.glass-win .choice-trigger {
+  background: rgb(255 255 255 / 9%);
+  border-color: rgb(255 255 255 / 20%);
+}
+.liquid-win .choice-trigger, .liquid-win .choice-option[aria-checked='true'] {
+  background: linear-gradient(160deg, rgb(255 255 255 / 26%), rgb(255 255 255 / 7%));
+  border-color: rgb(255 255 255 / 40%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }
 .choice-option:is(:hover, :focus-visible, [aria-checked='true']) {
   background: rgb(255 255 255 / 10%);
@@ -249,7 +288,7 @@ watch(
   opacity: 0;
   transform: translateY(-4px);
 }
-.choice-calm :is(.choice-enter-active, .choice-leave-active) {
+.choice-calm:is(.choice-enter-active, .choice-leave-active) {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {

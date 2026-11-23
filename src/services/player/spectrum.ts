@@ -108,8 +108,10 @@ export function createSpectrum(
   function paintBars(timestamp: number, resting: boolean): void {
     if (!paint || destroyed) return
     const size = fitCanvas(canvas, paint)
-    if (!size) return
-    const { width, height, ratio } = size
+    if (!size && !banner?.canvas.clientWidth) return
+    const width = size?.width || banner!.canvas.clientWidth
+    const height = size?.height ?? 0
+    const ratio = size?.ratio ?? 1
     paint.fillStyle = paintColor(timestamp, resting)
     const { count, step, barWidth, padding } = spectrumLayout(width)
     const seed = playback?.seed ?? 0

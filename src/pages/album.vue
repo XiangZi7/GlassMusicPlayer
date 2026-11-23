@@ -22,7 +22,7 @@ const albumIndices = computed(() =>
     <!-- 页面分类与排序组件：复用公共标签条和原稿滑动胶囊。 -->
     <LibraryTabs />
     <div class="pl-head flex items-center gap-[18px]">
-      <img
+      <img decoding="async" loading="lazy"
         data-ad-cover
         alt="专辑封面"
       />

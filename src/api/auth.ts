@@ -1,5 +1,6 @@
 import type { MusicPlatform } from '@/api'
 import { httpPost } from '@/utils/http'
+import { acceptPlaybackGrant } from '@/services/player/playback-session'
 
 export type QrLoginStatus = 'waiting' | 'scanned' | 'authorized' | 'expired'
 
@@ -18,14 +19,25 @@ export interface QrLoginSession {
 }
 
 export interface QrLoginResult {
+  playback?: PlaybackGrant
   platform: MusicPlatform
   status: QrLoginStatus
   profile?: QrLoginProfile | null
 }
 
+export interface PlaybackGrant {
+  token: string
+  expiresAt: string
+  isVip: boolean
+  vipLevel: number | null
+}
+
 // 只创建短期扫码流程；二维码由服务端本地编码，不向第三方图片服务发送登录链接。
 export function createQrLogin(platform: MusicPlatform, signal: AbortSignal) {
-  return httpPost<QrLoginSession>(`/${platform}/auth/qr`, undefined, { signal })
+  return httpPost<QrLoginSession>(`/${platform}/auth/qr`, undefined, {
+    signal,
+    params: platform === 'netease' ? { playback: true } : undefined,
+  })
 }
 
 // 流程凭证仅放在请求体，不出现在 URL、日志、持久化存储或播放接口中。
@@ -51,6 +63,7 @@ export function cancelQrLogin(platform: MusicPlatform, sessionId: string) {
 }
 
 export const qrLoginApi = {
+  authorized: acceptPlaybackGrant,
   create: createQrLogin,
   check: checkQrLogin,
   cancel: cancelQrLogin,

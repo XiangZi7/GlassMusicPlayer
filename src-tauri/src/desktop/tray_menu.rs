@@ -155,7 +155,7 @@ pub(crate) fn create_window(app: &AppHandle) -> Result<(), String> {
         TRAY_LABEL,
         WebviewUrl::App("index.html#/desktop/tray".into()),
     )
-    .title("Mirai Music · 托盘菜单")
+    .title("MiraiPlayer · 托盘菜单")
     .inner_size(
         CONTENT_WIDTH + SURFACE_INSET * 2.0,
         INITIAL_HEIGHT + SURFACE_INSET * 2.0,

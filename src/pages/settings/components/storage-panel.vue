@@ -207,24 +207,24 @@ onMounted(refresh)
     </div>
     <!-- 真实占用：加载在统计内容内部，不插入会挤动页面的标题行。 -->
     <div
-      class="set-card relative min-h-[116px] rounded-[16px] border border-transparent p-[14px]"
+      class="set-card storage-usage relative grid gap-4 rounded-[16px] border border-transparent px-5 py-[18px]"
       :aria-busy="busy"
     >
-      <div class="grid grid-cols-2 gap-[14px]">
+      <div class="grid grid-cols-2 gap-x-5 gap-y-3">
         <div>
-          <b class="text-[19px] tabular-nums">{{ cacheUsage }}</b>
-          <p class="mt-[4px] text-[11px] text-white/50">
+          <b class="block text-[19px] leading-6 tabular-nums">{{ cacheUsage }}</b>
+          <p class="mt-[5px] mb-0 text-[11px] leading-4 text-white/60">
             音频缓存 · {{ info?.cacheFiles || 0 }} 个文件
           </p>
         </div>
         <div>
-          <b class="text-[19px] tabular-nums">{{ downloadUsage }}</b>
-          <p class="mt-[4px] text-[11px] text-white/50">
+          <b class="block text-[19px] leading-6 tabular-nums">{{ downloadUsage }}</b>
+          <p class="mt-[5px] mb-0 text-[11px] leading-4 text-white/60">
             已登记下载 · {{ info?.downloadCount || 0 }} 份
           </p>
         </div>
       </div>
-      <div class="flex flex-wrap gap-[7px]">
+      <div class="flex flex-wrap gap-2">
         <BaseButton
           class="imp-pick rounded-full px-[11px] py-[6px] text-[11.5px]"
           :disabled="!supported || busy"

@@ -7,6 +7,7 @@ const errorMessages: Readonly<Record<string, string>> = {
   auth_unsupported: '该平台的扫码登录暂未接通，请使用公开主页或歌单分享链接。',
   auth_capacity: '扫码服务暂时繁忙，请稍后重试。',
   auth_expired: '扫码流程已过期，请重新生成二维码。',
+  playback_session_expired: '网易云播放授权已过期，请重新扫码。',
   auth_identity_invalid: '音乐平台未能确认有效账号，请重新扫码。',
   upstream_rate_limited: '音乐平台暂时繁忙，请稍后重试。',
   upstream_timeout: '音乐平台响应超时，请重试。',
@@ -31,10 +32,12 @@ export function createRequest(baseURL: string) {
     if (!cause.response)
       throw new Error('无法连接音乐服务，请确认 FastAPI 已启动。')
     const code = cause.response.data?.detail?.code
-    throw new Error(
+    const error = new Error(
       (code && errorMessages[code]) ||
         `音乐服务请求失败（${cause.response.status}）。`
     )
+    if (code) error.name = code
+    throw error
   })
 
   // GET 查询参数和取消配置都交给 Axios 转换。

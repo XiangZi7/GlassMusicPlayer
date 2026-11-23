@@ -28,7 +28,7 @@ function playAll(): void {
     data-panel="playlist"
   >
     <div class="pl-head flex items-center gap-4.5">
-      <img
+      <img decoding="async" loading="lazy"
         data-pl-cover
         alt="歌单封面"
       />

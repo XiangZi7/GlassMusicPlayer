@@ -1,7 +1,7 @@
 [package]
-name = "miraimusic"
+name = "miraiplayer"
 version = "0.1.0"
-description = "Mirai Music glass desktop music player"
+description = "MiraiPlayer glass desktop music player"
 authors = ["you"]
 edition = "2024"
 
@@ -11,7 +11,7 @@ edition = "2024"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "miraimusic_lib"
+name = "miraiplayer_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -26,6 +26,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+webview2-com = "0.39.1"
+windows-core = "0.62.2"
+tokio = { version = "1", features = ["sync", "time"] }
 windows-version = "0.1.7"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_Storage_FileSystem", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
 

@@ -43,7 +43,7 @@ const { radioOn } = toRefs(state)
       v-if="track"
       class="radio-seed flex min-h-[82px] items-center gap-[14px] rounded-[16px] border border-transparent px-[14px] py-[12px]"
     >
-      <img
+      <img decoding="async" loading="lazy"
         :src="track.cover"
         alt=""
       />

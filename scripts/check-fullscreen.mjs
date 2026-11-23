@@ -397,7 +397,7 @@ const effects = fs.readFileSync(
 // 防止倒影退回独立裁切的横条，或脱离封面共用的呼吸层。
 assert.match(
   component,
-  /class="fs-coverkb relative">\s*<img\s+class="fs-cover"[^>]*\/\s*>\s*<div\s+class="fs-reflect"[^>]*>\s*<img\s+data-cover\s+alt=""/
+  /class="fs-coverkb relative">\s*<img\b[^>]*\bclass="fs-cover"[^>]*\/\s*>\s*<div\s+class="fs-reflect"[^>]*>\s*<img\b[^>]*\bdata-cover\s+alt=""/
 )
 assert.match(
   effects,

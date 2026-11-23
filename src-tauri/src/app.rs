@@ -22,6 +22,7 @@ pub fn run() {
             tray_menu::dismiss_tray_menu,
             tray_menu::run_tray_action,
             settings::open_settings_window,
+            crate::desktop::location::reset_location_permission,
             storage::get_storage_info,
             storage::update_storage_config,
             storage::choose_storage_directory,
@@ -38,5 +39,5 @@ pub fn run() {
         })
         .on_window_event(windows::handle_window_event)
         .run(tauri::generate_context!())
-        .expect("启动 Mirai Music 失败");
+        .expect("启动 MiraiPlayer 失败");
 }

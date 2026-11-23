@@ -1,6 +1,7 @@
 //! 桌面能力：独立窗口的创建、恢复与应用退出行为。
 
 pub(crate) mod appearance;
+pub(crate) mod location;
 pub(crate) mod settings;
 #[cfg(target_os = "windows")]
 pub(crate) mod shadow_hit_test;

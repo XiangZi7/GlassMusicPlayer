@@ -118,11 +118,16 @@ assert.deepEqual(
   animationCalls(findFunction(originalScript, 'syncDesk')),
   'Desktop lyric flip changed'
 )
+// 原稿由 setStage 直接收起主队列、取消主题过渡，Vue 组件通过 stage 观察器实现这两步。
+// 其余开关场景、定时器和分层动画仍逐项对照当前 HTML。
+const stageTimingReference = originalScript
+  .replace('state.stage=true; state.mainQ=false;', 'state.stage=true;')
+  .replace('fsThemeRun++; fsThemeAnims.forEach(function(a){ try{a.cancel();}catch(e){} }); fsThemeAnims=[];', '')
 assert.deepEqual(
   canonical(
     findFunction(read('src/services/player/runtime.js'), 'setStage').body
   ),
-  canonical(findFunction(originalScript, 'setStage').body),
+  canonical(findFunction(stageTimingReference, 'setStage').body),
   'Fullscreen open/close timing changed'
 )
 
@@ -213,6 +218,14 @@ const currentCss = ['src/styles/main.css', 'src/styles/player-effects.css']
 const expectedKeyframes = keyframes(originalCss)
 // 底栏频谱已使用实时音频数据，旧的随机脉冲关键帧不再使用。
 expectedKeyframes.delete('specPulse')
+// 原稿中的流场 / 唱片属于其他主题。本应用四种舞台使用各自的背景层。
+expectedKeyframes.delete('ambFlow')
+expectedKeyframes.delete('fsDiscSpin')
+// 队列的单向入场改为可中断的双向过渡，同时保留少动效分支。
+expectedKeyframes.delete('fsQIn')
+assert.match(currentCss, /\.fs-queue\s*\{[^}]*opacity:\s*0[^}]*transition:\s*opacity 200ms/)
+assert.match(currentCss, /\.fs\.qopen \.fs-queue\s*\{[^}]*opacity:\s*1/)
+assert.match(currentCss, /\.fs\.fs-calm \.fs-queue\s*\{[^}]*transition:\s*none/)
 assert.deepEqual(
   keyframes(currentCss),
   expectedKeyframes,
@@ -285,6 +298,7 @@ for (const selector of [
   '.fs-specmono',
   '.fs-toptitle',
   '.fs-top',
+  '.fs-themebar',
   '.fs-dock',
   '.fs-main .fs-coverwrap',
   '.fs-coverkb',
@@ -329,7 +343,8 @@ globalThis.motion = { setStage, animateFsTrackChange };`,
 const motion = environment.motion
 motion.setStage(true)
 const firstEntrance = stage._xAnims.slice()
-assert.equal(firstEntrance.length, 17)
+assert.equal(firstEntrance.length, 18)
+assert(firstEntrance.some(a => a.options.duration === 420 && a.options.delay === 660 && a.keyframes[0].transform === 'translateY(-6px)'))
 assert.equal(firstEntrance[0].keyframes[0].transform, 'scale(1.230)')
 assert(
   firstEntrance.some(a => a.options.duration === 540 && a.options.delay === 560)

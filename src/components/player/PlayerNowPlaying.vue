@@ -57,7 +57,7 @@ async function openSource(event: MouseEvent): Promise<void> {
         class="r-glow absolute inset-[14%_8%_-6%] z-[-1] rounded-full opacity-[.55]"
         data-glow
       ></div>
-      <img
+      <img decoding="async" loading="lazy"
         class="r-cover aspect-square w-full rounded-[20px] object-cover"
         data-cover
         alt="专辑封面"

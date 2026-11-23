@@ -169,12 +169,12 @@ onUnmounted(() => {
     :data-material="liquid ? 'liquid' : 'frosted'"
     :data-tray-motion="animate ? 'on' : 'off'"
     :style="{ '--tray-glow': snapshot?.track.glow || 'rgba(140,160,255,.35)' }"
-    aria-label="Mirai Music 托盘快捷菜单"
+    aria-label="MiraiPlayer 托盘快捷菜单"
   >
     <div class="tray-menu-heading">
       <span class="tray-brand-icon"><TrayIcon name="music" /></span>
       <div class="tray-brand-text">
-        <b>Mirai Music</b>
+        <b>MiraiPlayer</b>
         <span>音乐与桌面，随手可达</span>
       </div>
       <span class="tray-material">{{ liquid ? 'LIQUID' : 'FROSTED' }}</span>

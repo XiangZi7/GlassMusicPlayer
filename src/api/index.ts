@@ -1,4 +1,5 @@
 import { apiBaseUrl, httpGet, httpPost } from '@/utils/http'
+import { playbackBearer, clearPlaybackGrant } from '@/services/player/playback-session'
 
 export type MusicPlatform = 'netease' | 'kugou' | 'kuwo'
 export type PublicProfilePlatform = Exclude<MusicPlatform, 'kugou'>
@@ -57,6 +58,7 @@ export interface PublicUserPlaylists {
 export type PlaybackStatus = 'full' | 'preview' | 'unknown' | 'unavailable'
 
 export interface CatalogPlayback {
+  quality?: string
   status: PlaybackStatus
   url: string | null
   bitrateKbps: number | null
@@ -119,23 +121,34 @@ export function getPublicUserPlaylists(
 }
 
 // 点歌时获取短期音频地址，地址只用于当前播放。
-export function getCatalogPlayback(
+export async function getCatalogPlayback(
   platform: MusicPlatform,
   id: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  quality?: string
 ) {
-  return httpGet<CatalogPlayback>(
-    `/${platform}/tracks/${encodeURIComponent(id)}/playback`,
-    { signal }
-  )
+  const token = platform === 'netease' ? playbackBearer() : ''
+  try {
+    const result = await httpGet<CatalogPlayback>(
+      `/${platform}/tracks/${encodeURIComponent(id)}/playback`,
+      { signal, params: { quality }, headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    )
+    return { ...result, accountPlayback: !!token }
+  } catch (error) {
+    if (token && token === playbackBearer() && error instanceof Error && error.name === 'playback_session_expired')
+      clearPlaybackGrant()
+    throw error
+  }
 }
 
 // 音频元素直接读取支持 Range 的接口，保持浏览器的流式播放及拖动进度。
 export function getCatalogAudioUrl(
   platform: MusicPlatform,
-  id: string
+  id: string,
+  quality?: string
 ): string {
-  return `${apiBaseUrl}/${platform}/tracks/${encodeURIComponent(id)}/audio`
+  const query = quality ? '?' + new URLSearchParams({ quality }) : ''
+  return `${apiBaseUrl}/${platform}/tracks/${encodeURIComponent(id)}/audio${query}`
 }
 
 // 获取原文、译文及平台提供的逐字时间轴，供主窗口和独立歌词窗展示。

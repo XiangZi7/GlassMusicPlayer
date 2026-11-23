@@ -2140,7 +2140,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "miraimusic"
+name = "miraiplayer"
 version = "0.1.0"
 dependencies = [
  "reqwest 0.12.28",
@@ -2150,6 +2150,9 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "tokio",
+ "webview2-com",
+ "windows-core",
  "windows-sys 0.61.2",
  "windows-version",
 ]

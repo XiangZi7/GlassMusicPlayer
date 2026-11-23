@@ -16,7 +16,7 @@ const favoritesTitle = '喜欢的音乐'
 const edge =
   process.env.MIRAI_EDGE_EXECUTABLE ||
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-assert((await fetch(origin)).ok, '需要已运行的 Mirai Music 开发服务器')
+assert((await fetch(origin)).ok, '需要已运行的 MiraiPlayer 开发服务器')
 assert(existsSync(edge), '需要 Microsoft Edge')
 const scratch = resolve(import.meta.dirname, '../.tmp')
 mkdirSync(scratch, { recursive: true })
@@ -79,6 +79,9 @@ function spectrumAudio() {
 }
 const wav = spectrumAudio()
 
+let releasePlayback
+const pendingPlayback = new Promise(resolve => { releasePlayback = resolve })
+const requestedQualities = []
 let socket
 let send
 let releasePlaylistResponse
@@ -178,6 +181,8 @@ try {
         tracks: [],
       }
     } else if (path === '/api/v1/netease/tracks/1/playback') {
+      requestedQualities.push(new URL(request.url).searchParams.get('quality'))
+      await pendingPlayback
       data = {
         status: 'full',
         url: 'http://127.0.0.1:8000/api/v1/netease/tracks/1/audio',
@@ -452,6 +457,13 @@ try {
   await resize(1240, 820)
   await evaluate(`${bannerPlay}.focus()`)
   await key('Enter', 13)
+  const playButton = `document.querySelector('.win-bottom [data-play]')`
+  await waitFor('原位显示等待中的播放按钮', `${playButton}.getAttribute('aria-busy') === 'true'`)
+  await evaluate(`${playButton}.click()`)
+  await waitFor('点击加载按钮取消点播', `${playButton}.getAttribute('aria-busy') === 'false'`)
+  await evaluate(`${playButton}.click()`)
+  await waitFor('再次点击开始获取', `${playButton}.getAttribute('aria-busy') === 'true'`)
+  releasePlayback()
   await waitFor(
     '横幅与底栏显示实频',
     `
@@ -584,30 +596,39 @@ try {
     writeFileSync(file, Buffer.from(image.data, 'base64'))
     console.log(file)
   }
-  const themeControl = `document.querySelector('button[aria-label="歌词主题"]')`
+  const coverSize = `(() => { const box = document.querySelector('.fs-cover').getBoundingClientRect(); return [Math.round(box.width), Math.round(box.height)] })()`
+  await delay(350)
+  const glowDesktop = await evaluate(coverSize)
+  await resize(620, 740)
+  await delay(200)
+  const glowNarrow = await evaluate(coverSize)
+  await resize(1240, 820)
+  const themeTabs = 'document.querySelector(".fs-theme-seg")'
   const activeTheme = `${lyrics}.closest('[data-lyric-theme]').dataset.lyricTheme`
-  // 从真实菜单入口验证主题应用、持久化和连续切换。
+  // 从实际的滑动胶囊切换主题，焦点移动不提前提交选择。
   async function chooseTheme(theme) {
-    const option = `document.querySelector('[role="menu"][aria-label="歌词主题"] [data-choice="${theme}"]')`
-    await evaluate(`${themeControl}.click()`)
-    await waitFor(
-      '主题菜单打开',
-      `${themeControl}.getAttribute('aria-expanded') === 'true' && !!${option}`
-    )
-    await evaluate(`${option}.click()`)
+    await evaluate(`${themeTabs}.querySelector('[data-slide-value="${theme}"]').click()`)
   }
-  await evaluate(`${themeControl}.focus()`)
+  await evaluate(`${themeTabs}.querySelector('button').focus()`)
   await key('End', 35)
-  await waitFor(
-    '键盘定位到末尾主题',
-    `document.activeElement?.dataset.choice === 'cinema'`
-  )
-  await key('Escape', 27)
-  await waitFor(
-    'Escape 关闭主题菜单并恢复入口焦点',
-    `document.activeElement === ${themeControl} &&
-    ${themeControl}.getAttribute('aria-expanded') === 'false' && !!${lyrics}`
-  )
+  await waitFor('键盘定位到末尾主题', `document.activeElement?.dataset.slideValue === 'chat' && ${activeTheme} === 'glow'`)
+  await key('Enter', 13)
+  await waitFor('键盘确认对话主题', `${activeTheme} === 'chat'`)
+  await delay(450)
+  const chatLayout = await evaluate(`(() => {
+    const rows = ${lyrics}.querySelectorAll('.fl-line')
+    return { scene: document.querySelector('.fs-scenery').dataset.scene, gap: getComputedStyle(${lyrics}).rowGap,
+      left: [...rows].slice(0, 2).map(row => row.getBoundingClientRect().left),
+      right: [...rows].slice(0, 2).map(row => row.getBoundingClientRect().right) }
+  })()`)
+  assert.equal(chatLayout.scene, 'chat')
+  assert(chatLayout.left[0] < chatLayout.left[1] && chatLayout.right[1] > chatLayout.right[0], JSON.stringify(chatLayout))
+  assert(parseFloat(chatLayout.gap) >= 14)
+  assert.deepEqual(await evaluate(coverSize), glowDesktop)
+  await resize(620, 740)
+  await delay(220)
+  assert.deepEqual(await evaluate(coverSize), glowNarrow)
+  await resize(1240, 820)
   // 用真实主题和字体渲染生成预览。
   async function captureLyricsTheme(name) {
     if (process.env.MIRAI_QA_SCREENSHOTS !== '1') return
@@ -1058,6 +1079,51 @@ try {
   )
   console.log('PASS 歌单弹窗样式、加载态对齐与尺寸、动效设置、停止和重新导入')
 
+  await evaluate(`location.hash = '#/'`)
+  await waitFor('回首页验证长队列', `!!document.querySelector('.home-content')`)
+  await evaluate(`(async () => {
+    const {usePlayerStore} = await import('/src/stores/player.ts')
+    const store = usePlayerStore()
+    window.fixturePlayer = store
+    store.state.queue = store.registerCatalogTracks(Array.from({ length: 777 }, (_, i) => ({
+      platform: 'netease', id: String(10000+i), title: '队列 ' + i, artists: ['样本'], album: '队列验证',
+      durationMs: 120000, coverUrl: null, sourceUrl: 'https://music.163.com/song?id=' + (10000+i)
+    })))
+    store.state.idx = store.state.queue[420]
+  })()`)
+  const queueButton = `document.querySelector('.win-bottom button[aria-label="播放队列"]')`
+  const queue = `document.querySelector('.main-queue')`
+  await evaluate(`${queueButton}.click()`)
+  await waitFor('长队列打开并定位当前歌曲', `${queue}?.querySelector('[aria-current=true]')?.dataset.qpos === '420'`)
+  const mountedRows = await evaluate(`${queue}.querySelectorAll('.qrow').length`)
+  assert(mountedRows > 0 && mountedRows < 35, String(mountedRows))
+  await key('End', 35)
+  await waitFor('虚拟队列定位末行', `document.activeElement?.dataset.qpos === '776'`)
+  await evaluate(`(() => {
+    const before = ${queue}.querySelector('[data-qpos="775"]'), after = ${queue}.querySelector('[data-qpos="776"]')
+    const dataTransfer = new DataTransfer()
+    before.dispatchEvent(new DragEvent('dragstart',{bubbles:true, dataTransfer}))
+    const options = {bubbles:true,cancelable:true,dataTransfer,clientY:after.getBoundingClientRect().bottom-1}
+    after.dispatchEvent(new DragEvent('dragover',options))
+    after.dispatchEvent(new DragEvent('drop',options))
+  })()`)
+  await waitFor('拖放按绝对位置移动', `${queue}.querySelector('[data-qpos="776"] .qt b').textContent === '队列 775'`)
+  assert(await evaluate(`[...${queue}.querySelectorAll('img')].every(img => img.loading === 'lazy' && img.decoding === 'async')`))
+  await key('Escape', 27)
+  await waitFor('关闭队列恢复焦点', `!${queue} && document.activeElement === ${queueButton}`)
+  const quality = `document.querySelector('.win-bottom [aria-label="音质"]')`
+  await evaluate(`fixturePlayer.state.settings.glassStyle='glass'; ${quality}.click()`)
+  const panel = `document.querySelector('.choice-panel')`
+  await waitFor('毛玻璃音质菜单', `${panel}?.parentElement.hasAttribute('data-player') && getComputedStyle(${panel}).backdropFilter.includes('16px')`)
+  await evaluate(`fixturePlayer.state.settings.glassStyle='liquid'`)
+  await waitFor('液态玻璃菜单实时切换', `getComputedStyle(${panel}).backgroundImage.includes('gradient') && getComputedStyle(${panel}).backdropFilter.includes('saturate')`)
+  await evaluate(`${panel}.querySelector('[data-choice="lossless"]').click()`)
+  await waitFor('选择品质后恢复入口焦点', `!${panel} && document.activeElement === ${quality} && ${quality}.textContent.includes('无损')`)
+  await evaluate(`fixturePlayer.state.idx = 0; ${playButton}.click()`)
+  await until('点播携带所选的无损音质', () => requestedQualities.includes('lossless'))
+  await evaluate(`fixturePlayer.state.settings.bottomSpectrum = false`)
+  await waitFor('关闭底栏频谱后横幅仍可见', `getComputedStyle(${bottomSpectrum}).display === 'none' && ${bannerSpectrum}.clientHeight > 0`)
+  console.log(`PASS 777 首队列挂载 ${mountedRows} 行，覆盖当前歌曲、键盘、拖放、图片懒加载、双材质及音质请求`)
   const nativeSource = readFileSync(
     resolve(import.meta.dirname, '../src-tauri/src/desktop/appearance.rs'),
     'utf8'

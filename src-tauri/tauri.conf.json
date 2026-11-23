@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "miraimusic",
+  "productName": "MiraiPlayer",
   "version": "0.1.0",
   "identifier": "com.admin.miraimusic",
   "build": {
@@ -14,7 +14,7 @@
       {
         "label": "main",
         "create": false,
-        "title": "Mirai Music",
+        "title": "MiraiPlayer",
         "width": 1360,
         "height": 860,
         "minWidth": 900,
