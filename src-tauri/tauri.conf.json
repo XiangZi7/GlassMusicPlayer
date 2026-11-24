@@ -33,7 +33,7 @@
     "active": true,
     "targets": ["nsis"],
     "publisher": "XiangZi",
-    "homepage": "https://github.com/XiangZi7/GlassMusicPlayer",
+    "homepage": "https://github.com/XiangZi7/MiraiPlayer",
     "category": "Music",
     "shortDescription": "支持同步歌词和桌面小窗的音乐播放器",
     "longDescription": "MiraiPlayer 提供在线曲库搜索、公开歌单导入、逐字歌词、全屏歌词舞台和桌面播放控件。",

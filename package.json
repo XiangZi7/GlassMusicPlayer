@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "description": "支持在线曲库、同步歌词和桌面小窗的玻璃风格音乐播放器",
   "author": "XiangZi",
-  "homepage": "https://github.com/XiangZi7/GlassMusicPlayer",
-  "repository": "github:XiangZi7/GlassMusicPlayer",
-  "bugs": "https://github.com/XiangZi7/GlassMusicPlayer/issues",
+  "homepage": "https://github.com/XiangZi7/MiraiPlayer",
+  "repository": "github:XiangZi7/MiraiPlayer",
+  "bugs": "https://github.com/XiangZi7/MiraiPlayer/issues",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
