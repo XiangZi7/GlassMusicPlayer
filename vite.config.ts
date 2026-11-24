@@ -1,13 +1,16 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
+import manifest from './package.json' with { type: 'json' }
 // @ts-expect-error type error without @types/node package
 import process from 'node:process'
+const { version, author, description, homepage } = manifest
 const host = process.env.TAURI_DEV_HOST
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [vue(), tailwindcss()],
+  define: { __APP_INFO__: JSON.stringify({ version, author, description, homepage }) },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname.replace(/^\/(\w:)/, '$1'),

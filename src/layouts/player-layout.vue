@@ -231,7 +231,11 @@ useMutationObserver(
 )
 
 // 原稿导航统一落到真实路由，保留前进、后退和歌单索引。
-function navigate(page: PlayerPage, index: number): void {
+function navigate(page: PlayerPage, index: number, fullPath?: string): void {
+  if (fullPath) {
+    void router.push(fullPath)
+    return
+  }
   const path = page === 'home' ? '/' : `/${page}`
   const query = ['playlist', 'album', 'artist'].includes(page)
     ? { index: String(index) }
@@ -301,6 +305,7 @@ onMounted(async () => {
     state,
     tracks,
     onNavigate: navigate,
+    currentPath: () => route.fullPath,
     onStateChange: isTauri() ? publishSnapshot : undefined,
     prepareStage,
     onDesktop: openSourceDesktop,

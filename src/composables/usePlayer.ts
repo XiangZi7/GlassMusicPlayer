@@ -5,7 +5,7 @@ import type { PlayerPage, PlayerState, PlayerSettings } from '@/stores/player'
 export interface PlayerController extends SourcePlayer {
   bind(): void
   refresh(): void
-  navigate(page: PlayerPage, index?: number, fromRoute?: boolean): void
+  navigate(page: PlayerPage, index?: number, fromRoute?: boolean, path?: string): void
   selectTrack(index: number, autoplay?: boolean, direction?: number): void
   openStage(trigger?: HTMLElement): void
   reloadPlayback(resume?: boolean): void

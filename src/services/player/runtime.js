@@ -560,8 +560,12 @@ export function mountSourcePlayer(root, options = {}) {
     ensureQueue()
   }
 
-  // 原稿交互：保留 setPage 对应的界面行为与调用规则。
-  function setPage(pg, plIdx, viaNav) {
+  // 历史记录包含完整路由，使前进和后退能区分不同平台与歌单。
+  function currentLocation() {
+    return { page: state.page, playlistIdx: state.playlistIdx, path: options.currentPath?.() }
+  }
+  // 普通页面沿用曲库索引，公开歌单携带平台与 ID 组成的详情地址。
+  function setPage(pg, plIdx, viaNav, path) {
     if (stageRequest && pg !== state.page) closeStage()
     if (pg === 'settings' && !viaNav && options.onSettings) {
       options.onSettings()
@@ -571,16 +575,16 @@ export function mountSourcePlayer(root, options = {}) {
     var np = typeof plIdx === 'number' ? plIdx : state.playlistIdx
     if (
       !viaNav &&
-      (pg !== state.page || (pg === 'playlist' && np !== state.playlistIdx))
+      (pg !== state.page || (pg === 'playlist' && np !== state.playlistIdx) || (path && path !== options.currentPath?.()))
     ) {
-      state._hist.push({ page: state.page, playlistIdx: state.playlistIdx })
+      state._hist.push(currentLocation())
       if (state._hist.length > 24) state._hist.shift()
       state._fwd = []
     }
     if (typeof plIdx === 'number') state.playlistIdx = plIdx
     state.page = pg
     state._pageKey = ''
-    if (!viaNav && options.onNavigate) options.onNavigate(pg, state.playlistIdx)
+    if (!viaNav && options.onNavigate) options.onNavigate(pg, state.playlistIdx, path)
     render()
     players().forEach(function (p) {
       var m = p.querySelector('.main')
@@ -590,22 +594,23 @@ export function mountSourcePlayer(root, options = {}) {
   // 原稿交互：保留 navBack 对应的界面行为与调用规则。
   function navBack() {
     if (!state._hist.length) return
-    state._fwd.push({ page: state.page, playlistIdx: state.playlistIdx })
+    state._fwd.push(currentLocation())
     var h = state._hist.pop()
     setPage(h.page, h.playlistIdx, true)
-    options.onNavigate(h.page, h.playlistIdx)
+    options.onNavigate(h.page, h.playlistIdx, h.path)
   }
   // 原稿交互：保留 navFwd 对应的界面行为与调用规则。
   function navFwd() {
     if (!state._fwd.length) return
-    state._hist.push({ page: state.page, playlistIdx: state.playlistIdx })
+    state._hist.push(currentLocation())
     var f = state._fwd.pop()
     setPage(f.page, f.playlistIdx, true)
-    options.onNavigate(f.page, f.playlistIdx)
+    options.onNavigate(f.page, f.playlistIdx, f.path)
   }
   var PAGE_NAMES = {
     home: '首页',
     daily: '每日推荐',
+    discovery: '发现歌单',
     search: '搜索',
     library: '音乐库',
     albums: '专辑',
@@ -627,6 +632,7 @@ export function mountSourcePlayer(root, options = {}) {
    upload/downloads belong to the 内容导入 hub item — the sliding pill targets the hub item */
   var NAVKEY = {
     daily: 'home',
+    discovery: 'home',
     album: 'library',
     artist: 'library',
     albums: 'library',
@@ -716,11 +722,6 @@ export function mountSourcePlayer(root, options = {}) {
   // 按原稿导航状态更新页面与列表。
   // 渲染各页标题及详情，直接打开空曲库的详情路由时显示空态。
   function renderPages() {
-    var totalDur = fmt(
-      TRACKS.reduce(function (sum, tr) {
-        return sum + tr.dur
-      }, 0)
-    )
     players().forEach(function (p) {
       var main = p.querySelector('.main')
       if (main) main.classList.toggle('show-page', state.page !== 'home')
@@ -778,39 +779,7 @@ export function mountSourcePlayer(root, options = {}) {
         )
       })
       var ptr = TRACKS[state.playlistIdx] || emptyTrack
-      p.querySelectorAll('[data-pl-cover]').forEach(function (el) {
-        el.src = ptr.cover
-      })
-      p.querySelectorAll('[data-pl-name]').forEach(function (el) {
-        el.textContent = ptr.album || '暂无歌单'
-      })
-      p.querySelectorAll('[data-pl-desc]').forEach(function (el) {
-        el.textContent = ptr.album
-          ? ptr.artist + ' 的专辑歌单 · ' + ptr.q + ' · 当前曲目 ' + ptr.title
-          : ''
-      })
-      p.querySelectorAll('[data-pl-meta]').forEach(function (el) {
-        el.textContent = '共 ' + TRACKS.length + ' 首 · ' + totalDur
-      })
       if (state.page === 'playlist' && state.customPl) {
-        p.querySelectorAll('[data-pl-name]').forEach(function (el) {
-          el.textContent = state.customPl.name
-        })
-        p.querySelectorAll('[data-pl-desc]').forEach(function (el) {
-          el.textContent =
-            '来自 ' +
-            state.customPl.source +
-            ' · 共 ' +
-            state.customPl.count +
-            ' 首'
-        })
-        p.querySelectorAll('[data-pl-meta]').forEach(function (el) {
-          el.textContent =
-            '共 ' + state.customPl.count + ' 首 · 来源 ' + state.customPl.source
-        })
-        p.querySelectorAll('[data-pl-cover]').forEach(function (el) {
-          el.src = state.customPl.cover || ptr.cover
-        })
         p.querySelectorAll('[data-chrome-title]').forEach(function (el) {
           el.textContent = '歌单 · ' + state.customPl.name
         })

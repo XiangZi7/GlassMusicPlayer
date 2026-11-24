@@ -1,0 +1,112 @@
+name: Desktop packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: windows_x64, runner: windows-2025 }
+          - { platform: macos_x64, runner: macos-15-intel }
+          - { platform: macos_arm64, runner: macos-15 }
+          - { platform: linux_x64, runner: ubuntu-22.04 }
+    env:
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.22.2'
+          package-manager-cache: false
+      - run: node scripts/check-release.mjs
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          run_install: false
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Install Linux desktop and media libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential file curl wget libwebkit2gtk-4.1-dev libssl-dev libxdo-dev librsvg2-dev libayatana-appindicator3-dev libfuse2 patchelf \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-tools
+      - name: Set Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup override set 1.96.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.platform }}
+      - run: pnpm check:equalizer
+      - run: pnpm check:native
+      - run: pnpm check:storage
+      - name: Build desktop packages
+        run: pnpm release:build
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: MiraiPlayer-${{ matrix.platform }}
+          path: src-tauri/target/distribution/*/${{ matrix.platform }}/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Assemble release draft
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: MiraiPlayer-*
+          merge-multiple: true
+          path: packages
+      - name: Verify files and attach to draft
+        working-directory: packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="MiraiPlayer_${TAG#v}_"
+          assets=("${prefix}windows_x64_setup.exe" "${prefix}windows_x64_portable.zip"
+                 "${prefix}macos_x64.dmg" "${prefix}macos_arm64.dmg"
+                 "${prefix}linux_x64.deb" "${prefix}linux_x64.AppImage")
+          for platform in windows_x64 macos_x64 macos_arm64 linux_x64; do
+            sha256sum --check --strict "SHA256SUMS-${platform}.txt"
+          done
+          sha256sum "${assets[@]}" > SHA256SUMS.txt
+          if draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft'); then
+            [[ "$draft" == true ]] || { echo '该标签已有公开版本。'; exit 1; }
+            gh release upload "$TAG" "${assets[@]}" SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" "${assets[@]}" SHA256SUMS.txt --draft --verify-tag --title "MiraiPlayer $TAG" --generate-notes
+          fi

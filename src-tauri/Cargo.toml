@@ -1,8 +1,10 @@
 [package]
 name = "miraiplayer"
 version = "0.1.0"
-description = "MiraiPlayer glass desktop music player"
-authors = ["you"]
+description = "MiraiPlayer desktop music player with synchronized lyrics and floating desktop controls"
+authors = ["XiangZi"]
+homepage = "https://github.com/XiangZi7/GlassMusicPlayer"
+repository = "https://github.com/XiangZi7/GlassMusicPlayer"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,7 +20,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }

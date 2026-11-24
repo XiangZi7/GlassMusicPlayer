@@ -363,14 +363,6 @@ h1 .thin {
   @apply hidden;
 }
 
-.main-top h3 {
-  @apply m-0 text-[22px] font-extrabold tracking-[-.01em];
-}
-
-.main-top p {
-  @apply m-[3px_0_0] text-[12.5px] opacity-[.62];
-}
-
 .main-chips button {
   @apply min-h-[32px] rounded-full p-[7px_13px] text-[12px] font-extrabold;
 }

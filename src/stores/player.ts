@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 import type { SourceTrack } from '@/types/prototype'
 import { publicAvatar } from '@/services/public-avatar'
-import { normalizePlaybackQuality } from '@/constants/music'
+import { defaultCover, normalizePlaybackQuality } from '@/constants/music'
 import {
   preferenceTrackKey,
   readPlayerPreferences,
@@ -110,6 +110,7 @@ export interface UploadFile {
 export type PlayerPage =
   | 'home'
   | 'daily'
+  | 'discovery'
   | 'search'
   | 'library'
   | 'albums'
@@ -239,8 +240,8 @@ export const usePlayerStore = defineStore('player', () => {
     _pageKey: '',
     _pgSig: '',
     _srcKey: '',
-    _hist: [] as { page: PlayerPage; playlistIdx: number }[],
-    _fwd: [] as { page: PlayerPage; playlistIdx: number }[],
+    _hist: [] as { page: PlayerPage; playlistIdx: number; path?: string }[],
+    _fwd: [] as { page: PlayerPage; playlistIdx: number; path?: string }[],
     _renaming: -1,
     _delPl: null as string | null,
     _renameP: null as HTMLElement | null,
@@ -253,7 +254,11 @@ export const usePlayerStore = defineStore('player', () => {
     return items.map(item => {
       const key = catalogKey(item)
       const existing = catalogIndices.get(key)
-      if (existing !== undefined) return existing
+      if (existing !== undefined) {
+        const track = tracks[existing]!
+        if ((!track.cover || track.cover === defaultCover) && item.coverUrl) track.cover = item.coverUrl
+        return existing
+      }
       const index = tracks.length
       tracks.push(toSourceTrack(item))
       catalogIndices.set(key, index)

@@ -6,10 +6,26 @@ import DeferredSettingsPanel from '@/pages/settings/components/deferred-settings
 import { toRefs } from 'vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SettingsSection } from '@/types/settings'
+import { isTauri } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import { notify } from '@/services/notification'
 
 defineProps<{ section: SettingsSection }>()
 const { state, setSetting, setNowPlaying } = usePlayer()
 const { settings, npOpen } = toRefs(state)
+const appInfo = __APP_INFO__
+
+// 桌面窗口在系统浏览器打开项目主页，网页预览沿用链接的原生行为。
+async function openProject(event: MouseEvent): Promise<void> {
+  if (!isTauri()) return
+  event.preventDefault()
+  try {
+    await openUrl(appInfo.homepage)
+  } catch {
+    notify('无法打开项目主页，请稍后重试。', 'error')
+  }
+}
+
 // 淡化滑块更新当前设置草稿，由底栏的应用或保存统一提交。
 function updateCrossfade(event: Event): void {
   setSetting('crossfade', Number((event.target as HTMLInputElement).value))
@@ -488,12 +504,25 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>MiraiPlayer</b><span>桌面音乐播放器</span>
+              <b>MiraiPlayer</b><span>{{ appInfo.description }}</span>
             </div>
             <span
               class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
-              >DESKTOP</span
+              :aria-label="'版本 ' + appInfo.version"
+              >v{{ appInfo.version }}</span
             >
+          </div>
+          <div class="set-row flex flex-wrap items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-0 flex-1">
+              <b>开发者</b><span>{{ appInfo.author }}</span>
+            </div>
+            <a
+              :href="appInfo.homepage"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded-sm text-[13px] font-semibold underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4"
+              @click="openProject"
+            >GitHub 项目主页</a>
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">

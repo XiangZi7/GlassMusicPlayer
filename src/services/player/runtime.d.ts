@@ -6,6 +6,7 @@ export function mountSourcePlayer(
   options: SourcePlayerOptions & {
     state: PlayerState
     tracks: SourceTrack[]
-    onNavigate: (page: PlayerPage, index: number) => void
+    onNavigate: (page: PlayerPage, index: number, path?: string) => void
+    currentPath: () => string
   }
 ): PlayerController

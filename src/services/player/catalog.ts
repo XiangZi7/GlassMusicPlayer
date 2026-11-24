@@ -54,9 +54,11 @@ export async function fetchLinkedPlaylist(
   platform: MusicPlatform,
   id: string,
   signal: AbortSignal,
-  onProgress: (count: number) => void
+  onProgress?: (count: number) => void
 ): Promise<CatalogPlaylist> {
   const first = await getCatalogPlaylist(platform, id, 1, 100, signal)
+  if (first.platform !== platform || first.id !== id || first.pageNum !== 1 || !(first.pageSize > 0))
+    throw new Error('音乐平台返回的歌单信息不一致，请重试。')
   return fetchFollowingPages(first, signal, onProgress)
 }
 
@@ -64,11 +66,11 @@ export async function fetchLinkedPlaylist(
 async function fetchFollowingPages(
   first: CatalogPlaylist,
   signal: AbortSignal,
-  onProgress: (count: number) => void
+  onProgress?: (count: number) => void
 ): Promise<CatalogPlaylist> {
   const pageSize = first.pageSize
   const tracks = [...first.tracks]
-  onProgress(tracks.length)
+  onProgress?.(tracks.length)
   let previous = first
   for (
     let pageNum = 2;
@@ -88,12 +90,12 @@ async function fetchFollowingPages(
     if (
       page.id !== first.id ||
       page.platform !== first.platform ||
-      page.pageNum !== pageNum
+      page.pageNum !== pageNum || page.pageSize !== pageSize
     ) {
       throw new Error('音乐平台返回了其他歌单的曲目，请重试。')
     }
     tracks.push(...page.tracks)
-    onProgress(tracks.length)
+    onProgress?.(tracks.length)
     previous = page
   }
   return { ...first, tracks }

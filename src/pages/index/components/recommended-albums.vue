@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, reactive, ref, useTemplateRef, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -7,10 +8,21 @@ import { usePlayer } from '@/composables/usePlayer'
 import type { SourceTrack } from '@/types/prototype'
 import type { CatalogPlaylist, CatalogTrack } from '@/api'
 import { catalogKey, defaultCover, platformNames } from '@/services/player/catalog'
+import { loadDiscoveryPlaylist } from '@/pages/index/public-playlists'
+import { notify } from '@/services/notification'
 
 const props = defineProps<{ playlists: CatalogPlaylist[]; loading: boolean; incomplete: boolean }>()
 const emit = defineEmits<{ retry: []; playPublic: [songs: CatalogTrack[]] }>()
 const { state, tracks, controller } = usePlayer()
+const router = useRouter()
+const root = useTemplateRef<HTMLElement>('root')
+const actions = reactive({
+  // 等待整单的快捷播放按钮。
+  pending: '',
+  // 返回首页时恢复到原来的歌单卡。
+  opened: '',
+})
+let playbackRequest: AbortController | undefined
 const mediumScreen = useMediaQuery('(min-width: 40rem)')
 const wideScreen = useMediaQuery('(min-width: 48rem)')
 const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
@@ -36,16 +48,59 @@ const albums = computed(() => {
   })
   return [...cards.values()]
 })
-// 公共卡片明确点播前十二首；来源不可用时保留本机已有的专辑入口。
+// 首页只需预览数据，公开歌单以真实平台和 ID 打开详情，离线专辑保留原有点播操作。
 const cards = computed(() => props.playlists.length ? props.playlists.map(list => ({
   key: catalogKey(list), name: list.title || '公开歌单',
-  subtitle: platformNames[list.platform] + ' · 选听 ' + list.tracks.length + ' 首',
+  subtitle: platformNames[list.platform] + (list.total != null ? ' · ' + list.total + ' 首' : ''),
+  label: '查看《' + (list.title || '公开歌单') + '》 · ' + platformNames[list.platform],
   cover: list.coverUrl || list.tracks[0]?.coverUrl || defaultCover,
-  play: () => emit('playPublic', list.tracks),
+  playlist: list,
+  open: () => {
+    cancelPlay()
+    actions.opened = catalogKey(list)
+    const path = router.resolve({ name: 'discovery', params: { platform: list.platform, id: list.id } }).fullPath
+    controller()?.navigate('discovery', undefined, false, path)
+  },
 })) : albums.value.map(({ track, indices }) => ({
   key: albumKey(track), name: track.album, subtitle: track.artist, cover: track.cover,
-  play: () => controller()?.playTracks(indices, indices[0]!),
+  label: '播放《' + track.album + '》 · ' + track.artist,
+  playlist: undefined,
+  open: () => controller()?.playTracks(indices, indices[0]!),
 })))
+
+// 切换目标或离开卡片页后，旧请求不能覆盖现有队列。
+function cancelPlay(): void {
+  playbackRequest?.abort()
+  playbackRequest = undefined
+  actions.pending = ''
+}
+onBeforeUnmount(cancelPlay)
+onDeactivated(cancelPlay)
+watch([() => state.queue, () => state.idx], cancelPlay, { flush: 'sync' })
+onActivated(async () => {
+  if (!actions.opened) return
+  await nextTick()
+  root.value?.querySelector<HTMLElement>('[data-card-key="' + CSS.escape(actions.opened) + '"]')?.focus({ preventScroll: true })
+  actions.opened = ''
+})
+
+// 快捷播放先取完全部分页，失败保留原队列，多个请求以最后一次为准。
+async function playFull(playlist: CatalogPlaylist): Promise<void> {
+  cancelPlay()
+  const request = new AbortController()
+  playbackRequest = request
+  actions.pending = catalogKey(playlist)
+  try {
+    const full = await loadDiscoveryPlaylist(playlist.platform, playlist.id, request.signal)
+    if (request.signal.aborted) return
+    if (full.tracks.length) emit('playPublic', full.tracks)
+    else notify('歌单里没有可播放的曲目。')
+  } catch (error) {
+    if (!request.signal.aborted) notify(error instanceof Error ? error.message : '无法读取整份歌单，请重试。', 'error')
+  } finally {
+    if (playbackRequest === request) cancelPlay()
+  }
+}
 const lastPage = computed(() => Math.max(0, Math.ceil(cards.value.length / pageSize.value) - 1))
 const visibleCards = computed(() =>
   cards.value.slice(
@@ -75,11 +130,13 @@ function turnPage(direction: number): void {
 
 <template>
   <!-- 首页推荐区：右上角提供专辑播放提示和圆形翻页箭头。 -->
-  <section aria-labelledby="home-recommend-title">
+  <section ref="root" aria-labelledby="home-recommend-title">
     <div
       class="feat-head relative z-[1] m-[22px_2px_12px] flex items-center justify-between gap-3"
     >
-      <h5 id="home-recommend-title">{{ playlists.length || !albums.length ? '发现歌单' : '曲库专辑' }}</h5>
+      <div class="flex flex-wrap items-baseline gap-x-3">
+        <h5 id="home-recommend-title">{{ playlists.length || !albums.length ? '发现歌单' : '曲库专辑' }}</h5>
+      </div>
       <div class="flex items-center gap-2">
         <!-- 各平台独立重试，已成功的推荐保留在原位。 -->
         <BaseButton v-if="incomplete" class="recommend-link" :loading="loading" @click="emit('retry')">重试公开歌单</BaseButton>
@@ -127,13 +184,13 @@ function turnPage(direction: number): void {
           :key="(playlists.length ? 'public-' : 'library-') + page"
           class="grid grid-cols-2 gap-3.5 sm:grid-cols-4 md:grid-cols-6"
         >
+          <div v-for="card in visibleCards" :key="card.key" class="discover-card relative min-w-0">
           <BaseButton
-            v-for="card in visibleCards"
-            :key="card.key"
-            class="feat relative min-w-0 rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
+            class="feat relative w-full min-w-0 rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
             :class="{ on: card.key === activeAlbum }"
-            :title="`播放《${card.name}》 · ${card.subtitle}`"
-            @click="card.play"
+            :data-card-key="card.key"
+            :title="card.label" :aria-label="card.label"
+            @click="card.open"
           >
             <img decoding="async" loading="lazy"
               :src="card.cover"
@@ -142,6 +199,12 @@ function turnPage(direction: number): void {
             <b>{{ card.name }}</b>
             <span class="block truncate">{{ card.subtitle }}</span>
           </BaseButton>
+          <BaseButton v-if="card.playlist" class="discover-play" :class="{ 'has-motion': animated }"
+            :loading="actions.pending === card.key" :aria-label="'播放完整歌单《' + card.name + '》'"
+            :title="'播放完整歌单《' + card.name + '》'" @click="playFull(card.playlist)">
+            <svg v-if="actions.pending !== card.key" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+          </BaseButton>
+          </div>
         </div>
       </Transition>
       <div v-else-if="loading" role="status" class="grid min-h-40 place-content-center text-sm text-white/70">正在加载公开歌单…</div>
@@ -170,6 +233,12 @@ function turnPage(direction: number): void {
 </template>
 
 <style scoped>
+.discover-play { position: absolute; right: 17px; bottom: 61px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ffffffa6; color: #1b1c22; background: #fffffff2; box-shadow: 0 3px 12px #0006; }
+.liquid-win .discover-play { background: linear-gradient(150deg, white, #e4e8efe8); box-shadow: inset 0 1px white, 0 3px 12px #0007; }
+@media (hover: hover) {
+  .discover-card:not(:hover):not(:focus-within) .discover-play:not([aria-busy=true]) { opacity: 0; pointer-events: none; transform: translateY(3px); }
+  .discover-play.has-motion { transition: opacity 160ms ease, transform 160ms ease; }
+}
 .recommend-arrow-motion {
   transition:
     background-color 150ms ease,

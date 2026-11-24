@@ -5,6 +5,9 @@ import TrackRow from '@/components/player/TrackRow.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 import { usePlayer } from '@/composables/usePlayer'
+import { sortTrackIndices } from '@/services/player/library'
+import { catalogKey } from '@/services/player/catalog'
+import type { SourceTrack } from '@/types/prototype'
 
 const props = defineProps<{
   indices: number[]
@@ -21,7 +24,9 @@ const props = defineProps<{
     | 'history'
   playAsQueue?: boolean
   fitHeight?: boolean
+  sourceTracks?: SourceTrack[]
 }>()
+const emit = defineEmits<{ playSource: [index: number, order: number[]] }>()
 const { state, tracks, controller } = usePlayer()
 const viewport = useTemplateRef<HTMLElement>('viewport')
 const height = ref(0)
@@ -45,18 +50,8 @@ const pageSize = computed(() => {
     Math.floor((height.value - paginationHeight) / trackRowHeight)
   )
 })
-const sorted = computed(() => {
-  const mode = state.sorts[props.listKey] || 'def'
-  if (mode === 'def') return props.indices
-  return [...props.indices].sort((a, b) => {
-    const first = tracks[a]!,
-      second = tracks[b]!
-    if (mode === 'dur') return first.dur - second.dur || a - b
-    const left = first[mode],
-      right = second[mode]
-    return (left < right ? -1 : left > right ? 1 : 0) || a - b
-  })
-})
+const rows = computed(() => props.sourceTracks ?? tracks)
+const sorted = computed(() => sortTrackIndices(rows.value, props.indices, state.sorts[props.listKey]))
 const current = computed({
   get: () =>
     Math.min(
@@ -76,10 +71,23 @@ const visible = computed(() =>
 
 // 选择曲目回到同一播放器，保留原稿自动播放与切歌动画的顺序。
 function play(index: number): void {
-  if (props.playAsQueue) controller()?.playTracks(sorted.value, index)
+  if (props.sourceTracks) emit('playSource', index, sorted.value)
+  else if (props.playAsQueue) controller()?.playTracks(sorted.value, index)
   else controller()?.selectTrack(index, true)
 }
 const { idx } = toRefs(state)
+// 外部歌单以平台和曲目 ID 判断当前曲目，无需在浏览时写入曲库。
+function isCurrent(index: number): boolean {
+  if (!props.sourceTracks) return index === idx.value
+  const song = rows.value[index]?.catalog
+  const current = tracks[idx.value]?.catalog
+  return !!song && !!current && catalogKey(song) === catalogKey(current)
+}
+// 信息区的播放全部使用此时列表显示的排序。
+function playFirst(): void {
+  if (sorted.value[0] !== undefined) play(sorted.value[0])
+}
+defineExpose({ playFirst })
 </script>
 
 <template>
@@ -96,11 +104,11 @@ const { idx } = toRefs(state)
         v-for="(index, position) in visible"
         :key="`${index}:${position}`"
         :class="{ 'flex-1': fitHeight && visible.length === pageSize }"
-        :track="tracks[index]!"
+        :track="rows[index]!"
         :number="
           playAsQueue ? (current - 1) * pageSize + position + 1 : index + 1
         "
-        :active="index === idx"
+        :active="isCurrent(index)"
         @play="play(index)"
       />
       <EmptyState

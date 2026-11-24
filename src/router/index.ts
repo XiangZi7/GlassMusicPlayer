@@ -22,6 +22,13 @@ export const router = createRouter({
           meta: { playerPage: 'daily' },
         },
         {
+          path: 'discovery/:platform(netease|kugou|kuwo)/:id',
+          name: 'discovery',
+          component: () => import('@/pages/discovery.vue'),
+          props: true,
+          meta: { playerPage: 'discovery' },
+        },
+        {
           path: 'search',
           component: () => import('@/pages/search.vue'),
           meta: { playerPage: 'search' },

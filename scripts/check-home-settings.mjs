@@ -11,7 +11,7 @@ import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
 // 使用现有开发服务器和独立 Edge 配置，只在测试浏览器内写入歌单样本。
-const origin = 'http://127.0.0.1:1420'
+const origin = 'http://127.0.0.1:' + (process.env.MIRAI_QA_PORT || '1420')
 const favoritesTitle = '喜欢的音乐'
 const edge =
   process.env.MIRAI_EDGE_EXECUTABLE ||
@@ -119,6 +119,8 @@ async function runBrowserChecks() {
   let sequence = 0
   const pending = new Map()
   const errors = []
+  // 故意让一次第二页失败，确保详情和快捷播放均不会使用半份歌单。
+  let failPlaylistPage = ''
   socket.addEventListener('message', event => {
     const message = JSON.parse(event.data)
     if (message.method === 'Runtime.exceptionThrown')
@@ -187,11 +189,14 @@ async function runBrowserChecks() {
       const retryAccount = token === 'Bearer ' + 'c'.repeat(43)
       if (retryAccount && retryDailyAttempts++ === 0)
         return send('Fetch.fulfillRequest', { requestId, responseCode: 503, responseHeaders: headers })
-      const accountId = retryAccount ? '33' : token === 'Bearer ' + 'a'.repeat(43) ? '11' : token === 'Bearer ' + 'b'.repeat(43) ? '22' : ''
+      const accountId = Object.entries({ a: '11', b: '22', c: '33', d: '44' })
+        .find(([key]) => token === 'Bearer ' + key.repeat(43))?.[1]
       if (!accountId) return send('Fetch.fulfillRequest', { requestId, responseCode: 401, responseHeaders: headers })
-      const order = accountId === '22' ? Array.from({ length: 36 }, (_, index) => 36 - index) : [2, 1]
+      const order = accountId === '44' ? [] : accountId === '22' ? Array.from({ length: 36 }, (_, index) => 36 - index) : [2, 1]
       data = order.map(i => ({ platform: 'netease', id: accountId + i, title: '账号' + accountId + '推荐' + i,
-        artists: ['测试歌手'], album: null, coverUrl: null, durationMs: 90000, sourceUrl: '' }))
+        artists: ['歌手 ' + (i % 4 + 1)], album: '专辑 ' + (i % 3 + 1),
+        coverUrl: origin + '/images/' + ['featured-singer.webp', 'ginkgo-station.webp', 'featured-soundwing.webp'][i % 3],
+        durationMs: 90000 + i * 1000, sourceUrl: '' }))
     } else if (path === '/mirai-avatar-fixture.svg') {
       return send('Fetch.fulfillRequest', {
         requestId,
@@ -206,8 +211,18 @@ async function runBrowserChecks() {
       const [, , , platform, , id] = path.split('/')
       if (publicFeed === 'offline' || publicFeed === 'partial' && platform === 'kuwo')
         return send('Fetch.fulfillRequest', { requestId, responseCode: 503, responseHeaders: headers, body: '' })
-      data = { platform, id, title: platform + ' ' + id, pageNum: 1, pageSize: 12, total: 60, coverUrl: null,
-        tracks: Array.from({length: 12}, (_, i) => ({platform, id: id + i, title: platform + id + i, artists: [platform],
+      const params = new URL(request.url).searchParams
+      const pageSize = Number(params.get('pageSize'))
+      const pageNum = Number(params.get('pageNum'))
+      const total = { netease: 137, kugou: 126, kuwo: 111 }[platform]
+      if (pageNum === 2 && failPlaylistPage === platform) {
+        failPlaylistPage = ''
+        return send('Fetch.fulfillRequest', { requestId, responseCode: 503, responseHeaders: headers, body: '' })
+      }
+      const offset = (pageNum - 1) * pageSize
+      data = { platform, id, title: platform + ' ' + id, pageNum, pageSize, total: platform === 'kuwo' ? null : total, coverUrl: null,
+        tracks: Array.from({length: Math.max(0, Math.min(pageSize, total - offset))}, (_, position) => position + offset)
+          .map(i => ({platform, id: id + i, title: platform + id + i, artists: [platform],
           album: '公开专辑', durationMs: 120000, sourceUrl: '', coverUrl: null})) }
     } else if (path === '/api/v1/netease/users/123/playlists') {
       data = {
@@ -528,6 +543,58 @@ async function runBrowserChecks() {
   await send('Browser.grantPermissions', { permissions: ['geolocation'], origin })
   await send('Emulation.setGeolocationOverride', { latitude: 30.29365, longitude: 120.16142, accuracy: 50 })
   await send('Page.navigate', { url: origin })
+  if (process.argv.includes('--about')) {
+    const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, '../package.json'), 'utf8'))
+    await send('Page.navigate', { url: origin + '/#/settings' })
+    await resize(760, 520)
+    for (const [setting, material] of [['frosted', 'glass-win'], ['liquid', 'liquid-win']]) {
+      await waitFor('外观设置入口', "!!document.querySelector('[data-slide-value=appearance]')")
+      await evaluate("document.querySelector('[data-slide-value=appearance]').click()")
+      await waitFor('玻璃材质选项', `!!document.querySelector('[data-slide-value="${setting}"]')`)
+      await evaluate(`document.querySelector('[data-slide-value="${setting}"]').click()`)
+      await evaluate("document.querySelector('[data-slide-value=about]').focus()")
+      await key('Enter', 13)
+      const card = `document.querySelector('.${material} .about-val')`
+      await waitFor('关于页显示当前发行版本', `${card}?.textContent.trim() === ${JSON.stringify('v' + pkg.version)}`)
+      const link = await evaluate(`(() => {
+        const node = ${card}.closest('.set-card').querySelector('a')
+        node.focus()
+        const rect = node.getBoundingClientRect()
+        return [node.href, node === document.activeElement, rect.left >= 0 && rect.right <= innerWidth]
+      })()`)
+      assert.deepEqual(link, [pkg.homepage, true, true])
+      console.log('PASS ' + material + ' 关于页版本、项目链接及键盘焦点')
+    }
+    assert.deepEqual(errors, [])
+    return
+  }
+  // 记录匿名首页在两种材质下的真实布局，覆盖横幅、发现歌单和选听区域。
+  async function captureHomeLayout() {
+    await resize(1540, 960)
+    await evaluate("document.fonts.ready.then(() => true)")
+    const drawer = "document.querySelector('[data-np-toggle]')"
+    const wasExpanded = await evaluate(`${drawer}.getAttribute('aria-expanded') === 'true'`)
+    if (wasExpanded) await evaluate(`${drawer}.click()`)
+    await waitFor('首页侧栏收起完成', "parseFloat(getComputedStyle(document.querySelector('.win-body')).gridTemplateColumns.split(' ').at(-1)) === 0")
+    for (const style of ['glass', 'liquid']) {
+      await evaluate(`(async () => { (await import('/src/stores/player.ts')).usePlayerStore().state.settings.glassStyle = '${style}' })()`)
+      await waitFor('首页材质 ' + style, `document.querySelector('.${style}-win .home-artists .artist-pick') &&
+        document.querySelector('.home-content').firstElementChild.matches('[data-banner]')`)
+      const clip = await evaluate(`(() => {
+        const r = document.querySelector('.main').getBoundingClientRect()
+        return { x: r.left, y: r.top, width: r.width, height: r.height, scale: 1 }
+      })()`)
+      const capture = await send('Page.captureScreenshot', { format: 'png', clip })
+      const path = join(profile, 'home-' + style + '.png')
+      writeFileSync(path, Buffer.from(capture.data, 'base64'))
+      console.log(path)
+    }
+    if (wasExpanded) {
+      await evaluate(`${drawer}.click()`)
+      await waitFor('恢复右栏实际宽度', "parseFloat(getComputedStyle(document.querySelector('.win-body')).gridTemplateColumns.split(' ').at(-1)) === 296")
+    }
+    await resize(1240, 820)
+  }
   if (process.argv.includes('--live-discovery')) {
     await waitFor('匿名首页开始渲染', "!!document.querySelector('.home-content')")
     const titles = await evaluate(`(async () => {
@@ -538,6 +605,22 @@ async function runBrowserChecks() {
     })()`)
     assert.equal(titles.length, 6, JSON.stringify(titles))
     for (const platform of ['网易云音乐', '酷狗音乐', '酷我音乐']) assert(titles.some(title => title.includes(platform)))
+    if (process.argv.includes('--screenshots')) await captureHomeLayout()
+    if (process.argv.includes('--full-playlists')) {
+      for (const [platform, id] of [['netease','3779629'], ['kugou','9095716'], ['kuwo','1082685104']]) {
+        const card = `document.querySelector('[data-card-key="${platform}:${id}"]')`
+        await evaluate(`${card}.click()`)
+        let count = 0
+        for (let attempt = 0; attempt < 120 && !count; attempt++) {
+          count = await evaluate("document.querySelector('[data-panel=discovery] [data-vue-tracklist]') ? Number(document.querySelector('[data-panel=discovery] [data-pl-meta]').textContent.match(/[0-9]+/)[0]) : 0")
+          if (!count) await delay(500)
+        }
+        assert(count > 12, platform + ' 实际完整歌单应超过首页预览')
+        console.log('PASS 实际读取 ' + platform + ' 歌单 ' + id + '，共 ' + count + ' 首')
+        await evaluate("document.querySelector('[data-nav-back]').click()")
+        await waitFor('回到发现歌单', `!!${card}`)
+      }
+    }
     console.log('PASS 匿名浏览器实际读取三平台六份公开歌单')
     return
   }
@@ -792,10 +875,94 @@ async function runBrowserChecks() {
   await evaluate("document.querySelector('.feat-head .recommend-link').click()")
   await waitFor('酷我恢复后补齐三平台六份歌单', "document.querySelectorAll('.home-content .feat').length === 6 && !document.querySelector('.feat-head .recommend-link')")
   assert(await evaluate("['netease','kugou','kuwo'].every(p => [...document.querySelectorAll('.home-picks .tt b')].some(row => row.textContent.startsWith(p)))"))
+  if (process.argv.includes('--discovery-playlists')) {
+    const panel = "document.querySelector('[data-panel=discovery]')"
+    const queue = "(async () => { const store = (await import('/src/stores/player.ts')).usePlayerStore(); return (store.state.queue ?? []).map(index => store.tracks[index].catalog?.id) })()"
+    const station = "document.querySelector('.platform-picks .station')"
+    const row = `${station}.querySelectorAll('.station-track')[2]`
+    assert(await evaluate(`${row}.querySelector('.station-duration').textContent === '2:00' && !${row}.querySelector('svg') && !!${station}.querySelector('.station-action')`))
+    await evaluate(`${row}.scrollIntoView({block:'center'})`)
+    await delay(350)
+    const point = await evaluate(`(() => { const r=${row}.getBoundingClientRect(); return { x:r.left+24, y:r.top+r.height/2 } })()`)
+    const originalQueue = await evaluate(queue)
+    // 发送真实鼠标事件，验证第一次点击不播放，第二次点击构成双击时开始。
+    for (const clickCount of [1, 2]) {
+      for (const type of ['mousePressed','mouseReleased']) await send('Input.dispatchMouseEvent', { type, ...point, button:'left', clickCount })
+      if (clickCount === 1) assert.deepEqual(await evaluate(queue), originalQueue)
+    }
+    await waitFor('双击从第三首建立本站五首队列', `${row}.getAttribute('aria-current') === 'true'`)
+    await evaluate(`${station}.querySelector('.station-track').focus()`)
+    await key('Enter', 13)
+    await waitFor('键盘仍可播放分站单曲', `${station}.querySelector('.station-track').getAttribute('aria-current') === 'true'`)
+    await evaluate("document.querySelector('.main').scrollTop = 0")
+    for (const [platform, id, count] of [['netease','3779629',137], ['kugou','9095716',126], ['kuwo','1082685104',111]]) {
+      const card = `document.querySelector('[data-card-key="${platform}:${id}"]')`
+      const quick = `${card}.nextElementSibling`
+      const previous = await evaluate(queue)
+      if (platform === 'netease') failPlaylistPage = platform
+      await evaluate(`${card}.focus()`)
+      await key('Enter', 13)
+      await waitFor('打开对应平台歌单路由', `location.hash === '#/discovery/${platform}/${id}' && !!${panel}`)
+      if (platform === 'netease') {
+        await waitFor('中途失败保留原队列并允许重试', `${panel}.querySelector('[role=status] + button') && ${panel}.querySelector('.banner-play').disabled`)
+        assert.deepEqual(await evaluate(queue), previous)
+        await evaluate(`${panel}.querySelector('[role=status] + button').click()`)
+      }
+      const lastButton = `${panel}.querySelector('[data-vue-pager=discovery] [data-slide-value="${Math.ceil(count / 10)}"]')`
+      await waitFor('完整曲目进入原有分页列表 ' + platform, `${panel}.querySelector('.pl-head [data-pl-meta]').textContent === '共 ${count} 首' && !!${lastButton}`).catch(async error => {
+        console.log(await evaluate(`${panel}.innerText.slice(-450)`))
+        console.log(await evaluate(`[...${panel}.querySelectorAll('.pg-btn')].map(button => [button.dataset.slideValue,button.getAttribute('aria-label')])`))
+        throw error
+      })
+      assert.deepEqual(await evaluate(queue), previous, '查看详情不切换播放队列')
+      await evaluate(`${lastButton}.click()`)
+      await waitFor('末页包含真实最后一首', `[...${panel}.querySelectorAll('.trow .tt b')].at(-1)?.textContent === '${platform}${id}${count-1}'`)
+      await evaluate(`[...${panel}.querySelectorAll('.trow')].at(-1).click()`)
+      const orderedIds = Array.from({ length: count }, (_, index) => id + index)
+      assert.deepEqual(await evaluate(queue), orderedIds)
+      await evaluate("document.querySelector('[data-nav-back]').click()")
+      await waitFor('返回时焦点落在原歌单', `document.activeElement === ${card}`)
+      await evaluate("document.querySelector('[data-nav-fwd]').click()")
+      await waitFor('前进恢复同一歌单地址', `location.hash === '#/discovery/${platform}/${id}' && !!${panel}?.querySelector('.trow')`)
+      await evaluate("document.querySelector('[data-nav-back]').click()")
+      await waitFor('再次返回歌单卡', `!!${card}`)
+      await evaluate(`${card}.scrollIntoView({ block: 'center' })`)
+      const point = await evaluate(`(() => { const r = ${card}.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+      await waitFor('悬停显示独立播放按钮', `Number(getComputedStyle(${quick}).opacity) === 1`)
+      await evaluate(`${quick}.focus()`)
+      await key('Enter', 13)
+      await waitFor('快捷播放留在首页并从首曲开始', `(async () => { const store = (await import('/src/stores/player.ts')).usePlayerStore(); return location.hash === '#/' && store.tracks[store.state.idx]?.catalog?.id === '${id}0' })()`)
+      assert.deepEqual(await evaluate(queue), orderedIds)
+    }
+    // 未打开过的卡片也必须补齐第二页，读取失败不能替换当前队列。
+    const previous = await evaluate(queue)
+    failPlaylistPage = 'netease'
+    const button = "document.querySelector('[data-card-key=\"netease:3778678\"]').nextElementSibling"
+    await evaluate(`${button}.click()`)
+    await waitFor('快捷播放的后续页错误提供通知', `!${button}.disabled && !!document.querySelector('.notification-toast')`)
+    assert.deepEqual(await evaluate(queue), previous)
+    await evaluate(`${button}.click()`)
+    await waitFor('快捷播放重试提交完整队列', `(async () => (await ${queue}).at(-1) === '3778678136')()`)
+    assert.deepEqual(errors, [])
+    console.log('PASS 网易云 137 首、酷狗 126 首、酷我 111 首的完整分页、独立快捷播放、失败重试和前进后退')
+    return
+  }
   if (process.argv.includes('--public-discovery')) {
+    const artists = "document.querySelectorAll('.home-artists .artist-pick')"
+    const isHeroFirst = "document.querySelector('.home-content')?.firstElementChild?.matches('[data-banner]') && !document.querySelector('.home-content .main-top')"
+    await waitFor('横幅首排且三平台的歌手选听可见', `${isHeroFirst} && ${artists}.length === 3`)
+    if (process.argv.includes('--screenshots')) await captureHomeLayout()
+    assert(await evaluate("!document.querySelector('#home-recommend-title').parentElement.textContent.includes('选听 12 首') && document.querySelectorAll('.platform-picks .station').length === 3"))
+    await resize(620, 740)
+    await waitFor('窄窗按阅读顺序堆叠，没有横向溢出', `document.querySelector('.home-artists').getBoundingClientRect().top >= document.querySelector('.home-picks').getBoundingClientRect().bottom - 1 &&
+      document.querySelector('.main').scrollWidth <= document.querySelector('.main').clientWidth + 1`)
     // 在只溢出 100px 的真实布局中滚到末行，再缩小窗口验证长页面仍能折叠。
     const scroller = "document.querySelector('.main')"
     await resize(1350, 520)
+    await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+    await waitFor('侧栏在宽窗完成重排', "!document.querySelector('.win-body').getAnimations().length")
+    await waitFor('宽窗曲目和歌手并排', `document.querySelector('.home-artists').getBoundingClientRect().left >= document.querySelector('.home-picks').getBoundingClientRect().right`)
     await waitFor('首页紧凑窗口完成布局', `innerHeight === 520 && ${scroller}.scrollHeight - ${scroller}.clientHeight > 100`)
     const overflow = await evaluate(`${scroller}.scrollHeight - ${scroller}.clientHeight`)
     await resize(1350, 520 + overflow - 100)
@@ -803,11 +970,14 @@ async function runBrowserChecks() {
     await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 680, y: 400, deltaX: 0, deltaY: 460 })
     await waitFor('能滚到今日曲目的最后一行', `${scroller}.scrollTop >= 98 && !${scroller}.classList.contains('compact')`)
     await delay(450)
-    assert(await evaluate(`document.querySelector('.home-picks .trow:last-child').getBoundingClientRect().bottom <= ${scroller}.getBoundingClientRect().bottom &&
+    assert(await evaluate(`document.querySelector('.platform-picks .station:last-child .shelf-track:last-child').getBoundingClientRect().bottom <= ${scroller}.getBoundingClientRect().bottom &&
       !${scroller}.classList.contains('compact') && ${scroller}.scrollTop >= 98`))
     await resize(1350, 520)
     await evaluate(`${scroller}.scrollTop = 150`)
     await waitFor('滚动空间足够时横幅稳定收起', `${scroller}.classList.contains('compact') && document.querySelector('[data-banner]').offsetHeight === 58`)
+    await evaluate(`${scroller}.scrollTop = ${scroller}.scrollHeight`)
+    await delay(350)
+    assert(await evaluate(`${scroller}.classList.contains('compact') && Math.abs(${scroller}.scrollHeight - ${scroller}.clientHeight - ${scroller}.scrollTop) < 2`))
     await evaluate(`${scroller}.scrollTop = 0`)
     await waitFor('回到顶部后还原每日推荐', `!${scroller}.classList.contains('compact')`)
     await resize(1240, 820)
@@ -835,7 +1005,11 @@ async function runBrowserChecks() {
     await evaluate(`${openDaily}.focus()`)
     await key('Enter', 13)
     const detailRows = "document.querySelectorAll('.daily-playlist ol .trow')"
-    await waitFor('键盘打开 36 首的完整歌单', `location.hash === '#/daily' && ${detailRows}.length === 36 && document.activeElement.matches('[data-daily-title]')`)
+    const dailyPlay = "document.querySelector('.daily-playlist .pl-actions .banner-play')"
+    await waitFor('键盘打开 36 首的完整歌单', `location.hash === '#/daily' && ${detailRows}.length === 36 && document.activeElement.matches('[data-pl-name]')`)
+    await waitFor('共用歌单封面和摘要', `document.querySelector('.daily-playlist .pl-head img')?.naturalWidth > 0 &&
+      document.querySelector('.daily-playlist [data-pl-meta]').textContent === '共 36 首' &&
+      document.querySelector('.daily-playlist [data-pl-desc]').textContent.includes('06:00')`)
     assert.deepEqual(await evaluate(`[...${detailRows}].map(row => row.querySelector('.tt b').textContent)`), longPlaylist)
     if (process.argv.includes('--screenshots')) {
       for (const style of ['glass', 'liquid']) {
@@ -851,7 +1025,26 @@ async function runBrowserChecks() {
         console.log(path)
       }
     }
-    await evaluate("document.querySelector('.daily-play').click()")
+    await resize(620, 740)
+    await waitFor('窄窗歌单保留播放和排序并收起专辑列', `getComputedStyle(${detailRows}[0].querySelector('.alb')).display === 'none' &&
+      document.querySelector('.daily-playlist .sortbar').getBoundingClientRect().right <= 620 &&
+      ${dailyPlay}.getBoundingClientRect().width > 0`)
+    await evaluate(`${detailRows}[35].scrollIntoView({ block: 'end' })`)
+    await waitFor('窄窗可滚到日推末曲', `${detailRows}[35].getBoundingClientRect().bottom <= ${scroller}.getBoundingClientRect().bottom + 1`)
+    await evaluate(`${scroller}.scrollTop = 0`)
+    await resize(1240, 820)
+    // 用户指定的排序作用于整个日推队列，恢复默认后保留平台原始顺序。
+    await evaluate("document.querySelector('[data-slide-value=\"daily:dur\"]').click()")
+    const ascending = [...longPlaylist].reverse()
+    await waitFor('每日推荐按时长排序', `${detailRows}[0].querySelector('.tt b').textContent === ${JSON.stringify(ascending[0])}`)
+    await evaluate(`${dailyPlay}.click()`)
+    const queueTitles = `(async () => {
+      const store = (await import('/src/stores/player.ts')).usePlayerStore()
+      return store.state.queue?.map(index => store.tracks[index].title)
+    })()`
+    assert.deepEqual(await evaluate(queueTitles), ascending)
+    await evaluate("document.querySelector('[data-slide-value=\"daily:def\"]').click()")
+    await evaluate(`${dailyPlay}.click()`)
     const queueCheck = title => `(async () => {
       const store = (await import('/src/stores/player.ts')).usePlayerStore()
       return store.state.queue?.length === 36 && store.tracks[store.state.idx]?.title === ${JSON.stringify(title)}
@@ -892,8 +1085,15 @@ async function runBrowserChecks() {
     await signIn('33', 'c')
     const retryPersonal = "document.querySelector('[data-banner-sub] button')"
     await waitFor('账号日推失败时保留重试，不填入八首本机选曲', `${retryPersonal} && document.querySelector('[data-banner-sub]').textContent.includes('暂不可用') && !${songTitles}`)
-    await evaluate(`${retryPersonal}.click()`)
-    await waitFor('重试只刷新当前账户的每日推荐', `!${retryPersonal} && ${songTitles} === '账号33推荐2,账号33推荐1'`)
+    await evaluate(`${openDaily}.click()`)
+    await waitFor('详情加载失败时可以重试', `${dailyPlay}?.disabled && document.querySelector('.daily-playlist [role="status"]')?.textContent.includes('暂时无法')`)
+    await evaluate("document.querySelector('.daily-playlist [role=status] + button').click()")
+    await waitFor('重试只刷新当前账户的每日推荐', `${detailRows}.length === 2 && ${detailRows}[0].querySelector('.tt b').textContent === '账号33推荐2'`)
+    await signIn('44', 'd')
+    await waitFor('上游返回空歌单时展示空态和禁用的播放按钮', `${detailRows}.length === 0 && ${dailyPlay}.disabled &&
+      document.querySelector('.daily-playlist [role="status"]')?.textContent === '今天暂无推荐曲目'`)
+    await evaluate("document.querySelector('[data-nav-back]').click()")
+    await waitFor('空歌单仍可返回首页', `location.hash === '#/' && !!${openDaily}`)
     await evaluate("(async () => (await import('/src/services/player/playback-session.ts')).clearPlaybackGrant())()")
     await waitFor('退出后恢复游客曲目', `document.querySelectorAll('.home-picks .trow').length === 8 && !${songTitles}.includes('账号33')`)
     for (const platform of ['kugou', 'kuwo']) {
@@ -912,6 +1112,18 @@ async function runBrowserChecks() {
     }
     await evaluate("document.querySelector('.home-picks .trow').click()")
     await waitFor('点播公共歌曲使用同一份八首队列', `(async () => (await import('/src/stores/player.ts')).usePlayerStore().state.queue?.length === 8)()`)
+    const previewTitles = await evaluate(songTitles)
+    const artistName = await evaluate(`${artists}[0].querySelector('b').textContent`)
+    const pickLabel = await evaluate(`${artists}[0].getAttribute('aria-label')`)
+    const pickCount = Number(pickLabel.match(/(\d+) 首歌曲$/)[1])
+    await evaluate(`${artists}[0].focus()`)
+    await key('Enter', 13)
+    await waitFor('键盘点播整组歌手曲目并跳过首页日推预览', `(async () => {
+      const store = (await import('/src/stores/player.ts')).usePlayerStore()
+      const songs = store.state.queue?.map(index => store.tracks[index])
+      const preview = ${JSON.stringify(previewTitles.split(','))}
+      return songs?.length === ${pickCount} && songs.every(song => song.artist === ${JSON.stringify(artistName)} && !preview.includes(song.title))
+    })()`)
     await evaluate("location.hash = '#/settings'")
     const desktopTab = "document.querySelector('[data-slide-value=\"desktop\"]')"
     const detached = "document.querySelector('[aria-label=\"在桌面显示灵动岛\"]')"
@@ -997,10 +1209,8 @@ async function runBrowserChecks() {
   )
   await evaluate(`location.hash = '#/';`)
   await waitFor('回到首页', `!!document.querySelector('.home-content')`)
-  assert.equal(
-    await evaluate(`!!document.querySelector('main .banner')`),
-    false
-  )
+  await waitFor('离线空曲库保留首排海报和禁用的播放入口', `document.querySelector('.home-content').firstElementChild.matches('[data-banner]') &&
+    document.querySelector('.banner-content [data-banner-play]').disabled && !document.querySelector('.home-artists')`)
   await evaluate(`(async () => {
     const { usePlayerStore } = await import('/src/stores/player.ts')
     usePlayerStore().registerCatalogTracks([{
@@ -1014,7 +1224,7 @@ async function runBrowserChecks() {
     `document.querySelector('[data-banner-title]')?.textContent === '每日推荐' &&
     document.querySelector('[data-banner-sub]')?.textContent.includes('1 首歌') &&
     document.querySelector('.home-picks .tt b')?.textContent === '首次导入' &&
-    !document.querySelector('.main-top').textContent.includes('首次导入')`
+    !document.querySelector('.home-content .main-top')`
   )
   await evaluate(`(async () => {
     const store = (await import('/src/stores/player.ts')).usePlayerStore()
