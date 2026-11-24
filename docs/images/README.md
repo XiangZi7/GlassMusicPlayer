@@ -12,6 +12,7 @@
 | `feature-fashion.png`、`feature-ink.png`、`feature-subtitles.png`、`feature-chat.png` | 同一首《ぴ》在时尚、手书、字幕、对话四款舞台中的封面和同步歌词 |
 | `feature-platforms.png`、`feature-import.png` | 已关联平台、导入统计与歌单选择 |
 | `feature-equalizer.png`、`feature-desktop.png` | 同一桌面会话打开的音质与桌面设置 |
+| `desktop-island.gif` | Windows 桌面灵动岛的实录，展示播放中歌词胶囊的展开与收起 |
 | `miraiplayer-logo.png` | 粉发眼镜少女与播放符号，透明 PNG 母图 |
 | `showcase-hero-zh.png`、`showcase-hero-en.png` | 1600 × 800 的双语头图，由首页和时尚舞台实拍排版生成 |
 

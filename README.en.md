@@ -108,6 +108,10 @@ Linux x64 packages are built on Ubuntu 22.04. Install the DEB with `sudo apt ins
 
 The tray menu restores the main window, opens settings and shows desktop lyrics, the mini player or the media card. For a single lyric line, enable the floating desktop capsule in desktop settings and drag it towards the edge of the screen. Edge snapping, lyric locking and close-to-tray behavior have separate controls. [Desktop controls guide](docs/desktop.md)
 
+Click the lyric capsule to expand the cover art and reveal the progress bar and playback controls. The arrow in the upper-right corner returns it to a single lyric line.
+
+![The desktop lyric capsule expanding into playback controls and collapsing while a song plays](docs/images/desktop-island.gif)
+
 ## Documentation
 
 [Platforms & playlists](docs/platforms.md) · [Playback & audio](docs/playback.md) · [Lyrics & stages](docs/lyrics.md) · [Desktop windows](docs/desktop.md) · [Glass & motion](docs/appearance.md) · [Downloads & data](docs/storage.md)

@@ -108,6 +108,10 @@ Linux x64 以 Ubuntu 22.04 构建。用 `sudo apt install ./文件名.deb` 安�
 
 托盘菜单可以恢复主播放器、打开独立设置窗，或显示桌面歌词、迷你播放器和媒体控制卡片。只想看一行歌词时，在“设置 → 桌面”打开桌面灵动岛，再拖动歌词胶囊到屏幕边缘。可分别控制贴边吸附、歌词锁定和关闭主窗后是否留在托盘。 [桌面操作指南](docs/desktop.md)
 
+点击歌词胶囊，封面会随面板一起展开，露出歌曲进度和播放控件。点右上角的箭头即可收回一行歌词。
+
+![桌面灵动岛在播放时从一行歌词展开为播放器，再收回胶囊](docs/images/desktop-island.gif)
+
 ## 文档
 
 [平台连接与歌单](docs/platforms.md) · [队列与音频](docs/playback.md) · [全屏歌词舞台](docs/lyrics.md) · [桌面窗口](docs/desktop.md) · [玻璃与动效](docs/appearance.md) · [下载与数据](docs/storage.md)
