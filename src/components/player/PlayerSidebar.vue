@@ -108,7 +108,7 @@ const {
     ></div>
     <div class="brand flex items-center gap-[12px] p-[6px_8px_16px]">
       <img class="logo" src="@/assets/miraiplayer.png" width="40" height="40" alt="" />
-      <div class="min-w-0"><b>MiraiPlayer</b><span>{{ state.settings.glassStyle === 'liquid' ? 'LIQUID EDITION' : 'FROSTED EDITION' }}</span></div>
+      <div class="min-w-0"><b>Mirai Player</b><span>{{ state.settings.glassStyle === 'liquid' ? 'LIQUID EDITION' : 'FROSTED EDITION' }}</span></div>
     </div>
     <BaseButton
       class="navitem on flex min-h-[38px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[9px_10px] text-left text-[13.5px] font-bold text-inherit"
