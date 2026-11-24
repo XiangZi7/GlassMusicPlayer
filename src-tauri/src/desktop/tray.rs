@@ -103,7 +103,8 @@ pub(crate) fn focus_main(app: &AppHandle) -> Result<(), String> {
 /// Windows 的 WebView 就绪后换成同主题菜单；其他平台及失败时保留原生入口。
 #[cfg(desktop)]
 pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let image = tauri::include_image!("./icons/32x32.png");
+    // 通知区使用头像近景，缩到小尺寸时仍能辨认眼镜和脸部。
+    let image = tauri::include_image!("./icons/tray.png");
     let mini_item = MenuItem::with_id(app, "tray-mini", "迷你播放器", true, None::<&str>)?;
     let menu = MenuBuilder::new(app)
         .text("tray-main", "打开主播放器")
