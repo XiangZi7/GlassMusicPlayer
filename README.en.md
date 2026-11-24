@@ -3,36 +3,36 @@
 <p align="center"><a href="#downloads-and-installation"><strong>Download desktop builds →</strong></a> · <a href="#quick-start">Quick start</a> · <a href="#documentation">Documentation</a> · <a href="#community">Community</a> · <a href="README.md">简体中文</a></p>
 
 <p align="center">
-  <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="https://img.shields.io/github/v/release/XiangZi7/MiraiPlayer?style=flat-square&amp;logo=github" alt="GitHub Releases" /></a>
-  <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="https://img.shields.io/github/downloads/XiangZi7/MiraiPlayer/total?style=flat-square" alt="Release downloads" /></a>
-  <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/XiangZi7/MiraiPlayer/release.yml?branch=main&amp;style=flat-square&amp;label=build&amp;logo=githubactions" alt="Desktop builds" /></a>
-  <a href="#downloads-and-installation"><img src="https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square" alt="Windows x64" /></a>
-  <a href="#downloads-and-installation"><img src="https://img.shields.io/badge/macOS-Intel%20%2F%20Apple%20Silicon-141414?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="macOS Intel / Apple Silicon" /></a>
-  <a href="#downloads-and-installation"><img src="https://img.shields.io/badge/Linux-x64-C78B00?style=flat-square&amp;logo=linux&amp;logoColor=white" alt="Linux x64" /></a>
+  <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="docs/images/badges/releases.svg" alt="GitHub Releases" /></a>
+  <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain"><img src="docs/images/badges/dev-downloads.svg" alt="Development build downloads" /></a>
+  <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml"><img src="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml/badge.svg?branch=main" alt="Desktop builds" /></a>
+  <a href="#downloads-and-installation"><img src="docs/images/badges/windows.svg" alt="Windows x64" /></a>
+  <a href="#downloads-and-installation"><img src="docs/images/badges/macos.svg" alt="macOS Intel / Apple Silicon" /></a>
+  <a href="#downloads-and-installation"><img src="docs/images/badges/linux.svg" alt="Linux x64" /></a>
 </p>
 
 <p align="center">
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Tauri-2-17848B?style=flat-square&amp;logo=tauri&amp;logoColor=white" alt="Tauri 2" /></a>
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Rust-2024-A45029?style=flat-square&amp;logo=rust&amp;logoColor=white" alt="Rust 2024" /></a>
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Vue-3-36846B?style=flat-square&amp;logo=vuedotjs&amp;logoColor=white" alt="Vue 3" /></a>
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript 6" /></a>
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Vite-8-6656BB?style=flat-square&amp;logo=vite&amp;logoColor=white" alt="Vite 8" /></a>
-  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Tailwind%20CSS-4-168995?style=flat-square&amp;logo=tailwindcss&amp;logoColor=white" alt="Tailwind CSS 4" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/tauri.svg" alt="Tauri 2" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/rust.svg" alt="Rust 2024" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/vue.svg" alt="Vue 3" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/typescript.svg" alt="TypeScript 6" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/vite.svg" alt="Vite 8" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/tailwind.svg" alt="Tailwind CSS 4" /></a>
 </p>
 
 <p align="center">
-  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Playlists-Import-366AB0?style=flat-square" alt="Platforms & playlists" /></a>
-  <a href="docs/playback.md"><img src="https://img.shields.io/badge/Web%20Audio-EQ-915AA7?style=flat-square" alt="Playback & audio" /></a>
-  <a href="docs/lyrics.md"><img src="https://img.shields.io/badge/Lyrics-Word%20sync-88539A?style=flat-square" alt="Lyrics & stages" /></a>
-  <a href="docs/desktop.md"><img src="https://img.shields.io/badge/Desktop-Widgets-47669B?style=flat-square" alt="Desktop windows" /></a>
-  <a href="docs/appearance.md"><img src="https://img.shields.io/badge/Glass-2%20styles-39796E?style=flat-square" alt="Glass & motion" /></a>
-  <a href="docs/storage.md"><img src="https://img.shields.io/badge/Storage-Downloads-956124?style=flat-square" alt="Downloads & data" /></a>
+  <a href="docs/platforms.md"><img src="docs/images/badges/playlists.svg" alt="Platforms & playlists" /></a>
+  <a href="docs/playback.md"><img src="docs/images/badges/eq.svg" alt="Playback & audio" /></a>
+  <a href="docs/lyrics.md"><img src="docs/images/badges/lyrics.svg" alt="Lyrics & stages" /></a>
+  <a href="docs/desktop.md"><img src="docs/images/badges/desktop.svg" alt="Desktop windows" /></a>
+  <a href="docs/appearance.md"><img src="docs/images/badges/glass.svg" alt="Glass & motion" /></a>
+  <a href="docs/storage.md"><img src="docs/images/badges/storage.svg" alt="Downloads & data" /></a>
 </p>
 
 <p align="center">
-  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/NetEase-Cloud%20Music-BB3644?style=flat-square" alt="NetEase Cloud Music" /></a>
-  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Kuwo-Music-B47B00?style=flat-square" alt="Kuwo Music" /></a>
-  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Kugou-Music-277BB2?style=flat-square" alt="Kugou Music" /></a>
+  <a href="docs/platforms.md"><img src="docs/images/badges/netease.svg" alt="NetEase Cloud Music" /></a>
+  <a href="docs/platforms.md"><img src="docs/images/badges/kuwo.svg" alt="Kuwo Music" /></a>
+  <a href="docs/platforms.md"><img src="docs/images/badges/kugou.svg" alt="Kugou Music" /></a>
 </p>
 
 MiraiPlayer brings public playlists, word-synchronized lyrics and floating desktop controls into one music player. Search for a track to play it, or import a playlist to keep its track list on this device.
@@ -83,9 +83,9 @@ Published versions appear under Assets on the Releases page. For a development b
 
 | System | Package formats |
 | --- | --- |
-| **Windows** | [![Setup x64](https://img.shields.io/badge/Setup-x64-0078D4?style=flat-square)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![Portable ZIP x64](https://img.shields.io/badge/Portable%20ZIP-x64-0078D4?style=flat-square)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
-| **macOS** | [![DMG Apple Silicon](https://img.shields.io/badge/DMG-Apple%20Silicon-141414?style=flat-square&logo=apple&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DMG Intel x64](https://img.shields.io/badge/DMG-Intel%20x64-141414?style=flat-square&logo=apple&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
-| **Linux** | [![AppImage x64](https://img.shields.io/badge/AppImage-x64-B07B00?style=flat-square&logo=linux&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DEB x64](https://img.shields.io/badge/DEB-x64-A92043?style=flat-square&logo=debian&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
+| **Windows** | [![Setup x64](docs/images/badges/windows-setup.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![Portable ZIP x64](docs/images/badges/windows-portable.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
+| **macOS** | [![DMG Apple Silicon](docs/images/badges/macos-arm64.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DMG Intel x64](docs/images/badges/macos-x64.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
+| **Linux** | [![AppImage x64](docs/images/badges/linux-appimage.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DEB x64](docs/images/badges/linux-deb.svg)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
 
 Windows Setup installs for the current user. For the portable ZIP, extract and run `miraiplayer.exe` with WebView2 Runtime installed. On macOS 13.3 or later, open the DMG for your chip and drag the app into Applications. The Mac builds use ad-hoc signing and are currently unnotarized. [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 
