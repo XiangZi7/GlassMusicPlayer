@@ -1,56 +1,68 @@
 import { execFileSync } from 'node:child_process'
-import { createHash, randomUUID } from 'node:crypto'
-import { createReadStream } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import './check-release.mjs'
+import { parseReleaseTag } from './release-version.mjs'
+import { assetName, checksum, releaseTargets } from './release-targets.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const { version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const systems = { win32: 'windows', darwin: 'macos', linux: 'linux' }
 const platform = systems[process.platform] + '_' + process.arch
-const targets = {
-  windows_x64: [['nsis', '-setup.exe', '_setup.exe']],
-  macos_x64: [['dmg', '.dmg', '.dmg']],
-  macos_arm64: [['dmg', '.dmg', '.dmg']],
-  linux_x64: [['deb', '.deb', '.deb'], ['appimage', '.AppImage', '.AppImage']],
+const targets = releaseTargets[platform]
+if (!targets) throw new Error('未配置发行目标 ' + platform)
+const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
+const metadata = {
+  name: 'MiraiPlayer', ...parseReleaseTag('v' + version), commit,
+  platform: systems[process.platform], arch: process.arch,
 }
-if (!targets[platform]) throw new Error('未配置发行目标 ' + platform)
 const release = join(root, 'src-tauri/target/release')
 const output = join(root, 'src-tauri/target/distribution', version, platform)
 await mkdir(output, { recursive: true })
-const prefix = 'MiraiPlayer_' + version + '_' + platform
 const names = []
 
 // 只收集本次版本的原生安装包，有歧义或缺少产物时中止。
-for (const [folder, suffix, ending] of targets[platform]) {
+for (const target of targets) {
+  const name = assetName(version, platform, target)
+  if (target.extension === 'portable.zip') {
+    const temporary = join(output, randomUUID() + '.zip')
+    execFileSync('tar.exe', ['-a', '-cf', temporary, '-C', release, 'miraiplayer.exe'])
+    await rename(temporary, join(output, name))
+    names.push(name)
+    continue
+  }
+  const { folder, sourceSuffix } = target
   const folderPath = join(release, 'bundle', folder)
   const matches = (await readdir(folderPath)).filter(file =>
-    file.includes('_' + version + '_') && file.endsWith(suffix)
+    file.includes('_' + version + '_') && file.endsWith(sourceSuffix)
   )
   if (matches.length !== 1) throw new Error('应有一个匹配版本的 ' + folder + ' 安装包，找到 ' + matches.length)
   const source = join(folderPath, matches[0])
   if (!(await stat(source)).size) throw new Error('安装包为空 ' + source)
-  const name = prefix + ending
   const temporary = join(output, randomUUID() + '.partial')
   await copyFile(source, temporary)
   await rename(temporary, join(output, name))
   names.push(name)
 }
 
-if (platform === 'windows_x64') {
-  const name = prefix + '_portable.zip'
-  const temporary = join(output, randomUUID() + '.zip')
-  execFileSync('tar.exe', ['-a', '-cf', temporary, '-C', release, 'miraiplayer.exe'])
-  await rename(temporary, join(output, name))
-  names.push(name)
-}
-
+await writeFile(join(output, 'version.json'), JSON.stringify(metadata, null, 2) + '\n')
+names.push('version.json')
 const checksums = []
 for (const name of names.sort()) {
-  const hash = createHash('sha256')
-  for await (const data of createReadStream(join(output, name))) hash.update(data)
-  checksums.push(hash.digest('hex') + '  ' + name)
+  checksums.push(await checksum(join(output, name)) + '  ' + name)
 }
-await writeFile(join(output, 'SHA256SUMS-' + platform + '.txt'), checksums.join('\n') + '\n')
-console.log(output, '\n' + names.join('\n'))
+const sums = checksums.join('\n') + '\n'
+await writeFile(join(output, 'SHA256SUMS-' + platform + '.txt'), sums)
+const local = join(root, 'release-output')
+await mkdir(local, { recursive: true })
+// 从已归档的完整文件更新本机交付目录，最后写入本次构建的校验清单。
+for (const name of names) {
+  const temporary = join(local, randomUUID() + '.partial')
+  await copyFile(join(output, name), temporary)
+  await rename(temporary, join(local, name))
+}
+const manifest = join(local, randomUUID() + '.partial')
+await writeFile(manifest, sums)
+await rename(manifest, join(local, 'SHA256SUMS.txt'))
+console.log(local, '\n' + [...names, 'SHA256SUMS.txt'].join('\n'))

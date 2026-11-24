@@ -89,7 +89,7 @@ MiraiPlayer 把公开歌单、逐字歌词和桌面播放小窗放在同一个�
 
 Windows 安装包提供当前用户安装。免安装 ZIP 解压后运行 `miraiplayer.exe`，需要系统 WebView2。macOS 要求 13.3 或更高版本，打开对应芯片的 DMG 后将应用拖入“应用程序”。当前 macOS 包使用 ad-hoc 签名，尚未公证。 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 
-Linux x64 以 Ubuntu 22.04 构建。用 `sudo apt install ./文件名.deb` 安装 DEB，或给 AppImage 添加执行权限后运行。每个构建归档附有本平台 SHA-256 清单，带版本标签的发布草稿会汇总六个分发文件。 [打包与校验](docs/RELEASING.md)
+Linux x64 以 Ubuntu 22.04 构建。用 `sudo apt install ./文件名.deb` 安装 DEB，或给 AppImage 添加执行权限后运行。每个构建归档附有本平台 SHA-256 清单，正式版本的六个分发文件、版本信息和总校验清单长期保存在 GitHub Releases。 [打包与校验](docs/RELEASING.md)
 
 ## 快速开始
 
@@ -126,7 +126,7 @@ pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-`pnpm build` 运行前端类型检查、生产构建与 CSS 校验。`pnpm release:build` 构建本平台分发包。默认服务为 `https://music-api.yxcr.top`，自建后端可在根目录 `.env.local` 配置 `VITE_APP_BASE_API` 并重启开发服务或重建。
+`pnpm build` 运行前端类型检查、生产构建与 CSS 校验。`pnpm release:build` 将本平台安装包、版本信息和校验清单写入仓库根目录的 `release-output/`。`pnpm release --dry-run` 可预览下一版本。默认服务为 `https://music-api.yxcr.top`，自建后端可在根目录 `.env.local` 配置 `VITE_APP_BASE_API` 并重启开发服务或重建。
 
 [前端架构](docs/FRONTEND_ARCHITECTURE.md) · [性能与回归](docs/PERFORMANCE.md) · [开发详解](docs/DEVELOPMENT.md) · [发版说明](docs/RELEASING.md)
 

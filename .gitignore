@@ -28,3 +28,6 @@ meting-python
 
 # 本机 UI 设计原稿
 /ui/
+
+# 本机生成的安装包、版本信息和校验清单
+/release-output/

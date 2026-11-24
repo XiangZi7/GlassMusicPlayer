@@ -2,6 +2,11 @@ name: Desktop packages
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: '已推送的版本标签（填写后发布该版本）；留空只构建开发包'
+        required: false
+        type: string
   push:
     branches: [main]
     tags: ['v*']
@@ -13,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: desktop-packages-${{ github.ref }}
+  group: desktop-packages-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -30,17 +35,19 @@ jobs:
           - { platform: macos_arm64, runner: macos-15 }
           - { platform: linux_x64, runner: ubuntu-22.04 }
     env:
-      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+      RELEASE_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22.22.2'
           package-manager-cache: false
       - run: node scripts/check-release.mjs
+      - run: node --test tests/release*.test.mjs
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           run_install: false
@@ -71,14 +78,14 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: MiraiPlayer-${{ matrix.platform }}
-          path: src-tauri/target/distribution/*/${{ matrix.platform }}/*
+          path: release-output/
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
 
   release:
-    name: Assemble release draft
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    name: Publish GitHub Release
+    if: (github.event_name == 'push' && github.ref_type == 'tag') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -86,29 +93,44 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.22.2'
+          package-manager-cache: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: MiraiPlayer-*
-          merge-multiple: true
-          path: packages
-      - name: Verify files and attach to draft
-        working-directory: packages
+          path: release-input
+      - name: Verify packages, upload assets and publish
         shell: bash
         run: |
           set -euo pipefail
-          prefix="MiraiPlayer_${TAG#v}_"
-          assets=("${prefix}windows_x64_setup.exe" "${prefix}windows_x64_portable.zip"
-                 "${prefix}macos_x64.dmg" "${prefix}macos_arm64.dmg"
-                 "${prefix}linux_x64.deb" "${prefix}linux_x64.AppImage")
-          for platform in windows_x64 macos_x64 macos_arm64 linux_x64; do
-            sha256sum --check --strict "SHA256SUMS-${platform}.txt"
+          commit=$(git rev-parse HEAD)
+          node scripts/assemble-release.mjs "$TAG" "$commit" release-input release-output
+          (cd release-output && sha256sum --check --strict SHA256SUMS.txt)
+          object=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object')
+          while [[ $(jq -r '.type' <<< "$object") == tag ]]; do
+            tag_sha=$(jq -r '.sha' <<< "$object")
+            object=$(gh api "repos/$GH_REPO/git/tags/$tag_sha" --jq '.object')
           done
-          sha256sum "${assets[@]}" > SHA256SUMS.txt
+          [[ $(jq -r '.type' <<< "$object") == commit && $(jq -r '.sha' <<< "$object") == "$commit" ]]
+          gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" \
+            | jq 'add // [] | map({tag_name, draft, prerelease})' > "$RUNNER_TEMP/releases.json"
+          notes="$RUNNER_TEMP/release-notes.md"
+          node scripts/release-notes.mjs "$TAG" "$GH_REPO" "$notes" "$RUNNER_TEMP/releases.json"
+          preview=$(jq -r '.prerelease' release-output/version.json)
           if draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft'); then
             [[ "$draft" == true ]] || { echo '该标签已有公开版本。'; exit 1; }
-            gh release upload "$TAG" "${assets[@]}" SHA256SUMS.txt --clobber
           else
-            gh release create "$TAG" "${assets[@]}" SHA256SUMS.txt --draft --verify-tag --title "MiraiPlayer $TAG" --generate-notes
+            gh release create "$TAG" --draft --verify-tag --title "MiraiPlayer $TAG" --prerelease="$preview" --notes-file "$notes"
           fi
+          gh release upload "$TAG" release-output/* --clobber
+          gh release edit "$TAG" --draft=false --prerelease="$preview" --notes-file "$notes"
+          gh release view "$TAG" --json url --jq '.url' >> "$GITHUB_STEP_SUMMARY"

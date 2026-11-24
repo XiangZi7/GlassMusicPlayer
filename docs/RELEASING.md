@@ -1,6 +1,6 @@
 # MiraiPlayer 打包与发布
 
-在 GitHub Actions 的 **Desktop packages** 中选取分支、查看四个构建任务，或下载未发布的开发包。带版本标签的推送走同一组构建任务，再汇总 Release 草稿。[云构建](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml) · [已发布版本](https://github.com/XiangZi7/MiraiPlayer/releases)
+在 GitHub Actions 的 **Desktop packages** 中选取分支、查看四个构建任务，或下载未发布的开发包。带版本标签的推送走同一组构建任务，全部通过后自动发布 GitHub Release。[云构建](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml) · [已发布版本](https://github.com/XiangZi7/MiraiPlayer/releases)
 
 ## 平台与产物
 
@@ -29,28 +29,30 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 ### 找到要下载的文件
 
-每个运行有四个 Actions 归档，名称后缀分别为 `windows_x64`、`macos_x64`、`macos_arm64`、`linux_x64`。GitHub 下载的外层 ZIP 是归档容器；先解压，再打开内部的安装文件或免安装 ZIP。发布草稿中则直接提供六个已命名的分发文件。
+每个运行有四个 Actions 归档，名称后缀分别为 `windows_x64`、`macos_x64`、`macos_arm64`、`linux_x64`。GitHub 下载的外层 ZIP 是归档容器；先解压，再打开内部的安装文件或免安装 ZIP。GitHub Releases 提供六个安装文件、汇总的 `version.json` 和 `SHA256SUMS.txt`，直接点击即可下载。
 
 ### 缓存和构建环境
 
 前端依赖按 pnpm 锁文件安装，Rust 使用锁定依赖。工作流分别缓存 pnpm 包和各平台的 Cargo 依赖。首次运行或工具链、锁文件变化后，编译时间通常更长。新检出无需本机设计稿、用户歌单或后端源码目录。
 
-## 发布带版本号的草稿
+## 发版命令
 
-`package.json` 提供桌面应用、安装器和“设置 → 关于”所用的版本号。Rust 包还在 `src-tauri/Cargo.toml` 与 `src-tauri/Cargo.lock` 记录同一版本。发行标签使用 `v主版本.次版本.修订号`。
+`package.json` 是桌面和安装器的版本来源，Tauri 配置引用这个文件。发版命令会同时更新 Rust manifest 和 Cargo 锁文件中 MiraiPlayer 的条目。先将准备发布的代码提交到目标分支，通常是 `main`。
 
-1. 在 `package.json` 与 `src-tauri/Cargo.toml` 设置目标版本。执行 `cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1` 更新 Cargo 锁文件，核对版本差异。
-2. 执行 `pnpm check:release` 检查版本和发布信息，提交准备发布的源码与锁文件。
-3. 在该提交创建并推送对应标签。例如，要发行源码中已经设置好的 0.1.0，可运行下面两条命令。
+| 操作 | 命令 | 结果 |
+| --- | --- | --- |
+| 预览 | `pnpm release --dry-run` | 查看下一版本和推送目标 |
+| 发补丁版 | `pnpm release` | 递增修订号，提交版本，并一次推送当前分支和新标签 |
+| 发次版本或主版本 | `pnpm release minor` 或 `pnpm release major` | 递增相应版本段，后续段归零 |
+| 重试推送 | `pnpm release --retry vX.Y.Z` | 复用上次准备好的本地提交和标签 |
+| 校验版本 | `pnpm version:check` | 检查应用、桌面配置和 Rust 版本来源 |
+| 指定版本 | `pnpm version:set vX.Y.Z` | 仅更改本地版本文件；也支持 `-alpha.1`、`-beta.1` 和 `-rc.1` |
 
-```sh
-git tag -a v0.1.0 -m "MiraiPlayer v0.1.0"
-git push origin v0.1.0
-```
+默认补丁版本从本地应用版本及远端、本地版本标签中的最高版本递增。如果要首次发布当前已设置的版本，先运行 `pnpm check:release`，在干净的发布提交上手动创建并推送与该版本一致的注解标签。
 
-推送标签后，工作流先核对标签和应用版本。四个构建任务全部成功后，发布任务逐个平台核验 SHA-256，汇总六个附件及一份 `SHA256SUMS.txt`，生成带变更记录的 GitHub Release 草稿。维护者可以先下载试用，检查说明后点击 **Publish release**。构建任务仅用仓库读取权限，创建草稿的任务使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。
+版本标签触发四个构建任务。发布任务核对每个平台的源提交、版本、架构和 SHA-256，根据上次公开版本以来的提交生成中文更新日志与安装包直链。八个附件上传完成后公开 Release。预发布标签会标为 *Pre-release*。
 
-同一运行可用 **Re-run failed jobs** 重试。已有同标签草稿时会更新附件；已公开的版本受到保护。修复源码后应在新的提交使用新版本号和新标签。
+构建失败可重跑失败任务，或在工作流手动运行时填写已推送的版本标签。已有草稿会继续上传；已公开的版本受到保护。普通主分支推送和留空标签的手动运行只产生开发包。
 
 ### 排查失败步骤
 
@@ -60,7 +62,7 @@ git push origin v0.1.0
 | Windows 原生测试找不到 `mt.exe` | Windows SDK / C++ Build Tools | 安装相应 SDK 后运行 `pnpm check:native` |
 | Linux 打包缺少桌面库或媒体组件 | apt 安装步骤、WebKitGTK 4.1、GStreamer | 使用工作流列出的依赖和构建发行版 |
 | Windows 打包工具临时下载失败 | `Build desktop packages` 的 NSIS 下载日志 | 确认上游恢复后重试失败任务 |
-| 同名标签已有正式版 | Release 草稿步骤和已有附件 | 保留已发布文件，准备下一版本标签 |
+| 同名标签已有正式版 | 发布步骤和已有附件 | 保留已发布文件，准备下一版本标签 |
 
 安装器的系统代码签名、macOS 公证和文件 SHA-256 服务于不同的验证环节。SHA-256 可对照下载文件的字节内容；当前部署的签名状态见本文平台说明。
 
@@ -73,7 +75,16 @@ pnpm install --frozen-lockfile
 pnpm release:build
 ```
 
-Tauri 原始安装包位于 `src-tauri/target/release/bundle/`。已命名的分发包及本平台 SHA-256 清单位于 `src-tauri/target/distribution/<版本>/<平台>/`。Windows ZIP 只收集编译后的可执行文件。在线曲库使用构建时配置的后端，自建服务可在打包前设置 `VITE_APP_BASE_API`。
+本机运行后，打开仓库根目录的 `release-output/`。Windows x64 构建会生成以下四个文件。
+
+| 文件 | 内容 |
+| --- | --- |
+| `MiraiPlayer_<版本>_windows_x64_setup.exe` | NSIS 安装器 |
+| `MiraiPlayer_<版本>_windows_x64_portable.zip` | 解压可运行的 `miraiplayer.exe` |
+| `version.json` | 应用版本、对应标签名、Git 提交、平台和架构 |
+| `SHA256SUMS.txt` | 两个分发包和版本信息的 SHA-256 |
+
+`release-output/` 按 MiraiHub 的约定由 Git 忽略。Tauri 原始安装包位于 `src-tauri/target/release/bundle/`，按版本与平台的副本位于 `src-tauri/target/distribution/<版本>/<平台>/`。本机只构建当前系统的包，GitHub Actions 在四个原生环境分别构建。在线曲库使用构建时配置的后端，自建服务可在打包前设置 `VITE_APP_BASE_API`。
 
 ## 核验下载
 

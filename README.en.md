@@ -89,7 +89,7 @@ Published versions appear under Assets on the Releases page. For a development b
 
 Windows Setup installs for the current user. For the portable ZIP, extract and run `miraiplayer.exe` with WebView2 Runtime installed. On macOS 13.3 or later, open the DMG for your chip and drag the app into Applications. The Mac builds use ad-hoc signing and are currently unnotarized. [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 
-Linux x64 packages are built on Ubuntu 22.04. Install the DEB with `sudo apt install ./filename.deb`, or make the AppImage executable and launch it. Every build archive includes a SHA-256 list for its platform. Tagged release drafts collect all six packages. [Packaging and verification](docs/RELEASING.md)
+Linux x64 packages are built on Ubuntu 22.04. Install the DEB with `sudo apt install ./filename.deb`, or make the AppImage executable and launch it. Every build archive includes a SHA-256 list for its platform. GitHub Releases hosts all six packages, version metadata and the combined SHA-256 list for each published version. [Packaging and verification](docs/RELEASING.md)
 
 ## Quick start
 
@@ -126,7 +126,7 @@ pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-Run `pnpm build` for type checks, a production web build and CSS validation. Use `pnpm release:build` for native packages. The default service is `https://music-api.yxcr.top`. To use another backend, set `VITE_APP_BASE_API` in a root `.env.local` and restart or rebuild.
+Run `pnpm build` for type checks, a production web build and CSS validation. Use `pnpm release:build` to write native packages, version metadata and checksums to `release-output/` in the project root. Run `pnpm release --dry-run` to preview the next version. The default service is `https://music-api.yxcr.top`. To use another backend, set `VITE_APP_BASE_API` in a root `.env.local` and restart or rebuild.
 
 [Frontend architecture](docs/FRONTEND_ARCHITECTURE.md) · [Performance and tests](docs/PERFORMANCE.md) · [Development notes](docs/DEVELOPMENT.md) · [Release guide](docs/RELEASING.md)
 
