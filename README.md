@@ -1,46 +1,144 @@
-# MiraiPlayer
+<a href="#下载与安装"><img src="docs/images/showcase-hero-zh.png" width="100%" alt="MiraiPlayer 桌面音乐播放器" /></a>
 
-MiraiPlayer 是一款玻璃风格的桌面音乐播放器。可以从网易云、酷我和酷狗搜索曲目、导入公开歌单，在全屏舞台跟随逐字歌词，也可以把歌词或播放控件单独放到桌面上。
+<p align="center"><a href="#下载与安装"><strong>下载桌面版 →</strong></a> · <a href="#快速开始">快速开始</a> · <a href="#文档">文档</a> · <a href="#社区交流">社区交流</a> · <a href="README.en.md">English</a></p>
 
-[下载发行版](https://github.com/XiangZi7/GlassMusicPlayer/releases) · [查看云构建](https://github.com/XiangZi7/GlassMusicPlayer/actions/workflows/release.yml) · [English](README.en.md)
+<p align="center">
+  <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="https://img.shields.io/github/v/release/XiangZi7/MiraiPlayer?style=flat-square&amp;logo=github" alt="GitHub Releases" /></a>
+  <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="https://img.shields.io/github/downloads/XiangZi7/MiraiPlayer/total?style=flat-square" alt="Release downloads" /></a>
+  <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/XiangZi7/MiraiPlayer/release.yml?branch=main&amp;style=flat-square&amp;label=build&amp;logo=githubactions" alt="Desktop builds" /></a>
+  <a href="#下载与安装"><img src="https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square" alt="Windows x64" /></a>
+  <a href="#下载与安装"><img src="https://img.shields.io/badge/macOS-Intel%20%2F%20Apple%20Silicon-141414?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="macOS Intel / Apple Silicon" /></a>
+  <a href="#下载与安装"><img src="https://img.shields.io/badge/Linux-x64-C78B00?style=flat-square&amp;logo=linux&amp;logoColor=white" alt="Linux x64" /></a>
+</p>
 
-![MiraiPlayer 首页的每日推荐、发现歌单和今日曲目](docs/images/home.png)
+<p align="center">
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Tauri-2-17848B?style=flat-square&amp;logo=tauri&amp;logoColor=white" alt="Tauri 2" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Rust-2024-A45029?style=flat-square&amp;logo=rust&amp;logoColor=white" alt="Rust 2024" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Vue-3-36846B?style=flat-square&amp;logo=vuedotjs&amp;logoColor=white" alt="Vue 3" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript 6" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Vite-8-6656BB?style=flat-square&amp;logo=vite&amp;logoColor=white" alt="Vite 8" /></a>
+  <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="https://img.shields.io/badge/Tailwind%20CSS-4-168995?style=flat-square&amp;logo=tailwindcss&amp;logoColor=white" alt="Tailwind CSS 4" /></a>
+</p>
+
+<p align="center">
+  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Playlists-Import-366AB0?style=flat-square" alt="平台连接与歌单" /></a>
+  <a href="docs/playback.md"><img src="https://img.shields.io/badge/Web%20Audio-EQ-915AA7?style=flat-square" alt="队列与音频" /></a>
+  <a href="docs/lyrics.md"><img src="https://img.shields.io/badge/Lyrics-Word%20sync-88539A?style=flat-square" alt="全屏歌词舞台" /></a>
+  <a href="docs/desktop.md"><img src="https://img.shields.io/badge/Desktop-Widgets-47669B?style=flat-square" alt="桌面窗口" /></a>
+  <a href="docs/appearance.md"><img src="https://img.shields.io/badge/Glass-2%20styles-39796E?style=flat-square" alt="玻璃与动效" /></a>
+  <a href="docs/storage.md"><img src="https://img.shields.io/badge/Storage-Downloads-956124?style=flat-square" alt="下载与数据" /></a>
+</p>
+
+<p align="center">
+  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/NetEase-Cloud%20Music-BB3644?style=flat-square" alt="NetEase Cloud Music" /></a>
+  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Kuwo-Music-B47B00?style=flat-square" alt="Kuwo Music" /></a>
+  <a href="docs/platforms.md"><img src="https://img.shields.io/badge/Kugou-Music-277BB2?style=flat-square" alt="Kugou Music" /></a>
+</p>
+
+MiraiPlayer 把公开歌单、逐字歌词和桌面播放小窗放在同一个播放器里。搜索一首歌可以直接点播，导入的歌单会留在本机。
+
+## 界面预览
+
+### 首页 · 每日推荐与发现歌单
+
+<a href="docs/images/feature-home.png"><img src="docs/images/feature-home.png" width="100%" alt="首页 · 每日推荐与发现歌单" /></a>
+
+### 公开歌单 · 完整曲目列表
+
+<a href="docs/images/feature-playlist.png"><img src="docs/images/feature-playlist.png" width="100%" alt="公开歌单 · 完整曲目列表" /></a>
+
+### 平台对接 · 账号与分享链接
+
+<a href="docs/images/feature-platforms.png"><img src="docs/images/feature-platforms.png" width="100%" alt="平台对接 · 账号与分享链接" /></a>
+
+### 批量选择与导入歌单
+
+<a href="docs/images/feature-import.png"><img src="docs/images/feature-import.png" width="100%" alt="批量选择与导入歌单" /></a>
+
+### 时尚 · 封面与同步歌词
+
+<a href="docs/images/feature-fashion.png"><img src="docs/images/feature-fashion.png" width="100%" alt="时尚 · 封面与同步歌词" /></a>
+
+### 手书 · 墨色歌词舞台
+
+<a href="docs/images/feature-ink.png"><img src="docs/images/feature-ink.png" width="100%" alt="手书 · 墨色歌词舞台" /></a>
+
+### 字幕 · 当前句与译文
+
+<a href="docs/images/feature-subtitles.png"><img src="docs/images/feature-subtitles.png" width="100%" alt="字幕 · 当前句与译文" /></a>
+
+### 音质 · 十段均衡器
+
+<a href="docs/images/feature-equalizer.png"><img src="docs/images/feature-equalizer.png" width="100%" alt="音质 · 十段均衡器" /></a>
+
+### 桌面 · 歌词、灵动岛与迷你播放器
+
+<a href="docs/images/feature-desktop.png"><img src="docs/images/feature-desktop.png" width="100%" alt="桌面 · 歌词、灵动岛与迷你播放器" /></a>
+
+<sub>首页、公开歌单、平台页及设置页来自匿名浏览器中的实际应用。导入弹窗与歌词舞台使用隔离回归样本展示选中状态、时间轴及译文。 <a href="docs/images/README.md">素材与复现说明</a></sub>
 
 ## 下载与安装
 
-在 GitHub Releases 中展开对应版本的 **Assets**，按系统和芯片选择文件。手动云构建的测试包可在对应 Actions 运行的 **Artifacts** 中下载。
+正式版本发布后可在 Releases 的 Assets 下载。开发版请打开最近一次成功的主分支构建，登录 GitHub 后从 Artifacts 下载对应系统的归档并解压。 [Releases](https://github.com/XiangZi7/MiraiPlayer/releases) · [GitHub Actions](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain)
 
-| 系统 | 下载文件后缀 | 安装方式 |
-| --- | --- | --- |
-| Windows x64 | `windows_x64_setup.exe` | 运行安装向导，默认安装到当前用户 |
-| Windows x64 免安装版 | `windows_x64_portable.zip` | 解压后运行 `miraiplayer.exe`，需要 WebView2 Runtime |
-| macOS Apple Silicon | `macos_arm64.dmg` | 打开磁盘映像，把 MiraiPlayer 拖入“应用程序” |
-| macOS Intel | `macos_x64.dmg` | 在“关于本机”中确认处理器为 Intel 后选择此包 |
-| Linux x64 | `linux_x64.deb` | 在 Debian / Ubuntu 系统上使用 `sudo apt install ./文件名.deb` |
-| Linux x64 | `linux_x64.AppImage` | 使用 `chmod +x 文件名.AppImage` 添加执行权限，再运行文件 |
+| 系统 | 构建格式 |
+| --- | --- |
+| **Windows** | [![Setup x64](https://img.shields.io/badge/Setup-x64-0078D4?style=flat-square)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![Portable ZIP x64](https://img.shields.io/badge/Portable%20ZIP-x64-0078D4?style=flat-square)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
+| **macOS** | [![DMG Apple Silicon](https://img.shields.io/badge/DMG-Apple%20Silicon-141414?style=flat-square&logo=apple&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DMG Intel x64](https://img.shields.io/badge/DMG-Intel%20x64-141414?style=flat-square&logo=apple&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
+| **Linux** | [![AppImage x64](https://img.shields.io/badge/AppImage-x64-B07B00?style=flat-square&logo=linux&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) [![DEB x64](https://img.shields.io/badge/DEB-x64-A92043?style=flat-square&logo=debian&logoColor=white)](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain) |
 
-macOS 安装包要求 13.3 或更高版本。Linux 包在 Ubuntu 22.04 构建。预览包的签名状态、系统依赖和 SHA-256 核验方式见[发行指南](docs/RELEASING.md)。
+Windows 安装包提供当前用户安装。免安装 ZIP 解压后运行 `miraiplayer.exe`，需要系统 WebView2。macOS 要求 13.3 或更高版本，打开对应芯片的 DMG 后将应用拖入“应用程序”。当前 macOS 包使用 ad-hoc 签名，尚未公证。 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 
-## 开始听歌
+Linux x64 以 Ubuntu 22.04 构建。用 `sudo apt install ./文件名.deb` 安装 DEB，或给 AppImage 添加执行权限后运行。每个构建归档附有本平台 SHA-256 清单，带版本标签的发布草稿会汇总六个分发文件。 [打包与校验](docs/RELEASING.md)
 
-1. 在标题栏搜索歌名或歌手，选择一首曲目开始播放。音源可用性、试听范围和歌词数据由上游平台决定。
-2. 在“平台对接”粘贴公开歌单的分享文字或详情链接，导入后即可从侧栏打开。已导入的歌单和偏好设置保存在本机。
-3. 打开全屏播放，可切换时尚、手书、字幕和对话四种歌词舞台。平台提供逐字时间戳时按字填色，普通 LRC 按句跟随。
-4. 从系统托盘打开桌面歌词、迷你播放器或媒体卡片。可在设置中选择玻璃材质、开关动效、调节 EQ 或设置下载目录。
+## 快速开始
 
-## 从源码运行
+1. 打开播放器，在标题栏输入歌名或歌手并按回车，选择搜索结果播放。
+2. 打开“平台对接”，粘贴完整的公开歌单详情链接或 App 分享文字，再确认导入。
+3. 进入全屏播放，切换时尚、手书、字幕或对话舞台。需要小窗时从系统托盘打开桌面歌词或迷你播放器。
 
-安装 Node.js 22.22.2、pnpm 10.33.0、Rust 1.96.0 和当前平台的 Tauri 开发依赖。Windows 使用 MSVC 与 WebView2，macOS 需要 Xcode Command Line Tools，Linux 的依赖列表见发行工作流。[Tauri 环境准备](https://v2.tauri.app/start/prerequisites/)
+| 常用操作 | 播放器快捷键 |
+| --- | --- |
+| 播放 / 暂停 | `Space` |
+| 快退 / 快进 5 秒 | `←` / `→` |
+| 音量增减 / 静音 | `↑` / `↓`, `M` |
+| 关闭全屏播放 | `Esc` |
+
+## 桌面歌词与托盘
+
+托盘菜单可以恢复主播放器、打开独立设置窗，或显示桌面歌词、迷你播放器和媒体控制卡片。只想看一行歌词时，在“设置 → 桌面”打开桌面灵动岛，再拖动歌词胶囊到屏幕边缘。可分别控制贴边吸附、歌词锁定和关闭主窗后是否留在托盘。 [桌面操作指南](docs/desktop.md)
+
+## 文档
+
+[平台连接与歌单](docs/platforms.md) · [队列与音频](docs/playback.md) · [全屏歌词舞台](docs/lyrics.md) · [桌面窗口](docs/desktop.md) · [玻璃与动效](docs/appearance.md) · [下载与数据](docs/storage.md)
+
+<details>
+<summary>本地开发</summary>
+
+使用 Node.js 22.22.2、pnpm 10.33.0、Rust 1.96.0 和所在系统的 Tauri 构建工具。Windows 需要 C++ Build Tools 和 WebView2，macOS 需要 Xcode Command Line Tools，Linux 的 WebKitGTK、托盘及 GStreamer 依赖列在发行工作流中。 [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-浏览器预览可运行 `pnpm dev`。桌面开发和浏览器预览共用 1420 端口。默认在线服务为 `https://music-api.yxcr.top`，自建后端时在项目根目录的 `.env.local` 设置 `VITE_APP_BASE_API`，重启或重新构建后生效。
+`pnpm build` 运行前端类型检查、生产构建与 CSS 校验。`pnpm release:build` 构建本平台分发包。默认服务为 `https://music-api.yxcr.top`，自建后端可在根目录 `.env.local` 配置 `VITE_APP_BASE_API` 并重启开发服务或重建。
 
-## 文档
+[前端架构](docs/FRONTEND_ARCHITECTURE.md) · [性能与回归](docs/PERFORMANCE.md) · [开发详解](docs/DEVELOPMENT.md) · [发版说明](docs/RELEASING.md)
 
-- [开发与验证](docs/DEVELOPMENT.md) 包含代码结构、平台支持、用户数据存储和现有回归命令。
-- [打包与发布](docs/RELEASING.md) 包含本机打包、GitHub 云构建、版本标签、安装包校验和发布草稿。
-- [字体授权](public/font-licenses/) 和 [地名数据来源](public/data-licenses/geonames.txt) 随项目分发。
+</details>
+
+<details>
+<summary>账号、数据与播放权限</summary>
+
+公开歌单、账号关联、EQ 预设和播放偏好保存在设备上。Windows 可使用系统凭据管理器保存网易云设备播放授权。歌曲是否可播、音质及试听范围由来源平台当次授权决定。天气由用户授权后按当前位置请求。 [平台支持范围](docs/platforms.md) · [数据与下载](docs/storage.md)
+
+</details>
+
+[反馈问题](https://github.com/XiangZi7/MiraiPlayer/issues) · [参与贡献](https://github.com/XiangZi7/MiraiPlayer/pulls) · [字体授权](public/font-licenses/) · [地名数据来源](public/data-licenses/geonames.txt)
+
+<sub>Made by <a href="https://github.com/XiangZi7">XiangZi</a></sub>
+
+## 社区交流
+
+反馈播放问题时，可以附上系统、应用版本、来源平台和可公开访问的曲目或歌单链接。界面问题可以补充当前材质及重现步骤。项目原有两个 QQ 交流群的二维码保存在旧版项目说明中。 [Issues](https://github.com/XiangZi7/MiraiPlayer/issues) · [项目交流群](https://github.com/XiangZi7/MiraiPlayer/blob/f19ae8ec4ed9b66e215cefdff63f46e1495cae6c/README.md#-交流与支持)

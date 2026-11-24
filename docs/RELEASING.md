@@ -1,5 +1,7 @@
 # MiraiPlayer 打包与发布
 
+在 GitHub Actions 的 **Desktop packages** 中选取分支、查看四个构建任务，或下载未发布的开发包。带版本标签的推送走同一组构建任务，再汇总 Release 草稿。[云构建](https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml) · [已发布版本](https://github.com/XiangZi7/MiraiPlayer/releases)
+
 ## 平台与产物
 
 GitHub Actions 使用四个原生构建任务，生成六个面向用户的文件。文件名以 `MiraiPlayer_<版本>_` 开头，后缀如下。
@@ -23,7 +25,15 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 2. 打开 **Actions → Desktop packages → Run workflow**，选择要打包的分支。
 3. 在完成的运行页面展开 **Artifacts**。四个按平台命名的归档保留 14 天，每个归档包含本平台安装文件和校验清单。
 
-前端构建包含 TypeScript 检查和压缩后 CSS 检查。各平台执行 EQ 回归、Rust 原生与存储测试，再打包。可在失败的任务日志中找到具体的编译、测试、打包或上传步骤。[发行工作流](../.github/workflows/release.yml)
+前端构建包含 TypeScript 检查和压缩后 CSS 检查。各平台执行 EQ、动效和桌面组件回归，以及 Rust 原生与存储测试，再打包。可在失败的任务日志中找到具体的编译、测试、打包或上传步骤。[发行工作流](../.github/workflows/release.yml)
+
+### 找到要下载的文件
+
+每个运行有四个 Actions 归档，名称后缀分别为 `windows_x64`、`macos_x64`、`macos_arm64`、`linux_x64`。GitHub 下载的外层 ZIP 是归档容器；先解压，再打开内部的安装文件或免安装 ZIP。发布草稿中则直接提供六个已命名的分发文件。
+
+### 缓存和构建环境
+
+前端依赖按 pnpm 锁文件安装，Rust 使用锁定依赖。工作流分别缓存 pnpm 包和各平台的 Cargo 依赖。首次运行或工具链、锁文件变化后，编译时间通常更长。新检出无需本机设计稿、用户歌单或后端源码目录。
 
 ## 发布带版本号的草稿
 
@@ -41,6 +51,18 @@ git push origin v0.1.0
 推送标签后，工作流先核对标签和应用版本。四个构建任务全部成功后，发布任务逐个平台核验 SHA-256，汇总六个附件及一份 `SHA256SUMS.txt`，生成带变更记录的 GitHub Release 草稿。维护者可以先下载试用，检查说明后点击 **Publish release**。构建任务仅用仓库读取权限，创建草稿的任务使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。
 
 同一运行可用 **Re-run failed jobs** 重试。已有同标签草稿时会更新附件；已公开的版本受到保护。修复源码后应在新的提交使用新版本号和新标签。
+
+### 排查失败步骤
+
+| 现象 | 核对位置 | 处理 |
+| --- | --- | --- |
+| 版本校验失败 | 标签、`package.json`、Rust manifest 与 lock 中的本项目条目 | 将目标版本同步后重新运行本地校验 |
+| Windows 原生测试找不到 `mt.exe` | Windows SDK / C++ Build Tools | 安装相应 SDK 后运行 `pnpm check:native` |
+| Linux 打包缺少桌面库或媒体组件 | apt 安装步骤、WebKitGTK 4.1、GStreamer | 使用工作流列出的依赖和构建发行版 |
+| Windows 打包工具临时下载失败 | `Build desktop packages` 的 NSIS 下载日志 | 确认上游恢复后重试失败任务 |
+| 同名标签已有正式版 | Release 草稿步骤和已有附件 | 保留已发布文件，准备下一版本标签 |
+
+安装器的系统代码签名、macOS 公证和文件 SHA-256 服务于不同的验证环节。SHA-256 可对照下载文件的字节内容；当前部署的签名状态见本文平台说明。
 
 ## 本机打包
 
