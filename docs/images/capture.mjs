@@ -9,7 +9,6 @@ const root = resolve(import.meta.dirname, '../..')
 const scratch = join(root, '.tmp')
 await mkdir(scratch, { recursive: true })
 const profile = await mkdtemp(join(scratch, 'readme-edge-'))
-const origin = 'http://127.0.0.1:' + (process.env.MIRAI_QA_PORT || '1420')
 const browser = spawn(process.env.MIRAI_BROWSER || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', [
   '--headless=new', '--no-first-run', '--mute-audio', '--disable-background-networking',
   '--remote-debugging-port=0', '--user-data-dir=' + profile, 'about:blank',
@@ -81,29 +80,12 @@ try {
     pending.delete(packet.id)
   }
   await send('Page.enable')
-  if (process.argv.includes('--hero')) {
-    await resize(1600, 800)
-    for (const language of ['zh', 'en']) {
-      const url = pathToFileURL(join(import.meta.dirname, 'showcase.html'))
-      url.searchParams.set('lang', language)
-      await send('Page.navigate', { url: url.href })
-      await capture('showcase-hero-' + language, 'document.documentElement.lang === ' + JSON.stringify(language) + ' && [...document.images].every(image => image.naturalWidth > 0)')
-    }
-  } else {
-    await resize(1440, 900)
-    await send('Page.navigate', { url: origin + '/#/' })
-    await capture('feature-home', "document.querySelectorAll('.home-content [data-card-key]').length >= 4 && document.querySelector('[data-card-key=\"netease:3779629\"]')")
-    await evaluate("document.querySelector('[data-card-key=\"netease:3779629\"]').click()")
-    await capture('feature-playlist', "document.querySelector('[data-panel=discovery] [data-vue-tracklist]')")
-    await evaluate("location.hash='/connect'")
-    await capture('feature-platforms', "document.querySelector('[data-panel=connect]')?.getBoundingClientRect().height > 100")
-    await resize(940, 730)
-    await evaluate("location.hash='/settings'")
-    await wait('设置', () => evaluate("!!document.querySelector('[data-slide-value=audio]')"))
-    await evaluate("document.querySelector('[data-slide-value=audio]').click()")
-    await capture('feature-equalizer', "!!document.querySelector('[aria-label=启用均衡器]')")
-    await evaluate("document.querySelector('[data-slide-value=desktop]').click()")
-    await capture('feature-desktop', "document.querySelector('main [role=region]')?.textContent.includes('灵动岛')")
+  await resize(1600, 800)
+  for (const language of ['zh', 'en']) {
+    const url = pathToFileURL(join(import.meta.dirname, 'showcase.html'))
+    url.searchParams.set('lang', language)
+    await send('Page.navigate', { url: url.href })
+    await capture('showcase-hero-' + language, 'document.documentElement.lang === ' + JSON.stringify(language) + ' && [...document.images].every(image => image.naturalWidth > 0)')
   }
 } finally {
   if (socket?.readyState === WebSocket.OPEN) {

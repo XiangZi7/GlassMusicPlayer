@@ -39,43 +39,43 @@ MiraiPlayer 把公开歌单、逐字歌词和桌面播放小窗放在同一个�
 
 ## 界面预览
 
-### 首页 · 每日推荐与发现歌单
+### 首页 · 播放中的每日推荐与已导入歌单
 
-<a href="docs/images/feature-home.png"><img src="docs/images/feature-home.png" width="100%" alt="首页 · 每日推荐与发现歌单" /></a>
+<a href="docs/images/feature-home.png"><img src="docs/images/feature-home.png" width="100%" alt="首页 · 播放中的每日推荐与已导入歌单" /></a>
 
-### 公开歌单 · 完整曲目列表
+### 搜索 · 通过动画作品找到片头曲和片尾曲
 
-<a href="docs/images/feature-playlist.png"><img src="docs/images/feature-playlist.png" width="100%" alt="公开歌单 · 完整曲目列表" /></a>
+<a href="docs/images/feature-search.png"><img src="docs/images/feature-search.png" width="100%" alt="搜索 · 通过动画作品找到片头曲和片尾曲" /></a>
 
-### 平台对接 · 账号与分享链接
+### 我的歌单 · Good music 的完整曲目
 
-<a href="docs/images/feature-platforms.png"><img src="docs/images/feature-platforms.png" width="100%" alt="平台对接 · 账号与分享链接" /></a>
+<a href="docs/images/feature-playlist.png"><img src="docs/images/feature-playlist.png" width="100%" alt="我的歌单 · Good music 的完整曲目" /></a>
 
-### 批量选择与导入歌单
+### 播放队列 · 当前曲目与后续歌曲
 
-<a href="docs/images/feature-import.png"><img src="docs/images/feature-import.png" width="100%" alt="批量选择与导入歌单" /></a>
+<a href="docs/images/feature-queue.png"><img src="docs/images/feature-queue.png" width="100%" alt="播放队列 · 当前曲目与后续歌曲" /></a>
 
-### 时尚 · 封面与同步歌词
+### 时尚 · 专辑封面与逐字歌词
 
-<a href="docs/images/feature-fashion.png"><img src="docs/images/feature-fashion.png" width="100%" alt="时尚 · 封面与同步歌词" /></a>
+<a href="docs/images/feature-fashion.png"><img src="docs/images/feature-fashion.png" width="100%" alt="时尚 · 专辑封面与逐字歌词" /></a>
 
-### 手书 · 墨色歌词舞台
+### 手书 · 墨色舞台与双语歌词
 
-<a href="docs/images/feature-ink.png"><img src="docs/images/feature-ink.png" width="100%" alt="手书 · 墨色歌词舞台" /></a>
+<a href="docs/images/feature-ink.png"><img src="docs/images/feature-ink.png" width="100%" alt="手书 · 墨色舞台与双语歌词" /></a>
 
-### 字幕 · 当前句与译文
+### 字幕 · 当前唱词与译文
 
-<a href="docs/images/feature-subtitles.png"><img src="docs/images/feature-subtitles.png" width="100%" alt="字幕 · 当前句与译文" /></a>
+<a href="docs/images/feature-subtitles.png"><img src="docs/images/feature-subtitles.png" width="100%" alt="字幕 · 当前唱词与译文" /></a>
 
-### 音质 · 十段均衡器
+### 对话 · 交替排列的歌词气泡
 
-<a href="docs/images/feature-equalizer.png"><img src="docs/images/feature-equalizer.png" width="100%" alt="音质 · 十段均衡器" /></a>
+<a href="docs/images/feature-chat.png"><img src="docs/images/feature-chat.png" width="100%" alt="对话 · 交替排列的歌词气泡" /></a>
 
-### 桌面 · 歌词、灵动岛与迷你播放器
+### 平台对接 · 已关联账号与导入统计
 
-<a href="docs/images/feature-desktop.png"><img src="docs/images/feature-desktop.png" width="100%" alt="桌面 · 歌词、灵动岛与迷你播放器" /></a>
+<a href="docs/images/feature-platforms.png"><img src="docs/images/feature-platforms.png" width="100%" alt="平台对接 · 已关联账号与导入统计" /></a>
 
-<sub>首页、公开歌单、平台页及设置页来自匿名浏览器中的实际应用。导入弹窗与歌词舞台使用隔离回归样本展示选中状态、时间轴及译文。 <a href="docs/images/README.md">素材与复现说明</a></sub>
+<sub>实拍自已登录的 Windows 桌面版。播放曲目为七音阿卡莉《ぴ》，搜索和全屏展示来源平台标注的动画片尾曲信息。 <a href="docs/images/README.md">素材与复现说明</a></sub>
 
 ## 下载与安装
 

@@ -1,37 +1,28 @@
-# README 图片
+# Mirai Player 文档图片
 
-中英文 README 共用九张功能图，顶部各用一张 1600 × 800 的头图。头图左侧为对应语言的产品介绍，右侧叠放两张播放器截图。[中文首页](../../README.md) · [English README](../../README.en.md)
+中英文首页共用同一组播放中的桌面截图。顶图按语言分别排版，功能图保留 Windows 客户端原始中文界面。[中文首页](../../README.md) · [English](../../README.en.md)
 
-## 素材与来源
+## 拍摄内容
 
-| 文件 | 内容 | 采集方式 |
-| --- | --- | --- |
-| `showcase-hero-zh.png`、`showcase-hero-en.png` | 双语头图 | 本地浏览器渲染 [头图排版](showcase.html)，嵌入首页与时尚舞台截图 |
-| `feature-home.png` | 完整主窗口、每日推荐和发现 | 匿名浏览器打开当前应用，后端返回三平台公开歌单 |
-| `feature-playlist.png` | 网易云新歌榜详情 | 从首页打开歌单，等待实际完整曲目列表出现 |
-| `feature-platforms.png` | 三个平台的公开连接入口 | 未关联账号的浏览器会话 |
-| `feature-import.png` | 批量导入的歌单选择状态 | 隔离的界面回归样本 |
-| `feature-fashion.png`、`feature-ink.png`、`feature-subtitles.png` | 同一曲目的三种歌词排版 | 播放器组件真实渲染，歌曲、时间轴、译文及天气来自浏览器回归样本 |
-| `feature-equalizer.png`、`feature-desktop.png` | 音质与桌面设置 | 当前应用的独立设置路由，使用默认草稿 |
-| `home.png` | 首页内容区近景 | 之前保存的匿名公开推荐截图，供平台指南对照 |
+| 图片 | 画面 |
+| --- | --- |
+| `feature-home.png`、`home.png`（内容近景）、`feature-library.png` | 已关联账号的每日推荐、左侧导入歌单和本地音乐库 |
+| `feature-search.png` | 搜索“学生会也有洞”，在结果和播放栏查看《ぴ》的片尾曲标注 |
+| `feature-playlist.png`、`feature-queue.png` | Good music 歌单和播放中的队列 |
+| `feature-fashion.png`、`feature-ink.png`、`feature-subtitles.png`、`feature-chat.png` | 同一首《ぴ》在时尚、手书、字幕、对话四款舞台中的封面和同步歌词 |
+| `feature-platforms.png`、`feature-import.png` | 已关联平台、导入统计与歌单选择 |
+| `feature-equalizer.png`、`feature-desktop.png` | 同一桌面会话打开的音质与桌面设置 |
+| `miraiplayer-logo.png` | 粉发眼镜少女与播放符号，透明 PNG 母图 |
+| `showcase-hero-zh.png`、`showcase-hero-en.png` | 1600 × 800 的双语头图，由首页和时尚舞台实拍排版生成 |
 
-功能图来自网页渲染，系统任务栏、边框、安装器和系统音频设备不在截图范围内。公开歌单每天可能变化；图中样本账号及样本歌词用于说明交互，平台的实际返回以使用时为准。
+## 更新素材
 
-## 重新采集
+1. 在 Windows 上运行 `pnpm tauri dev`，打开已关联的平台账号和已导入的音乐库。在歌单或搜索结果点播一首有封面、同步歌词和作品说明的歌曲，等待进度开始移动。
+2. 截取应用内容边界，主窗按 1360 × 860 逻辑像素、独立设置窗按 860 × 740 逻辑像素保存。保持同一曲目、材质和界面缩放。任选歌单只用于展示选择状态，完成后关闭弹窗。发布前核对画面中的账号信息适合公开展示。
+3. 将截图保存为上表对应的文件。运行 `node docs/images/capture.mjs --hero` 重新排版两种语言的头图。脚本默认使用 Windows 上的 Edge，可用环境变量 `MIRAI_BROWSER` 指定其他 Chromium 可执行文件。
 
-1. 安装项目依赖，启动 `pnpm dev` 或使用已经运行的开发服务。使用独立 Edge / Chromium 配置，不打开日常使用的账号资料。
-2. 在仓库根目录执行下面的命令。首次采集需要后端可访问，且允许该预览来源的公开请求。
-3. 打开两张头图和九张功能图，确认封面、字体及选中态完整，截图中没有私有歌单、登录二维码、播放凭据或系统路径，再提交文档素材。
-
-```sh
-node docs/images/capture.mjs
-node docs/images/capture.mjs --hero
-```
-
-脚本默认使用 Windows 上的 Edge。其他安装位置可用 `MIRAI_BROWSER` 指定 Chromium 可执行文件。`MIRAI_QA_PORT` 指定本地预览端口。头图只依赖同目录的图片，可以单独重新渲染。浏览器关闭后，临时配置保存在忽略的 `.tmp/` 下。
-
-舞台样本使用项目现有的 Edge 回归与截图选项。平台导入样本使用隔离测试数据，更新时应保持勾选状态清晰。[浏览器回归入口](../../scripts/check-home-settings.mjs)
+本组截图来自正常启动的 Tauri 原生开发版。拍摄时使用已登录的桌面账号、现有曲库和真实播放。公开搜索及曲目详情由本地运行的 MiraiMusic-Server 更新版读取来源平台，播放授权和歌词沿用播放器原有服务。
 
 ## English
 
-The gallery shows the running app in an isolated Chromium session. Home and playlist detail use public catalog responses. Import selection and fullscreen lyric examples use test data, and the two settings images show the preview's default preferences. The bilingual hero images are local HTML layouts built from those screenshots. Use the commands above to refresh the live views and render the headers.
+The gallery follows one signed-in desktop session while **ぴ** by Nanawo Akari is playing. The screenshots show the account’s daily recommendations, imported library, search results, playback queue and all four lyric stages. Search and song details used the updated local catalog service with live provider responses. The two headers are composed from the same captures and the transparent app icon.

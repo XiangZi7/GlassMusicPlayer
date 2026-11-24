@@ -39,43 +39,43 @@ MiraiPlayer brings public playlists, word-synchronized lyrics and floating deskt
 
 ## Interface preview
 
-### Home · daily picks and discovery
+### Home · account recommendations during playback
 
-<a href="docs/images/feature-home.png"><img src="docs/images/feature-home.png" width="100%" alt="Home · daily picks and discovery" /></a>
+<a href="docs/images/feature-home.png"><img src="docs/images/feature-home.png" width="100%" alt="Home · account recommendations during playback" /></a>
 
-### Public playlist · track list
+### Search · opening and ending themes by series name
 
-<a href="docs/images/feature-playlist.png"><img src="docs/images/feature-playlist.png" width="100%" alt="Public playlist · track list" /></a>
+<a href="docs/images/feature-search.png"><img src="docs/images/feature-search.png" width="100%" alt="Search · opening and ending themes by series name" /></a>
 
-### Platform connections · accounts and share links
+### Playlists · tracks in Good music
 
-<a href="docs/images/feature-platforms.png"><img src="docs/images/feature-platforms.png" width="100%" alt="Platform connections · accounts and share links" /></a>
+<a href="docs/images/feature-playlist.png"><img src="docs/images/feature-playlist.png" width="100%" alt="Playlists · tracks in Good music" /></a>
 
-### Selecting playlists to import
+### Queue · the current track and what plays next
 
-<a href="docs/images/feature-import.png"><img src="docs/images/feature-import.png" width="100%" alt="Selecting playlists to import" /></a>
+<a href="docs/images/feature-queue.png"><img src="docs/images/feature-queue.png" width="100%" alt="Queue · the current track and what plays next" /></a>
 
-### Fashion · artwork and synchronized lyrics
+### Fashion · album art and synchronized lyrics
 
-<a href="docs/images/feature-fashion.png"><img src="docs/images/feature-fashion.png" width="100%" alt="Fashion · artwork and synchronized lyrics" /></a>
+<a href="docs/images/feature-fashion.png"><img src="docs/images/feature-fashion.png" width="100%" alt="Fashion · album art and synchronized lyrics" /></a>
 
-### Handwritten · ink and lyrics
+### Handwritten · ink textures and bilingual lyrics
 
-<a href="docs/images/feature-ink.png"><img src="docs/images/feature-ink.png" width="100%" alt="Handwritten · ink and lyrics" /></a>
+<a href="docs/images/feature-ink.png"><img src="docs/images/feature-ink.png" width="100%" alt="Handwritten · ink textures and bilingual lyrics" /></a>
 
-### Subtitles · original and translated lines
+### Subtitles · the current line and its translation
 
-<a href="docs/images/feature-subtitles.png"><img src="docs/images/feature-subtitles.png" width="100%" alt="Subtitles · original and translated lines" /></a>
+<a href="docs/images/feature-subtitles.png"><img src="docs/images/feature-subtitles.png" width="100%" alt="Subtitles · the current line and its translation" /></a>
 
-### Audio · ten-band equalizer
+### Dialogue · alternating lyric bubbles
 
-<a href="docs/images/feature-equalizer.png"><img src="docs/images/feature-equalizer.png" width="100%" alt="Audio · ten-band equalizer" /></a>
+<a href="docs/images/feature-chat.png"><img src="docs/images/feature-chat.png" width="100%" alt="Dialogue · alternating lyric bubbles" /></a>
 
-### Desktop · lyrics, floating capsule and mini player
+### Connections · a linked account and imported playlists
 
-<a href="docs/images/feature-desktop.png"><img src="docs/images/feature-desktop.png" width="100%" alt="Desktop · lyrics, floating capsule and mini player" /></a>
+<a href="docs/images/feature-platforms.png"><img src="docs/images/feature-platforms.png" width="100%" alt="Connections · a linked account and imported playlists" /></a>
 
-<sub>Home, discovery, connections and settings were captured from the app in an anonymous browser session. Import and lyric previews use isolated test data for selection, timing and translated lines. <a href="docs/images/README.md">Image sources and reproduction</a></sub>
+<sub>Captured in the signed-in Windows desktop app while playing Nanawo Akari’s ぴ. Search and fullscreen playback show the anime ending-theme credit supplied by the music service. <a href="docs/images/README.md">Image sources and reproduction</a></sub>
 
 ## Downloads and installation
 
