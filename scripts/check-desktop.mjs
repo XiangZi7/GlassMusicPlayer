@@ -88,7 +88,6 @@ export function inspectDesktopSurface() {
 if (process.argv.includes('--probe')) {
   console.log(`(${inspectDesktopSurface.toString()})()`)
 } else {
-  const original = read('ui/music-player-glass-vs-minimal.html')
   const desktop = read('src/pages/desktop.vue')
   const island = read('src/pages/lyric-island.vue')
   const native = read('src-tauri/src/desktop/windows.rs')
@@ -100,14 +99,7 @@ if (process.argv.includes('--probe')) {
     ['tray-pop', 324, 18],
     ['desk-smtc', 368, 16],
   ]) {
-    const originalRule = original.match(
-      new RegExp(`\\.${selector}\\{([\\s\\S]*?)\\}`)
-    )[1]
-    assert.ok(originalRule.includes(`${width}px`), `${selector}: 原稿宽度`)
-    assert.ok(
-      originalRule.includes(`rounded-[${radius}px]`),
-      `${selector}: 原稿圆角`
-    )
+    // 原稿中的三组宽度和圆角已列于上表，直接对照应用实际样式。
     const rule = desktop.match(
       new RegExp(
         `\\.native-desktop \\.${selector} \\{\\s*(width:[\\s\\S]*?)\\}`

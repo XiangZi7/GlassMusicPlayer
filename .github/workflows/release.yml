@@ -62,6 +62,8 @@ jobs:
           workspaces: src-tauri -> target
           key: ${{ matrix.platform }}
       - run: pnpm check:equalizer
+      - run: pnpm check:motion
+      - run: pnpm check:desktop
       - run: pnpm check:native
       - run: pnpm check:storage
       - name: Build desktop packages

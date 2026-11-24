@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
@@ -6,13 +7,13 @@ import vm from 'node:vm'
 
 const root = path.resolve(import.meta.dirname, '..')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
-const html = read('ui/music-player-glass-vs-minimal.html')
-const originalScript = [
-  ...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g),
-].at(-1)[1]
-const originalCss = html.match(
-  /<script type="text\/x-tailwind-source"[^>]*>([\s\S]*?)<\/script>/
-)[1]
+const baseline = JSON.parse(read('scripts/motion-baseline.json'))
+
+// 比较原稿已验收的语义摘要；仓库无需分发设计稿中的图片、字体或脚本。
+function checkDigest(actual, expected, label) {
+  const digest = createHash('sha256').update(JSON.stringify(actual)).digest('hex')
+  assert.equal(digest, expected, label)
+}
 
 // AST 只比较语义节点，格式、注释与引号风格不会干扰动画参数校验。
 function canonical(node) {
@@ -70,66 +71,17 @@ function animationCalls(node) {
   return calls
 }
 
-const fullscreen = animationCalls(
-  findFunction(originalScript, 'animateFsTrackChange')
-)
-assert.deepEqual(
-  animationCalls(
-    findFunction(
-      read('src/services/player/fullscreen-motion.js'),
-      'animateFsTrackChange'
-    )
-  ),
-  fullscreen,
-  'Fullscreen animation changed'
-)
 const currentFullscreen = read('src/services/player/fullscreen-motion.js')
-const entrance = findFunction(originalScript, 'animateFsEntrance')
-assert.deepEqual(
-  canonical(findFunction(currentFullscreen, 'animateFsEntrance').body),
-  canonical(entrance.body),
-  'Fullscreen entrance choreography changed'
-)
-assert.deepEqual(
-  canonical(findFunction(currentFullscreen, 'cancelFsStageAnims').body),
-  canonical(findFunction(originalScript, 'cancelFsStageAnims').body),
-  'Fullscreen entrance/track-change cancellation changed'
-)
-const desktop = animationCalls(
-  findFunction(originalScript, 'animateDeskTrackChange')
-)
-assert.deepEqual(
-  animationCalls(
-    findFunction(
-      read('src/services/player/desktop-motion.js'),
-      'animateSourceDesktop'
-    )
-  ),
-  desktop,
-  'Desktop animation changed'
-)
-assert.deepEqual(
-  animationCalls(
-    findFunction(
-      read('src/services/player/desktop-motion.js'),
-      'animateSourceLyric'
-    )
-  ),
-  animationCalls(findFunction(originalScript, 'syncDesk')),
-  'Desktop lyric flip changed'
-)
-// 原稿由 setStage 直接收起主队列、取消主题过渡，Vue 组件通过 stage 观察器实现这两步。
-// 其余开关场景、定时器和分层动画仍逐项对照当前 HTML。
-const stageTimingReference = originalScript
-  .replace('state.stage=true; state.mainQ=false;', 'state.stage=true;')
-  .replace('fsThemeRun++; fsThemeAnims.forEach(function(a){ try{a.cancel();}catch(e){} }); fsThemeAnims=[];', '')
-assert.deepEqual(
-  canonical(
-    findFunction(read('src/services/player/runtime.js'), 'setStage').body
-  ),
-  canonical(findFunction(stageTimingReference, 'setStage').body),
-  'Fullscreen open/close timing changed'
-)
+const currentDesktop = read('src/services/player/desktop-motion.js')
+const runtime = read('src/services/player/runtime.js')
+const fullscreen = animationCalls(findFunction(currentFullscreen, 'animateFsTrackChange'))
+const desktop = animationCalls(findFunction(currentDesktop, 'animateSourceDesktop'))
+checkDigest(fullscreen, baseline.animations.fullscreen, 'Fullscreen animation changed')
+checkDigest(desktop, baseline.animations.desktop, 'Desktop animation changed')
+checkDigest(animationCalls(findFunction(currentDesktop, 'animateSourceLyric')), baseline.animations.lyric, 'Desktop lyric flip changed')
+checkDigest(canonical(findFunction(currentFullscreen, 'animateFsEntrance').body), baseline.animations.entrance, 'Fullscreen entrance changed')
+checkDigest(canonical(findFunction(currentFullscreen, 'cancelFsStageAnims').body), baseline.animations.cancel, 'Fullscreen cancellation changed')
+checkDigest(canonical(findFunction(runtime, 'setStage').body), baseline.animations.stage, 'Fullscreen open/close timing changed')
 
 // 鼠标视差、歌词拖动/跟随和横幅收缩的事件处理保持原阈值与调用顺序。
 function motionHandlers(source) {
@@ -173,31 +125,11 @@ function motionHandlers(source) {
   visit(tree)
   return handlers
 }
-// 仅将进度条时间来源替换为真实媒体时钟，保留鼠标提示和其余动效的原始校验。
-const expectedSeek = originalScript
-  // 首页只在收起后仍可滚动时折叠，原稿的两个滚动阈值及其余处理继续逐项核对。
-  .replace('!c&&mainEl.scrollTop>70', '!c&&mainEl.scrollTop>70&&hasRoomForCompactBanner(mainEl)')
-  // 封面组独立上下浮动，背景巨字和粒子的指针通道照旧校验。
-  .replace(/fsEl\.style\.setProperty\("--t[xy]",(?:n[xy]\.toFixed\(3\)|0)\);/g, '')
-  .replace(
-    'var tr=TRACKS[state.idx]; state.t=seek.value/1000*tr.dur; render();',
-    'seekTo((seek.value / 1000) * currentDuration());'
-  )
-  .replace('var total=TRACKS[state.idx].dur;', 'var total=currentDuration();')
-  // 虚拟行仅改变可命中的节点和绝对行号，保留原滚动抑制、拖动阈值与松手时序。
-  .replace('if(fl._progUntil&&Date.now()<fl._progUntil)return; browse();',
-    'if (!state.stage) return; fl._window?.sync(fl._activeLine); if(fl._progUntil&&Date.now()<fl._progUntil)return; browse();')
-  .replace(/for\(var k=0;k<fl\.children\.length;k\+\+\)\{\s*var rr=fl\.children\[k\]\.getBoundingClientRect\(\);/,
-    'for(const row of mountedLyricRows(fl)){ var rr=row.getBoundingClientRect();')
-  .replace('seekLine(k); break;', "seekLine(Number(row.getAttribute('data-lj'))); break;")
-const originalHandlers = motionHandlers(expectedSeek)
-const currentHandlers = motionHandlers(read('src/services/player/runtime.js'))
-for (const [key, value] of originalHandlers)
-  assert.deepEqual(
-    currentHandlers.get(key),
-    value,
-    `Motion input changed: ${key}`
-  )
+const currentHandlers = motionHandlers(runtime)
+for (const [key, expected] of Object.entries(baseline.handlers)) {
+  assert.ok(currentHandlers.has(key), 'Missing motion input: ' + key)
+  checkDigest(currentHandlers.get(key), expected, 'Motion input changed: ' + key)
+}
 
 // CSS 关键帧按名字与声明核对，保留天气、呼吸、光带、粒子及进出场。
 function keyframes(css) {
@@ -225,24 +157,11 @@ const currentCss = ['src/styles/main.css', 'src/styles/player-effects.css']
   .filter(file => fs.existsSync(path.join(root, file)))
   .map(read)
   .join('\n')
-const expectedKeyframes = keyframes(originalCss)
-// 底栏频谱已使用实时音频数据，旧的随机脉冲关键帧不再使用。
-expectedKeyframes.delete('specPulse')
-// 窗内歌词胶囊改用短淡出和淡入，长短句的尺寸过渡由浏览器回归覆盖。
-expectedKeyframes.delete('capFlipIn')
-// 原稿中的流场 / 唱片属于其他主题。本应用四种舞台使用各自的背景层。
-expectedKeyframes.delete('ambFlow')
-expectedKeyframes.delete('fsDiscSpin')
-// 队列的单向入场改为可中断的双向过渡，同时保留少动效分支。
-expectedKeyframes.delete('fsQIn')
+const frames = keyframes(currentCss)
 assert.match(currentCss, /\.fs-queue\s*\{[^}]*opacity:\s*0[^}]*transition:\s*opacity 200ms/)
 assert.match(currentCss, /\.fs\.qopen \.fs-queue\s*\{[^}]*opacity:\s*1/)
 assert.match(currentCss, /\.fs\.fs-calm \.fs-queue\s*\{[^}]*transition:\s*none/)
-assert.deepEqual(
-  keyframes(currentCss),
-  expectedKeyframes,
-  'CSS keyframes changed'
-)
+checkDigest([...frames].sort(([a], [b]) => a.localeCompare(b, 'en')), baseline.keyframes, 'CSS keyframes changed')
 // 真正调用动画控制器，校验入场 ↔ 切歌 ↔ 关闭/立即重开没有残余 run 或 ghost。
 const ghosts = new Set()
 const nodes = new Map()
@@ -428,5 +347,5 @@ const shellRules = [
 ]
 assert.match(shellRules.at(-1)[1], /animation:\s*none/)
 console.log(
-  `Motion verified: original layered entrance, ${fullscreen.length} fullscreen track-change animations, ${desktop.length} desktop animations, ${expectedKeyframes.size} CSS keyframes, ${originalHandlers.size} motion input handlers, rapid open/skip/close cancellation, both themes, reduced motion and title tiers.`
+  `Motion verified: original layered entrance, ${fullscreen.length} fullscreen track-change animations, ${desktop.length} desktop animations, ${frames.size} CSS keyframes, ${Object.keys(baseline.handlers).length} motion input handlers, rapid open/skip/close cancellation, both themes, reduced motion and title tiers.`
 )

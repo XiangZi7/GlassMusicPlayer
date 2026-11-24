@@ -25,3 +25,6 @@ dist-ssr
 .tmp
 
 meting-python
+
+# 本机 UI 设计原稿
+/ui/
