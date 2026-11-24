@@ -13,7 +13,6 @@ import {
   usePreferredReducedMotion,
   useResizeObserver,
 } from '@vueuse/core'
-import TrayIcon from '@/components/tray/TrayIcon.vue'
 import TrayMenuItem from '@/components/tray/TrayMenuItem.vue'
 import TrayNowPlaying from '@/components/tray/TrayNowPlaying.vue'
 import type { SourceSnapshot } from '@/types/prototype'
@@ -172,7 +171,7 @@ onUnmounted(() => {
     aria-label="MiraiPlayer 托盘快捷菜单"
   >
     <div class="tray-menu-heading">
-      <span class="tray-brand-icon"><TrayIcon name="music" /></span>
+      <img class="tray-brand-icon" src="@/assets/miraiplayer.png" width="29" height="29" alt="" />
       <div class="tray-brand-text">
         <b>MiraiPlayer</b>
         <span>音乐与桌面，随手可达</span>
@@ -293,18 +292,11 @@ onUnmounted(() => {
   padding: 0 3px 7px;
 }
 .tray-brand-icon {
-  display: grid;
+  display: block;
   width: 29px;
   height: 29px;
   flex: none;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 9px;
-  background: rgb(255 255 255 / 0.09);
-}
-.tray-brand-icon svg {
-  width: 16px;
-  height: 16px;
+  object-fit: contain;
 }
 .tray-brand-text {
   display: flex;

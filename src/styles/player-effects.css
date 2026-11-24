@@ -242,7 +242,7 @@ h1 .thin {
 /* sidebar */
 
 .brand .logo {
-  @apply grid h-[32px] w-[32px] flex-none place-items-center rounded-[10px] text-[16px];
+  @apply block size-10 flex-none object-contain;
 }
 
 .brand b {
@@ -1301,11 +1301,6 @@ input[type='range']::-moz-range-thumb {
   border-right: 1px solid rgba(255, 255, 255, 0.13);
 }
 
-.glass-win .brand .logo {
-  background: rgba(255, 255, 255, 0.92);
-  color: #14141c;
-}
-
 .glass-win .navitem:hover,
 .glass-win .plist:hover {
   @apply bg-transparent;
@@ -1448,14 +1443,6 @@ input[type='range']::-moz-range-thumb {
     rgba(255, 255, 255, 0.2),
     transparent 65%
   );
-}
-
-.liquid-win .brand .logo {
-  background: linear-gradient(160deg, #fff, rgba(255, 255, 255, 0.65));
-  color: #10181b;
-  box-shadow:
-    inset 0 1.5px 1px #fff,
-    0 8px 16px rgba(0, 0, 0, 0.25);
 }
 
 .liquid-win .navitem {

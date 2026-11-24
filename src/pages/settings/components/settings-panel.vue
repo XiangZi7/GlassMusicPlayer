@@ -504,7 +504,7 @@ function updateCrossfade(event: Event): void {
         >
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
-              <b>MiraiPlayer</b><span>{{ appInfo.description }}</span>
+              <b><img src="@/assets/miraiplayer.png" width="28" height="28" class="mr-2 inline-block align-middle" alt="" />MiraiPlayer</b><span>{{ appInfo.description }}</span>
             </div>
             <span
               class="about-val flex-none text-right font-mono text-[11.5px] font-bold opacity-[.72]"
