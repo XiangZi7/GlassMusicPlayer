@@ -25,12 +25,13 @@ const emit = defineEmits<{ play: [] }>()
         alt=""
         loading="lazy"
       />
-      <span class="min-w-0"
-        ><b>{{ track.title }}</b
-        ><span>{{ track.artist }}</span></span
-      >
+      <span class="min-w-0">
+        <b :title="track.title">{{ track.title }}</b>
+        <small v-if="track.subtitle" class="track-subtitle" :title="track.subtitle">{{ track.subtitle }}</small>
+        <span>{{ track.artist }}</span>
+      </span>
     </span>
-    <span class="alb">{{ track.album }}</span>
+    <span class="alb" :title="track.album">{{ track.album }}</span>
     <span class="dur">{{ track.dur ? formatTime(track.dur) : '—' }}</span>
     <TrackPlaybackBars :active="active" />
   </BaseButton>

@@ -159,7 +159,7 @@ watch(
     @keydown="keydown"
   >
     <BaseButton
-      class="choice-trigger flex h-[30px] cursor-pointer items-center gap-1.5 rounded-[9px] border border-white/14 bg-white/5 px-2 text-[11px] font-semibold text-white/80 hover:bg-white/12"
+      class="choice-trigger flex h-[30px] cursor-default items-center gap-1.5 rounded-[9px] border border-white/14 bg-white/5 px-2 text-[11px] font-semibold text-white/80 hover:bg-white/12"
       :aria-label="`${label}，${visibleValue}`"
       :title="hint || label"
       aria-haspopup="menu"
@@ -220,7 +220,7 @@ watch(
             tabindex="-1"
             :aria-checked="value === option.value"
             :data-choice="option.value"
-            class="choice-option flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-left text-[12px] font-semibold text-white/75"
+            class="choice-option flex min-h-8 cursor-default items-center gap-2 rounded-md px-2 text-left text-[12px] font-semibold text-white/75"
             @click="choose(option.value)"
           >
             <svg

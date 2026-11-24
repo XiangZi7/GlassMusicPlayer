@@ -52,6 +52,7 @@ async function openSource(event: MouseEvent): Promise<void> {
       <div>
         <h4 data-title></h4>
         <p data-artist></p>
+        <small class="track-subtitle" data-track-subtitle hidden></small>
       </div>
       <BaseButton
         class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"

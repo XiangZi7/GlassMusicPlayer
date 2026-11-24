@@ -14,6 +14,7 @@ export interface CatalogTrack {
   title: string
   artists: string[]
   album: string | null
+  subtitle?: string | null
   durationMs: number | null
   coverUrl: string | null
   sourceUrl: string
@@ -81,6 +82,11 @@ export function searchCatalog(
     params: { q, pageNum, pageSize },
     signal,
   })
+}
+
+// 读取同平台曲目详情，为旧歌单和精简列表补齐作品说明。
+export function getCatalogTrack(platform: MusicPlatform, id: string, signal: AbortSignal) {
+  return httpGet<CatalogTrack>(`/${platform}/tracks/${encodeURIComponent(id)}`, { signal })
 }
 
 // 首次请求解析链接并读取歌单第一页，平台与 ID 由服务端确认。

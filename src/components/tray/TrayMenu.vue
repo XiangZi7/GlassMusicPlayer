@@ -173,7 +173,7 @@ onUnmounted(() => {
     <div class="tray-menu-heading">
       <img class="tray-brand-icon" src="@/assets/miraiplayer.png" width="29" height="29" alt="" />
       <div class="tray-brand-text">
-        <b>MiraiPlayer</b>
+        <b>Mirai Player</b>
         <span>音乐与桌面，随手可达</span>
       </div>
       <span class="tray-material">{{ liquid ? 'LIQUID' : 'FROSTED' }}</span>

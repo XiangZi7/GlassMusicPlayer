@@ -10,6 +10,7 @@ export interface SourceTrack {
   title: string
   artist: string
   album: string
+  subtitle?: string | null
   dur: number
   cover: string
   q: string

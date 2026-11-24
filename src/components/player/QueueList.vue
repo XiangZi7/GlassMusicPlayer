@@ -131,7 +131,7 @@ const { idx } = toRefs(state)
       <div
         v-for="{ data: index, index: position } in list"
         :key="index"
-        class="qrow cursor-pointer"
+        class="qrow cursor-default"
         :class="[
           compact ? 'fsq-item' : 'qitem',
           {
@@ -161,7 +161,7 @@ const { idx } = toRefs(state)
         @drop="drop($event, position)"
       >
         <span
-          class="qdrag grid w-[13px] flex-none cursor-grab place-items-center opacity-[.35]"
+          class="qdrag grid w-[13px] flex-none cursor-default place-items-center opacity-[.35]"
           aria-hidden="true"
           ><svg
             viewBox="0 0 24 24"

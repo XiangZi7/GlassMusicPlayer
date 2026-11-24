@@ -35,7 +35,7 @@ const searchIndices = computed(() =>
       return (
         !track.catalog &&
         (!state.query.trim() ||
-          (track.title + ' ' + track.artist + ' ' + track.album)
+          [track.title, track.artist, track.album, track.subtitle].filter(Boolean).join(' ')
             .toLowerCase()
             .includes(state.query.trim().toLowerCase()))
       )
@@ -162,7 +162,7 @@ const searchLabel = computed(() =>
         <BaseButton
           v-for="index in artistCards"
           :key="index"
-          class="artist-card cursor-pointer rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit"
+          class="artist-card cursor-default rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit"
           @click="controller()?.setQuery(tracks[index]!.artist)"
           ><img decoding="async" loading="lazy"
             :src="tracks[index]!.cover"

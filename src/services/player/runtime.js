@@ -1221,7 +1221,13 @@ export function mountSourcePlayer(root, options = {}) {
         titleEl.setAttribute('title', tr.title)
       }
       p.querySelectorAll('[data-artist]').forEach(function (el) {
-        el.textContent = current ? tr.artist + ' · ' + tr.album : ''
+        el.textContent = current ? [tr.artist, tr.album !== '—' && tr.album].filter(Boolean).join(' · ') : ''
+        el.title = el.textContent
+      })
+      p.querySelectorAll('[data-track-subtitle]').forEach(function (el) {
+        el.textContent = tr.subtitle || ''
+        el.title = el.textContent
+        el.hidden = !el.textContent
       })
       p.querySelectorAll('[data-like]').forEach(function (el) {
         el.classList.toggle('liked', !!state.liked[state.idx])

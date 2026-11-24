@@ -189,7 +189,7 @@ function openStage(): void {
     v-show="visible"
     ref="button"
     type="button"
-    class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full py-1 pr-[12px] pl-[5px] text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
+    class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-default touch-none items-center gap-[9px] rounded-full py-1 pr-[12px] pl-[5px] text-[12.5px] font-bold whitespace-nowrap text-white select-none"
     :class="{ 'keyboard-focus': keyboardFocus }"
     :style="{ translate: `${offset.x}px ${offset.y}px`, opacity: popup.open ? 0 : undefined }"
     :inert="popup.open"

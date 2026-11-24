@@ -46,6 +46,7 @@ const qualityHint = computed(() => {
       /></BaseButton>
       <div class="mini-txt min-w-[0]">
         <b data-title></b><span data-artist></span>
+        <small class="track-subtitle" data-track-subtitle hidden></small>
       </div>
       <BaseButton
         class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"

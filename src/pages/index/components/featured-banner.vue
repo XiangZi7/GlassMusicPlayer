@@ -187,7 +187,7 @@ function playFeatured(): void {
 </template>
 
 <style scoped>
-.banner-open { position: absolute; inset: 0; z-index: 1; border: 0; border-radius: inherit; background: transparent; color: white; cursor: pointer; }
+.banner-open { position: absolute; inset: 0; z-index: 1; border: 0; border-radius: inherit; background: transparent; color: white; cursor: default; }
 .banner-open span { position: absolute; top: 14px; right: 16px; display: inline-flex; align-items: center; gap: 3px; border: 1px solid #ffffff38; border-radius: 999px; padding: 5px 9px 5px 12px; background: #201a19b3; font: 650 12px/1.4 var(--font-sans); }
 .banner-open:hover span { background: #201a19e0; }
 @media (min-width: 1021px) {

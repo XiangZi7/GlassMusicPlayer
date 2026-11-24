@@ -4,6 +4,8 @@ use crate::storage;
 // 组装应用插件、命令、托盘和窗口生命周期，业务实现留在各自模块。
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let mut context = tauri::generate_context!();
+    context.set_default_window_icon(Some(tauri::include_image!("./icons/128x128.png")));
     tauri::Builder::default()
         .manage(tray::TrayPreferences::default())
         .manage(tray_menu::TrayMenuState::default())
@@ -40,6 +42,6 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(windows::handle_window_event)
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("启动 MiraiPlayer 失败");
 }

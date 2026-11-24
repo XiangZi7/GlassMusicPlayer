@@ -302,9 +302,9 @@ onUnmounted(() => {
       data-tauri-drag-region
     >
       <span
-        class="text-[13px] font-extrabold"
+        class="flex items-center gap-2 text-[13px] font-extrabold"
         data-tauri-drag-region
-        >设置</span
+        ><img src="@/assets/miraiplayer.png" width="22" height="22" class="pointer-events-none" alt="" />设置</span
       >
       <div class="chrome-nav flex items-center gap-[4px]">
         <!-- 分类历史按钮：沿用主界面前进、后退图标与按钮样式。 -->

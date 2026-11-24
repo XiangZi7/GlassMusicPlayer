@@ -25,6 +25,7 @@ export function toSourceTrack(track: CatalogTrack): SourceTrack {
     title: track.title,
     artist: track.artists.join(' / ') || '未知歌手',
     album: track.album || '—',
+    subtitle: track.subtitle,
     dur: Math.max(0, (track.durationMs || 0) / 1000),
     cover: track.coverUrl || defaultCover,
     q: platformNames[track.platform],

@@ -11,8 +11,12 @@
   }
 
   button {
-    @apply cursor-pointer;
+    @apply cursor-default;
     font-family: inherit;
+  }
+
+  a:any-link, [role="button"], summary, select, label, input[type="range"] {
+    cursor: default;
   }
 
   img {
@@ -620,7 +624,7 @@ h1 .thin {
   font-size: 13px;
   font-weight: 750;
   line-height: 1.25;
-  cursor: pointer;
+  cursor: default;
 }
 
 .banner-content .banner-play {
@@ -911,6 +915,14 @@ h1 .thin {
   @apply overflow-hidden text-ellipsis whitespace-nowrap opacity-[.62];
 }
 
+.track-subtitle:not([hidden]) {
+  @apply block truncate text-[11px] leading-[1.35] font-medium opacity-80;
+}
+
+.fs-titleblock .track-subtitle:not([hidden]), .r-ttl .track-subtitle:not([hidden]) {
+  @apply mt-1.5 text-[13px] text-wrap;
+}
+
 .trow .dur {
   @apply text-right font-mono text-[11.5px] opacity-[.6];
 }
@@ -1151,7 +1163,7 @@ h1 .thin {
 }
 
 input[type='range'] {
-  @apply h-[22px] min-w-[0] flex-1 cursor-pointer bg-transparent;
+  @apply h-[22px] min-w-[0] flex-1 cursor-default bg-transparent;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -2203,12 +2215,12 @@ input[type='range']::-moz-range-thumb {
 }
 
 .fs-main .fs-lyrcol .fs-lyrics {
-  @apply m-0 min-h-[0] flex-1 cursor-grab p-[12px_2px_12px_0];
+  @apply m-0 min-h-[0] flex-1 cursor-default p-[12px_2px_12px_0];
   touch-action: none;
 }
 
 .fs-main .fs-lyrcol .fs-lyrics.dragging {
-  @apply cursor-grabbing;
+  @apply cursor-default;
   scroll-behavior: auto;
 }
 
@@ -2383,7 +2395,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .fs-vol .volbtn {
-  @apply grid h-[26px] w-[26px] flex-none cursor-pointer place-items-center rounded-full border-none bg-transparent p-0 text-inherit;
+  @apply grid h-[26px] w-[26px] flex-none cursor-default place-items-center rounded-full border-none bg-transparent p-0 text-inherit;
 }
 
 .fs-vol .volbtn:hover {
@@ -4888,7 +4900,7 @@ kbd {
 }
 
 .desk-lyr-head:active {
-  @apply cursor-grabbing;
+  @apply cursor-default;
 }
 
 .desk-lyr-prev,

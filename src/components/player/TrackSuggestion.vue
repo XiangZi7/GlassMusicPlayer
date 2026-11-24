@@ -10,7 +10,7 @@ const { idx } = toRefs(state)
 </script>
 <template>
   <div
-    class="srow flex min-h-[48px] w-full cursor-pointer items-center gap-[10px] rounded-[13px] border border-transparent p-[7px]"
+    class="srow flex min-h-[48px] w-full cursor-default items-center gap-[10px] rounded-[13px] border border-transparent p-[7px]"
     :class="{ on: index === idx }"
     :aria-current="index === idx ? 'true' : undefined"
     role="button"

@@ -482,6 +482,7 @@ const dust = [
           ></div>
           <h4 data-title></h4>
           <p data-artist></p>
+          <small class="track-subtitle" data-track-subtitle hidden></small>
           <div
             class="fs-titleactions pointer-events-auto mt-[14px] flex items-center gap-[6px]"
           >
@@ -518,7 +519,7 @@ const dust = [
           aria-label="同步歌词，可用上下方向键浏览，回车跳到选中句"
         ></div>
         <BaseButton
-          class="fs-lyrseek pointer-events-none absolute top-[50%] left-[12px] z-[6] flex cursor-pointer items-center gap-[9px] rounded-full p-[7px_12px_7px_11px] text-white opacity-[0]"
+          class="fs-lyrseek pointer-events-none absolute top-[50%] left-[12px] z-[6] flex cursor-default items-center gap-[9px] rounded-full p-[7px_12px_7px_11px] text-white opacity-[0]"
           data-lyrseek
           aria-label="跳到定位的这句歌词"
           ><span
@@ -571,6 +572,7 @@ const dust = [
           />
           <div class="dock-meta min-w-[0]">
             <b data-title></b><span data-artist></span>
+            <small class="track-subtitle" data-track-subtitle hidden></small>
           </div>
           <BaseButton
             class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
@@ -780,7 +782,7 @@ const dust = [
 
 /* 歌词工具只在需要时突出，避免和当前歌词竞争注意力。 */
 .fs-tool {
-  cursor: pointer;
+  cursor: default;
   border: 1px solid transparent;
   background: transparent;
   color: rgb(255 255 255 / 0.58);
@@ -818,7 +820,7 @@ const dust = [
   background: transparent;
   color: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   font-family: inherit;
   padding: clamp(9px, 1.3vh, 14px) 12px;
   opacity: 0.25;

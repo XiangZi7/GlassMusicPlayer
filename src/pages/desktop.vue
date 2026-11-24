@@ -237,11 +237,11 @@ onUnmounted(() => {
       ref="surface"
     >
       <div
-        class="desk-lyr-head mb-[8px] flex cursor-grab items-center gap-[8px] text-[10.5px] font-extrabold tracking-[.1em] opacity-[.75] select-none"
+        class="desk-lyr-head mb-[8px] flex cursor-default items-center gap-[8px] text-[10.5px] font-extrabold tracking-[.1em] opacity-[.75] select-none"
         id="deskLyrHead"
         data-tauri-drag-region
       >
-        <span aria-hidden="true">⠿</span><span>桌面歌词 · MiraiPlayer</span
+        <img src="@/assets/miraiplayer.png" width="18" height="18" class="pointer-events-none" alt="" /><span>桌面歌词 · Mirai Player</span
         ><span
           class="desk-lyr-state ml-auto font-mono text-[10px] tracking-normal"
           id="deskLyrState"
@@ -292,7 +292,7 @@ onUnmounted(() => {
       <div
         class="tray-pop-head mb-[11px] flex items-center justify-between text-[11px] font-extrabold tracking-[.1em]"
       >
-        <span>正在播放 · MiraiPlayer</span><!-- 页面操作按钮：打开主窗口。 -->
+        <span class="flex items-center gap-2"><img src="@/assets/miraiplayer.png" width="18" height="18" alt="" />正在播放 · Mirai Player</span><!-- 页面操作按钮：打开主窗口。 -->
         <BaseButton
           type="button"
           data-desk-open
@@ -330,7 +330,7 @@ onUnmounted(() => {
         ></BaseButton>
       </div>
       <div
-        class="tray-prog m-[12px_0_10px] h-[5px] cursor-pointer overflow-hidden rounded-[99px]"
+        class="tray-prog m-[12px_0_10px] h-[5px] cursor-default overflow-hidden rounded-[99px]"
         data-desk-seekbar
         @click="seekNative"
       >

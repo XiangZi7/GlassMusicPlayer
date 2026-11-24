@@ -13,6 +13,7 @@ import {
   type Component,
 } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
+import { getCatalogTrack } from '@/api'
 import {
   useMutationObserver,
   useThrottleFn,
@@ -62,6 +63,26 @@ const { state, tracks, saveIslandPreferences, savePreferences } =
   usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
+const checkedDetails = new Set<string>()
+// 仅为当前曲目补查作品和专辑，按平台与 ID 复用结果，切歌时取消旧请求。
+watch(() => tracks[state.idx], async (track, _previous, onCleanup) => {
+  if (!track?.catalog || track.subtitle) return
+  const { platform, id } = track.catalog
+  const key = `${platform}:${id}`
+  if (checkedDetails.has(key)) return
+  const request = new AbortController()
+  onCleanup(() => request.abort())
+  try {
+    const detail = await getCatalogTrack(platform, id, request.signal)
+    if (request.signal.aborted || detail.platform !== platform || detail.id !== id) return
+    checkedDetails.add(key)
+    if (detail.subtitle) track.subtitle = detail.subtitle
+    if (detail.album && (!track.album || track.album === '—')) track.album = detail.album
+    player.value?.render()
+  } catch {
+    // 作品信息不可用时继续播放已有音源。
+  }
+}, { immediate: true })
 // 设置窗与底栏选音质共用重新取源流程，暂停时只让旧音源失效。
 watch(() => state.settings.quality, () => player.value?.reloadPlayback())
 // 登录切换或撤销后立即释放属于上一身份的音源。

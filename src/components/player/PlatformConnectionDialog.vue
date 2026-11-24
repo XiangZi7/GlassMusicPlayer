@@ -163,7 +163,7 @@ function submitProfile(): void {
         aria-label="连接方式"
       >
         <label
-          class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
+          class="flex cursor-default items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'login'
               ? 'border-white/30 bg-white/10'
@@ -197,7 +197,7 @@ function submitProfile(): void {
           登录平台
         </label>
         <label
-          class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
+          class="flex cursor-default items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'profile'
               ? 'border-white/30 bg-white/10'

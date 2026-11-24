@@ -65,6 +65,7 @@ function publicTrack(value: unknown): SourceTrack | undefined {
     title: row.title.slice(0, 500),
     artist: row.artist.slice(0, 500),
     album: typeof row.album === 'string' ? row.album.slice(0, 500) : '—',
+    subtitle: typeof row.subtitle === 'string' ? row.subtitle.slice(0, 1000) : undefined,
     cover,
     dur:
       typeof row.dur === 'number' && Number.isFinite(row.dur)

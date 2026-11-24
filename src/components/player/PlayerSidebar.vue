@@ -240,11 +240,11 @@ const {
             @keydown.stop.enter="save(index, $event)"
             @keydown.stop.esc="_renaming = -1"
           /><BaseButton
-            class="pl-mini min-h-[26px] flex-none cursor-pointer rounded-full p-[4px_10px] text-[11px] font-extrabold"
+            class="pl-mini min-h-[26px] flex-none cursor-default rounded-full p-[4px_10px] text-[11px] font-extrabold"
             @click="save(index, $event)"
             >保存</BaseButton
           ><BaseButton
-            class="pl-mini min-h-[26px] flex-none cursor-pointer rounded-full p-[4px_10px] text-[11px] font-extrabold"
+            class="pl-mini min-h-[26px] flex-none cursor-default rounded-full p-[4px_10px] text-[11px] font-extrabold"
             @click="_renaming = -1"
             >取消</BaseButton
           >
@@ -257,11 +257,11 @@ const {
             class="cf-txt min-w-[0] flex-1 overflow-hidden text-[12px] font-bold text-ellipsis whitespace-nowrap"
             >删除「{{ item.name }}」？</span
           ><BaseButton
-            class="pl-mini danger min-h-[26px] flex-none cursor-pointer rounded-full p-[4px_10px] text-[11px] font-extrabold"
+            class="pl-mini danger min-h-[26px] flex-none cursor-default rounded-full p-[4px_10px] text-[11px] font-extrabold"
             @click="remove(index)"
             >删除</BaseButton
           ><BaseButton
-            class="pl-mini min-h-[26px] flex-none cursor-pointer rounded-full p-[4px_10px] text-[11px] font-extrabold"
+            class="pl-mini min-h-[26px] flex-none cursor-default rounded-full p-[4px_10px] text-[11px] font-extrabold"
             @click="_delPl = null"
             >取消</BaseButton
           >
@@ -281,7 +281,7 @@ const {
             /><span>{{ item.name }}</span></BaseButton
           ><span class="pl-acts hidden flex-none gap-[4px] pr-[2px]"
             ><BaseButton
-              class="pl-act grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-[8px] p-0 text-white"
+              class="pl-act grid h-[26px] w-[26px] cursor-default place-items-center rounded-[8px] p-0 text-white"
               :aria-label="'重命名歌单 ' + item.name"
               title="重命名"
               @click.stop="rename(index)"
@@ -297,7 +297,7 @@ const {
                   d="M17 3a2.8 2.8 0 114 4L7.5 20.5 2 22l1.5-5.5z"
                 /></svg></BaseButton
             ><BaseButton
-              class="pl-act grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-[8px] p-0 text-white"
+              class="pl-act grid h-[26px] w-[26px] cursor-default place-items-center rounded-[8px] p-0 text-white"
               :aria-label="'删除歌单 ' + item.name"
               title="删除"
               @click.stop="confirmDelete(item.name)"

@@ -256,6 +256,8 @@ export const usePlayerStore = defineStore('player', () => {
       const existing = catalogIndices.get(key)
       if (existing !== undefined) {
         const track = tracks[existing]!
+        if (item.subtitle) track.subtitle = item.subtitle
+        if ((!track.album || track.album === '—') && item.album) track.album = item.album
         if ((!track.cover || track.cover === defaultCover) && item.coverUrl) track.cover = item.coverUrl
         return existing
       }
@@ -389,7 +391,11 @@ export const usePlayerStore = defineStore('player', () => {
   for (const track of preferences.catalogTracks) {
     if (!track.catalog) continue
     const key = catalogKey(track.catalog)
-    if (catalogIndices.has(key)) continue
+    const existing = catalogIndices.get(key)
+    if (existing !== undefined) {
+      if (!tracks[existing]!.subtitle && track.subtitle) tracks[existing]!.subtitle = track.subtitle
+      continue
+    }
     catalogIndices.set(key, tracks.length)
     tracks.push(track)
   }
