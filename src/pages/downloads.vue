@@ -115,13 +115,13 @@ onMounted(refresh)
 <template>
   <!-- 下载页面：真实本机任务和文件记录，不使用原稿演示下载数据。 -->
   <div
-    class="page-panel hidden"
+    class="page-panel import-files hidden"
     data-panel="downloads"
   >
     <div class="pg-head">
       <h3>下载管理</h3>
       <p>
-        保存平台当次允许提供的音频到本机目录。浏览器预览不支持原生下载；不伪造完成、暂停或断点续传。
+        {{ supported ? '将平台允许下载的音频保存到本机目录。' : '在桌面客户端中可将音频保存到本机目录。' }}
       </p>
     </div>
     <!-- 内容导航：沿用平台对接、上传与下载的公共标签条。 -->
@@ -147,12 +147,12 @@ onMounted(refresh)
         ><span>正在下载</span>
       </div>
       <div>
-        <b>{{ quality }}</b
+        <b class="stat-text">{{ quality }}</b
         ><span>网易云下载偏好</span>
       </div>
     </div>
     <!-- 下载工具栏：当前歌曲的真实下载、目录与存储设置入口。 -->
-    <div class="pl-actions mt-[18px] flex flex-wrap items-center gap-[9px]">
+    <div class="pl-actions import-actions mt-[18px] flex flex-wrap items-center gap-2">
       <BaseButton
         class="banner-play rounded-full px-[16px] py-[9px] text-[12px]"
         :loading="downloading"
@@ -178,7 +178,7 @@ onMounted(refresh)
         >存储设置</BaseButton
       >
     </div>
-    <p class="src-note mt-[9px] text-[11.5px] leading-[1.65] opacity-[.55]">
+    <p class="src-note mt-2 break-words">
       {{
         current?.catalog
           ? `当前歌曲：${current.title}`
@@ -186,8 +186,9 @@ onMounted(refresh)
       }}
     </p>
     <!-- 下载记录内容：加载在区域中央，空态不展示固定测试文件。 -->
+    <h4 class="import-section-title">下载记录</h4>
     <section
-      class="relative mt-[18px] min-h-[160px]"
+      class="relative min-h-[120px]"
       aria-label="已保存的下载文件"
       :aria-busy="loading"
     >
@@ -203,7 +204,7 @@ onMounted(refresh)
       </div>
       <EmptyState
         v-else-if="!records.length"
-        class="min-h-[160px]"
+        class="min-h-[120px]"
         icon="download"
         label="没有真实下载记录"
       />
@@ -234,13 +235,13 @@ onMounted(refresh)
               :title="item.fileName"
               >{{ item.title }}</b
             >
-            <p class="mt-[3px] mb-0 truncate text-[11px] text-white/55">
+            <p class="mt-1 mb-0 truncate text-[12px] leading-[18px] text-white/65">
               {{ item.artist }} · {{ formatBytes(item.bytes) }} ·
               {{ item.quality || '平台未报告实际音质' }}
             </p>
           </div>
           <span
-            class="flex-none rounded-full bg-white/5 px-[9px] py-[5px] text-[11px] text-white/65"
+            class="max-w-[45%] rounded-full bg-white/5 px-2.5 py-1 text-[12px] leading-[18px] text-white/70"
             >{{
               item.status === 'preview'
                 ? '试听已保存'
@@ -252,7 +253,7 @@ onMounted(refresh)
         </article>
       </div>
     </section>
-    <p class="src-note mt-3 text-[11.5px] leading-[1.65] opacity-[.55]">
+    <p class="src-note mt-3">
       下载以平台版权与会员规则为准；文件保存不代表会员权益授权。切换保存目录不会移动或删除原目录中的文件。本页面暂不提供自动离线播放或断点续传。
     </p>
   </div>

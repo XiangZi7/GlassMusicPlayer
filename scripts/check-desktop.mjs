@@ -855,6 +855,7 @@ if (process.argv.includes('--probe')) {
     const statements = [
       declaration('state'),
       declaration('profileSupported'),
+      declaration('preferredMode'),
       ...watches,
     ]
     assert(
@@ -869,6 +870,7 @@ if (process.argv.includes('--probe')) {
       nextTick,
       props: reactive({
         platform,
+        loginSupported: platform !== 'kuwo',
         initialMode,
         initialValue: `seed-${platform}`,
       }),

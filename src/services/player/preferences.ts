@@ -11,9 +11,26 @@ export interface PlayerPreferences<T extends Record<string, SettingValue>> {
   queue: string[]
   liked: string[]
   recent: string[]
+  searchHistory: string[]
   catalogTracks: SourceTrack[]
 }
 export const preferencesKey = 'miraiMusic.preferences.v1'
+
+// 整理搜索历史，过滤无效值并保留最近使用的十二个不同关键词。
+export function recentSearches(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const item of value) {
+    const word = typeof item === 'string' ? item.trim() : ''
+    const key = word.toLowerCase()
+    if (!word || word.length > 100 || seen.has(key)) continue
+    result.push(word)
+    seen.add(key)
+    if (result.length === 12) break
+  }
+  return result
+}
 
 // 曲目持久化使用平台 ID；演示曲目使用内容标识，避免曲库索引变化指向其它歌曲。
 export function preferenceTrackKey(track: SourceTrack): string {
@@ -114,6 +131,7 @@ export function readPlayerPreferences<T extends Record<string, SettingValue>>(
     queue: [],
     liked: [],
     recent: [],
+    searchHistory: [],
     catalogTracks: [],
   }
   try {
@@ -150,6 +168,7 @@ export function readPlayerPreferences<T extends Record<string, SettingValue>>(
     result.queue = keys(saved.queue)
     result.liked = keys(saved.liked)
     result.recent = keys(saved.recent)
+    result.searchHistory = recentSearches(saved.searchHistory)
     if (Array.isArray(saved.catalogTracks))
       result.catalogTracks = saved.catalogTracks
         .slice(0, 512)
@@ -202,7 +221,6 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
               'deskLyrics',
               'deskLock',
               'lyricIsland',
-              'lyricIslandDesktop',
               'lyricIslandSnap',
               'trayMini',
               'smtc',
@@ -218,6 +236,7 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
         queue: keys(preferences.queue),
         liked: keys(preferences.liked),
         recent: keys(preferences.recent),
+        searchHistory: recentSearches(preferences.searchHistory),
         catalogTracks,
       })
     )

@@ -11,12 +11,14 @@ export async function checkStagePerformance({ evaluate, waitFor, key, resize, wa
   assert.equal(await evaluate("performance.getEntriesByType('resource').some(r => r.name.includes('/PlayerFullscreen.vue'))"), false)
   await evaluate(`(async () => {
     const store = (await import('/src/stores/player.ts')).usePlayerStore()
+    window.stageTestState = store.state
     store.registerCatalogTracks([{ platform: 'netease', id: '1', title: '测量', artists: ['歌手'],
       album: '专辑', durationMs: 240000, sourceUrl: 'https://music.163.com/song?id=1', coverUrl: null }])
   })()`)
-  await waitFor('曲库可点播', "!!document.querySelector('.home-content .trow')")
-  await evaluate("document.querySelector('.home-content .trow').click()", true)
-  await waitFor('真实媒体与歌词就绪', "document.querySelector('audio').currentTime > 0.15 && document.querySelector('[data-player]').classList.contains('playing') && document.querySelector('[data-capsule-text]')?.textContent.includes('句')")
+  const sample = "document.querySelector('.home-content .trow[title=\"测量 · 歌手\"]')"
+  await waitFor('测量曲目可点播', `!!${sample}`)
+  await evaluate(`${sample}.click()`, true)
+  await waitFor('真实媒体与歌词就绪', "document.querySelector('audio').currentTime > 0.15 && document.querySelector('[data-player]').classList.contains('playing') && stageTestState.capsuleLyric.includes('句')")
   await evaluate("document.querySelector('.win-bottom [data-play]').click()", true)
   await waitFor('暂停事件完成', "!document.querySelector('[data-player]').classList.contains('playing')")
   assert.equal(await evaluate(`${side}.childElementCount`), 0)
@@ -75,7 +77,7 @@ export async function checkStagePerformance({ evaluate, waitFor, key, resize, wa
   await key('Escape', 27)
   await waitFor('退出恢复入口焦点', `!document.querySelector('.fs-open') && document.activeElement === ${entry}`)
   await evaluate("document.querySelector('audio').currentTime = 3.1")
-  await waitFor('首页胶囊继续同步', "document.querySelector('[data-capsule-text]')?.textContent === '第6句'")
+  await waitFor('主播放器继续提供桌面歌词', "stageTestState.capsuleLyric === '第6句'")
   assert.equal(await evaluate(`${stage}.querySelector('.on').dataset.lj`), '3')
   await evaluate("document.querySelector('[data-lyricbtn]').click()")
   await waitFor('侧栏首次展开即同步', `${side}.children.length === 480 && !${side}.children[6].classList.contains('dim')`)

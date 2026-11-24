@@ -159,7 +159,6 @@ export function createDefaultSettings() {
     deskLyrics: true,
     deskLock: false,
     lyricIsland: true,
-    lyricIslandDesktop: false,
     lyricIslandSnap: true,
     trayMini: true,
     smtc: false,
@@ -172,9 +171,8 @@ export const usePlayerStore = defineStore('player', () => {
   const preferences = readPlayerPreferences(createDefaultSettings())
   preferences.settings.quality = normalizePlaybackQuality(preferences.settings.quality)
   const islandPreferences = useLocalStorage('miraiMusic.lyricIsland', {
-    lyricIsland: true,
-    lyricIslandDesktop: false,
-    lyricIslandSnap: true,
+    lyricIsland: preferences.settings.lyricIsland,
+    lyricIslandSnap: preferences.settings.lyricIslandSnap,
   })
   const catalogIndices = new Map<string, number>()
   const profilePages = new Map<string, Map<string, number>>()
@@ -212,11 +210,12 @@ export const usePlayerStore = defineStore('player', () => {
     /** 输入草稿与提交次数，编辑不触发搜索。 */
     queryDraft: '',
     queryRevision: 0,
+    /** 本机最近提交的搜索词，按最近使用顺序排列。 */
+    searchHistory: preferences.searchHistory,
     /** 最近播放记录。 */ recent: [] as number[],
     /** 原稿播放、外观及桌面窗口设置。 */ settings: {
       ...preferences.settings,
       lyricIsland: islandPreferences.value?.lyricIsland !== false,
-      lyricIslandDesktop: islandPreferences.value?.lyricIslandDesktop === true,
       lyricIslandSnap: islandPreferences.value?.lyricIslandSnap !== false,
     },
     /** 已关联的公开资料，搜索或链接导入不会创建关联。 */
@@ -374,7 +373,6 @@ export const usePlayerStore = defineStore('player', () => {
   function saveIslandPreferences(): void {
     islandPreferences.value = {
       lyricIsland: state.settings.lyricIsland,
-      lyricIslandDesktop: state.settings.lyricIslandDesktop,
       lyricIslandSnap: state.settings.lyricIslandSnap,
     }
   }
@@ -454,6 +452,7 @@ export const usePlayerStore = defineStore('player', () => {
         .map(index => keyFor(Number(index)))
         .filter(Boolean),
       recent: state.recent.map(keyFor).filter(Boolean),
+      searchHistory: state.searchHistory,
       catalogTracks: used
         .map(index => tracks[index])
         .filter((track): track is (typeof tracks)[number] => !!track?.catalog),

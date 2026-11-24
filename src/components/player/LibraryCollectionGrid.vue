@@ -138,7 +138,7 @@ async function browse(event: KeyboardEvent): Promise<void> {
       <BaseButton
         v-for="{ position, index, track } in visibleCards"
         :key="index"
-        class="absolute inset-x-0 min-w-0 cursor-default rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/80"
+        class="absolute inset-x-0 min-w-0 cursor-pointer rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/80"
         :class="kind === 'album' ? 'feat bg-transparent' : 'artist-card'"
         :data-position="position"
         :style="{

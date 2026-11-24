@@ -4,7 +4,10 @@
 @source '../';
 
 /* 首次打开舞台的等待状态位于当前入口内，减少动效时沿用静态标记。 */
-.mini-cover[aria-busy='true']::after, .lyric-capsule[aria-busy='true']::after {
+.mini-cover[aria-busy='true'] {
+  cursor: progress;
+}
+.mini-cover[aria-busy='true']::after {
   content: '';
   position: absolute;
   inset: 0;

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
-import LyricIsland from '@/components/player/LyricIsland.vue'
 import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
 import PlayerPlayButton from '@/components/player/PlayerPlayButton.vue'
 import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
@@ -27,7 +26,6 @@ const qualityHint = computed(() => {
 
 <template>
   <!-- 原稿迁移区：结构、类名、图标、文案与交互钩子直接保留。 -->
-  <LyricIsland />
   <div
     class="win-bottom relative z-[4] grid h-[72px] flex-none grid-cols-[minmax(200px,1fr)_auto_minmax(295px,1fr)] items-center gap-[14px] p-[10px_18px_8px]"
   >

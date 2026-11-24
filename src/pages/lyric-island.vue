@@ -254,7 +254,7 @@ function focusPlayer(): void {
       <button
         ref="trigger"
         type="button"
-        class="island-trigger flex w-full cursor-default touch-none items-center gap-[9px] rounded-full text-left text-[12.5px] font-bold text-white select-none"
+        class="island-trigger flex w-full cursor-grab touch-none items-center gap-[9px] rounded-full text-left text-[12.5px] font-bold text-white select-none active:cursor-grabbing"
         :class="{ playing: snapshot.playing && snapshot.motion }"
         :inert="panel.open"
         aria-label="展开灵动岛播放器"

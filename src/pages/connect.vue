@@ -395,7 +395,7 @@ onDeactivated(() => {
           <label
             v-for="item in page?.playlists"
             :key="item.id"
-            class="playlist-pick mb-[7px] flex min-h-[62px] cursor-default items-center gap-[12px] rounded-[13px] border border-white/8 bg-white/3 px-[12px] py-[9px] transition-colors hover:bg-white/6"
+            class="playlist-pick mb-[7px] flex min-h-[62px] cursor-pointer items-center gap-[12px] rounded-[13px] border border-white/8 bg-white/3 px-[12px] py-[9px] transition-colors hover:bg-white/6"
             :class="{ 'playlist-picked': selected.includes(item.id) }"
           >
             <img decoding="async"
@@ -425,7 +425,7 @@ onDeactivated(() => {
                 (isImported(item.id) ? '选择更新 ' : '选择导入 ') + item.title
               "
               :disabled="!!loading"
-              class="size-4 flex-none cursor-default accent-white"
+              class="size-4 flex-none cursor-pointer accent-white"
             />
           </label>
         </template>

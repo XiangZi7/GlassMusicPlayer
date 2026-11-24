@@ -16,7 +16,7 @@ const { uploads, upAdded, upMsg } = toRefs(state)
 <template>
   <!-- upload 页面：保留原稿内容区域与交互顺序。 -->
   <div
-    class="page-panel hidden"
+    class="page-panel import-files hidden"
     data-panel="upload"
   >
     <div class="pg-head">
@@ -78,13 +78,9 @@ const { uploads, upAdded, upMsg } = toRefs(state)
         <b>{{ upAdded }}</b><span>已加入曲库</span>
       </div>
       <div><b>6 种</b><span>支持格式</span></div>
-      <div><b>本次会话</b><span>保留时长</span></div>
+      <div><b class="stat-text">本次会话</b><span>保留时长</span></div>
     </div>
-    <div
-      class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
-    >
-      导入队列
-    </div>
+    <h4 class="import-section-title">导入队列</h4>
     <!-- 本地文件队列：展示真实文件名与大小，加入同一曲库。 -->
     <div>
       <div
@@ -117,42 +113,27 @@ const { uploads, upAdded, upMsg } = toRefs(state)
       icon="upload"
       label="文件队列为空，选择音频文件后可登记资料"
     />
-    <div
-      class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
-    >
-      手动登记曲目信息
-    </div>
-    <div class="up-form mt-[12px] grid grid-cols-[1fr_1fr_1fr_auto] gap-[8px]">
-      <input
-        type="text"
-        data-up-title
-        placeholder="歌名（必填）"
-        aria-label="歌名"
-      /><input
-        type="text"
-        data-up-artist
-        placeholder="歌手"
-        aria-label="歌手"
-      /><input
-        type="text"
-        data-up-album
-        placeholder="专辑"
-        aria-label="专辑"
-      /><!-- 页面操作按钮：加入音乐库。 -->
+    <h4 class="import-section-title">手动登记曲目信息</h4>
+    <form class="up-form grid items-end gap-2" @submit.prevent>
+      <label>歌名 <span class="text-white/55">（必填）</span>
+        <input type="text" data-up-title aria-required="true" />
+      </label>
+      <label>歌手<input type="text" data-up-artist /></label>
+      <label>专辑<input type="text" data-up-album /></label>
+      <!-- 页面操作按钮：加入音乐库。 -->
       <BaseButton
-        class="up-add min-h-[38px] rounded-[11px] border-none bg-white p-[0_16px] text-[12.5px] font-extrabold whitespace-nowrap"
+        type="submit"
+        class="up-add min-h-[38px] rounded-[11px] border-none bg-white px-4 font-bold whitespace-nowrap"
         data-up-add
         >登记曲目</BaseButton
       >
-    </div>
-    <div class="src-note mt-[12px] text-[11.5px] leading-[1.65] opacity-[.55]">
+    </form>
+    <div v-if="upMsg" class="src-note mt-2">
       {{ upMsg }}
     </div>
-    <div
-      class="pg-secttl m-[22px_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
-    >
+    <h4 class="import-section-title">
       已登记曲目 · <span>{{ upAdded }}</span> 首
-    </div>
+    </h4>
     <!-- 歌曲列表组件：统一曲目选择、排序、分页及播放状态。 -->
     <TrackList
       :indices="uploadedIndices"

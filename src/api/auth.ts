@@ -30,6 +30,7 @@ export interface QrLoginResult {
 }
 
 export interface PlaybackGrant {
+  favorites?: boolean
   remembered?: boolean
   token: string
   expiresAt: string
@@ -37,13 +38,13 @@ export interface PlaybackGrant {
   vipLevel: number | null
 }
 
-// 只创建短期扫码流程；二维码由服务端本地编码，不向第三方图片服务发送登录链接。
+// 网易云扫码同时申请点播和红心权限，其他平台按各自支持的身份流程登录。
 export async function createQrLogin(platform: MusicPlatform, signal: AbortSignal) {
   const netease = platform === 'netease'
   const previous = netease ? await previousPlaybackToken() : ''
   return httpPost<QrLoginSession>(`/${platform}/auth/qr`, undefined, {
     signal,
-    params: netease ? { playback: true, remember: rememberPlayback || undefined } : undefined,
+    params: netease ? { playback: true, favorites: true, remember: rememberPlayback || undefined } : undefined,
     headers: previous ? { Authorization: `Bearer ${previous}` } : undefined,
   })
 }

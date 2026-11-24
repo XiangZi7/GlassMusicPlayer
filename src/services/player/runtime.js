@@ -8,6 +8,9 @@ import { createLyricWindow, lyricRow, mountedLyricRows } from '@/services/player
 import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
 import { notify } from '@/services/notification'
+import { recentSearches } from '@/services/player/preferences'
+import { createFavoriteToggle } from '@/services/player/favorites'
+import { playbackAccount } from '@/services/player/playback-session'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
 // 页面、列表和状态由 Vue / Pinia 管理；保留播放时序、歌词跟随和原始动画协调。
@@ -123,6 +126,7 @@ export function mountSourcePlayer(root, options = {}) {
     VOL_SPK +
     '<path d="M16 9.6l5.4 5.4M21.4 9.6L16 15"/></svg>'
   const state = options.state
+  const toggleFavorite = createFavoriteToggle(state, TRACKS, render)
   // 平台页和电台页各自沿用宽内容模式，其余页面保持常规面板设置。
   function nowPlayingKey() {
     return state.page === 'connect' || state.page === 'radio'
@@ -1239,6 +1243,9 @@ export function mountSourcePlayer(root, options = {}) {
           'aria-label',
           state.liked[state.idx] ? '取消收藏' : '收藏'
         )
+        const destination = tr.catalog?.platform === 'netease' && playbackAccount.value?.favorites
+          ? '同步到网易云音乐' : '仅此设备'
+        el.title = el.getAttribute('aria-label') + ' · ' + destination
       })
       p.querySelectorAll('[data-shuffle]').forEach(function (el) {
         el.classList.toggle('on', state.shuffle)
@@ -1585,10 +1592,7 @@ export function mountSourcePlayer(root, options = {}) {
       listenElement(el, 'click', prevTrack)
     })
     p.querySelectorAll('[data-like]').forEach(function (el) {
-      listenElement(el, 'click', function () {
-        state.liked[state.idx] = !state.liked[state.idx]
-        render()
-      })
+      listenElement(el, 'click', toggleFavorite)
     })
     p.querySelectorAll('[data-shuffle]').forEach(function (el) {
       listenElement(el, 'click', function () {
@@ -2349,16 +2353,13 @@ export function mountSourcePlayer(root, options = {}) {
       direction: nativeDirection,
     }
   }
-  // 独立窗口的操作仍交给原稿方法执行，不引入另一套播放或页面逻辑。
+  // 独立窗口共用主播放器的收藏、点播和进度操作。
   function dispatch(action) {
     if (action.type === 'toggle') togglePlayback()
     else if (action.type === 'next') nextTrack()
     else if (action.type === 'previous') prevTrack()
-    else if (action.type === 'like' && TRACKS[state.idx]) {
-      state.liked[state.idx] = !state.liked[state.idx]
-      state._pageKey = ''
-      render()
-    } else if (action.type === 'volume') setVol(action.value)
+    else if (action.type === 'like') void toggleFavorite()
+    else if (action.type === 'volume') setVol(action.value)
     else if (action.type === 'seek') {
       seekTo(Math.max(0, Math.min(1, action.value)) * currentDuration())
     }
@@ -2388,10 +2389,11 @@ export function mountSourcePlayer(root, options = {}) {
     buildLists()
     render()
   }
-  // 提交搜索词并更新草稿，两处输入框共用这一提交状态。
+  // 两个搜索入口和歌手快捷筛选共用提交逻辑，只有提交的关键词才进入历史。
   function setQuery(query) {
     state.queryDraft = query
     state.query = query.trim()
+    if (state.query) state.searchHistory = recentSearches([state.query, ...state.searchHistory])
     state.queryRevision++
     state._pageKey = ''
     render()

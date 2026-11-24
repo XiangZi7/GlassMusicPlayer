@@ -14,7 +14,7 @@ export const rememberPlayback =
     ['127.0.0.1', 'localhost', '[::1]'].includes(service.hostname))
 const server = service.href
 export const playbackAccount = shallowRef<
-  (QrLoginProfile & { badge: string }) | null
+  (QrLoginProfile & { badge: string; favorites: boolean }) | null
 >(null)
 // 只有主动切换或撤销身份才丢弃当前音源，启动恢复不会打断首次点播。
 export const playbackRevision = shallowRef(0)
@@ -102,7 +102,7 @@ function scheduleExpiry(): void {
   else expiry = setTimeout(scheduleExpiry, Math.min(remaining, 2_147_483_647))
 }
 
-// 只应用服务端已确认的身份、授权期限和会员标记。
+// 仅采用服务端确认的身份、收藏权限、授权期限与会员标记。
 function applyGrant(profile: QrLoginProfile, grant?: PlaybackGrant): boolean {
   const until = Date.parse(grant?.expiresAt ?? '')
   if (
@@ -125,7 +125,7 @@ function applyGrant(profile: QrLoginProfile, grant?: PlaybackGrant): boolean {
         ? `VIP ${level}`
         : 'VIP'
       : ''
-  playbackAccount.value = { ...profile, badge }
+  playbackAccount.value = { ...profile, badge, favorites: grant.favorites === true }
   clearTimeout(expiry)
   scheduleExpiry()
   return true

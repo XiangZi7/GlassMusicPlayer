@@ -61,6 +61,19 @@ const platformLabel = computed(() =>
 const profileSupported = computed(
   () => !!props.platform && props.platform !== 'kugou'
 )
+const preferredMode = computed(() =>
+  !props.loginSupported
+    ? 'profile'
+    : !profileSupported.value
+      ? 'login'
+      : props.initialMode
+)
+const methodDescription = computed(() => {
+  if (!props.loginSupported) return '通过个人主页关联公开资料与歌单。'
+  return profileSupported.value
+    ? '选择连接方式，关联公开资料与歌单。'
+    : '扫码关联你的音乐账号。'
+})
 
 // 响应式状态
 const state = reactive({
@@ -79,19 +92,16 @@ watch(
   [open, () => props.platform],
   ([visible]) => {
     if (!visible) return
-    state.mode = props.initialMode
+    state.mode = preferredMode.value
     state.draft = props.initialValue
     emit('clearError')
   },
   { immediate: true }
 )
 // 已展开时从头像菜单指定连接方式，不丢弃用户已填写的主页草稿。
-watch(
-  () => props.initialMode,
-  value => {
-    if (open.value) state.mode = value
-  }
-)
+watch(preferredMode, value => {
+  if (open.value) state.mode = value
+})
 watch(
   [open, () => state.mode],
   async ([visible]) => {
@@ -104,6 +114,7 @@ watch(
   { flush: 'post' }
 )
 
+// 提交当前平台支持的公开主页或 UID。
 function submitProfile(): void {
   if (props.busy || !profileSupported.value || !state.draft.trim()) return
   emit('profile', state.draft.trim())
@@ -135,7 +146,7 @@ function submitProfile(): void {
               :id="descriptionId"
               class="mt-1 mb-0 text-[12px] leading-relaxed text-white/55"
             >
-              选择连接方式，关联公开资料与歌单。
+              {{ methodDescription }}
             </p>
           </div>
         </div>
@@ -159,11 +170,12 @@ function submitProfile(): void {
       </header>
 
       <fieldset
+        v-if="loginSupported && profileSupported"
         class="mt-5 grid grid-cols-2 gap-2 border-0 p-0"
         aria-label="连接方式"
       >
         <label
-          class="flex cursor-default items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
+          class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'login'
               ? 'border-white/30 bg-white/10'
@@ -197,7 +209,7 @@ function submitProfile(): void {
           登录平台
         </label>
         <label
-          class="flex cursor-default items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
+          class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'profile'
               ? 'border-white/30 bg-white/10'
@@ -229,12 +241,15 @@ function submitProfile(): void {
         </label>
       </fieldset>
 
-      <form
-        v-if="mode === 'profile'"
-        class="mt-5"
-        @submit.prevent="submitProfile"
+      <Transition
+        name="connection-method"
+        mode="out-in"
       >
-        <template v-if="profileSupported">
+        <form
+          v-if="mode === 'profile'"
+          class="mt-5"
+          @submit.prevent="submitProfile"
+        >
           <label
             :for="inputId"
             class="mb-2 block text-[12px] font-bold text-white/75"
@@ -256,48 +271,59 @@ function submitProfile(): void {
           <p class="mt-2 mb-0 text-[11.5px] leading-relaxed text-white/45">
             只读取公开资料与歌单，不需要填写账号密码。
           </p>
-        </template>
-        <p
+          <p
+            v-if="error"
+            :id="errorId"
+            role="alert"
+            class="mt-3 mb-0 text-[12px] leading-relaxed text-red-300"
+          >
+            {{ error }}
+          </p>
+          <div class="mt-5 flex justify-end gap-2">
+            <BaseButton
+              class="min-h-9 rounded-full border border-white/15 px-4 text-[12px] font-bold text-white/75"
+              @click="open = false"
+              >取消</BaseButton
+            >
+            <BaseButton
+              type="submit"
+              class="flex min-h-9 items-center justify-center gap-2 rounded-full border-0 bg-white px-5 text-[12px] font-extrabold text-[#121218] disabled:opacity-40"
+              :disabled="!profileSupported || !draft.trim()"
+              :loading="busy"
+              >{{ busy ? '正在读取…' : '读取资料与歌单' }}</BaseButton
+            >
+          </div>
+        </form>
+        <PlatformQrLogin
           v-else
-          class="text-[12px] leading-relaxed text-white/60"
-        >
-          酷狗主页歌单需要账户授权，当前暂未接通。公开歌单分享链接仍可在页面下方导入。
-        </p>
-        <p
-          v-if="error"
-          :id="errorId"
-          role="alert"
-          class="mt-3 mb-0 text-[12px] leading-relaxed text-red-300"
-        >
-          {{ error }}
-        </p>
-        <div class="mt-5 flex justify-end gap-2">
-          <BaseButton
-            class="min-h-9 rounded-full border border-white/15 px-4 text-[12px] font-bold text-white/75"
-            @click="open = false"
-            >取消</BaseButton
-          >
-          <BaseButton
-            type="submit"
-            class="flex min-h-9 items-center justify-center gap-2 rounded-full border-0 bg-white px-5 text-[12px] font-extrabold text-[#121218] disabled:opacity-40"
-            :disabled="!profileSupported || !draft.trim()"
-            :loading="busy"
-            >{{ busy ? '正在读取…' : '读取资料与歌单' }}</BaseButton
-          >
-        </div>
-      </form>
-      <PlatformQrLogin
-        v-else
-        :platform="platform"
-        :supported="loginSupported"
-        :status="loginStatus"
-        :qr-code-url="loginQrCodeUrl"
-        :error="loginError || error"
-        :profile="loginProfile"
-        :busy="busy"
-        @refresh="emit('login')"
-        @profile="emit('profile', $event)"
-      />
+          :platform="platform"
+          :supported="loginSupported"
+          :status="loginStatus"
+          :qr-code-url="loginQrCodeUrl"
+          :error="loginError || error"
+          :profile="loginProfile"
+          :busy="busy"
+          @refresh="emit('login')"
+          @profile="emit('profile', $event)"
+        />
+      </Transition>
     </div>
   </BaseDialog>
 </template>
+
+<style scoped>
+@media (prefers-reduced-motion: no-preference) {
+  .connection-method-enter-active,
+  .connection-method-leave-active {
+    transition: opacity 160ms ease;
+  }
+  .connection-method-enter-from,
+  .connection-method-leave-to {
+    opacity: 0;
+  }
+  .calm .connection-method-enter-active,
+  .calm .connection-method-leave-active {
+    transition: none;
+  }
+}
+</style>

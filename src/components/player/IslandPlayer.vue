@@ -125,7 +125,7 @@ function seek(event: Event): void {
   flex: none;
   place-items: center;
   border-radius: 50%;
-  cursor: default;
+  cursor: pointer;
 }
 .island-player svg { width: 18px; height: 18px; }
 .island-player button:hover:enabled { background-color: rgb(255 255 255 / 16%); }
@@ -141,7 +141,7 @@ function seek(event: Event): void {
   font: 10px/1 var(--font-mono, monospace);
   font-variant-numeric: tabular-nums;
 }
-.island-progress input { min-width: 0; flex: 1; accent-color: white; cursor: default; }
+.island-progress input { min-width: 0; flex: 1; accent-color: white; cursor: pointer; }
 .island-controls { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .island-player .island-play { width: 42px; height: 42px; background: white; color: #16161e; }
 .island-player .island-play:hover:enabled { background: #e4e4ec; }

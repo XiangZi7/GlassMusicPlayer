@@ -8,6 +8,7 @@ const errorMessages: Readonly<Record<string, string>> = {
   auth_capacity: '扫码服务暂时繁忙，请稍后重试。',
   auth_expired: '扫码流程已过期，请重新生成二维码。',
   playback_session_expired: '网易云播放授权已过期，请重新扫码。',
+  favorites_scope_required: '请重新扫码登录网易云，授权同步喜欢的歌曲。',
   playback_store_unavailable: '服务端暂时无法读写已保存的播放授权，请稍后重试。',
   auth_identity_invalid: '音乐平台未能确认有效账号，请重新扫码。',
   upstream_rate_limited: '音乐平台暂时繁忙，请稍后重试。',

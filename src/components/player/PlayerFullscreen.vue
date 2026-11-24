@@ -519,7 +519,7 @@ const dust = [
           aria-label="同步歌词，可用上下方向键浏览，回车跳到选中句"
         ></div>
         <BaseButton
-          class="fs-lyrseek pointer-events-none absolute top-[50%] left-[12px] z-[6] flex cursor-default items-center gap-[9px] rounded-full p-[7px_12px_7px_11px] text-white opacity-[0]"
+          class="fs-lyrseek pointer-events-none absolute top-[50%] left-[12px] z-[6] flex cursor-pointer items-center gap-[9px] rounded-full p-[7px_12px_7px_11px] text-white opacity-[0]"
           data-lyrseek
           aria-label="跳到定位的这句歌词"
           ><span
@@ -782,7 +782,7 @@ const dust = [
 
 /* 歌词工具只在需要时突出，避免和当前歌词竞争注意力。 */
 .fs-tool {
-  cursor: default;
+  cursor: pointer;
   border: 1px solid transparent;
   background: transparent;
   color: rgb(255 255 255 / 0.58);
@@ -820,7 +820,7 @@ const dust = [
   background: transparent;
   color: inherit;
   text-align: left;
-  cursor: default;
+  cursor: pointer;
   font-family: inherit;
   padding: clamp(9px, 1.3vh, 14px) 12px;
   opacity: 0.25;

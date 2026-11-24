@@ -116,7 +116,7 @@ function setSetting<K extends keyof PlayerSettings>(
   value: PlayerSettings[K]
 ): void {
   state.settings[key] = value
-  if (key === 'lyricIsland' || key === 'lyricIslandDesktop' || key === 'lyricIslandSnap')
+  if (key === 'lyricIsland' || key === 'lyricIslandSnap')
     saveIslandPreferences()
   player.value?.render()
 }
@@ -221,7 +221,7 @@ watch(
 )
 // 队列拖放和收藏仍需观察原地修改，播放时钟不参与这次深度遍历。
 watch(
-  [() => state.settings, () => state.queue, () => state.liked, () => state.recent],
+  [() => state.settings, () => state.queue, () => state.liked, () => state.recent, () => state.searchHistory],
   cachePreferences,
   { deep: true }
 )
@@ -304,9 +304,7 @@ async function syncRoute(): Promise<void> {
 
 watch(() => route.fullPath, syncRoute, { flush: 'post' })
 
-const desktopIslandVisible = computed(
-  () => state.settings.lyricIsland && state.settings.lyricIslandDesktop
-)
+const desktopIslandVisible = computed(() => state.settings.lyricIsland)
 watch(desktopIslandVisible, visible => {
   if (isTauri()) void setDesktopIsland(visible)
 })

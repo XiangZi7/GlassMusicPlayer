@@ -330,7 +330,7 @@ onUnmounted(() => {
         ></BaseButton>
       </div>
       <div
-        class="tray-prog m-[12px_0_10px] h-[5px] cursor-default overflow-hidden rounded-[99px]"
+        class="tray-prog m-[12px_0_10px] h-[5px] cursor-pointer overflow-hidden rounded-[99px]"
         data-desk-seekbar
         @click="seekNative"
       >

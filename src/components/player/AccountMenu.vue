@@ -162,7 +162,7 @@ onBeforeUnmount(hide)
     <button
       ref="trigger"
       type="button"
-      class="account-avatar group flex h-9 min-w-9 cursor-default items-center justify-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-white/70 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 aria-expanded:bg-white/8"
+      class="account-avatar group flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-white/70 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 aria-expanded:bg-white/8"
       aria-label="账号与音乐平台"
       aria-haspopup="menu"
       :aria-expanded="open"
