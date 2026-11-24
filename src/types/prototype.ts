@@ -24,6 +24,7 @@ export interface SourceSnapshot {
   audioLoading?: boolean
   playable?: boolean
   glassStyle?: string
+  lyricIslandSnap?: boolean
   time: number
   volume: number
   liked: boolean

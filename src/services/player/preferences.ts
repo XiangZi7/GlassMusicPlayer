@@ -202,6 +202,7 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
               'deskLock',
               'lyricIsland',
               'lyricIslandDesktop',
+              'lyricIslandSnap',
               'trayMini',
               'smtc',
             ].includes(key)

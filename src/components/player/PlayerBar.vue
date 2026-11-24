@@ -13,13 +13,14 @@ const { settings, stage } = toRefs(state)
 const supportsQuality = computed(
   () => tracks[state.idx]?.catalog?.platform === 'netease'
 )
+// 酷狗与酷我跟随平台音源，直接显示后端已报告的档位或码率。
+const actualLabel = computed(() =>
+  playbackQualities.find(item => item.value === state.actualQuality)?.label ?? state.actualQuality
+)
 const qualityHint = computed(() => {
-  if (!supportsQuality.value) return '网易云曲目支持选择播放音质'
-  const actual =
-    playbackQualities.find(item => item.value === state.actualQuality)?.label ??
-    state.actualQuality
-  return actual
-    ? `当前音源实际音质：${actual}`
+  if (actualLabel.value) return `当前音源实际音质：${actualLabel.value}`
+  return !supportsQuality.value
+    ? '播放档位由音源平台提供'
     : '选择请求的播放音质，实际音质由平台返回'
 })
 </script>
@@ -123,6 +124,7 @@ const qualityHint = computed(() => {
         label="音质"
         :hint="qualityHint"
         :value="supportsQuality ? settings.quality : 'auto'"
+        :display-value="supportsQuality ? undefined : actualLabel"
         :enabled="supportsQuality && !stage"
         :motion="settings.motion"
         :options="playbackQualities"

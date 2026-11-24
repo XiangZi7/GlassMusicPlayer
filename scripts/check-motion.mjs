@@ -175,6 +175,8 @@ function motionHandlers(source) {
 }
 // 仅将进度条时间来源替换为真实媒体时钟，保留鼠标提示和其余动效的原始校验。
 const expectedSeek = originalScript
+  // 首页只在收起后仍可滚动时折叠，原稿的两个滚动阈值及其余处理继续逐项核对。
+  .replace('!c&&mainEl.scrollTop>70', '!c&&mainEl.scrollTop>70&&hasRoomForCompactBanner(mainEl)')
   // 封面组独立上下浮动，背景巨字和粒子的指针通道照旧校验。
   .replace(/fsEl\.style\.setProperty\("--t[xy]",(?:n[xy]\.toFixed\(3\)|0)\);/g, '')
   .replace(

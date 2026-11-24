@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+// 首页和每日推荐详情复用同一组件实例，切换视图时保留当前账号的完整歌单。
+const homeDiscovery = () => import('@/pages/index/index.vue')
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -9,8 +11,15 @@ export const router = createRouter({
         {
           path: '',
           name: 'home',
-          component: () => import('@/pages/index/index.vue'),
+          component: homeDiscovery,
           meta: { playerPage: 'home' },
+        },
+        {
+          path: 'daily',
+          name: 'daily',
+          component: homeDiscovery,
+          props: { detail: true },
+          meta: { playerPage: 'daily' },
         },
         {
           path: 'search',

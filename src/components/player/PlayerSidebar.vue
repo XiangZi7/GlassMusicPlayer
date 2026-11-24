@@ -73,7 +73,7 @@ function remove(index: number): void {
 watch(
   () => [
     state.myLists.length,
-    state.imported.length,
+    state.imported,
     state.customPl?.id ?? state.customPl?.name,
     state._renaming,
     state._delPl,

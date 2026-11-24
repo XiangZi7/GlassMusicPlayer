@@ -350,6 +350,20 @@ function updateCrossfade(event: Event): void {
           </div>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
+              <b>桌面灵动岛贴边吸附</b><span>拖近屏幕工作区边缘后松开，胶囊会自动贴边</span>
+            </div>
+            <BaseButton
+              class="switch relative h-[25px] w-[42px] flex-none rounded-full p-0 disabled:opacity-50"
+              :class="{ on: settings.lyricIslandSnap }"
+              role="switch"
+              :aria-checked="settings.lyricIslandSnap"
+              :disabled="!settings.lyricIsland || !settings.lyricIslandDesktop"
+              aria-label="桌面灵动岛贴边吸附"
+              @click="setSetting('lyricIslandSnap', !settings.lyricIslandSnap)"
+            ><i /></BaseButton>
+          </div>
+          <div class="set-row flex items-center gap-[14px] p-[12px_0]">
+            <div class="set-txt min-w-[0] flex-1">
               <b>桌面歌词</b
               ><span
                 >页面下方桌面区的悬浮歌词窗 —

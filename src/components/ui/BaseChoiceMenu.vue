@@ -10,6 +10,7 @@ const props = withDefaults(
     options: readonly { value: string; label: string; icon?: string }[]
     above?: boolean
     hint?: string
+    displayValue?: string
     motion?: boolean
     enabled?: boolean
   }>(),
@@ -22,6 +23,7 @@ const menuId = useId()
 const selected = computed(() =>
   props.options.find(option => option.value === props.value)
 )
+const visibleValue = computed(() => props.displayValue || selected.value?.label || '自动')
 const state = reactive({
   // 键盘和鼠标共用菜单的展开状态。
   open: false,
@@ -158,7 +160,7 @@ watch(
   >
     <BaseButton
       class="choice-trigger flex h-[30px] cursor-pointer items-center gap-1.5 rounded-[9px] border border-white/14 bg-white/5 px-2 text-[11px] font-semibold text-white/80 hover:bg-white/12"
-      :aria-label="label"
+      :aria-label="`${label}，${visibleValue}`"
       :title="hint || label"
       aria-haspopup="menu"
       :aria-expanded="state.open"
@@ -179,8 +181,9 @@ watch(
       >
         <path :d="selected.icon" />
       </svg>
-      <span>{{ label }} · {{ selected?.label ?? '自动' }}</span>
+      <span>{{ visibleValue }}</span>
       <svg
+        v-if="enabled"
         viewBox="0 0 16 16"
         class="size-3 shrink-0 opacity-65"
         fill="none"

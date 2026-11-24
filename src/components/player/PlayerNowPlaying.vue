@@ -35,22 +35,7 @@ async function openSource(event: MouseEvent): Promise<void> {
     <div
       class="right-head mb-[12px] flex items-center justify-between text-[11px] font-extrabold tracking-[.11em] opacity-[.9]"
     >
-      <span>正在播放</span><span data-meta2></span
-      ><BaseButton
-        class="np-head-btn ml-[9px] hidden h-[26px] w-[26px] flex-none place-items-center rounded-full p-0 text-inherit"
-        data-np-toggle
-        aria-label="收起正在播放面板"
-        title="收起面板"
-        ><svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M5.5 9.5L12 16l6.5-6.5" /></svg
-      ></BaseButton>
+      <span>正在播放</span><span data-meta2></span>
     </div>
     <div class="r-coverwrap relative w-full">
       <div
@@ -127,25 +112,6 @@ async function openSource(event: MouseEvent): Promise<void> {
       >
     </div>
     <QueueList />
-    <BaseButton
-      class="np-expand hidden"
-      data-np-toggle
-      aria-label="展开正在播放面板"
-      ><span>正在播放</span
-      ><span
-        class="np-expand-meta"
-        data-meta2
-        ></span
-      ><svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.4"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M5.5 14.5L12 8l6.5 6.5" /></svg
-    ></BaseButton>
   </aside>
 </template>
 

@@ -12,12 +12,14 @@ import { isTauri } from '@tauri-apps/api/core'
 import IslandCover from '@/components/player/IslandCover.vue'
 import IslandPlayer from '@/components/player/IslandPlayer.vue'
 import { usePlayer } from '@/composables/usePlayer'
+import { useIslandKeyboardFocus } from '@/composables/useIslandKeyboardFocus'
 
 const { state, tracks, controller } = usePlayer()
 const button = useTemplateRef<HTMLButtonElement>('button')
 const measure = useTemplateRef<HTMLElement>('measure')
 const { width: lyricWidth } = useElementSize(measure)
 const reducedMotion = usePreferredReducedMotion()
+const keyboardFocus = useIslandKeyboardFocus()
 const panel = useTemplateRef<InstanceType<typeof IslandPlayer>>('panel')
 const popup = reactive({
   // 是否展开胶囊内的播放控件。
@@ -108,6 +110,8 @@ onClickOutside(() => panel.value?.$el as HTMLElement | undefined, () => { popup.
 // 记录起点，轻点展开播放器，拖动只移动胶囊。
 function startDrag(event: PointerEvent): void {
   if (!event.isPrimary || event.button !== 0) return
+  event.preventDefault()
+  button.value?.focus({ preventScroll: true })
   dragged = false
   gesture = {
     id: event.pointerId,
@@ -186,6 +190,7 @@ function openStage(): void {
     ref="button"
     type="button"
     class="lyric-capsule absolute left-1/2 z-[6] flex w-max max-w-[46%] cursor-grab touch-none items-center gap-[9px] rounded-full py-1 pr-[12px] pl-[5px] text-[12.5px] font-bold whitespace-nowrap text-white select-none active:cursor-grabbing"
+    :class="{ 'keyboard-focus': keyboardFocus }"
     :style="{ translate: `${offset.x}px ${offset.y}px`, opacity: popup.open ? 0 : undefined }"
     :inert="popup.open"
     :tabindex="state.stage ? -1 : undefined"
@@ -243,6 +248,7 @@ function openStage(): void {
   <Transition name="island-expand" :css="animateLyrics">
     <IslandPlayer
       v-if="popup.open && visible && !state.stage"
+      :class="{ 'pointer-controls': !keyboardFocus }"
       ref="panel"
       class="absolute z-[12]"
       :style="{ left: popup.left + 'px', top: popup.top + 'px' }"
@@ -262,6 +268,8 @@ function openStage(): void {
 </template>
 
 <style scoped>
+.lyric-capsule:focus { outline: none; }
+.lyric-capsule.keyboard-focus:focus-visible { outline: 2px solid white; outline-offset: 2px; }
 .capsule-line-leave-active {
   transition: opacity 70ms ease-in;
 }

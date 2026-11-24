@@ -3,6 +3,7 @@ import { fullscreenTitleClass } from '@/services/player/fullscreen-title'
 import { parseEqualizerGains } from '@/services/player/equalizer'
 import { createCatalogAudio } from '@/services/player/catalog-audio'
 import { parseCatalogLyrics } from '@/services/player/catalog-lyrics'
+import { metaSeed } from '@/utils/stable-seed'
 import { createLyricWindow, lyricRow, mountedLyricRows } from '@/services/player/lyric-window'
 import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
@@ -432,20 +433,10 @@ export function mountSourcePlayer(root, options = {}) {
     if (state.repeat === 1 || state.radioOn) return q[0] ?? null
     return null
   }
-  // 为每日推荐和电台队列提供稳定的排序种子。
-  function metaSeed(str) {
-    var h = 2166136261
-    str = String(str)
-    for (var i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i)
-      h = Math.imul(h, 16777619)
-    }
-    return h >>> 0
-  }
-  // 从真实在线曲库按当天日期抽取一组候选歌曲。
-  function smartList() {
+  // 从真实在线曲库按本地日期抽取曲目，首页跨天时传入更新后的日期。
+  function smartList(day = new Date().toDateString()) {
     const arr = TRACKS.flatMap((track, index) => track.catalog ? [index] : [])
-    var seed = metaSeed('rewind|' + new Date().toDateString())
+    var seed = metaSeed('rewind|' + day)
     for (var i = arr.length - 1; i > 0; i--) {
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0
       var j = seed % (i + 1),
@@ -614,6 +605,7 @@ export function mountSourcePlayer(root, options = {}) {
   }
   var PAGE_NAMES = {
     home: '首页',
+    daily: '每日推荐',
     search: '搜索',
     library: '音乐库',
     albums: '专辑',
@@ -634,6 +626,7 @@ export function mountSourcePlayer(root, options = {}) {
   /* grouped navigation : album/artist detail + 专辑/歌手/喜欢/最近 all belong to the 音乐库 hub item;
    upload/downloads belong to the 内容导入 hub item — the sliding pill targets the hub item */
   var NAVKEY = {
+    daily: 'home',
     album: 'library',
     artist: 'library',
     albums: 'library',
@@ -1288,9 +1281,6 @@ export function mountSourcePlayer(root, options = {}) {
         el.setAttribute('aria-label', rl)
         el.setAttribute('title', rl + ' — 点击切换')
       })
-      p.querySelectorAll('.main-chips button').forEach(function (b) {
-        b.classList.toggle('on', b.textContent.trim() === state.chip)
-      })
       var bg = p.querySelector('[data-bg]')
       if (bg) bg.style.backgroundImage = 'url(' + tr.cover + ')'
       var fsbg = p.querySelector('[data-fs-bg]')
@@ -1893,21 +1883,6 @@ export function mountSourcePlayer(root, options = {}) {
         })
       }
     })
-    p.querySelectorAll('.main-chips button').forEach(function (b) {
-      listenElement(b, 'click', function () {
-        var t = b.textContent.trim()
-        if (t === '专辑') {
-          setPage('albums')
-          return
-        }
-        if (t === '歌手') {
-          setPage('artists')
-          return
-        }
-        state.chip = t
-        render()
-      })
-    })
     p.querySelectorAll('.sidebar .navitem').forEach(function (b) {
       listenElement(b, 'click', function () {
         var pg = b.getAttribute('data-nav')
@@ -2264,7 +2239,7 @@ export function mountSourcePlayer(root, options = {}) {
         { passive: false }
       )
     })
-    /* banner: compact-on-scroll and parallax vars (liquid CSS reads them) */
+    // 保留原稿的收起与展开阈值，短首页随正文自然滚动。
     var mainEl = p.querySelector('.main')
     if (mainEl) {
       listenElement(
@@ -2272,7 +2247,8 @@ export function mountSourcePlayer(root, options = {}) {
         'scroll',
         function () {
           var c = mainEl.classList.contains('compact')
-          if (!c && mainEl.scrollTop > 70) mainEl.classList.add('compact')
+          if (!c && mainEl.scrollTop > 70 && hasRoomForCompactBanner(mainEl))
+            mainEl.classList.add('compact')
           else if (c && mainEl.scrollTop < 12)
             mainEl.classList.remove('compact')
         },
@@ -2280,10 +2256,7 @@ export function mountSourcePlayer(root, options = {}) {
       )
     }
     var banner = p.querySelector('[data-banner]')
-    if (
-      banner &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
+    if (banner) {
       listenElement(banner, 'mousemove', function (e) {
         var r = banner.getBoundingClientRect()
         var bx = (e.clientX - r.left) / r.width - 0.5
@@ -2365,6 +2338,16 @@ export function mountSourcePlayer(root, options = {}) {
   buildLists()
   render()
 
+  // 折叠后的可滚动距离至少保留触发阈值，防止浏览器将页面挤回顶部。
+  function hasRoomForCompactBanner(scroller) {
+    const hero = scroller.querySelector('[data-banner]')
+    if (!hero) return false
+    const style = nativeWindow.getComputedStyle(hero)
+    const compactHeight = parseFloat(style.getPropertyValue('--banner-compact-height'))
+    const shrink = hero.offsetHeight - compactHeight
+    return scroller.scrollHeight - scroller.clientHeight - shrink >= 70
+  }
+
   // 发布原稿当前状态，供独立桌面窗口复用同一播放状态。
   function getSnapshot() {
     const track = { ...(TRACKS[state.idx] || emptyTrack), dur: currentDuration() }
@@ -2377,6 +2360,7 @@ export function mountSourcePlayer(root, options = {}) {
       audioLoading: state.audioLoading,
       playable: TRACKS[state.idx] ? !!track.catalog : !!state.queue?.length,
       glassStyle: state.settings.glassStyle,
+      lyricIslandSnap: state.settings.lyricIslandSnap,
       time: state.t,
       volume: effVol(),
       liked: !!state.liked[state.idx],

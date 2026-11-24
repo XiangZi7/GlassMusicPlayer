@@ -36,6 +36,7 @@ class ClockDate extends Date {
 }
 const vue = {
   reactive: value => value,
+  shallowRef: value => ({ value }),
   computed: get => ({
     get value() {
       return get()
@@ -79,6 +80,8 @@ function harness(options = {}) {
   )
   if (options.preferences)
     saved.set('miraiMusic.preferences.v1', JSON.stringify(options.preferences))
+  if (options.playlists)
+    saved.set('miraiMusic.publicPlaylists.v1', JSON.stringify(options.playlists))
   const writes = [],
     calls = [],
     notices = [],
@@ -502,8 +505,29 @@ await check(
     await h.importer.importPlaylists('retry')
     assert.equal(calls.length, 4)
     assert.equal(calls[3], 'https://music.163.com/playlist?id=2')
-    assert.equal(h.player.state.imported.length, 3)
+    assert.deepEqual(Array.from(h.player.state.imported, list => list.id), ['netease:1', 'netease:2', 'netease:3'])
     assert.equal(h.importer.retryTasks.value.length, 0)
+  }
+)
+await check(
+  'platform order repairs older imports, survives reverse selection, pagination and restart',
+  async () => {
+    const h = harness({
+      playlists: [playlist('1'), playlist('8', '另一平台', 'kuwo'), playlist('3')],
+      fetch: async () => ({ ...result(), playlists: [{ id: '3' }, { id: '2' }, { id: '1' }] }),
+      linkedPlaylist: async (_, id) => playlist(id),
+    })
+    await h.importer.connectProfile('netease', '123')
+    assert.deepEqual(Array.from(h.player.state.imported, list => list.id), ['netease:3', 'kuwo:8', 'netease:1'])
+    h.importer.selected.value = ['1', '2', '3']
+    await h.importer.importPlaylists('selection')
+    h.player.syncPublicPlaylistPage({ ...result(), pageNum: 2, playlists: [{ id: '5' }, { id: '4' }] })
+    h.player.savePublicPlaylist(playlist('4'), '123')
+    h.player.savePublicPlaylist(playlist('5'), '123')
+    const expected = ['netease:3', 'kuwo:8', 'netease:2', 'netease:1', 'netease:5', 'netease:4']
+    assert.deepEqual(Array.from(h.player.state.imported, list => list.id), expected)
+    const restarted = harness({ playlists: JSON.parse(h.saved.get('miraiMusic.publicPlaylists.v1')) })
+    assert.deepEqual(Array.from(restarted.player.state.imported, list => list.id), expected)
   }
 )
 await check(

@@ -60,8 +60,8 @@ function readUid(input: string, platform: PublicProfilePlatform): string {
 }
 
 type ImportTask =
-  | { kind: 'link'; text: string }
-  | { kind: 'selection'; platform: MusicPlatform; id: string }
+  | { kind: 'link'; text: string; position: number }
+  | { kind: 'selection'; platform: MusicPlatform; id: string; userId?: string }
 
 // 提取批量分享文本中的链接并去重；无协议的单行地址仍兼容原入口。
 export function readPlaylistLinks(text: string): string[] {
@@ -110,6 +110,7 @@ export function usePlatformImport() {
     retryTasks: [] as ImportTask[],
   })
   let pending: AbortController | undefined
+  let linkKeys: string[] = []
   const connections = computed(
     () => Object.keys(player.state.linkedProfiles).length
   )
@@ -180,6 +181,11 @@ export function usePlatformImport() {
           (saved?.userId === uid ? publicAvatar(saved.avatarUrl) : null),
         syncedAt: Date.now(),
       })
+      try {
+        player.syncPublicPlaylistPage(result)
+      } catch {
+        notify('公开歌单已读取，本地排序保存失败，请刷新重试。', 'error')
+      }
       state.active = platform
       state.page = result
       return true
@@ -335,15 +341,17 @@ export function usePlatformImport() {
         mode === 'retry'
           ? [...state.retryTasks]
           : mode === 'link'
-            ? readPlaylistLinks(state.link).map(text => ({
+            ? readPlaylistLinks(state.link).map((text, position) => ({
                 kind: 'link' as const,
                 text,
+                position,
               }))
             : state.active
               ? state.selected.map(id => ({
                   kind: 'selection' as const,
                   platform: state.active!,
                   id,
+                  userId: state.page?.userId,
                 }))
               : []
     } catch (error) {
@@ -354,6 +362,7 @@ export function usePlatformImport() {
       return
     }
     if (!tasks.length) return
+    if (mode === 'link') linkKeys = []
     const request = new AbortController()
     pending = request
     state.loading = mode === 'retry' ? 'selection' : mode
@@ -387,7 +396,10 @@ export function usePlatformImport() {
           if (request.signal.aborted || pending !== request) return
           const key = `${playlist.platform}:${playlist.id}`
           if (!identities.has(key)) {
-            const item = player.savePublicPlaylist(playlist)
+            if (task.kind === 'link') linkKeys[task.position] = key
+            const item = task.kind === 'link'
+              ? player.savePublicPlaylist(playlist, undefined, [...new Set(linkKeys.filter(Boolean))])
+              : player.savePublicPlaylist(playlist, task.userId)
             firstSavedId = item.id
             identities.add(key)
             saved++

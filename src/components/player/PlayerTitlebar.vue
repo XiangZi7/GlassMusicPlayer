@@ -141,6 +141,7 @@ function openSettings(): void {
       </BaseButton>
       <AccountMenu
         :profiles="linkedProfiles"
+        :motion="settings.motion"
         @platform="connectPlatform"
       />
     </div>

@@ -95,7 +95,7 @@ function setSetting<K extends keyof PlayerSettings>(
   value: PlayerSettings[K]
 ): void {
   state.settings[key] = value
-  if (key === 'lyricIsland' || key === 'lyricIslandDesktop')
+  if (key === 'lyricIsland' || key === 'lyricIslandDesktop' || key === 'lyricIslandSnap')
     saveIslandPreferences()
   player.value?.render()
 }

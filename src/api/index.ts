@@ -96,6 +96,16 @@ export function resolveCatalogPlaylist(
   )
 }
 
+// 将本设备的网易云授权只发给对应平台的每日推荐接口。
+export function getAccountDailyTracks(signal: AbortSignal): Promise<CatalogTrack[]> {
+  const token = playbackBearer()
+  if (!token) return Promise.reject(new Error('需要网易云登录授权'))
+  return httpGet<CatalogTrack[]>('/netease/auth/recommendations/daily', {
+    signal,
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 // 使用同一歌单 ID 继续获取后续曲目，保留原歌单顺序。
 export function getCatalogPlaylist(
   platform: MusicPlatform,

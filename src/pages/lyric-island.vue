@@ -3,11 +3,12 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef, useTe
 import { useEventListener, usePreferredReducedMotion } from '@vueuse/core'
 import { isTauri } from '@tauri-apps/api/core'
 import { emitTo, listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window'
+import { currentMonitor, cursorPosition, getCurrentWindow, monitorFromPoint, type Monitor } from '@tauri-apps/api/window'
 import { LogicalPosition, LogicalSize, PhysicalPosition } from '@tauri-apps/api/dpi'
 import { Menu } from '@tauri-apps/api/menu'
 import IslandCover from '@/components/player/IslandCover.vue'
 import IslandPlayer from '@/components/player/IslandPlayer.vue'
+import { useIslandKeyboardFocus } from '@/composables/useIslandKeyboardFocus'
 import NotificationHost from '@/components/ui/NotificationHost.vue'
 import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
@@ -21,34 +22,69 @@ let disposed = false
 let contextMenu: Menu | undefined
 let contextOpening = false
 const trigger = useTemplateRef<HTMLButtonElement>('trigger')
+const surface = useTemplateRef<HTMLElement>('surface')
 const reducedMotion = usePreferredReducedMotion()
+const keyboardFocus = useIslandKeyboardFocus()
 const panel = reactive({
-  // 展开状态由当前窗口掌管，播放状态由主窗口广播。
+  // 最后一次开合意图，立即决定按钮和键盘焦点。
   open: false,
+  // 原生画布就绪后才开始改变可见外壳。
+  expanded: false,
+  // 原窗口在新画布中的水平、垂直偏移，贴边展开时保持屏幕锚点。
+  anchorX: 0,
+  anchorY: 0,
 })
 let savedPosition: PhysicalPosition | undefined
 let resizing = Promise.resolve()
-let dragStart: { id: number; x: number; y: number } | undefined
+type IslandDrag = {
+  id: number; x: number; y: number; running: boolean; pending: boolean; released: boolean
+}
+let dragStart: IslandDrag | undefined
 let dragged = false
 
-// 根据工作区和缩放比例为面板腾出空间，收起后恢复拖动落点。
+// 约束的是可见胶囊；32 像素透明阴影可以移出工作区，贴顶时不会留下空隙。
+function fitPosition(x: number, y: number, monitor: Monitor, height: number, snap: boolean): PhysicalPosition {
+  const { position, size } = monitor.workArea
+  const scale = monitor.scaleFactor
+  const inset = Math.round(32 * scale)
+  const gap = snap ? Math.round(20 * scale) : 0
+  // 沿单个轴吸附，靠近角落时两个方向均可贴齐。
+  function fit(value: number, origin: number, extent: number, body: number): number {
+    const min = origin - inset
+    const max = Math.max(min, min + extent - Math.round(body * scale))
+    if (value <= min + gap) return min
+    if (value >= max - gap) return max
+    return Math.round(value)
+  }
+  return new PhysicalPosition(fit(x, position.x, size.width, 320), fit(y, position.y, size.height, height))
+}
+
+// 每端只调整一次原生画布；中间帧由 WebView 内同一外壳和封面连续过渡。
 function resizeIsland(expanded: boolean): void {
   resizing = resizing.then(async () => {
     if (disposed || expanded !== panel.open) return
     const win = getCurrentWindow()
-    if (expanded && !savedPosition) {
-      const [position, monitor] = await Promise.all([win.outerPosition(), currentMonitor()])
-      savedPosition = position
-      if (monitor) {
-        const { position: origin, size } = monitor.workArea
-        const x = Math.max(origin.x, Math.min(position.x, origin.x + size.width - Math.ceil(384 * monitor.scaleFactor)))
-        const y = Math.max(origin.y, Math.min(position.y, origin.y + size.height - Math.ceil(222 * monitor.scaleFactor)))
-        if (x !== position.x || y !== position.y) await win.setPosition(new PhysicalPosition(x, y))
+    if (expanded) {
+      if (!savedPosition) {
+        const [position, monitor] = await Promise.all([win.outerPosition(), currentMonitor()])
+        if (!panel.open || disposed) return
+        savedPosition = position
+        await win.setSize(new LogicalSize(384, 222))
+        if (monitor) {
+          const { x, y } = fitPosition(position.x, position.y, monitor, 158, false)
+          if (x !== position.x || y !== position.y) {
+            panel.anchorX = (position.x - x) / monitor.scaleFactor
+            panel.anchorY = (position.y - y) / monitor.scaleFactor
+            await win.setPosition(new PhysicalPosition(x, y))
+          }
+        }
       }
-    }
-    await win.setSize(new LogicalSize(384, expanded ? 222 : 104))
-    if (!expanded && savedPosition) {
+      if (panel.open && !disposed) panel.expanded = true
+    } else if (savedPosition) {
       await win.setPosition(savedPosition)
+      panel.anchorX = 0
+      panel.anchorY = 0
+      await win.setSize(new LogicalSize(384, 104))
       savedPosition = undefined
     }
   }).catch(() => {
@@ -57,21 +93,60 @@ function resizeIsland(expanded: boolean): void {
   })
 }
 
-// 原生拖动在移动超过阈值时启动，保留整颗胶囊的普通点击。
+// 保存指针在透明窗口中的逻辑坐标，跨屏时按目标屏幕缩放换算。
 function startDrag(event: PointerEvent): void {
   if (!event.isPrimary || event.button !== 0) return
+  event.preventDefault()
+  trigger.value?.focus({ preventScroll: true })
   dragged = false
-  dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY }
+  dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, running: false, pending: false, released: false }
   trigger.value?.setPointerCapture(event.pointerId)
 }
 
-// 交给原生窗口移动后忽略本次手势的合成点击。
+// 合并高频移动；松开后使用最后一次位置和当前设置完成吸附。
+async function positionDrag(gesture: IslandDrag): Promise<void> {
+  gesture.pending = true
+  if (gesture.running) return
+  gesture.running = true
+  try {
+    while (gesture.pending && gesture === dragStart && !disposed) {
+      gesture.pending = false
+      const cursor = await cursorPosition()
+      const monitor = await monitorFromPoint(cursor.x, cursor.y) ?? await currentMonitor()
+      if (!monitor || gesture !== dragStart || disposed) break
+      const next = fitPosition(cursor.x - gesture.x * monitor.scaleFactor,
+        cursor.y - gesture.y * monitor.scaleFactor, monitor, 40,
+        gesture.released && snapshot.value?.lyricIslandSnap !== false)
+      await getCurrentWindow().setPosition(next)
+    }
+  } catch {
+    if (gesture === dragStart) {
+      dragStart = undefined
+      notify('无法移动桌面灵动岛，请重试', 'error')
+    }
+  } finally {
+    gesture.running = false
+    if (gesture.released && gesture === dragStart) dragStart = undefined
+  }
+}
+
+// 超过阈值才移动原生窗口，并忽略拖动结束后的合成点击。
 function moveDrag(event: PointerEvent): void {
   if (!dragStart || dragStart.id !== event.pointerId || !event.buttons) return
-  if (Math.hypot(event.clientX - dragStart.x, event.clientY - dragStart.y) < 5) return
-  dragStart = undefined
+  if (!dragged && Math.hypot(event.clientX - dragStart.x, event.clientY - dragStart.y) < 5) return
   dragged = true
-  void getCurrentWindow().startDragging().catch(() => notify('无法拖动桌面灵动岛', 'error'))
+  void positionDrag(dragStart)
+}
+
+// 普通点击不写窗口位置；系统取消捕获时放弃未提交的拖动。
+function endDrag(event: PointerEvent): void {
+  if (!dragStart || dragStart.id !== event.pointerId || dragStart.released) return
+  if (!dragged || event.type !== 'pointerup') {
+    dragStart = undefined
+    return
+  }
+  dragStart.released = true
+  void positionDrag(dragStart)
 }
 
 // 点击或键盘激活后就地展开，原生窗口只在开关时调整尺寸。
@@ -82,10 +157,16 @@ function openPanel(event: MouseEvent): void {
 }
 
 // 主动收起后恢复键盘焦点，窗口失焦时只收起内容。
-function closePanel(focus = true): void {
+async function closePanel(focus = true): Promise<void> {
   if (!panel.open) return
   panel.open = false
-  if (focus) void nextTick(() => { if (!panel.open) trigger.value?.focus({ preventScroll: true }) })
+  panel.expanded = false
+  await nextTick()
+  if (panel.open || disposed) return
+  if (focus) trigger.value?.focus({ preventScroll: true })
+  const transitions = surface.value?.getAnimations() || []
+  await Promise.allSettled(transitions.map(animation => animation.finished))
+  if (!panel.open && !disposed) resizeIsland(false)
 }
 useEventListener('blur', () => closePanel(false))
 useEventListener(document, 'visibilitychange', () => { if (document.hidden) closePanel(false) })
@@ -164,28 +245,29 @@ function focusPlayer(): void {
     :class="{ 'liquid-win': snapshot?.glassStyle === 'liquid' }"
     @contextmenu.prevent="openContextMenu"
   >
-    <div
-      v-if="snapshot"
-      class="island-surface flex h-[40px] w-full items-center rounded-full border border-white/25 px-2 text-[12.5px] font-bold text-white"
-      :class="{ playing: snapshot.playing && snapshot.motion }"
-      :style="{ opacity: panel.open ? 0 : undefined }"
-      :inert="panel.open"
+    <div v-if="snapshot" ref="surface" class="island-surface"
+      :class="{ expanded: panel.expanded, animated: snapshot.motion && reducedMotion !== 'reduce', 'keyboard-focus': keyboardFocus }"
+      :style="{ '--anchor-x': panel.anchorX + 'px', '--anchor-y': panel.anchorY + 'px' }"
     >
+      <!-- 封面自始至终只挂载一次，在两种尺寸间平移、缩放并改变圆角。 -->
+      <IslandCover class="island-art" :src="snapshot.track.cover" :motion="snapshot.motion" large />
       <button
         ref="trigger"
         type="button"
-        class="flex h-full min-w-0 flex-1 cursor-grab touch-none items-center gap-[9px] rounded-full select-none active:cursor-grabbing"
+        class="island-trigger flex w-full cursor-grab touch-none items-center gap-[9px] rounded-full text-left text-[12.5px] font-bold text-white select-none active:cursor-grabbing"
+        :class="{ playing: snapshot.playing && snapshot.motion }"
+        :inert="panel.open"
         aria-label="展开灵动岛播放器"
         aria-haspopup="dialog"
         :aria-expanded="panel.open"
         :aria-controls="panel.open ? 'island-player' : undefined"
         @pointerdown="startDrag"
         @pointermove="moveDrag"
-        @lostpointercapture="dragStart = undefined"
+        @pointerup="endDrag"
+        @pointercancel="endDrag"
+        @lostpointercapture="endDrag"
         @click="openPanel"
       >
-        <!-- 桌面胶囊从主窗口快照读取当前歌曲的封面和歌词。 -->
-        <IslandCover :src="snapshot.track.cover" :motion="snapshot.motion" />
         <span
           class="pointer-events-none min-w-0 flex-1 truncate"
           :title="lyric"
@@ -197,27 +279,19 @@ function focusPlayer(): void {
         >
           <i /><i /><i />
         </span>
+        <span class="pointer-events-none grid size-6 shrink-0 place-items-center text-[11px] opacity-70" aria-hidden="true">
+          ▸
+        </span>
       </button>
-      <button
-        type="button"
-        class="size-7 shrink-0 rounded-full text-[11px] opacity-70 hover:bg-white/15 hover:opacity-100"
-        aria-label="返回播放器"
-        @click="focusPlayer"
-      >
-        ▸
-      </button>
-    </div>
-    <!-- 展开卡片填满原生窗口的可交互区域，四周继续留出透明阴影。 -->
-    <Transition name="island-expand" :css="snapshot?.motion && reducedMotion !== 'reduce'" @after-leave="resizeIsland(false)">
-      <IslandPlayer v-if="panel.open && snapshot"
-        class="island-expanded"
+      <IslandPlayer embedded :active="panel.open"
+        :class="{ 'pointer-controls': !keyboardFocus }"
         :track="snapshot.track" :time="snapshot.time" :duration="snapshot.track.dur"
         :playing="snapshot.playing" :loading="!!snapshot.audioLoading"
         :playable="snapshot.playable ?? !!snapshot.track.catalog"
         :motion="snapshot.motion" open-label="返回主播放器"
         @action="controlPlayer" @close="closePanel()" @open="closePanel(false); focusPlayer()"
       />
-    </Transition>
+    </div>
     <NotificationHost class="island-notification" />
   </div>
 </template>
@@ -234,14 +308,6 @@ function focusPlayer(): void {
   height: 100%;
   padding: 32px;
 }
-.island-expanded {
-  position: absolute;
-  top: 32px;
-  left: 32px;
-  width: calc(100% - 64px);
-  max-height: none;
-  transform-origin: 50% 20px;
-}
 .island-notification { top: 32px; }
 .liquid-win .island-surface {
   border-color: rgb(255 255 255 / 48%);
@@ -249,6 +315,15 @@ function focusPlayer(): void {
   box-shadow: inset 0 1.5px 1px rgb(255 255 255 / 48%), 0 4px 12px rgb(0 0 0 / 24%);
 }
 .island-surface {
+  --island-ease: cubic-bezier(.26,.74,.18,1);
+  position: relative;
+  left: var(--anchor-x);
+  top: var(--anchor-y);
+  width: 100%;
+  height: 40px;
+  overflow: clip;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 20px;
   /* 和桌面卡片相同的高遮蔽暗玻璃；CSS blur 不会模糊其他应用的桌面。 */
   background: linear-gradient(
     135deg,
@@ -261,7 +336,42 @@ function focusPlayer(): void {
     0 4px 12px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-.island-surface button:focus-visible {
+.island-surface.expanded {
+  height: 158px;
+  transform: translate(calc(-1 * var(--anchor-x)), calc(-1 * var(--anchor-y)));
+  border-radius: 24px;
+}
+.island-art {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  transform-origin: top left;
+  transform: translate(8px, 6px) scale(.541667);
+  border-radius: 50%;
+}
+.expanded .island-art { transform: translate(16px, 13px) scale(1); border-radius: 12px; }
+.island-trigger {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 38px;
+  padding: 0 8px 0 43px;
+}
+.expanded .island-trigger { opacity: 0; transform: translate(5px, 3px); }
+.island-surface :deep(.island-player-embedded) { opacity: 0; transform: translateY(-6px); }
+.island-surface.expanded :deep(.island-player-embedded) { opacity: 1; transform: none; }
+.animated {
+  transition: height 250ms var(--island-ease), transform 250ms var(--island-ease), border-radius 250ms var(--island-ease);
+}
+.animated .island-art {
+  transition: transform 250ms var(--island-ease), border-radius 250ms var(--island-ease);
+}
+.animated .island-trigger { transition: opacity 100ms ease 55ms, transform 180ms var(--island-ease); }
+.animated.expanded .island-trigger { transition-delay: 0ms; }
+.animated :deep(.island-player-embedded) { transition: opacity 95ms ease, transform 170ms var(--island-ease); }
+.animated.expanded :deep(.island-player-embedded) { transition: opacity 160ms ease 55ms, transform 205ms var(--island-ease) 35ms; }
+.island-trigger:focus { outline: none; }
+.island-surface.keyboard-focus:has(.island-trigger:focus-visible) {
   outline: 2px solid white;
   outline-offset: 2px;
 }

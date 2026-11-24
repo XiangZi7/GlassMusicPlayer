@@ -13,7 +13,7 @@ export interface PlayerController extends SourcePlayer {
   toggleRadio(): void
   setQuery(query: string): void
   playSmart(): void
-  smartList(): number[]
+  smartList(day?: string): number[]
   playNext(index: number): void
   moveQueue(from: number, to: number): void
   render(): void

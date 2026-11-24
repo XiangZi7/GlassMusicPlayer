@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import {
   computed,
   effectScope,
@@ -337,6 +338,32 @@ if (process.argv.includes('--probe')) {
   await main.openContextMenu({ clientX: 0, clientY: 0 })
   assert.equal(main.menus.length, 0)
 
+  // 逐项核对可见外壳和系统工作区的物理坐标，覆盖副屏、缩放和关闭吸附。
+  const placement = makeMenuHarness(island, 'island')
+  placement.PhysicalPosition = PhysicalPosition
+  for (const scale of [1, 1.25, 1.5, 2]) {
+    const monitor = { scaleFactor: scale, workArea: {
+      position: { x: -1920, y: -1080 }, size: { width: 1920, height: 1040 },
+    } }
+    const left = -1920 - Math.round(32 * scale)
+    const top = -1080 - Math.round(32 * scale)
+    const right = left + 1920 - Math.round(320 * scale)
+    const bottom = top + 1040 - Math.round(40 * scale)
+    for (const [x, y, snap, expectedX, expectedY] of [
+      [left + 10, top + 12, true, left, top],
+      [right - 16, bottom - 8, true, right, bottom],
+      [left + 10, top + 12, false, left + 10, top + 12],
+      [left - 200, top - 100, false, left, top],
+      [right - 100, top + 100, true, right - 100, top + 100],
+    ]) {
+      const point = placement.fitPosition(x, y, monitor, 40, snap)
+      assert.deepEqual([point.x, point.y], [expectedX, expectedY])
+    }
+    const expanded = placement.fitPosition(right, bottom, monitor, 158, false)
+    assert.equal(expanded.y, top + 1040 - Math.round(158 * scale))
+  }
+  console.log('PASS 桌面灵动岛四边吸附、自由拖动、负坐标工作区和四种屏幕缩放')
+
   // AccountMenu 只使用实际源码函数/事件注册及模板 AST；DOM、计时器、VueUse 生命周期是模拟边界。
   function elements(ast) {
     const found = []
@@ -441,7 +468,9 @@ if (process.argv.includes('--probe')) {
     context.document = { activeElement: context.outside }
     context.window = { name: 'window' }
     context.rootElement = element('account-root')
-    context.rootElement.querySelectorAll = selector =>
+    context.rootElement.closest = () => null
+    context.panel = { value: element('account-panel') }
+    context.panel.value.querySelectorAll = selector =>
       selector === '[role="menuitem"]' && context.account.state.open
         ? context.items
         : []
@@ -488,7 +517,7 @@ if (process.argv.includes('--probe')) {
     vm.createContext(context)
     vm.runInContext(output, context)
     context.items = Array.from(context.account.platforms, platform =>
-      element(platform, context.rootElement)
+      element(platform, context.panel.value)
     )
     context.innerChild = element('menuitem-child', context.items[0])
     context.tick = ms => {

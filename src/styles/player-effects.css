@@ -488,252 +488,320 @@ h1 .thin {
   }
 }
 
-/* ---------- hero banner (perspective) ---------- */
-.banner {
-  --bx: 0;
-  --by: 0;
-  --banner-inset: clamp(20px, 3.5cqw, 46px);
+/* 首页主打海报，玻璃折光与曲目信息分层。 */
+.home-content {
   container-type: inline-size;
+  overflow-anchor: none;
+  --banner-compact-height: 58px;
+}
+
+.banner {
+  --banner-inset: clamp(22px, 4cqw, 54px);
+  position: relative;
+  isolation: isolate;
+  z-index: 3;
+  flex: none;
+  height: clamp(155px, 43cqw, 248px);
+  margin: 2px 0 8px;
+  overflow: hidden;
+  container-type: inline-size;
+  border: 1px solid rgb(255 255 255 / 17%);
+  border-radius: 20px;
+  background: #221d37;
+  color: #fffaf7;
   transition:
-    height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-    margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    height 220ms ease,
+    margin-top 220ms ease;
 }
 
 @property --banner-accent {
   syntax: '<color>';
   inherits: false;
-  initial-value: #568a9e;
+  initial-value: #a188d4;
 }
 
 .banner-bg {
-  /* 限定明度以适配深、浅封面；无彩封面自然形成银灰渐变。 */
-  --banner-shadow: oklch(from var(--banner-accent) .31 min(c, .095) calc(h + 12));
-  --banner-body: oklch(from var(--banner-accent) .53 min(calc(c * 1.25), .18) h);
-  --banner-bloom: oklch(from var(--banner-accent) .78 min(calc(c * 1.3), .19) calc(h + 42));
-  --banner-echo: oklch(from var(--banner-accent) .60 min(calc(c * 1.15), .17) calc(h - 35));
-  --banner-grid-opacity: .28;
-  background-color: #273b50;
-  background:
-    linear-gradient(95deg, rgb(11 17 30 / 62%), rgb(14 19 29 / 22%) 42%, transparent 66%),
-    radial-gradient(ellipse 73% 140% at 88% -21%, var(--banner-bloom), transparent 89%),
-    radial-gradient(ellipse 60% 105% at 46% 116%, var(--banner-echo), transparent 81%),
-    linear-gradient(118deg, var(--banner-shadow) 4%, var(--banner-body) 59%, var(--banner-shadow) 120%);
-  transition: --banner-accent 240ms ease;
+  --banner-ink: oklch(from var(--banner-accent) 0.19 min(c, 0.052) h);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+  background: linear-gradient(105deg, var(--banner-ink), #765129 77%);
+  transition: --banner-accent 220ms ease;
 }
 
-.banner-bg::before {
+.banner-landscape {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 55% 88%;
+}
+
+/* 超宽横幅把多出的空间留给曲名，保住画中近景人物的头顶与脚下落叶。 */
+@container (min-aspect-ratio: 4 / 1) {
+  .banner-landscape {
+    width: 400cqh;
+    mask-image: linear-gradient(90deg, transparent, #000 16%);
+  }
+}
+
+/* 左侧暗面取自歌曲封面，右下角的渐变托住来源与时长。 */
+.banner-bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: url('/images/featured-cube-grid.svg') repeat center / var(--banner-grid-size, 94px);
-  opacity: var(--banner-grid-opacity);
-  mask-image: linear-gradient(100deg, rgb(0 0 0 / 30%) 4%, rgb(0 0 0 / 72%) 40%, #000 63%, rgb(0 0 0 / 68%));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--banner-ink) 85%, transparent),
+      color-mix(in srgb, var(--banner-ink) 64%, transparent) 23%, transparent 53%),
+    linear-gradient(0deg, rgb(30 17 13 / 64%), transparent 22%);
+}
+
+.banner-content {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 var(--banner-inset);
+  display: flex;
+  width: 36%;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .banner-kicker {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: rgb(255 255 255 / 88%);
+  color: rgb(255 250 247 / 82%);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .16em;
+  line-height: 1;
+  font-weight: 650;
+  letter-spacing: 0.14em;
 }
 
 .banner-kicker::before {
   content: '';
-  width: 23px;
-  height: 2px;
+  width: 21px;
+  height: 1px;
   background: currentColor;
 }
 
-.banner-spectrum {
-  top: 61%;
-  right: 1%;
-  width: min(50%, 680px);
-  height: clamp(50px, 10cqw, 76px);
-  mask-image:
-    radial-gradient(ellipse 57% 70% at 58% 50%, #000 28%, rgb(0 0 0 / 60%) 67%, transparent 100%);
+.banner-content h2 {
+  max-width: 100%;
+  margin: 9px 0 2px -0.035em;
+  padding-inline: 0.03em 0.1em;
+  overflow: hidden;
+  font-family: Georgia, 'Songti SC', SimSun, var(--font-sans);
+  font-style: italic;
+  font-size: clamp(44px, 7.2cqw, 92px);
+  line-height: 1.13;
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.banner-content {
-  left: var(--banner-inset);
-  width: min(calc(49% - var(--banner-inset)), 520px);
+.banner-credit {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(12px, 1.38cqw, 15px);
+  font-weight: 550;
+  line-height: 1.5;
+  color: rgb(255 250 247 / 82%);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@container (max-width: 35rem) {
-  .banner-spectrum {
-    right: 0;
-    width: 54%;
-    opacity: 0.68;
-  }
-
-  .banner-content {
-    width: calc(64% - var(--banner-inset));
-  }
-
-  .banner-bg {
-    --banner-grid-size: 70px;
-  }
-
-  .banner-stage {
-    width: 61%;
-    mask-image: linear-gradient(to right, transparent, #000 44%);
-  }
-
-  .banner .banner-girl {
-    right: -14px;
-    height: 88%;
-  }
+.banner .banner-play {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 17px;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  cursor: pointer;
 }
 
-.banner-content h4 {
-  @apply m-[8px_0_0] overflow-hidden leading-[1.08] font-extrabold tracking-[-.035em] text-ellipsis whitespace-nowrap;
-  font-size: clamp(1.625rem, 5.6cqw, 3.5rem);
+.banner-content .banner-play {
+  margin-top: 18px;
 }
-
+.banner-play svg,
 .banner-pending {
   width: 13px;
   height: 13px;
+}
+.banner .banner-play:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 4px;
+}
+.banner .banner-play:hover {
+  filter: brightness(0.93);
+}
+.banner .banner-play:active {
+  transform: scale(0.96);
+}
+
+.banner-pending {
   border: 2px solid currentColor;
   border-inline-end-color: transparent;
   border-radius: 50%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .banner:not(.banner-calm) .banner-pending {
-    animation: spin .8s linear infinite;
-  }
+.banner-caption {
+  position: absolute;
+  z-index: 2;
+  right: clamp(16px, 2.6cqw, 36px);
+  bottom: 15px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 1px;
+  color: rgb(255 255 255 / 86%);
+  font: 500 11px/1.4 var(--font-mono);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 80%);
 }
 
-.banner-play svg {
-  @apply h-[13px] w-[13px];
+.banner-spectrum {
+  display: block;
+  width: clamp(64px, 9cqw, 96px);
+  height: 22px;
 }
-
-.banner-girl {
-  right: clamp(14px, 4.4cqw, 67px);
-  bottom: -3px;
-  height: calc(100% - 8px);
-  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.42));
-  mask-image:
-    linear-gradient(to right, transparent, #000 26%, #000 94%, transparent),
-    linear-gradient(to bottom, #000 86%, transparent);
-  mask-composite: intersect;
+.banner-mini {
+  display: none;
+  position: absolute;
+  inset: 0 14px;
+  z-index: 2;
+  align-items: center;
+  gap: 10px;
 }
-
 .banner-mini img {
-  @apply h-[34px] w-[34px] rounded-[9px] object-cover;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
 }
-
-.banner-mini span {
-  @apply overflow-hidden text-[12px] font-semibold text-ellipsis whitespace-nowrap opacity-[.65];
+.banner-mini-caption {
+  min-width: 0;
+  font-size: 10px;
+  color: rgb(255 255 255 / 82%);
 }
-
+.banner-mini-caption span {
+  display: block;
+  overflow: hidden;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .banner-mini .banner-play {
-  @apply ml-auto min-h-[34px] flex-none p-[7px_14px] text-[12px];
+  margin-left: auto;
+  min-height: 34px;
+  padding-inline: 14px;
+  font-size: 12px;
 }
-
 .main.compact .banner {
-  @apply mt-[10px] h-[58px];
+  height: var(--banner-compact-height);
+  margin-top: 10px;
 }
-
 .main.compact .banner-content,
-.main.compact .banner-spectrum,
-.main.compact .banner-stage {
-  @apply hidden;
+.main.compact .banner-caption,
+.main.compact .banner-spectrum {
+  display: none;
 }
-
-.main.compact .banner-bg {
-  --banner-grid-opacity: .12;
+.main.compact .banner-landscape {
+  width: 100%;
+  mask-image: none;
+  object-position: center 22%;
+  opacity: 0.45;
 }
-
 .main.compact .banner-mini {
-  @apply flex;
-}
-
-/* 毛玻璃横幅：柔光渐变和固定立绘。 */
-.glass-win .banner {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
 }
 
 .glass-win .banner-play {
-  @apply bg-white;
+  background: #fff;
   color: #14141c;
 }
 
-.glass-win .banner-mini .banner-play {
-  @apply bg-white;
-  color: #14141c;
-}
-
-/* 液态玻璃横幅：立绘视差与鼠标高光。 */
 .liquid-win .banner {
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.04) 60%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  box-shadow:
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.55),
-    inset 0 -10px 22px rgba(255, 255, 255, 0.06),
-    0 16px 32px rgba(0, 0, 0, 0.28);
+  border-color: rgb(255 255 255 / 35%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 19%);
 }
 
 .liquid-win .banner::after {
-  @apply pointer-events-none absolute inset-0 z-[6];
   content: '';
-  clip-path: inset(0 round 20px);
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
   background: radial-gradient(
-    340px 150px at var(--bxp, 72%) var(--byp, 18%),
-    rgba(255, 255, 255, 0.2),
-    transparent 65%
+    380px 170px at var(--bxp, 76%) var(--byp, 10%),
+    rgb(255 255 255 / 13%),
+    transparent 78%
   );
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 42%);
 }
 
-.liquid-win .banner {
-  perspective: 760px;
-}
-
-.liquid-win .banner-stage {
-  transform-style: preserve-3d;
-  transform: rotateY(calc(var(--bx) * -7deg)) rotateX(calc(var(--by) * 5deg));
-}
-
-.liquid-win .banner-bg {
-  --banner-grid-opacity: .35;
-  --banner-bloom: oklch(from var(--banner-accent) .82 min(calc(c * 1.4), .20) calc(h + 42));
-}
-
-.liquid-win .banner-girl {
-  transform: translate3d(calc(var(--bx) * 7px), calc(var(--by) * 4px), 46px)
-    rotateZ(calc(var(--bx) * 1.2deg));
-}
 
 .liquid-win .banner-play {
   background: linear-gradient(
     165deg,
-    rgba(255, 255, 255, 0.97),
-    rgba(255, 255, 255, 0.72)
+    rgb(255 255 255 / 97%),
+    rgb(255 255 255 / 72%)
   );
   color: #10181b;
   box-shadow:
     inset 0 1.5px 1px #fff,
-    0 10px 20px rgba(0, 0, 0, 0.3);
+    0 10px 20px rgb(0 0 0 / 30%);
+}
+
+@container (max-width: 38rem) {
+  .banner-content {
+    width: 33%;
+  }
+  .banner-content h2 {
+    font-size: clamp(38px, 8.8cqw, 54px);
+  }
+  .banner-caption {
+    bottom: 10px;
+    right: 14px;
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .banner:not(.banner-calm) .banner-pending {
+    animation: spin 0.8s linear infinite;
+  }
+  .banner:not(.banner-calm) .banner-play {
+    transition:
+      transform 140ms ease,
+      filter 140ms ease;
+  }
 }
 
 .banner.banner-calm,
 .banner-calm .banner-bg {
   transition: none;
 }
-
-.liquid-win .banner-calm :is(.banner-stage, .banner-girl) {
+.banner-calm .banner-play:active {
   transform: none;
 }
-
 .liquid-win .banner.banner-calm::after {
-  display: none;
+  background: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -741,17 +809,17 @@ h1 .thin {
   .banner-bg {
     transition: none;
   }
-  .liquid-win .banner :is(.banner-stage, .banner-girl) {
+  .banner .banner-play:active {
     transform: none;
   }
   .liquid-win .banner::after {
-    display: none;
+    background: none;
   }
 }
 
 @media (max-width: 640px) {
   .banner {
-    height: 188px;
+    height: clamp(155px, 43cqw, 200px);
     margin-top: 2px;
   }
   .feat-head {
@@ -2754,16 +2822,11 @@ input[type='range']::-moz-range-thumb {
   }
   .win-body {
     grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .right {
-    grid-column: 1/-1;
-    border-left: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-  }
-  .right .r-coverwrap {
-    width: 150px;
-    float: left;
-    margin-right: 16px;
+  .win-body > .right,
+  .win-body > .np-toggle {
+    display: none;
   }
   .win-bottom {
     grid-template-columns: 1fr;
@@ -2783,6 +2846,7 @@ input[type='range']::-moz-range-thumb {
 @media (max-width: 640px) {
   .win-body {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
   .sidebar {
     flex-direction: row;
@@ -2832,25 +2896,7 @@ input[type='range']::-moz-range-thumb {
     );
     color: #10181b;
   }
-  .right .r-coverwrap {
-    float: none;
-    width: min(220px, 70%);
-    margin: 0 auto;
-  }
 }
-
-/* 窄窗口里的音乐库把可用高度留给标签页，不把正在播放移到列表下方。 */
-@media (641px <= width <= 1020px) {
-  .library-layout {
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  .library-layout .right,
-  .library-layout .np-toggle {
-    display: none;
-  }
-}
-
 /* Windows 最小尺寸下，底栏仍能横排封面、播放和音量控制。 */
 @media (900px <= width <= 1020px) {
   .native-player .win-bottom {
@@ -4030,67 +4076,8 @@ body.calm .fs-giant {
   );
 }
 
-/* narrow widths: the panel stacks below the main area, so collapse lives in its own
-   header and the collapsed panel becomes a slim expand strip in its place */
 .right-head [data-meta2] {
   @apply ml-auto font-mono text-[10.5px] tracking-normal opacity-[.6];
-}
-
-.np-head-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.np-head-btn svg {
-  @apply h-[13px] w-[13px];
-}
-
-@media (max-width: 1020px) {
-  .np-toggle {
-    display: none;
-  }
-  .np-head-btn {
-    display: grid;
-  }
-  .win.np-collapsed .right {
-    height: 46px;
-    min-height: 0;
-    padding: 0 10px;
-    overflow: hidden;
-  }
-  .win.np-collapsed .right > * {
-    display: none !important;
-  }
-  .win.np-collapsed .right > .np-expand {
-    display: flex !important;
-  }
-  .np-expand {
-    width: 100%;
-    height: 46px;
-    align-items: center;
-    gap: 9px;
-    border: none;
-    background: transparent;
-    color: inherit;
-    font-size: 12.5px;
-    font-weight: 800;
-    padding: 0 6px;
-    text-align: left;
-  }
-  .np-expand .np-expand-meta {
-    margin-left: auto;
-    font-family: 'JetBrains Mono Variable', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    opacity: 0.6;
-    letter-spacing: 0;
-  }
-  .np-expand svg {
-    width: 14px;
-    height: 14px;
-    flex: none;
-    opacity: 0.85;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

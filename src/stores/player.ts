@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { reactive, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 import type { SourceTrack } from '@/types/prototype'
@@ -33,6 +33,13 @@ export interface Playlist {
 
 const importedKey = 'miraiMusic.publicPlaylists.v1'
 const profilesKey = 'miraiMusic.publicPlatformProfiles.v1'
+
+interface ProfilePosition {
+  userId: string
+  index: number
+}
+
+type SavedPlaylist = CatalogPlaylist & { profilePosition?: ProfilePosition }
 
 export type LinkedProfile = Pick<
   PublicUserPlaylists,
@@ -76,7 +83,7 @@ function readLinkedProfiles(): LinkedProfiles {
 }
 
 // 恢复播放器自己保存的公开歌单，旧版本或损坏的缓存不会影响启动。
-function readImportedPlaylists(): CatalogPlaylist[] {
+function readImportedPlaylists(): SavedPlaylist[] {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(importedKey) || '[]')
     if (!Array.isArray(saved)) return []
@@ -102,6 +109,7 @@ export interface UploadFile {
 
 export type PlayerPage =
   | 'home'
+  | 'daily'
   | 'search'
   | 'library'
   | 'albums'
@@ -151,6 +159,7 @@ export function createDefaultSettings() {
     deskLock: false,
     lyricIsland: true,
     lyricIslandDesktop: false,
+    lyricIslandSnap: true,
     trayMini: true,
     smtc: false,
   }
@@ -164,9 +173,11 @@ export const usePlayerStore = defineStore('player', () => {
   const islandPreferences = useLocalStorage('miraiMusic.lyricIsland', {
     lyricIsland: true,
     lyricIslandDesktop: false,
+    lyricIslandSnap: true,
   })
   const catalogIndices = new Map<string, number>()
-  let savedPlaylists = readImportedPlaylists()
+  const profilePages = new Map<string, Map<string, number>>()
+  const savedPlaylists = shallowRef(readImportedPlaylists())
   const state = reactive({
     /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
     /** 播放和进度状态。 */ playing: false,
@@ -194,7 +205,6 @@ export const usePlayerStore = defineStore('player', () => {
     npWideOpen: false,
     stage: false,
     /** 首次打开全屏时正在加载舞台组件，可再次点击或按 Escape 取消。 */ stageLoading: false,
-    /** 首页内容筛选。 */ chip: '全部',
     /** 当前页面和选中的歌单、专辑或歌手。 */ page: 'home' as PlayerPage,
     playlistIdx: 0,
     /** 全局搜索词。 */ query: '',
@@ -206,6 +216,7 @@ export const usePlayerStore = defineStore('player', () => {
       ...preferences.settings,
       lyricIsland: islandPreferences.value?.lyricIsland !== false,
       lyricIslandDesktop: islandPreferences.value?.lyricIslandDesktop === true,
+      lyricIslandSnap: islandPreferences.value?.lyricIslandSnap !== false,
     },
     /** 已关联的公开资料，搜索或链接导入不会创建关联。 */
     linkedProfiles: readLinkedProfiles(),
@@ -262,21 +273,64 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  // 全部曲目加载成功后原子写入本机存储，同平台同 ID 的歌单按重新导入更新。
-  function savePublicPlaylist(item: CatalogPlaylist): Playlist {
+  // 只重排本次来源涉及的槽位，保留其他账号、平台及单独导入的歌单位置。
+  function commitPlaylists(items: SavedPlaylist[], order: string[], updated?: CatalogPlaylist): void {
+    const ranks = new Map(order.map((key, index) => [key, index]))
+    const matches = items.filter(item => ranks.has(catalogKey(item)))
+    matches.sort((a, b) => ranks.get(catalogKey(a))! - ranks.get(catalogKey(b))!)
+    let cursor = 0
+    const sorted = items.map(item => ranks.has(catalogKey(item)) ? matches[cursor++]! : item)
+    localStorage.setItem(importedKey, JSON.stringify(sorted))
+    savedPlaylists.value = sorted
+    const views = new Map(state.imported.map(list => [list.id, list]))
+    if (updated) {
+      const list = buildImportedPlaylist(updated)
+      views.set(list.id, list)
+      if (state.customPl?.id === list.id) state.customPl = list
+    }
+    state.imported = sorted.map(item => views.get(catalogKey(item))!)
+  }
+
+  // 从已见过的来源页得到跨页顺序，后导入的前页歌单也能排回前面。
+  function profileOrder(items: SavedPlaylist[], platform: MusicPlatform, userId: string): string[] {
+    return items.filter(item => item.platform === platform && item.profilePosition?.userId === userId)
+      .sort((a, b) => a.profilePosition!.index - b.profilePosition!.index)
+      .map(catalogKey)
+  }
+
+  // 读取公开歌单页时补齐旧缓存的真实位置，并同步已导入歌单的现有视图。
+  function syncPublicPlaylistPage(page: PublicUserPlaylists): void {
+    const owner = page.platform + ':' + page.userId
+    const positions = profilePages.get(owner) ?? new Map<string, number>()
+    profilePages.set(owner, positions)
+    page.playlists.forEach((item, index) => positions.set(item.id, (page.pageNum - 1) * page.pageSize + index))
+    const next = savedPlaylists.value.map(item => {
+      const index = positions.get(item.id)
+      if (item.platform !== page.platform || index === undefined ||
+          (item.profilePosition?.userId === page.userId && item.profilePosition.index === index)) return item
+      return { ...item, profilePosition: { userId: page.userId, index } }
+    })
+    const order = profileOrder(next, page.platform, page.userId)
+    const current = next.filter(item => item.platform === page.platform && item.profilePosition?.userId === page.userId)
+    if (next.some((item, index) => item !== savedPlaylists.value[index]) ||
+        current.some((item, index) => catalogKey(item) !== order[index])) commitPlaylists(next, order)
+  }
+
+  // 完整导入成功后一次写入内容和顺序，失败重试沿用原账号位置或链接次序。
+  function savePublicPlaylist(item: CatalogPlaylist, userId?: string, linkOrder: string[] = []): Playlist {
     const id = catalogKey(item)
-    const index = savedPlaylists.findIndex(
+    const index = savedPlaylists.value.findIndex(
       playlist => catalogKey(playlist) === id
     )
-    const next = [...savedPlaylists]
-    if (index === -1) next.push(item)
-    else next[index] = item
-    localStorage.setItem(importedKey, JSON.stringify(next))
-    savedPlaylists = next
-    const playlist = buildImportedPlaylist(item)
-    if (index === -1) state.imported.push(playlist)
-    else state.imported[index] = playlist
-    return playlist
+    const next = [...savedPlaylists.value]
+    const rank = userId ? profilePages.get(item.platform + ':' + userId)?.get(item.id) : undefined
+    const profilePosition = userId && rank !== undefined ? { userId, index: rank } : next[index]?.profilePosition
+    const saved = { ...item, profilePosition }
+    if (index === -1) next.push(saved)
+    else next[index] = saved
+    const order = userId ? profileOrder(next, item.platform, userId) : linkOrder
+    commitPlaylists(next, order, item)
+    return state.imported.find(list => list.id === id)!
   }
 
   // 保存或取消一个平台的公开资料关联，已导入歌单仍可在曲库中打开。
@@ -314,10 +368,18 @@ export const usePlayerStore = defineStore('player', () => {
     islandPreferences.value = {
       lyricIsland: state.settings.lyricIsland,
       lyricIslandDesktop: state.settings.lyricIslandDesktop,
+      lyricIslandSnap: state.settings.lyricIslandSnap,
     }
   }
 
-  state.imported = savedPlaylists.map(buildImportedPlaylist)
+  state.imported = savedPlaylists.value.map(buildImportedPlaylist)
+
+  // 只读取可确认属于当前平台与 UID 的导入歌单，切号时沿用各自的歌手偏好。
+  function profileTracks(platform: MusicPlatform, userId: string): CatalogTrack[] {
+    return savedPlaylists.value
+      .filter(list => list.platform === platform && list.profilePosition?.userId === userId)
+      .flatMap(list => list.tracks)
+  }
   // 先恢复已保存歌单，再补缓存中的搜索曲目；公开 ID 相同的曲目不重复登记。
   for (const track of preferences.catalogTracks) {
     if (!track.catalog) continue
@@ -390,7 +452,9 @@ export const usePlayerStore = defineStore('player', () => {
     state,
     tracks,
     registerCatalogTracks,
+    profileTracks,
     savePublicPlaylist,
+    syncPublicPlaylistPage,
     setLinkedProfile,
     saveIslandPreferences,
     savePreferences,
