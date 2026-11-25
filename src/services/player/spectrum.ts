@@ -197,15 +197,11 @@ export function createSpectrum(
     const step = width / count
     const barWidth = Math.min(3, step * 0.6)
     const live = mode === 'live'
-    const color = currentColor.map(channel =>
-      Math.round(channel * 0.76 + 255 * 0.24)
-    )
-    // 静态种子帧改用 pop-yellow 实色小条，对齐参照 hero 左下的黄色 EQ；实频帧仍走封面
-    // accent 提亮色，让条带在播放时回到与底栏一致的专辑色体系。取舍：静态帧的形状仍是
-    // 既有正弦种子轮廓（细条密排），只换颜色不换形，与参照 7 根粗条的疏密不完全一致。
-    paint.fillStyle = live
-      ? `rgba(${color.join(',')},0.46)`
-      : 'rgba(255,216,61,0.85)'
+    // 横幅频谱在所有状态下恒用 pop-yellow（用户真机反馈：播放时切回封面 accent 色与参照
+    // hero 左下的黄色 EQ 对不上，看着像变了样）。静态种子帧与实频帧同色，只有条高随真实
+    // levels 起伏；底栏频谱是另一块画布，仍走专辑色，不受此处影响。形状仍是既有正弦
+    // 种子轮廓（细条密排），与参照 7 根粗条的疏密不完全一致，这一点维持既有取舍。
+    paint.fillStyle = 'rgba(255,216,61,0.85)'
     for (let band = 0; band < count; band++) {
       let barHeight: number
       if (live) {

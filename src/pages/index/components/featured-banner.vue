@@ -149,15 +149,30 @@ onBeforeUnmount(() => {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <img
-        ref="landscapeRef"
-        class="banner-landscape"
-        src="/images/pop-hero.webp"
-        width="2736"
-        height="912"
-        alt=""
-        decoding="async"
-      />
+      <!-- 双图层仍装在这一个子元素内部（data-banner-bg 单子元素契约不变）：底层是带烤入
+           点田的原图，承担未播放时的静态长相；上层是平滑渐变无点图，播放时淡入盖住底图，
+           点阵叠加层在干净底子上绘制、不再与烤入点田双印，暂停即淡出回到原图。 -->
+      <div class="banner-art">
+        <img
+          ref="landscapeRef"
+          class="banner-landscape"
+          src="/images/pop-hero.webp"
+          width="2736"
+          height="912"
+          alt=""
+          decoding="async"
+        />
+        <img
+          class="banner-landscape banner-landscape-smooth"
+          :class="{ 'is-on': playerState.playing }"
+          src="/images/pop-hero-smooth.webp"
+          width="2736"
+          height="912"
+          alt=""
+          decoding="async"
+          aria-hidden="true"
+        />
+      </div>
     </div>
 
     <!-- 半调点阵叠加层：插画已换回带烤入点田的原图，静态时底图点田即参照长相，这一层
@@ -289,6 +304,12 @@ onBeforeUnmount(() => {
 }
 .main.compact .banner.home-topbar {
   height: var(--banner-compact-height);
+  /* 折叠后迷你条真钉顶：compact 时转 sticky 钉在滚动容器（.main）顶部，滚到任何深度都
+     常驻可见可点。钉位已实测标定：钉住时边框顶 = 容器上内边距 18px + top 值（margin-top
+     在钉住时不叠加），取 top 2px 时边框顶落在距容器顶 20px 处，与展开态静止位置
+     （18px 内边距 + 2px 上外边距）严丝合缝，不留怪缝。 */
+  position: sticky;
+  top: 2px;
 }
 @container (max-width: 700px) {
   .banner.home-topbar {
@@ -315,6 +336,34 @@ onBeforeUnmount(() => {
   .home-topbar .banner-landscape {
     object-position: 88% 36%;
   }
+}
+/* 双图包裹层：占满背景盒，两张图同盒同裁切上下叠放（类名规则对两层一致生效）。 */
+.banner-art {
+  position: absolute;
+  inset: 0;
+}
+/* 平滑无点图层：默认全透明只露底图原版；播放时淡入盖住底图，让点阵叠加层在干净底子
+   上绘制。交叉淡化约 320ms；关动效（banner-calm）或系统减动效时直接切换不淡化。 */
+.home-topbar .banner-landscape.banner-landscape-smooth {
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+.home-topbar .banner-landscape.banner-landscape-smooth.is-on {
+  opacity: 1;
+}
+.banner-calm .banner-landscape.banner-landscape-smooth {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-topbar .banner-landscape.banner-landscape-smooth {
+    transition: none;
+  }
+}
+/* 迷你条里的人物裁切单独对准眼睛带：实测原图眼睛带在纵向 35%–42%、中心约 38.5%，
+   58px 通栏 cover 裁切下纵向取 36% 时眼睛正落在条的中线上（31% 时眼睛偏低近下缘）；
+   展开态的 62% 36% 不动，两层图同类名同步生效。 */
+.main.compact .home-topbar .banner-landscape {
+  object-position: 50% 36%;
 }
 /* 文案列加宽到左半区，底部留出左下频谱条带的高度，整列垂直居中。 */
 .home-topbar .banner-content {
