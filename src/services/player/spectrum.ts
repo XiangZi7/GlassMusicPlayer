@@ -241,16 +241,17 @@ export function createSpectrum(
   let dotsFadeFrame: number | undefined
   let dotsFadeStamp: number | undefined
 
-  // 半调点阵层（横幅三层架构的中间层：背景渐变层之上、人物层之下）：点田不再烤进任何
-  // 底图，而是这一层按采样剖面（halftone-profile，采自原图点田）单独生成——未播放时画
-  // 静态场：点径/alpha 由剖面强度决定，颜色走 halftoneFieldColor 的全程色带（左青蓝→
-  // 中蓝紫→右品红紫），且明度随剖面强度由深墨渐变到亮色，呈现原图那种亮青点与深蓝点
-  // 并存的印刷半调；实频（live）时同一片田在同一剖面上随真实 levels 起伏（点径呼吸、
-  // alpha 与封面 accent 轻混都按 dotsBlend 混入），静态场是设计层、不是频谱声明，
-  // data-spectrum-mode 仍只反映音频模式，示例模拟不驱动动态、只保留静态场。每个点先经
-  // 横幅写入的可见图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的实际
-  // 裁切算出）映射回插画坐标再采样，裁切移动时点田随图一起走；人物与贴纸本体所在格
-  // 剖面为零、天然不冒点，且人物层盖在点阵之上，轮廓光晕贴得再近也不会压到人物。
+  // 半调点阵画布（横幅层栈：背景渐变层之上、静态点层图之上、人物层之下）：静态点田
+  // 不再由画布重绘——v15 起改用从原图逐点提取的图层（pop-hero-dots.webp，提取脚本
+  // qa/make-hero-dots.py）原样呈现，画布只在实频（live）时接管，按采样剖面
+  // （halftone-profile）在同一片田上画动态点，画法常数全部按原图实测校准（见下）；
+  // 两呈现之间由组件按 data-spectrum-mode 做约 300ms 交叉淡化，画布内部再用 dotsBlend
+  // 在静态参数与实频参数之间插值，保证淡入的第一帧就是静态场的样子、随后才开始呼吸。
+  // 稳态非实频时画布保持全透明、不画任何点（静态场是提取图层的事，不是频谱声明）；
+  // data-spectrum-mode 仍只反映音频模式，示例模拟不驱动动态。每个点先经横幅写入的
+  // 可见图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的实际裁切算出）
+  // 映射回插画坐标再采样，裁切移动时点田随图一起走；人物与贴纸本体所在格剖面为零、
+  // 天然不冒点，且人物层盖在点阵之上，轮廓光晕贴得再近也不会压到人物。
   function paintDots(): void {
     if (!dots || destroyed) return
     const { canvas, paint } = dots
@@ -260,6 +261,8 @@ export function createSpectrum(
     if (reduced.matches) dotsBlend = live ? 1 : 0
     const blend = dotsBlend
     const { width, height } = size
+    // 稳态非实频：fitCanvas 已把画布清为全透明，直接返回——静态点田由提取图层承担。
+    if (!live && blend <= 0) return
     // 可见图像矩形（插画归一化坐标）：组件未写入时按插画原始尺寸与缺省 object-position
     // 现算，保证组件挂载顺序变化时第一帧也不跑偏。
     let u0 = Number(canvas.dataset.imgU0)
@@ -284,8 +287,11 @@ export function createSpectrum(
       u1 = (width - ox) / dw
       v1 = (height - oy) / dh
     }
-    // 点距跟随插画显示宽度（原图点距约占图宽 0.95%），裁切放大时点距同步放大，不变密度。
-    const pitch = Math.max(8, (width / (u1 - u0)) * 0.0095)
+    // 点距跟随插画显示宽度，裁切放大时点距同步放大，不变密度。系数按原图实测（v15，
+    // 脚本 qa/measure-hero-dots2.py）：点阵为近方格排布，原生 2736 宽下 FFT/自相关实测
+    // 横向 ≈34px、纵向 ≈30px，取 ≈33px 即图宽 1.21%；旧值 0.95%（26px）比原图密 27%，
+    // 是此前点显小、显均匀的主因之一。
+    const pitch = Math.max(8, (width / (u1 - u0)) * 0.0121)
     const cols = Math.ceil(width / pitch)
     const rows = Math.ceil(height / pitch)
     const accent = currentColor.map(channel =>
@@ -308,37 +314,39 @@ export function createSpectrum(
         const py = (row + 0.5) * pitch
         const v = v0 + (py / height) * (v1 - v0)
         const field = sampleHalftoneField(u, v)
-        // 剖面权重再强化：强度先过 1.6 次幂，稀疏区（低强度格）即使在 live 也压到近乎
-        // 不可见，点田的密度印象完全由采样剖面主导——播放帧与未播时底图的烤入场看上去
-        // 是同一片田活过来，而不是另罩一张均匀机械网格。能量只在权重之上调制点径的
-        // 呼吸幅度与节奏，不决定哪里有点、点有多密。
-        const weight = Math.pow(field, 1.6)
-        if (weight < 0.05) continue
-        const baseRadius = pitch * 0.46 * Math.sqrt(weight)
-        // 点径：静态场用满剖面基准（原图点田的有机大小渐变）；实频时在基准上随能量
-        // 呼吸（0.72–1.27 倍），按混合进度在两态之间插值。剖面为零处再有能量也不冒点，
-        // 场的形状不被频谱改写。
-        const liveFactor = 0.72 + 0.55 * energy
-        const radius = Math.min(
-          pitch * 0.48,
-          baseRadius * (1 + (liveFactor - 1) * blend)
+        // 场的形状完全由采样剖面决定：能量只调制点径与 alpha 的呼吸，不决定哪里有点。
+        // 截断取在场强 0.04——原图弱场区仍有可见的细点（覆盖率实测约 15%），旧口径
+        // （field^1.6 权重 <0.05 即 field<0.154 不画）把这片细点整片抹掉，田显得秃。
+        if (field < 0.04) continue
+        // 点径按原图实测覆盖率反推并逐箱校验（v15，脚本 qa/make-hero-dots.py 与
+        // qa/calibrate-hero-dots.py）：覆盖率拟合为 0.60·√field，封顶 0.56——封顶取得
+        // 高是因为原图强场点近方形且彼此相连（覆盖率实测达 0.85–0.93），圆点必须靠
+        // 互相交叠才能凑近那片覆盖；逐箱覆盖率与原图差控制在 ±0.1 内（强场仍略欠，
+        // 圆与近方形的固有残差）。旧公式 0.46·field^0.8 在中场只有实测的一半，是此前
+        // 点显小、大小渐变被压平的主因。
+        const baseRadius = pitch * Math.min(0.56, 0.6 * Math.sqrt(field))
+        // 实频时点径在基准上随能量呼吸（0.78–1.23 倍，中性能量 0.5 时恰回基准，与静态
+        // 提取层严丝合缝），按混合进度与静态基准插值；上限 0.58 点距给强场交叠留余量。
+        const liveRadius = Math.min(
+          pitch * 0.58,
+          baseRadius * (0.78 + 0.45 * energy)
         )
+        const radius = baseRadius + (liveRadius - baseRadius) * blend
         if (radius < 0.5) continue
-        // 取色：按插画横向位置取色带全程色相（青蓝→蓝紫→品红紫），明度再随剖面强度
-        // 由深墨（×0.42）渐变到亮色（×0.98）——原图点田正是亮青点与深蓝点并存、明度
-        // 随场渐变的印刷半调，静态与实频共用这套底色；实频时另按混合进度向封面
-        // accent 提亮色轻混三成（静态不混，静态长相只由插画自身的色场决定）。
+        // 取色：原图是单墨印刷，点墨色在全场近恒定（实测青蓝一族，见 halftoneFieldColor
+        // 注释），深浅层次由点径/覆盖率承担、不再按场强压暗墨色（旧 shade 压暗是把底色
+        // 进程误作点色进程）；实频时向封面 accent 提亮色轻混约一成（旧三成会把青蓝洗
+        // 成封面色，校准并排时右场尤其明显），静态参数不混。
         const fc = halftoneFieldColor(u)
-        const depth = Math.min(1, Math.max(0, (field - 0.08) / 0.55))
-        const shade = 0.42 + (0.98 - 0.42) * depth
-        const accentMix = 0.3 * blend
-        const cr = Math.round(fc[0]! * shade * (1 - accentMix) + accent[0]! * accentMix)
-        const cg = Math.round(fc[1]! * shade * (1 - accentMix) + accent[1]! * accentMix)
-        const cb = Math.round(fc[2]! * shade * (1 - accentMix) + accent[2]! * accentMix)
-        // alpha：静态场给足印刷感（上限 0.92，随权重 0.15 起）；实频沿用压低的呼吸
-        // 口径（上限 0.62、能量项乘权重），两态按混合进度插值，切换不跳变。
-        const staticAlpha = Math.min(0.92, 0.15 + 0.8 * weight)
-        const liveAlpha = Math.min(0.62, 0.05 + 0.5 * weight + 0.3 * energy * weight)
+        const accentMix = 0.12 * blend
+        const cr = Math.round(fc[0]! * (1 - accentMix) + accent[0]! * accentMix)
+        const cg = Math.round(fc[1]! * (1 - accentMix) + accent[1]! * accentMix)
+        const cb = Math.round(fc[2]! * (1 - accentMix) + accent[2]! * accentMix)
+        // alpha：原图点是近不透明的实墨（静态参数 0.92）；实频随能量在 0.30–0.95 间
+        // 呼吸，中性能量 0.5 时回到 0.92 与静态一致。旧实频口径上限 0.62 全程半透明，
+        // 是播放帧点田发虚、像罩了层纱的原因。
+        const staticAlpha = 0.92
+        const liveAlpha = Math.min(0.95, 0.3 + 1.24 * energy)
         const alpha = staticAlpha + (liveAlpha - staticAlpha) * blend
         paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()

@@ -24,6 +24,9 @@ const state = reactive({
   failedCovers: [] as string[],
   // 第一首封面的主色，供顶部条渐变派生相邻色相。
   accent: '',
+  // 点阵画布是否处于实频（live）：由画布的 data-spectrum-mode 同步，驱动静态点层图
+  // 与画布之间的交叉淡化（live 时点层图淡出、画布淡入接管动态点）。
+  dotsLive: false,
 })
 const { pending, playing, duration, actionLabel, playFeatured } = useDailyMix(
   () => props.songs,
@@ -89,6 +92,23 @@ function onPlay(): void {
 const bannerRef = ref<HTMLElement>()
 const landscapeRef = ref<HTMLImageElement>()
 let dotsGeometryObserver: ResizeObserver | undefined
+let dotsModeObserver: MutationObserver | undefined
+
+// 追踪点阵画布的频谱模式属性：频谱服务在模式切换时写 data-spectrum-mode，组件据此
+// 把 state.dotsLive 同步过去，层栈随之交叉淡化（静态点层图 ↔ 实频画布）。
+function watchDotsMode(): void {
+  const canvas = bannerRef.value?.querySelector<HTMLCanvasElement>('[data-halftone-dots]')
+  if (!canvas) return
+  const apply = () => {
+    state.dotsLive = canvas.dataset.spectrumMode === 'live'
+  }
+  apply()
+  dotsModeObserver = new MutationObserver(apply)
+  dotsModeObserver.observe(canvas, {
+    attributes: true,
+    attributeFilter: ['data-spectrum-mode'],
+  })
+}
 
 // 把插画当前可见矩形（归一化坐标）写入点阵画布的 dataset：频谱服务据此把画布点映射回
 // 插画坐标采样点田剖面。窗口变窄、object-position 右移时矩形随之更新，点田始终贴着
@@ -123,6 +143,7 @@ function syncDotsGeometry(): void {
 
 onMounted(() => {
   syncDotsGeometry()
+  watchDotsMode()
   landscapeRef.value?.addEventListener('load', syncDotsGeometry)
   if (typeof ResizeObserver !== 'undefined' && bannerRef.value) {
     dotsGeometryObserver = new ResizeObserver(syncDotsGeometry)
@@ -132,6 +153,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   dotsGeometryObserver?.disconnect()
+  dotsModeObserver?.disconnect()
   landscapeRef.value?.removeEventListener('load', syncDotsGeometry)
 })
 </script>
@@ -139,7 +161,10 @@ onBeforeUnmount(() => {
   <section
     ref="bannerRef"
     class="banner home-topbar"
-    :class="{ 'banner-calm': !playerState.settings.motion }"
+    :class="{
+      'banner-calm': !playerState.settings.motion,
+      'banner-dots-live': state.dotsLive,
+    }"
     data-banner
     aria-labelledby="home-banner-title"
   >
@@ -149,10 +174,11 @@ onBeforeUnmount(() => {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <!-- 三层分离仍装在这一个子元素内部（data-banner-bg 单子元素契约不变）：底层是无
-           人物、无点阵的干净渐变背景；中层是点阵画布（静态剖面场/实频动态场都由它单独
-           生成）；上层是全画幅透明的人物+贴纸层。人物层在所有状态下都是同一个元素、
-           永不更换——播放/未播切换只动点阵层，人物位移问题从根上不存在。 -->
+      <!-- 层栈仍装在这一个子元素内部（data-banner-bg 单子元素契约不变），自下而上：
+           干净渐变背景 → 静态点层图（从原图逐点提取的点田，未播时它就是点田本体）→
+           点阵画布（只在实频时接管动态点，稳态非 live 全透明）→ 全画幅透明的人物+
+           贴纸层。人物层在所有状态下都是同一个元素、永不更换；播放/未播切换只在
+           点层图与画布之间交叉淡化，人物位移问题从根上不存在。 -->
       <div class="banner-art">
         <img
           ref="landscapeRef"
@@ -162,6 +188,15 @@ onBeforeUnmount(() => {
           height="912"
           alt=""
           decoding="async"
+        />
+        <img
+          class="banner-landscape banner-dots-static"
+          src="/images/pop-hero-dots.webp"
+          width="2736"
+          height="912"
+          alt=""
+          decoding="async"
+          aria-hidden="true"
         />
         <HalftoneDots class="banner-dots" />
         <img
@@ -280,15 +315,43 @@ onBeforeUnmount(() => {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 半调点阵层：三层栈的中间层，整幅覆盖横幅、与两层插画同一盒子，位于背景渐变之上、
-   人物层之下。未播放时频谱服务按采样剖面画静态彩色点田，实频时同一片田随真实频段
-   起伏；人物与贴纸本体所在格剖面为零不会冒点，且人物层盖在上面，轮廓光晕不压人物。
-   迷你条用同一套层栈：折叠后画布随横幅盒子变小，静态场照常绘制，不再整层隐藏。 */
+/* 静态点层图：从原图逐点提取的点田，与背景/人物两层同盒同裁切（banner-landscape），
+   位于背景渐变之上、画布之下。未播时它就是点田本体（opacity 1）；进入实频后淡出，
+   让位给画布在同一片田上画的动态点。迷你条用同一套层栈，点层随盒子一起裁切。 */
+.banner-dots-static {
+  z-index: 1;
+  opacity: 1;
+  transition: opacity 300ms ease;
+}
+/* 祖先链多带一层 .banner-art 提优先级：.home-topbar .banner-landscape 也写了 opacity: 1
+   且同分时靠后，不能让它在 live 时把点层图按住不放。 */
+.banner-dots-live .banner-art .banner-dots-static {
+  opacity: 0;
+}
+/* 点阵画布：只在实频时接管（稳态非 live 时频谱服务不画点、画布全透明），默认
+   opacity 0 藏在静态点层之下，live 时淡入；人物与贴纸本体所在格剖面为零不会冒点，
+   且人物层盖在上面，轮廓光晕不压人物。 */
 .banner-dots {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.banner-dots-live .banner-dots {
+  opacity: 1;
+}
+/* 关动效（banner-calm）或系统减动效时，点层图与画布之间直接切换、不做交叉淡化。 */
+.banner-calm .banner-dots-static,
+.banner-calm .banner-dots {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .banner-dots-static,
+  .banner-dots {
+    transition: none;
+  }
 }
 /* 人物层：全画幅透明 PNG 式图层，永远盖在点阵之上（z-index 2），两种播放状态共用。 */
 .home-topbar .banner-chara {
@@ -332,9 +395,9 @@ onBeforeUnmount(() => {
     object-position: 88% 36%;
   }
 }
-/* 三层包裹层：占满背景盒，背景图、点阵画布、人物图同盒同裁切上下叠放（类名规则对
-   背景与人物两层一致生效）。状态切换不涉及任何图层淡入淡出——只有点阵画布内部的
-   静态/动态混合在动，背景与人物纹丝不动。 */
+/* 层栈包裹层：占满背景盒，背景图、静态点层图、点阵画布、人物图同盒同裁切上下叠放
+   （banner-landscape 类名规则对三张图一致生效）。状态切换只在点层图与画布之间交叉
+   淡化，背景与人物纹丝不动。 */
 .banner-art {
   position: absolute;
   inset: 0;
