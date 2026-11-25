@@ -94,8 +94,8 @@ function syncDotsGeometry(): void {
   const boxW = image.clientWidth
   const boxH = image.clientHeight
   if (!boxW || !boxH) return
-  const iw = image.naturalWidth || 2736
-  const ih = image.naturalHeight || 912
+  const iw = image.naturalWidth || 2640
+  const ih = image.naturalHeight || 864
   const position = getComputedStyle(image).objectPosition.split(' ')
   const px = (parseFloat(position[0] ?? '50') || 0) / 100
   const py = (parseFloat(position[1] ?? '36') || 0) / 100
@@ -145,8 +145,8 @@ onBeforeUnmount(() => {
         ref="landscapeRef"
         class="banner-landscape"
         src="/images/pop-hero.webp"
-        width="2736"
-        height="912"
+        width="2640"
+        height="864"
         alt=""
         decoding="async"
       />
