@@ -24,6 +24,8 @@ const albumIndices = computed(() =>
       <LibraryTabs flush />
       <div class="panel-scroll mt-4 min-h-0 flex-1 overflow-y-auto">
         <div class="pl-head flex items-center gap-[18px]">
+          <!-- 页头波普半调点阵：与歌单详情页同一配方，只铺页头带。 -->
+          <span class="pl-head-dots pop-halftone" aria-hidden="true" />
           <img decoding="async" loading="lazy"
             data-ad-cover
             alt="专辑封面"
@@ -86,3 +88,14 @@ const albumIndices = computed(() =>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 页头半调点阵：与歌单详情页同一配方（点阵色 9%、同尺寸），三页页头语言一致。 */
+.pl-head { position: relative; }
+.pl-head-dots {
+  position: absolute;
+  inset: -6px -10px;
+  --pop-halftone-color: rgb(255 255 255 / 9%);
+}
+.pl-head > :not(.pl-head-dots) { position: relative; }
+</style>

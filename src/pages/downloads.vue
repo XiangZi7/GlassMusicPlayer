@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { isTauri } from '@tauri-apps/api/core'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { notify } from '@/services/notification'
 import { openSettingsWindow } from '@/services/desktop'
@@ -118,7 +117,9 @@ onMounted(refresh)
     class="page-panel import-files hidden"
     data-panel="downloads"
   >
-    <div class="pg-head">
+    <!-- 页头波普点缀：与详情页同一半调配方，只铺页头带。 -->
+    <div class="pg-head dl-pop-head">
+      <span class="dl-pop-dots pop-halftone" aria-hidden="true" />
       <h3>下载管理</h3>
       <p>
         {{ supported ? '将平台允许下载的音频保存到本机目录。' : '在桌面客户端中可将音频保存到本机目录。' }}
@@ -202,12 +203,24 @@ onMounted(refresh)
           class="size-5 animate-spin rounded-full border-2 border-white/20 border-t-white/80"
         />
       </div>
-      <EmptyState
+      <!-- 空态波普贴纸：与搜索页空态同一 framed 贴纸规格，下方保留原空态文案。 -->
+      <div
         v-else-if="!records.length"
-        class="min-h-[120px]"
-        icon="download"
-        label="没有真实下载记录"
-      />
+        class="dl-empty"
+        data-empty-state
+        role="img"
+        aria-label="没有真实下载记录"
+      >
+        <img
+          class="pop-sticker pop-sticker--framed dl-empty-art"
+          style="--pop-sticker-angle: -3deg"
+          src="/images/pop-boombox.webp"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+        <p>没有真实下载记录</p>
+      </div>
       <div
         v-else
         class="space-y-[7px]"
@@ -258,3 +271,34 @@ onMounted(refresh)
     </p>
   </div>
 </template>
+
+<style scoped>
+/* 页头半调点阵：与歌手详情页同一配方（点阵色 9%、同尺寸），只铺页头带。 */
+.dl-pop-head { position: relative; }
+.dl-pop-dots {
+  position: absolute;
+  inset: -6px -10px;
+  --pop-halftone-color: rgb(255 255 255 / 9%);
+}
+.dl-pop-head > :not(.dl-pop-dots) { position: relative; }
+/* 空态贴纸块：贴纸图在上、文案在下，高度与原空态占位一致。 */
+.dl-empty {
+  display: flex;
+  min-height: 120px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 16px;
+}
+.dl-empty-art {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+.dl-empty p {
+  font-size: 12.5px;
+  opacity: 0.62;
+}
+</style>

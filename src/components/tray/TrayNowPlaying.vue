@@ -165,15 +165,16 @@ const playing = computed(() => props.snapshot?.playing === true)
 .tray-track-eq.is-playing i:nth-child(3) {
   animation-delay: -600ms;
 }
+/* 托盘播放键波普底衬：pop-pink 平涂圆底配白图标，悬停提亮一档。 */
 .tray-toggle {
   display: grid;
   width: 44px;
   height: 44px;
   flex: none;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.13);
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.09);
+  background: var(--pop-pink);
   color: #fff;
   transition: background-color 160ms ease;
 }
@@ -182,7 +183,7 @@ const playing = computed(() => props.snapshot?.playing === true)
   height: 15px;
 }
 .tray-toggle:not(:disabled):hover {
-  background: rgb(255 255 255 / 0.17);
+  background: color-mix(in srgb, var(--pop-pink) 82%, #fff);
 }
 .tray-toggle:focus-visible {
   outline: 2px solid rgb(255 255 255 / 0.75);

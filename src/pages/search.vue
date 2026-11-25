@@ -5,7 +5,6 @@ import { computed } from 'vue'
 import TrackList from '@/components/player/TrackList.vue'
 import TrackRow from '@/components/player/TrackRow.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 import {
   searchPageSize,
   useCatalogSearch,
@@ -75,12 +74,20 @@ const searchLabel = computed(() =>
       aria-label="搜索曲库"
     >
       <BaseButton
-        v-for="(label, key) in sources"
+        v-for="(label, key, order) in sources"
         :key="key"
+        class="src-chip"
         :class="{ on: platform === key }"
         :aria-pressed="platform === key"
         @click="platform = key"
-        >{{ label }}</BaseButton
+        >{{ label
+        }}<span
+          v-if="order === 0"
+          class="pop-hot-tag pop-sticker"
+          style="--pop-sticker-angle: 6deg"
+          aria-hidden="true"
+          >热门</span
+        ></BaseButton
       >
     </div>
     <!-- 在线列表使用服务端分页，点击曲目进入同一播放队列。 -->
@@ -96,12 +103,22 @@ const searchLabel = computed(() =>
       >
         搜索中…
       </div>
-      <EmptyState
+      <!-- 初始状态：波普贴纸插画作空态视觉，文案说明当前平台。 -->
+      <div
         v-else-if="!query"
-        class="min-h-[160px]"
-        icon="search"
-        :label="'输入关键词搜索' + platformNames[platform]"
-      />
+        class="pop-search-empty"
+        role="img"
+        :aria-label="'输入关键词搜索' + platformNames[platform]"
+      >
+        <img
+          class="pop-sticker pop-sticker--framed pop-search-art"
+          style="--pop-sticker-angle: -3deg"
+          src="/images/pop-boombox.webp"
+          alt=""
+          decoding="async"
+        />
+        <span>输入关键词搜索{{ platformNames[platform] }}</span>
+      </div>
       <p
         v-else-if="failed"
         class="empty-note p-[14px_4px] text-[13px]"
@@ -109,12 +126,22 @@ const searchLabel = computed(() =>
       >
         搜索暂不可用。
       </p>
-      <EmptyState
+      <!-- 无结果状态：沿用同一张贴纸插画，文案区分未命中。 -->
+      <div
         v-else-if="!onlineRows.length"
-        class="min-h-[160px]"
-        icon="search"
-        label="没有找到匹配的歌曲"
-      />
+        class="pop-search-empty"
+        role="img"
+        aria-label="没有找到匹配的歌曲"
+      >
+        <img
+          class="pop-sticker pop-sticker--framed pop-search-art"
+          style="--pop-sticker-angle: -3deg"
+          src="/images/pop-boombox.webp"
+          alt=""
+          decoding="async"
+        />
+        <span>没有找到匹配的歌曲</span>
+      </div>
       <template v-else>
         <TrackRow
           v-for="(track, position) in onlineRows"
@@ -174,3 +201,47 @@ const searchLabel = computed(() =>
     </template>
   </div>
 </template>
+
+<style scoped>
+/* 页头标题与首页版块标题同规格。 */
+.pg-head h3 {
+  font-size: 17px;
+}
+/* 来源 chip 本体保持玻璃，首个 chip 右上角压一枚黄色小贴纸作唯一波普点缀。 */
+.src-chip {
+  position: relative;
+}
+.pop-hot-tag {
+  position: absolute;
+  top: -9px;
+  right: -8px;
+  z-index: 1;
+  padding: 2px 6px;
+  border: 1.5px solid var(--pop-ink);
+  border-radius: 999px;
+  background: var(--pop-yellow);
+  color: var(--pop-ink);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+/* 在线搜索空态：贴纸框插画居中，文案在其下，与原空态占位高度相当。 */
+.pop-search-empty {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0 8px;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.72);
+}
+.pop-search-art {
+  width: 180px;
+  height: 180px;
+  border-radius: 22px;
+  object-fit: cover;
+}
+</style>

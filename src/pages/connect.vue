@@ -248,6 +248,11 @@ onDeactivated(() => {
         class="plat-card min-h-[100px] rounded-[18px] border border-transparent p-[15px]"
         :data-plat-card="card.id"
       >
+        <!-- 波普半调纹理：只铺卡片右半，随平涂底色透出点阵。 -->
+        <span
+          class="plat-halftone pop-halftone"
+          aria-hidden="true"
+        ></span>
         <div class="plat-top flex items-center gap-[11px]">
           <PlatformIcon :platform="card.id" />
           <div>
@@ -562,6 +567,56 @@ onDeactivated(() => {
 </template>
 
 <style scoped>
+/* 页头标题与首页版块标题同规格。 */
+.pg-head h3 {
+  font-size: 17px;
+}
+/* 平台卡波普平涂：三家平台各一平涂色，覆盖玻璃底；文字层压在半调纹理之上。 */
+.plat-card {
+  position: relative;
+  overflow: hidden;
+}
+.plat-grid .plat-card[data-plat-card='netease'] {
+  background: var(--pop-pink);
+}
+.plat-grid .plat-card[data-plat-card='kugou'] {
+  background: var(--pop-blue);
+}
+.plat-grid .plat-card[data-plat-card='kuwo'] {
+  background: var(--pop-violet);
+}
+.plat-halftone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 0;
+  width: 48%;
+  height: 100%;
+}
+.plat-card .plat-top,
+.plat-card p,
+.plat-card .plat-meta,
+.plat-card .plat-btn {
+  position: relative;
+  z-index: 1;
+}
+/* 平涂底上提高说明与元信息的不透明度，保证小字可读。 */
+.plat-grid .plat-card p {
+  opacity: 0.88;
+}
+.plat-grid .plat-meta {
+  opacity: 0.88;
+}
+/* 连接状态在平涂底上用深色半透与绿色区分，未连接也可辨。 */
+.plat-grid .plat-status {
+  border-color: transparent;
+  background: rgb(23 18 31 / 26%);
+  color: #fff;
+}
+.plat-grid .plat-status.on {
+  background: #34c759;
+  color: #fff;
+}
 .playlist-dialog {
   width: min(640px, calc(100vw - 32px));
   max-width: 640px;

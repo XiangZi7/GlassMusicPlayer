@@ -26,6 +26,8 @@ const artistIndices = computed(() =>
       <LibraryTabs flush />
       <div class="panel-scroll mt-4 min-h-0 flex-1 overflow-y-auto">
         <div class="pl-head flex items-center gap-[18px]">
+          <!-- 页头波普半调点阵：与歌单详情页同一配方，只铺页头带。 -->
+          <span class="pl-head-dots pop-halftone" aria-hidden="true" />
           <img decoding="async" loading="lazy"
             data-ard-cover
             alt="歌手封面"
@@ -88,3 +90,20 @@ const artistIndices = computed(() =>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 页头半调点阵：与歌单详情页同一配方（点阵色 9%、同尺寸），三页页头语言一致。 */
+.pl-head { position: relative; }
+.pl-head-dots {
+  position: absolute;
+  inset: -6px -10px;
+  --pop-halftone-color: rgb(255 255 255 / 9%);
+}
+.pl-head > :not(.pl-head-dots) { position: relative; }
+/* 歌手头像贴纸相框：圆形头像加 3px 白边与 2.5px pop-yellow 外环，投影沿用全局封面阴影。 */
+.pl-head > img {
+  border-radius: 50%;
+  border: 3px solid #fff;
+  outline: 2.5px solid var(--pop-yellow);
+}
+</style>

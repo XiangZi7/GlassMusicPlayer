@@ -80,7 +80,7 @@ function activateRow(event: MouseEvent, songs: CatalogTrack[], position: number)
     </div>
   </section>
   <section v-if="recent.length" aria-labelledby="recent-picks-title" class="recent-picks">
-    <div class="feat-head m-[24px_2px_8px] flex items-center justify-between">
+    <div class="feat-head m-[24px_2px_12px] flex items-center justify-between">
       <h5 id="recent-picks-title">最近播放</h5>
       <BaseButton class="rounded-md px-2 py-1 text-xs text-white/75 hover:bg-white/10" @click="controller()?.navigate('recent')">查看全部 ›</BaseButton>
     </div>

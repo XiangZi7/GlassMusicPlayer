@@ -7,6 +7,13 @@
   --color-card: var(--card);
   --color-cardline: var(--card-line);
   --color-accent: var(--accent);
+  --color-pop-blue: var(--pop-blue);
+  --color-pop-pink: var(--pop-pink);
+  --color-pop-yellow: var(--pop-yellow);
+  --color-pop-violet: var(--pop-violet);
+  --color-pop-mint: var(--pop-mint);
+  --color-pop-coral: var(--pop-coral);
+  --color-pop-ink: var(--pop-ink);
   --font-sans:
     'Manrope Variable', 'Noto Sans SC Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
@@ -21,6 +28,14 @@
   --card: #f7f7f4;
   --card-line: #ddddd6;
   --accent: #ff4d00;
+  /* 波普平涂色板：取自站内波普插画的撞色，界面需要实色块时从这里取，不另调近似色。 */
+  --pop-blue: #1663d9;
+  --pop-pink: #e83e6b;
+  --pop-yellow: #ffd83d;
+  --pop-violet: #6c3fd4;
+  --pop-mint: #2ec4b6;
+  --pop-coral: #ff6b4a;
+  --pop-ink: #17121f;
 }
 
 @media (prefers-color-scheme: dark) {

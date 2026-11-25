@@ -6,9 +6,17 @@
     class="page-panel hidden"
     data-panel="hub"
   >
-    <div class="pg-head">
+    <!-- 页头波普点缀：半调层与星星贴纸绝对定位覆盖，正文结构不动。 -->
+    <div class="pg-head hub-pop-head">
+      <span class="hub-pop-dots pop-halftone" aria-hidden="true" />
       <h3>功能全景</h3>
       <p>这个播放器现在有什么、这一轮补了什么、正式版还差什么 — 一页看清。</p>
+      <span class="hub-star pop-sticker" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path class="sticker-halo" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+          <path class="sticker-star" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+        </svg>
+      </span>
     </div>
     <div class="audit-grid mt-4 grid grid-cols-[repeat(3,1fr)] gap-3">
       <div
@@ -88,3 +96,31 @@
     </p>
   </div>
 </template>
+
+<style scoped>
+/* 页头半调点阵：与歌手详情页同一配方（点阵色 9%、同尺寸），只铺页头带。 */
+.hub-pop-head { position: relative; }
+.hub-pop-dots {
+  position: absolute;
+  inset: -6px -10px;
+  --pop-halftone-color: rgb(255 255 255 / 9%);
+}
+.hub-pop-head > :not(.hub-pop-dots):not(.hub-star) { position: relative; }
+/* 标题星星贴纸：与首页榜单同一星形配方，压在页头带右上角，不占正文流。 */
+.hub-star {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+}
+.hub-star svg { display: block; width: 100%; height: 100%; }
+.hub-star .sticker-halo { fill: #fff; }
+.hub-star .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+</style>

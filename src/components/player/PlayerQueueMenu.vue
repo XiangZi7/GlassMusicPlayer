@@ -158,6 +158,13 @@ onBeforeUnmount(() => close())
             <h3 class="m-0 text-[12px] font-extrabold tracking-[.1em]">
               播放队列 · QUEUE
             </h3>
+            <!-- 波普星星贴纸：只做面板识别点缀，倾斜与投影走共享 .pop-sticker。 -->
+            <span class="queue-sticker pop-sticker" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path class="sticker-halo" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+                <path class="sticker-star" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+              </svg>
+            </span>
             <span
               v-if="radioOn"
               class="q-radio-chip rounded-full px-2 py-[3px] text-[9.5px] font-extrabold"
@@ -204,6 +211,27 @@ onBeforeUnmount(() => close())
 </template>
 
 <style scoped>
+/* 队列贴纸：与首页榜单贴纸同一星形配方（白晕 + 黄星粗黑描边），尺寸收小到标题旁。 */
+.queue-sticker {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.queue-sticker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.queue-sticker .sticker-halo {
+  fill: #fff;
+}
+.queue-sticker .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
 .main-queue {
   border: 1px solid rgb(255 255 255 / 18%);
   background: rgb(18 18 26 / 94%);

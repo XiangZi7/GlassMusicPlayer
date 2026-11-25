@@ -39,6 +39,23 @@ const { uploads, upAdded, upMsg } = toRefs(state)
       class="up-drop mt-[16px] rounded-[18px] p-[26px_18px] text-center"
       data-drop
     >
+      <!-- 波普贴纸：黄星压在上传框右上角，全页唯一一枚点缀。 -->
+      <span
+        class="up-drop-star pop-sticker"
+        style="--pop-sticker-angle: 10deg"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            class="sticker-halo"
+            d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+          />
+          <path
+            class="sticker-star"
+            d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+          />
+        </svg>
+      </span>
       <b>把音频文件或整个文件夹拖到这里</b>
       <p>
         支持 FLAC · WAV · MP3 · M4A · OGG · APE — 单个文件建议 ≤ 200MB<br />选文件夹会连同子文件夹里的音频一起读进来，整个歌单文件夹一次搬完
@@ -143,3 +160,38 @@ const { uploads, upAdded, upMsg } = toRefs(state)
     />
   </div>
 </template>
+
+<style scoped>
+/* 页头标题与首页版块标题同规格。 */
+.pg-head h3 {
+  font-size: 17px;
+}
+/* 上传框作贴纸定位锚点，虚线框本体与拖拽状态不变。 */
+.up-drop {
+  position: relative;
+}
+/* 星星贴纸：外圈白星作贴纸白边，内星黄底粗黑描边；倾斜与投影走共享 .pop-sticker。 */
+.up-drop-star {
+  position: absolute;
+  top: -13px;
+  right: 22px;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+}
+.up-drop-star svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.up-drop-star .sticker-halo {
+  fill: #fff;
+}
+.up-drop-star .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+</style>

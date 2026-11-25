@@ -17,6 +17,23 @@ const indices = computed(() => controller()?.smartList() || [])
     :class="{ open: smartOpen === 'rewind' }"
   >
     <div class="smart-head flex items-start justify-between gap-[10px]">
+      <!-- 智能歌单图标底衬：与设置页分组图标同一 24px 平涂色块配方。 -->
+      <span class="smart-chip" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M16 3h5v5" />
+          <path d="M4 20 21 3" />
+          <path d="M21 16v5h-5" />
+          <path d="m15 15 6 6" />
+          <path d="m4 4 5 5" />
+        </svg>
+      </span>
       <div class="smart-txt">
         <b>随机重温</b><span>每天从曲库抽取一组歌曲</span>
       </div>
@@ -61,3 +78,26 @@ const indices = computed(() => controller()?.smartList() || [])
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 智能歌单图标底衬：24px 圆角平涂色块配 14px 白色描边图标，与设置页分组图标同规格。 */
+.smart-chip {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--pop-violet);
+  color: #fff;
+}
+.smart-chip svg {
+  width: 14px;
+  height: 14px;
+}
+/* 图标底衬加入后标题区占满中间，右侧计数保持贴边。 */
+.smart-txt {
+  flex: 1;
+  min-width: 0;
+}
+</style>

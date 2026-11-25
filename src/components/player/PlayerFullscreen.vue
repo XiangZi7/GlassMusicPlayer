@@ -14,6 +14,7 @@ import {
   useLocalStorage,
 } from '@vueuse/core'
 import { artworkColor } from '@/services/player/artwork-color'
+import { defaultCover } from '@/constants/music'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import SlidingTabs from '@/components/ui/SlidingTabs.vue'
 import PlayerPlayButton from '@/components/player/PlayerPlayButton.vue'
@@ -53,6 +54,28 @@ const chatCover = computed(() => {
     ? `url("${CSS.escape(cover)}")`
     : 'none'
 })
+
+// 全屏封面兜底状态：只服务背景视觉判定，不参与播放与舞台逻辑。
+const art = reactive({
+  /** 当前曲目的封面图是否加载失败（模板内封面图 error 时置位，切歌时复位）。 */
+  failed: false,
+})
+// 无封面判定：封面为空、仍是默认占位图，或真实封面加载失败——此时舞台背景改用波普舞台插画。
+const noCover = computed(() => {
+  const cover = player.tracks[player.state.idx]?.cover
+  return !cover || cover === defaultCover || art.failed
+})
+// 切歌时复位失败标记，避免上一首的坏封面让新曲目误入兜底背景。
+watch(
+  () => player.state.idx,
+  () => {
+    art.failed = false
+  }
+)
+// 封面图加载失败时记录失败状态，背景随即切换到波普舞台插画。
+function markCoverFailed(): void {
+  art.failed = true
+}
 
 let switchRun = 0
 let switchAnimations: Animation[] = []
@@ -264,6 +287,7 @@ const dust = [
       'fs-no-translation': !showTranslation,
       'fs-paused': !playing,
       'fs-calm': !settings.motion,
+      'fs-nocover': noCover,
     }"
     class="fs absolute inset-0 z-[30] hidden flex-col overflow-hidden"
     data-fs
@@ -453,6 +477,7 @@ const dust = [
               class="fs-cover"
               data-cover
               alt="专辑封面"
+              @error="markCoverFailed"
             />
             <div
               class="fs-reflect"
@@ -463,6 +488,7 @@ const dust = [
                 loading="lazy"
                 data-cover
                 alt=""
+                @error="markCoverFailed"
               />
             </div>
           </div>
@@ -569,6 +595,7 @@ const dust = [
             class="dock-cover h-[44px] w-[44px] flex-none rounded-[10px] object-cover"
             data-cover
             alt="专辑封面"
+            @error="markCoverFailed"
           />
           <div class="dock-meta min-w-[0]">
             <b data-title></b><span data-artist></span>
@@ -1308,5 +1335,13 @@ const dust = [
 }
 .fs.fs-calm .fs-main .fs-lyrics {
   scroll-behavior: auto;
+}
+
+/* 无封面兜底：背景层换成波普舞台插画——只做轻模糊与压暗，保留聚光灯锥与人物轮廓，不走真封面同款重模糊；
+   背景图需压过运行时写入背景层的行内封面图，故仅此一处用 !important。 */
+.fs.fs-nocover .fs-bg {
+  background-image: url('/images/pop-stage.webp') !important;
+  filter: blur(4px) saturate(1.06) brightness(0.72);
+  transform: scale(1.07);
 }
 </style>

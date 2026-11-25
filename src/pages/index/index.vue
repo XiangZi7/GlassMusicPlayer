@@ -4,7 +4,10 @@ import { useIntervalFn, useNow } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import FeaturedBanner from '@/pages/index/components/featured-banner.vue'
 import DailyPlaylist from '@/pages/index/components/daily-playlist.vue'
-import ArtistPicks from '@/pages/index/components/artist-picks.vue'
+import DailyTile from '@/pages/index/components/daily-tile.vue'
+import ChartTile from '@/pages/index/components/chart-tile.vue'
+import ArtistTile from '@/pages/index/components/artist-tile.vue'
+import RadioTile from '@/pages/index/components/radio-tile.vue'
 import ListeningShelves from '@/pages/index/components/listening-shelves.vue'
 import RecommendedAlbums from '@/pages/index/components/recommended-albums.vue'
 import TrackRow from '@/components/player/TrackRow.vue'
@@ -102,6 +105,18 @@ const sourceLabel = computed(() => {
   return profile.value ? platformNames[profile.value.platform] + ' · 本机选曲' : '公开歌单精选'
 })
 const currentTrack = computed(() => tracks[state.idx]?.catalog)
+// 当前曲目的目录键，供主打 tile 标出正在播放的那一首。
+const currentKey = computed(() => (currentTrack.value ? catalogKey(currentTrack.value) : ''))
+// 顶部问候按本地时段切换，凌晨时段单独致意。
+const greeting = computed(() => {
+  const hour = now.value.getHours()
+  return hour < 6 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
+})
+// 日期行按本地日历组装：月日、星期与一句推荐语。
+const dateline = computed(() => {
+  const date = now.value
+  return `${date.getMonth() + 1}月${date.getDate()}日 · 星期${'日一二三四五六'[date.getDay()]} · 今日推荐已为你备好`
+})
 // 打开歌单、切换账号或进入新一期推荐时，从平台默认顺序开始。
 watch([() => props.detail, playlistDate, () => profile.value?.platform, () => profile.value?.userId], () => {
   state.sorts.daily = 'def'
@@ -134,35 +149,45 @@ function focusDailyView(element: Element): void {
     :failed="discovery.accountFailed || (!playbackAccount && discovery.incomplete && !dailySongs.length)"
     :current="currentTrack" @play="playDaily"
     @retry="playbackAccount ? discovery.accountRetry++ : discovery.retry++" />
-  <!-- 横幅始终排在首位，加载、离线和切换账号都保留同一个入口。 -->
+  <!-- 顶部条始终排在首位，加载、离线和切换账号都保留同一个入口与折叠迷你条。 -->
   <div v-else class="home-content">
     <FeaturedBanner :songs="dailySongs" :source-label="sourceLabel" :loading="dailyLoading"
-      :retry-account="discovery.accountFailed" @retry="discovery.accountRetry++" @play="playDaily()" @open="controller()?.navigate('daily')" />
-    <!-- 发现区优先展示三平台公开歌单，离线时显示曲库专辑。 -->
-    <RecommendedAlbums :playlists="discovery.playlists" :loading="discovery.loading" :incomplete="discovery.incomplete"
-      @retry="discovery.retry++" @play-public="playPublic" />
-    <div class="home-listening">
-      <!-- 今日曲目保留日推顺序，歌手选听提供公开歌单中的其他作品。 -->
-      <section v-if="dailySongs.length" class="home-picks" aria-labelledby="home-picks-title">
-        <div class="feat-head m-[22px_2px_8px] flex items-center justify-between gap-2">
-          <h5 id="home-picks-title">今日曲目</h5>
-          <BaseButton v-if="dailySongs.length > 8" class="rounded-md px-2 py-1 text-xs text-white/75 hover:bg-white/10 focus-visible:outline-2"
-            @click="controller()?.navigate('daily')">查看全部 {{ dailySongs.length }} 首 ›</BaseButton>
-        </div>
-        <div class="home-pick-list">
-          <TrackRow
-            v-for="(song, position) in dailySongs.slice(0, 8)"
-            :key="catalogKey(song.catalog!) + '-' + position"
-            :track="song"
-            :number="position + 1"
-            :active="!!currentTrack && catalogKey(currentTrack) === catalogKey(song.catalog!)"
-            :title="song.title + ' · ' + song.artist"
-            @play="playDaily(position)"
-          />
-        </div>
-      </section>
-      <ArtistPicks :playlists="discovery.playlists" :preview="publicPreview" @play="playPublic" />
+      :retry-account="discovery.accountFailed" :greeting="greeting" :dateline="dateline"
+      @retry="discovery.accountRetry++" @play="playDaily()" @open="controller()?.navigate('daily')" />
+    <!-- bento 主区：主打、榜单、电台、歌手与发现 rail 以不对称网格排布。 -->
+    <div class="home-bento">
+      <DailyTile class="bento-daily" :songs="dailySongs" :source-label="sourceLabel" :loading="dailyLoading"
+        :retry-account="discovery.accountFailed" :current-key="currentKey" @retry="discovery.accountRetry++" @play="playDaily()"
+        @play-track="playDaily" @open="controller()?.navigate('daily')" />
+      <ChartTile class="bento-chart" :playlists="discovery.playlists" :loading="discovery.loading" @play="playPublic" />
+      <RadioTile class="bento-radio" />
+      <ArtistTile class="bento-artists" :playlists="discovery.playlists" :preview="publicPreview"
+        :loading="discovery.loading" @play="playPublic" />
+      <!-- 发现区优先展示三平台公开歌单，离线时显示曲库专辑，整行横滑。 -->
+      <div class="tile bento-rail">
+        <RecommendedAlbums :playlists="discovery.playlists" :loading="discovery.loading" :incomplete="discovery.incomplete"
+          @retry="discovery.retry++" @play-public="playPublic" />
+      </div>
     </div>
+    <!-- 今日曲目完整列表保留日推顺序，位于 bento 下方。 -->
+    <section v-if="dailySongs.length" class="home-picks" aria-labelledby="home-picks-title">
+      <div class="feat-head m-[24px_2px_12px] flex items-center justify-between gap-2">
+        <h5 id="home-picks-title">今日曲目</h5>
+        <BaseButton v-if="dailySongs.length > 8" class="rounded-md px-2 py-1 text-xs text-white/75 hover:bg-white/10 focus-visible:outline-2"
+          @click="controller()?.navigate('daily')">查看全部 {{ dailySongs.length }} 首 ›</BaseButton>
+      </div>
+      <div class="home-pick-list">
+        <TrackRow
+          v-for="(song, position) in dailySongs.slice(0, 8)"
+          :key="catalogKey(song.catalog!) + '-' + position"
+          :track="song"
+          :number="position + 1"
+          :active="!!currentTrack && catalogKey(currentTrack) === catalogKey(song.catalog!)"
+          :title="song.title + ' · ' + song.artist"
+          @play="playDaily(position)"
+        />
+      </div>
+    </section>
     <ListeningShelves :playlists="discovery.playlists" :preview="publicPreview" @play="playPublic" />
   </div>
   </Transition>
@@ -175,13 +200,49 @@ function focusDailyView(element: Element): void {
 @media (prefers-reduced-motion: reduce) {
   .daily-view-enter-active, .daily-view-leave-active { transition: none; }
 }
-@container (min-width: 660px) {
-  .home-listening:has(> .home-picks):has(> .home-artists) {
-    display: grid;
-    grid-template-columns: minmax(0, 2.3fr) minmax(190px, 1fr);
-    align-items: start;
-    column-gap: clamp(18px, 2.5cqw, 32px);
+/* 首页底部补足留白，滚到底时最后一块与底栏之间留出呼吸距离。 */
+.home-content {
+  padding-bottom: 28px;
+}
+/* bento 主区：12 列不对称网格，主打占左列两行，榜单与电台叠在右列，歌手与 rail 整行。 */
+.home-bento {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.home-bento > * {
+  grid-column: span 12;
+  min-width: 0;
+}
+@container (min-width: 800px) {
+  .bento-daily {
+    grid-column: span 7;
+    grid-row: span 2;
   }
+  .bento-chart {
+    grid-column: span 5;
+  }
+  .bento-radio {
+    grid-column: span 5;
+  }
+}
+/* tile 统一语言：20px 圆角、发丝边、顶部内高光与暗玻璃底，液态下换渐变并加强高光。 */
+.tile {
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 4%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+  padding: 20px;
+}
+.liquid-win .tile {
+  border-color: rgb(255 255 255 / 26%);
+  background: linear-gradient(155deg, rgb(255 255 255 / 14%), rgb(255 255 255 / 5%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%);
+}
+/* 宽 tile 内的发现区去掉自带上边距，与 tile 内边距对齐。 */
+.bento-rail :deep(.feat-head) {
+  margin: 0 2px 16px;
 }
 .home-pick-list {
   display: grid;

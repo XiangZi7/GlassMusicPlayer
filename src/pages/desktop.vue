@@ -556,4 +556,9 @@ onUnmounted(() => {
     0 4px 12px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
+/* 迷你播放器波普点缀：播放键由原稿白底改 pop-pink 平涂底衬配白图标，歌词模式本体不动。 */
+.native-desktop .tray-pop-ctl .tray-play {
+  background: var(--pop-pink);
+  color: #fff;
+}
 </style>

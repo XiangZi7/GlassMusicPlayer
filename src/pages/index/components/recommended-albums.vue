@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, reactive, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, reactive, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -16,20 +16,21 @@ const emit = defineEmits<{ retry: []; playPublic: [songs: CatalogTrack[]] }>()
 const { state, tracks, controller } = usePlayer()
 const router = useRouter()
 const root = useTemplateRef<HTMLElement>('root')
+const rail = useTemplateRef<HTMLElement>('rail')
 const actions = reactive({
   // 等待整单的快捷播放按钮。
   pending: '',
   // 返回首页时恢复到原来的歌单卡。
   opened: '',
 })
+const railState = reactive({
+  // 横滑轨道当前能否继续向左/向右滚动，驱动箭头的禁用态。
+  canPrev: false,
+  canNext: false,
+})
 let playbackRequest: AbortController | undefined
-const mediumScreen = useMediaQuery('(min-width: 40rem)')
-const wideScreen = useMediaQuery('(min-width: 48rem)')
 const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-const pageSize = computed(() => wideScreen.value ? 6 : mediumScreen.value ? 4 : 2)
 const animated = computed(() => state.settings.motion && !reducedMotion.value)
-// 当前推荐页，从第 0 页开始。
-const page = ref(0)
 
 // 用专辑与歌手区分同名专辑，同时保留曲库中的歌曲顺序。
 function albumKey(track: SourceTrack): string {
@@ -78,8 +79,9 @@ onBeforeUnmount(cancelPlay)
 onDeactivated(cancelPlay)
 watch([() => state.queue, () => state.idx], cancelPlay, { flush: 'sync' })
 onActivated(async () => {
-  if (!actions.opened) return
   await nextTick()
+  updateRailState()
+  if (!actions.opened) return
   root.value?.querySelector<HTMLElement>('[data-card-key="' + CSS.escape(actions.opened) + '"]')?.focus({ preventScroll: true })
   actions.opened = ''
 })
@@ -101,30 +103,38 @@ async function playFull(playlist: CatalogPlaylist): Promise<void> {
     if (playbackRequest === request) cancelPlay()
   }
 }
-const lastPage = computed(() => Math.max(0, Math.ceil(cards.value.length / pageSize.value) - 1))
-const visibleCards = computed(() =>
-  cards.value.slice(
-    page.value * pageSize.value,
-    (page.value + 1) * pageSize.value
-  )
-)
 const activeAlbum = computed(() => {
   const current = tracks[state.idx]
   return current ? albumKey(current) : undefined
 })
 
-// 曲库数量或窗口宽度变化后，将页码限制在可用区间。
+// 读取轨道滚动位置，更新左右箭头的可用状态。
+function updateRailState(): void {
+  const element = rail.value
+  if (!element) {
+    railState.canPrev = false
+    railState.canNext = false
+    return
+  }
+  railState.canPrev = element.scrollLeft > 4
+  railState.canNext = element.scrollLeft + element.clientWidth < element.scrollWidth - 4
+}
+
+// 卡片数量或轨道尺寸变化后重新量测可滚动范围。
 watch(
-  lastPage,
-  last => {
-    page.value = Math.min(page.value, last)
+  () => cards.value.length,
+  async () => {
+    await nextTick()
+    updateRailState()
   },
-  { flush: 'sync' }
+  { flush: 'post' }
 )
 
-// 箭头在第一页和末页保持位置，且不改变已有焦点。
+// 箭头按一屏宽度横滑轨道，到达两端后保持禁用态，不改变已有焦点。
 function turnPage(direction: number): void {
-  page.value = Math.max(0, Math.min(lastPage.value, page.value + direction))
+  const element = rail.value
+  if (!element) return
+  element.scrollBy({ left: direction * element.clientWidth * 0.85, behavior: animated.value ? 'smooth' : 'auto' })
 }
 </script>
 
@@ -140,14 +150,14 @@ function turnPage(direction: number): void {
       <div class="flex items-center gap-2">
         <!-- 各平台独立重试，已成功的推荐保留在原位。 -->
         <BaseButton v-if="incomplete" class="recommend-link" :loading="loading" @click="emit('retry')">重试公开歌单</BaseButton>
-        <!-- 推荐翻页按钮：边界状态保持可见，使用原有左右箭头。 -->
+        <!-- 推荐横滑按钮：边界状态保持可见，使用原有左右箭头。 -->
         <BaseButton
-          v-for="direction in lastPage > 0 ? [-1, 1] : []"
+          v-for="direction in cards.length > 1 ? [-1, 1] : []"
           :key="direction"
           class="recommend-arrow grid size-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.07] text-white aria-disabled:cursor-default aria-disabled:opacity-35"
           :class="{ 'recommend-arrow-motion': animated }"
           :aria-label="direction === -1 ? '上一页推荐' : '下一页推荐'"
-          :aria-disabled="direction === -1 ? page === 0 : page === lastPage"
+          :aria-disabled="direction === -1 ? !railState.canPrev : !railState.canNext"
           aria-controls="home-recommend-albums"
           @click="turnPage(direction)"
         >
@@ -173,18 +183,15 @@ function turnPage(direction: number): void {
       </div>
     </div>
     <div id="home-recommend-albums">
-      <!-- 推荐专辑卡片：翻页时只过渡卡片区，页头和歌曲列表保持位置。 -->
-      <Transition
+      <!-- 推荐卡片横滑轨道：全部卡片同排排布，箭头按屏横滑，卡片吸附停靠。 -->
+      <div
         v-if="cards.length"
-        name="recommend-page"
-        mode="out-in"
-        :css="animated"
+        ref="rail"
+        class="album-rail"
+        :class="{ 'rail-motion': animated }"
+        @scroll="updateRailState"
       >
-        <div
-          :key="(playlists.length ? 'public-' : 'library-') + page"
-          class="grid grid-cols-2 gap-3.5 sm:grid-cols-4 md:grid-cols-6"
-        >
-          <div v-for="card in visibleCards" :key="card.key" class="discover-card relative min-w-0">
+        <div v-for="card in cards" :key="card.key" class="discover-card relative min-w-0">
           <BaseButton
             class="feat relative w-full min-w-0 rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
             :class="{ on: card.key === activeAlbum }"
@@ -204,9 +211,8 @@ function turnPage(direction: number): void {
             :title="'播放完整歌单《' + card.name + '》'" @click="playFull(card.playlist)">
             <svg v-if="actions.pending !== card.key" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
           </BaseButton>
-          </div>
         </div>
-      </Transition>
+      </div>
       <div v-else-if="loading" role="status" class="grid min-h-40 place-content-center text-sm text-white/70">正在加载公开歌单…</div>
       <!-- 推荐空态：提供重试、搜索和导入入口。 -->
       <div
@@ -263,21 +269,67 @@ button:focus-visible {
   font-size: 12px;
 }
 
-.recommend-page-enter-active,
-.recommend-page-leave-active {
-  transition: opacity 180ms ease;
+/* 卡片标题固定两行高：长短标题都截断对齐，整排卡片底边齐平。 */
+.album-rail .feat b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.4;
+  min-height: calc(13px * 1.4 * 2);
+}
+/* hover 时卡片上浮、封面轻放大，只动 transform/opacity 并受动效设置约束。 */
+.album-rail.rail-motion .feat {
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease;
+}
+.album-rail.rail-motion .feat img {
+  transition: transform 220ms ease;
+}
+.album-rail.rail-motion .feat:hover,
+.album-rail.rail-motion .feat:focus-visible {
+  transform: translateY(-2px);
+}
+.album-rail.rail-motion .feat:hover img,
+.album-rail.rail-motion .feat:focus-visible img {
+  transform: scale(1.04);
 }
 
-.recommend-page-enter-from,
-.recommend-page-leave-to {
-  opacity: 0;
+/* 横滑轨道：卡片定宽同排，隐藏滚动条并以卡片为单位吸附。 */
+.album-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.album-rail::-webkit-scrollbar {
+  display: none;
+}
+.album-rail .discover-card {
+  flex: 0 0 clamp(132px, 15.5cqw, 168px);
+  scroll-snap-align: start;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .recommend-arrow-motion,
-  .recommend-page-enter-active,
-  .recommend-page-leave-active {
+  .recommend-arrow-motion {
     transition: none;
+  }
+  .album-rail {
+    scroll-behavior: auto;
+  }
+  .album-rail .feat,
+  .album-rail .feat img {
+    transition: none;
+  }
+  .album-rail .feat:hover,
+  .album-rail .feat:focus-visible,
+  .album-rail .feat:hover img,
+  .album-rail .feat:focus-visible img {
+    transform: none;
   }
 }
 </style>

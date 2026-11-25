@@ -50,6 +50,8 @@ const sections: {
   title: string
   description: string
   icon: string
+  // 分组图标底衬的波普平涂色，七个分组按色板轮换。
+  chip: string
 }[] = [
   {
     key: 'general',
@@ -57,6 +59,7 @@ const sections: {
     title: '通用设置',
     description: '窗口关闭、播放衔接、音量与睡眠定时。',
     icon: 'M4 7h16M4 17h16M8 4v6m8 4v6',
+    chip: 'var(--pop-blue)',
   },
   {
     key: 'audio',
@@ -64,6 +67,7 @@ const sections: {
     title: '音质设置',
     description: '播放音质、输出设备与预设音效。',
     icon: 'M5 9H2v6h3l5 4V5L5 9zm9-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+    chip: 'var(--pop-pink)',
   },
   {
     key: 'storage',
@@ -71,6 +75,7 @@ const sections: {
     title: '缓存与下载',
     description: '本机目录、下载音质、占用与安全清理。',
     icon: 'M3 7h18v13H3zM3 7V4h7l2 3M12 10v7m-3-3 3 3 3-3',
+    chip: 'var(--pop-yellow)',
   },
   {
     key: 'appearance',
@@ -78,6 +83,7 @@ const sections: {
     title: '外观设置',
     description: '玻璃材质、天气与播放器界面。',
     icon: 'M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4h-1a1.5 1.5 0 0 1 0-3h3a6 6 0 0 0 0-12zM7 9h.01M10 6h.01M15 6h.01M7 13h.01',
+    chip: 'var(--pop-violet)',
   },
   {
     key: 'desktop',
@@ -85,6 +91,7 @@ const sections: {
     title: '桌面设置',
     description: '悬浮歌词、窗口锁定与迷你播放器。',
     icon: 'M3 4h18v12H3zM8 21h8m-4-5v5',
+    chip: 'var(--pop-mint)',
   },
   {
     key: 'shortcuts',
@@ -92,6 +99,7 @@ const sections: {
     title: '快捷键',
     description: '播放器常用键盘操作。',
     icon: 'M3 5h18v14H3zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10',
+    chip: 'var(--pop-coral)',
   },
   {
     key: 'about',
@@ -99,6 +107,7 @@ const sections: {
     title: '关于播放器',
     description: '应用信息与数据来源。',
     icon: 'M12 8h.01M11 12h1v5m9-5a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+    chip: 'var(--pop-blue)',
   },
 ]
 
@@ -366,17 +375,20 @@ onUnmounted(() => {
             :aria-current="section === item.key ? 'page' : undefined"
             @click="selectSection(item.key)"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path :d="item.icon" />
-            </svg>
+            <!-- 分组图标底衬：波普平涂色块，图标统一白色，分组间轮换色板。 -->
+            <span class="nav-chip" :style="{ backgroundColor: item.chip }">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path :d="item.icon" />
+              </svg>
+            </span>
             {{ item.label }}
           </BaseButton>
           <span
@@ -466,6 +478,21 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* 分组图标底衬：24px 圆角平涂色块，图标收小到 14px 并转白，覆盖全局 .navitem svg 的尺寸与透明度。 */
+.nav-chip {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+}
+.nav-chip svg {
+  width: 14px;
+  height: 14px;
+  opacity: 1;
+}
 .settings-section-enter-active,
 .settings-section-leave-active {
   transition:

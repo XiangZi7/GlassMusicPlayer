@@ -54,6 +54,8 @@ export function createSpectrum(
   const paint = canvas.getContext('2d')
   let banner:
     { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
+  let dots:
+    { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const bins = new Uint8Array(fftSize / 2)
   let context: AudioContext | undefined
@@ -79,12 +81,14 @@ export function createSpectrum(
   let fromColor: ArtworkColor = targetColor
   let colorStart: number | undefined
 
-  // 发布主频谱状态；横幅只显示实频或静态轮廓。
+  // 发布主频谱状态；横幅与半调点阵只显示实频或静态轮廓。
   function setMode(value: SpectrumMode): void {
     mode = value
     canvas.dataset.spectrumMode = value
     if (banner)
       banner.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
+    if (dots)
+      dots.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
   }
 
   // 播放中的换色与原稿 background 过渡一样持续 600ms，不逐帧读取封面像素。
@@ -173,6 +177,7 @@ export function createSpectrum(
       } else paint.fillRect(x, y, barWidth, barHeight)
     }
     paintBanner()
+    paintDots()
   }
 
   // 从中线向左右映射实频，并逐渐降低边缘高度，让频谱融入横幅背景。
@@ -221,6 +226,49 @@ export function createSpectrum(
         )
         paint.fill()
       } else paint.fillRect(x, y, barWidth, barHeight)
+    }
+  }
+
+  // 半调点阵：每列对应一个对数频段（低频在左、高频在右，与底栏细柱同一映射），列内点以中线为峰。
+  // 只有实频（live）帧让点的半径与亮度随该列能量起伏；暂停、静态与示例模拟时只画均匀基础小点，不拿模拟数据冒充频峰。
+  function paintDots(): void {
+    if (!dots || destroyed) return
+    const { paint } = dots
+    const size = fitCanvas(dots.canvas, paint)
+    if (!size) return
+    const { width, height } = size
+    const cols = Math.max(48, Math.min(72, Math.round(width / 11)))
+    const step = width / cols
+    const rows = Math.max(4, Math.round(height / step))
+    const rowStep = height / rows
+    const live = mode === 'live'
+    const color = currentColor.map(channel =>
+      Math.round(channel * 0.7 + 255 * 0.3)
+    )
+    const baseRadius = step * 0.1
+    const center = (rows - 1) / 2
+    for (let col = 0; col < cols; col++) {
+      let energy = 0
+      if (live && levels.length) {
+        const start = Math.floor((col / cols) * levels.length)
+        const end = Math.max(
+          start + 1,
+          Math.floor(((col + 1) / cols) * levels.length)
+        )
+        for (let index = start; index < end; index++)
+          energy = Math.max(energy, levels[index] ?? 0)
+      }
+      for (let row = 0; row < rows; row++) {
+        const weight =
+          rows > 1 ? 1 - Math.abs(row - center) / (center + 1) : 1
+        const lift = live ? energy * weight : 0
+        const radius = baseRadius + lift * step * 0.36
+        const alpha = live ? 0.22 + lift * 0.55 : 0.3
+        paint.fillStyle = `rgba(${color.join(',')},${alpha.toFixed(3)})`
+        paint.beginPath()
+        paint.arc((col + 0.5) * step, (row + 0.5) * rowStep, radius, 0, Math.PI * 2)
+        paint.fill()
+      }
     }
   }
 
@@ -395,6 +443,19 @@ export function createSpectrum(
     }
   }
 
+  // 首页问候条的半调点阵与横幅频谱同路连接，复用同一次音频分析；断开时停画并解除尺寸监听。
+  function setDotsCanvas(canvas: HTMLCanvasElement | null): void {
+    if (destroyed || (dots?.canvas ?? null) === canvas) return
+    if (dots) observer?.unobserve(dots.canvas)
+    const paint = canvas?.getContext('2d')
+    dots = canvas && paint ? { canvas, paint } : undefined
+    if (dots) {
+      dots.canvas.dataset.spectrumMode = mode === 'live' ? 'live' : 'static'
+      observer?.observe(dots.canvas)
+      paintDots()
+    }
+  }
+
   return {
     resume,
     update,
@@ -403,6 +464,7 @@ export function createSpectrum(
     setArtwork,
     setPlayback,
     setBannerCanvas,
+    setDotsCanvas,
     setMotion(motion: boolean): void {
       if (motion === enabled) return
       enabled = motion

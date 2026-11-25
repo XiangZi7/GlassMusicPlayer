@@ -7,7 +7,7 @@ import { usePlayer } from '@/composables/usePlayer'
 import { firstTrackIndices } from '@/services/player/library'
 import { formatTime } from '@/utils/format'
 
-const props = defineProps<{ kind: 'album' | 'artist' }>()
+const props = defineProps<{ kind: 'album' | 'artist'; emptyArt?: string }>()
 const { state: player, tracks, controller } = usePlayer()
 const indices = computed(() => firstTrackIndices(tracks, props.kind))
 const viewport = useTemplateRef<HTMLElement>('viewport')
@@ -120,8 +120,26 @@ async function browse(event: KeyboardEvent): Promise<void> {
     @scroll.passive="syncScroll"
     @keydown="browse"
   >
+    <!-- 空态波普贴纸：页面传入插画时以 framed 贴纸图呈现，未传时沿用原图标空态。 -->
+    <div
+      v-if="!indices.length && emptyArt"
+      class="collection-empty"
+      data-empty-state
+      role="img"
+      :aria-label="kind === 'album' ? '暂无专辑' : '暂无歌手'"
+    >
+      <img
+        class="pop-sticker pop-sticker--framed collection-empty-art"
+        style="--pop-sticker-angle: -3deg"
+        :src="emptyArt"
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+      <p>{{ kind === 'album' ? '暂无专辑' : '暂无歌手' }}</p>
+    </div>
     <EmptyState
-      v-if="!indices.length"
+      v-else-if="!indices.length"
       :icon="kind === 'album' ? 'playlist' : 'music'"
       :label="kind === 'album' ? '暂无专辑' : '暂无歌手'"
     />
@@ -169,5 +187,25 @@ async function browse(event: KeyboardEvent): Promise<void> {
 <style scoped>
 .collection-viewport {
   overflow-anchor: none;
+}
+/* 空态贴纸块：与音乐库空态同一 framed 贴纸规格，文案压低透明度不抢图。 */
+.collection-empty {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+}
+.collection-empty-art {
+  width: 148px;
+  height: 148px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+.collection-empty p {
+  font-size: 12.5px;
+  opacity: 0.62;
 }
 </style>

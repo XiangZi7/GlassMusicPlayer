@@ -31,6 +31,8 @@ function useFallbackCover(event: Event): void {
 <template>
   <div class="playlist-layout">
     <header class="pl-head flex items-center gap-4.5">
+      <!-- 页头波普半调点阵：只铺在页头带，低透明从左向右渐显，不进列表区。 -->
+      <span class="pl-head-dots pop-halftone" aria-hidden="true" />
       <img :src="cover || defaultCover" alt="" width="132" height="132" decoding="async"
         data-pl-cover @error="useFallbackCover" />
       <div class="pl-info min-w-0">
@@ -64,7 +66,23 @@ function useFallbackCover(event: Event): void {
 </template>
 
 <style scoped>
-.pl-head { padding-block: 4px 8px; }
+.pl-head { position: relative; padding-block: 4px 8px; }
+/* 半调点阵层：压低点阵色到 9%，只做页头氛围，不与标题文字抢对比。 */
+.pl-head-dots {
+  position: absolute;
+  inset: -6px -12px;
+  --pop-halftone-color: rgb(255 255 255 / 9%);
+}
+.pl-head > :not(.pl-head-dots) { position: relative; }
+/* 类型 kicker 改波普平涂 chip：pop-blue 实底白字，歌单/发现/每日三处详情页头统一。 */
+.pl-kicker {
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--pop-blue);
+  color: #fff;
+  opacity: 1;
+}
 .pl-info { max-width: 100%; }
 .pl-info h3:focus { outline: none; }
 .banner-play:disabled { opacity: .45; }

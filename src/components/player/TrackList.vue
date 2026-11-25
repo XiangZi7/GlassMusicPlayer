@@ -13,6 +13,7 @@ const props = defineProps<{
   indices: number[]
   listKey: string
   empty?: string
+  emptyArt?: string
   emptyIcon?:
     | 'music'
     | 'search'
@@ -111,8 +112,26 @@ defineExpose({ playFirst })
         :active="isCurrent(index)"
         @play="play(index)"
       />
+      <!-- 空态波普贴纸：页面传入插画时以 framed 贴纸图加文案呈现，未传时沿用原图标空态。 -->
+      <div
+        v-if="!indices.length && emptyArt"
+        class="tl-empty"
+        data-empty-state
+        role="img"
+        :aria-label="empty || '暂无歌曲'"
+      >
+        <img
+          class="pop-sticker pop-sticker--framed tl-empty-art"
+          style="--pop-sticker-angle: -3deg"
+          :src="emptyArt"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+        <p>{{ empty || '暂无歌曲' }}</p>
+      </div>
       <EmptyState
-        v-if="!indices.length"
+        v-else-if="!indices.length"
         :class="{ 'min-h-[140px]': !fitHeight }"
         :icon="emptyIcon || 'music'"
         :label="empty || '暂无歌曲'"
@@ -127,3 +146,28 @@ defineExpose({ playFirst })
     />
   </div>
 </template>
+
+<style scoped>
+/* 空态贴纸块：与搜索页波普空态同一规格，贴纸图在上、说明文案在下。 */
+.tl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 16px;
+}
+.tl-empty-art {
+  width: 132px;
+  height: 132px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+.tl-empty p {
+  max-width: 420px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  text-align: center;
+  opacity: 0.62;
+}
+</style>
