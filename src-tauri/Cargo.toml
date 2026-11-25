@@ -1,6 +1,6 @@
 [package]
 name = "miraiplayer"
-version = "0.1.3"
+version = "0.1.4"
 description = "MiraiPlayer desktop music player with synchronized lyrics and floating desktop controls"
 authors = ["XiangZi"]
 homepage = "https://github.com/XiangZi7/MiraiPlayer"
