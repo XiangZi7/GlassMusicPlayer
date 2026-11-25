@@ -107,6 +107,13 @@ function onPlay(): void {
         alt=""
         decoding="async"
       />
+      <!-- 原图提取点层的音频叠加画布（同位点版）：与底图同坐标系同裁切，只在实频时
+           按列调 alpha 让原点亮起来；未播/暂停稳态时全透明，横幅就是单图版原样。 -->
+      <canvas
+        class="banner-dots"
+        data-halftone-dots
+        aria-hidden="true"
+      />
     </div>
 
     <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
@@ -212,6 +219,19 @@ function onPlay(): void {
 
 <style scoped>
 .banner-caption { pointer-events: none; }
+
+/* 点阵叠加画布铺满背景层并跟随底图裁切，自身不接指针；折叠迷你条时隐藏，
+   沿用旧纪律不在 compact 态显示点层。 */
+.home-topbar .banner-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.main.compact .home-topbar .banner-dots {
+  display: none;
+}
 
 /* ---------- 展开态 hero ---------- */
 /* 展开高度约 272px 承载完整文案列与左下频谱，滚动折叠时仍回到全局迷你条高度。 */
