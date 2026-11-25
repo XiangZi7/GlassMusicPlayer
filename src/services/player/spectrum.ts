@@ -8,7 +8,6 @@ import {
 } from '@/services/player/spectrum-profile'
 import {
   halftoneFieldColor,
-  sampleHalftoneBgColor,
   sampleHalftoneField,
 } from '@/services/player/halftone-profile'
 
@@ -94,6 +93,7 @@ export function createSpectrum(
       banner.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
     if (dots)
       dots.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
+    kickDotsFade()
   }
 
   // 播放中的换色与原稿 background 过渡一样持续 600ms，不逐帧读取封面像素。
@@ -235,28 +235,30 @@ export function createSpectrum(
     }
   }
 
-  // 点阵取色路径开关：false = 按插画横向色移取色（halftoneFieldColor）再向封面 accent
-  // 轻混，与原图烤入点田的色相进程一致——横幅插画换回带烤入点田的原图后采用这一路；
-  // true = 按背景色表的印刷极性取色（亮底深点、暗底亮点），那是为无点平涂版插画准备的，
-  // 原图回归后叠加层若再按极性取色会与底图点色打架，故本轮停用。极性分支与
-  // sampleHalftoneBgColor / 背景色表都保留不删：日后插画再换回平涂版时把开关置 true
-  // 即可恢复下方极性取色块，不需要重写采样与混合逻辑。
-  const DOTS_POLARITY_COLOR = false
+  // 点阵层在静态剖面场与实频动态场之间的混合进度：0 = 纯静态场，1 = 完全实频调制。
+  // 切换时由 fadeDots 的独立帧循环在约 300ms 内推进，主频谱循环停下后淡出也能走完。
+  let dotsBlend = 0
+  let dotsFadeFrame: number | undefined
+  let dotsFadeStamp: number | undefined
 
-  // 半调点阵叠加层：横幅插画已换回带烤入点田的原图，静态/暂停时底图点田就是参照的
-  // 静态长相，叠加层什么都不画（fitCanvas 清空后直接返回），避免两层点田双印错位；
-  // 只有实频（live）帧才在采样剖面（halftone-profile，本就采自这张原图、场形天然对位）
-  // 上调制点径与亮度，让原田随音乐活过来。画布整幅覆盖横幅，每个点先经横幅写入的可见
-  // 图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的实际裁切算出）映射回
-  // 插画坐标再采样，窗口变窄、裁切右移时叠加田随图一起移动，始终贴着人物轮廓且不压
-  // 人物与贴纸本体。每列对应一个对数频段（低频在左、高频在右，与底栏细柱同一映射）；
-  // data-spectrum-mode 仍按实频与否诚实标注，示例模拟不驱动这一层，不拿模拟冒充频峰。
+  // 半调点阵层（横幅三层架构的中间层：背景渐变层之上、人物层之下）：点田不再烤进任何
+  // 底图，而是这一层按采样剖面（halftone-profile，采自原图点田）单独生成——未播放时画
+  // 静态场：点径/alpha 由剖面强度决定，颜色走 halftoneFieldColor 的全程色带（左青蓝→
+  // 中蓝紫→右品红紫），且明度随剖面强度由深墨渐变到亮色，呈现原图那种亮青点与深蓝点
+  // 并存的印刷半调；实频（live）时同一片田在同一剖面上随真实 levels 起伏（点径呼吸、
+  // alpha 与封面 accent 轻混都按 dotsBlend 混入），静态场是设计层、不是频谱声明，
+  // data-spectrum-mode 仍只反映音频模式，示例模拟不驱动动态、只保留静态场。每个点先经
+  // 横幅写入的可见图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的实际
+  // 裁切算出）映射回插画坐标再采样，裁切移动时点田随图一起走；人物与贴纸本体所在格
+  // 剖面为零、天然不冒点，且人物层盖在点阵之上，轮廓光晕贴得再近也不会压到人物。
   function paintDots(): void {
     if (!dots || destroyed) return
     const { canvas, paint } = dots
     const size = fitCanvas(canvas, paint)
     if (!size) return
-    if (mode !== 'live') return
+    const live = mode === 'live'
+    if (reduced.matches) dotsBlend = live ? 1 : 0
+    const blend = dotsBlend
     const { width, height } = size
     // 可见图像矩形（插画归一化坐标）：组件未写入时按插画原始尺寸与缺省 object-position
     // 现算，保证组件挂载顺序变化时第一帧也不跑偏。
@@ -313,58 +315,72 @@ export function createSpectrum(
         const weight = Math.pow(field, 1.6)
         if (weight < 0.05) continue
         const baseRadius = pitch * 0.46 * Math.sqrt(weight)
-        // 能量在剖面基准上小幅放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
-        const radius = Math.min(pitch * 0.48, baseRadius * (0.72 + 0.55 * energy))
+        // 点径：静态场用满剖面基准（原图点田的有机大小渐变）；实频时在基准上随能量
+        // 呼吸（0.72–1.27 倍），按混合进度在两态之间插值。剖面为零处再有能量也不冒点，
+        // 场的形状不被频谱改写。
+        const liveFactor = 0.72 + 0.55 * energy
+        const radius = Math.min(
+          pitch * 0.48,
+          baseRadius * (1 + (liveFactor - 1) * blend)
+        )
         if (radius < 0.5) continue
-        let cr = 0
-        let cg = 0
-        let cb = 0
-        if (DOTS_POLARITY_COLOR) {
-          // 极性取色（本轮停用，保留供平涂版插画恢复使用）：先采样该点在平涂版里的背景
-          // 色，按其亮度在「提亮亮点」与「压暗墨点」之间平滑混合（亮度带 0.24–0.44，
-          // 标定自光池与左缘深蓝的实测亮度）；随后往封面 accent 提亮色轻混三成，再按
-          // 混合前亮度等比缩放回去——色相可以向封面色靠，但明暗极性关系不被冲掉。
-          const bg = sampleHalftoneBgColor(u, v)
-          const bgLum = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255
-          const bend = Math.min(1, Math.max(0, (bgLum - 0.24) / 0.2))
-          const polarity = bend * bend * (3 - 2 * bend)
-          const lightR = Math.min(255, bg[0] * 1.85 + 12)
-          const lightG = Math.min(255, bg[1] * 1.85 + 12)
-          const lightB = Math.min(255, bg[2] * 1.85 + 12)
-          cr = lightR + (bg[0] * 0.5 - lightR) * polarity
-          cg = lightG + (bg[1] * 0.5 - lightG) * polarity
-          cb = lightB + (bg[2] * 0.5 - lightB) * polarity
-          const mixed: [number, number, number] = [
-            cr * 0.7 + accent[0]! * 0.3,
-            cg * 0.7 + accent[1]! * 0.3,
-            cb * 0.7 + accent[2]! * 0.3,
-          ]
-          const baseLum = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb
-          const mixedLum =
-            0.2126 * mixed[0] + 0.7152 * mixed[1] + 0.0722 * mixed[2]
-          const restore = mixedLum > 1 ? baseLum / mixedLum : 1
-          cr = Math.min(255, mixed[0] * restore)
-          cg = Math.min(255, mixed[1] * restore)
-          cb = Math.min(255, mixed[2] * restore)
-        } else {
-          // 色移取色（本轮采用）：按插画横向位置取原田色相（青蓝→紫→品红紫），再向
-          // 封面 accent 提亮色轻混三成，让叠加点与底图烤入点田同色系、只随能量呼吸。
-          const fc = halftoneFieldColor(u)
-          cr = fc[0] * 0.7 + accent[0]! * 0.3
-          cg = fc[1] * 0.7 + accent[1]! * 0.3
-          cb = fc[2] * 0.7 + accent[2]! * 0.3
-        }
-        cr = Math.round(cr)
-        cg = Math.round(cg)
-        cb = Math.round(cb)
-        // alpha 同样由剖面权重主导且上限压低（0.9 → 0.62）：能量项乘着权重走，稀疏区
-        // 再强的能量也提不亮，整场不会比底图烤入点田更抢眼，切换瞬间不换图案感。
-        const alpha = Math.min(0.62, 0.05 + 0.5 * weight + 0.3 * energy * weight)
+        // 取色：按插画横向位置取色带全程色相（青蓝→蓝紫→品红紫），明度再随剖面强度
+        // 由深墨（×0.42）渐变到亮色（×0.98）——原图点田正是亮青点与深蓝点并存、明度
+        // 随场渐变的印刷半调，静态与实频共用这套底色；实频时另按混合进度向封面
+        // accent 提亮色轻混三成（静态不混，静态长相只由插画自身的色场决定）。
+        const fc = halftoneFieldColor(u)
+        const depth = Math.min(1, Math.max(0, (field - 0.08) / 0.55))
+        const shade = 0.42 + (0.98 - 0.42) * depth
+        const accentMix = 0.3 * blend
+        const cr = Math.round(fc[0]! * shade * (1 - accentMix) + accent[0]! * accentMix)
+        const cg = Math.round(fc[1]! * shade * (1 - accentMix) + accent[1]! * accentMix)
+        const cb = Math.round(fc[2]! * shade * (1 - accentMix) + accent[2]! * accentMix)
+        // alpha：静态场给足印刷感（上限 0.92，随权重 0.15 起）；实频沿用压低的呼吸
+        // 口径（上限 0.62、能量项乘权重），两态按混合进度插值，切换不跳变。
+        const staticAlpha = Math.min(0.92, 0.15 + 0.8 * weight)
+        const liveAlpha = Math.min(0.62, 0.05 + 0.5 * weight + 0.3 * energy * weight)
+        const alpha = staticAlpha + (liveAlpha - staticAlpha) * blend
         paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()
         paint.arc(px, py, radius, 0, Math.PI * 2)
         paint.fill()
       }
+    }
+  }
+
+  // 点阵过渡帧：把混合进度朝当前模式的目标（live=1、其余=0）推进约 300ms 并重绘点阵；
+  // 系统减动效时直接到位。主循环停下（暂停）后淡出靠这一循环走完，不残留动态帧。
+  function fadeDots(timestamp?: number): void {
+    if (!dots || destroyed) {
+      dotsFadeFrame = undefined
+      return
+    }
+    const target = mode === 'live' ? 1 : 0
+    if (reduced.matches) dotsBlend = target
+    else if (timestamp !== undefined && dotsFadeStamp !== undefined) {
+      const step = Math.max(0, timestamp - dotsFadeStamp) / 300
+      dotsBlend =
+        target > dotsBlend
+          ? Math.min(target, dotsBlend + step)
+          : Math.max(target, dotsBlend - step)
+    }
+    dotsFadeStamp = timestamp
+    paintDots()
+    if (dotsBlend !== target && !reduced.matches)
+      dotsFadeFrame = requestAnimationFrame(fadeDots)
+    else {
+      dotsFadeFrame = undefined
+      dotsFadeStamp = undefined
+    }
+  }
+
+  // 模式切换后启动点阵过渡；混合进度已到位时什么都不做（常规重绘由 paintBars 负责）。
+  function kickDotsFade(): void {
+    if (!dots || destroyed) return
+    if (dotsBlend === (mode === 'live' ? 1 : 0)) return
+    if (dotsFadeFrame === undefined) {
+      dotsFadeStamp = undefined
+      dotsFadeFrame = requestAnimationFrame(fadeDots)
     }
   }
 
@@ -569,6 +585,8 @@ export function createSpectrum(
     destroy(): void {
       if (destroyed) return
       destroyed = true
+      if (dotsFadeFrame !== undefined) cancelAnimationFrame(dotsFadeFrame)
+      dotsFadeFrame = undefined
       colorVersion++
       reset()
       observer?.disconnect()

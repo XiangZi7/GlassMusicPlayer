@@ -149,23 +149,24 @@ onBeforeUnmount(() => {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <!-- 双图层仍装在这一个子元素内部（data-banner-bg 单子元素契约不变）：底层是带烤入
-           点田的原图，承担未播放时的静态长相；上层是平滑渐变无点图，播放时淡入盖住底图，
-           点阵叠加层在干净底子上绘制、不再与烤入点田双印，暂停即淡出回到原图。 -->
+      <!-- 三层分离仍装在这一个子元素内部（data-banner-bg 单子元素契约不变）：底层是无
+           人物、无点阵的干净渐变背景；中层是点阵画布（静态剖面场/实频动态场都由它单独
+           生成）；上层是全画幅透明的人物+贴纸层。人物层在所有状态下都是同一个元素、
+           永不更换——播放/未播切换只动点阵层，人物位移问题从根上不存在。 -->
       <div class="banner-art">
         <img
           ref="landscapeRef"
           class="banner-landscape"
-          src="/images/pop-hero.webp"
+          src="/images/pop-hero-bg.webp"
           width="2736"
           height="912"
           alt=""
           decoding="async"
         />
+        <HalftoneDots class="banner-dots" />
         <img
-          class="banner-landscape banner-landscape-smooth"
-          :class="{ 'is-on': playerState.playing }"
-          src="/images/pop-hero-smooth.webp"
+          class="banner-landscape banner-chara"
+          src="/images/pop-hero-chara.webp"
           width="2736"
           height="912"
           alt=""
@@ -174,10 +175,6 @@ onBeforeUnmount(() => {
         />
       </div>
     </div>
-
-    <!-- 半调点阵叠加层：插画已换回带烤入点田的原图，静态时底图点田即参照长相，这一层
-         不画任何东西；只有实频播放时频谱服务才在采样剖面上叠加呼吸的点，让原田活过来。 -->
-    <HalftoneDots class="banner-dots" />
 
     <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
          折叠时整列让位给迷你条。 -->
@@ -283,18 +280,19 @@ onBeforeUnmount(() => {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 半调点阵叠加层：整幅覆盖横幅、与插画同一盒子，位于插画之上、内容（z-index 2）之下。
-   静态时频谱服务不往这层画任何点——底图原版插画的烤入点田就是静态长相；只有实频帧
-   才按点田剖面（图像坐标）叠加同形同色的呼吸点，人物与贴纸本体被剖面掩掉不会冒点。 */
+/* 半调点阵层：三层栈的中间层，整幅覆盖横幅、与两层插画同一盒子，位于背景渐变之上、
+   人物层之下。未播放时频谱服务按采样剖面画静态彩色点田，实频时同一片田随真实频段
+   起伏；人物与贴纸本体所在格剖面为零不会冒点，且人物层盖在上面，轮廓光晕不压人物。
+   迷你条用同一套层栈：折叠后画布随横幅盒子变小，静态场照常绘制，不再整层隐藏。 */
 .banner-dots {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
 }
-/* 折叠成迷你条后点阵整层隐藏：画布归零后频谱服务自然停画，不在迷你条上空耗。 */
-.main.compact .banner-dots {
-  display: none;
+/* 人物层：全画幅透明 PNG 式图层，永远盖在点阵之上（z-index 2），两种播放状态共用。 */
+.home-topbar .banner-chara {
+  z-index: 2;
 }
 
 /* ---------- 展开态 hero ---------- */
@@ -334,33 +332,16 @@ onBeforeUnmount(() => {
     object-position: 88% 36%;
   }
 }
-/* 双图包裹层：占满背景盒，两张图同盒同裁切上下叠放（类名规则对两层一致生效）。 */
+/* 三层包裹层：占满背景盒，背景图、点阵画布、人物图同盒同裁切上下叠放（类名规则对
+   背景与人物两层一致生效）。状态切换不涉及任何图层淡入淡出——只有点阵画布内部的
+   静态/动态混合在动，背景与人物纹丝不动。 */
 .banner-art {
   position: absolute;
   inset: 0;
 }
-/* 平滑无点图层：默认全透明只露底图原版；播放时淡入盖住底图，让点阵叠加层在干净底子
-   上绘制。平滑图已按特征配准到原图坐标（人物轮廓逐点对位），交叉淡化放慢到约 450ms
-   ease-in-out——这是两张图片之间的溶解、不是面板过渡，慢溶解才能把图面差异化开、不显
-   割裂；关动效（banner-calm）或系统减动效时直接切换不淡化。 */
-.home-topbar .banner-landscape.banner-landscape-smooth {
-  opacity: 0;
-  transition: opacity 450ms ease-in-out;
-}
-.home-topbar .banner-landscape.banner-landscape-smooth.is-on {
-  opacity: 1;
-}
-.banner-calm .banner-landscape.banner-landscape-smooth {
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-topbar .banner-landscape.banner-landscape-smooth {
-    transition: none;
-  }
-}
 /* 迷你条里的人物裁切单独对准眼睛带：实测原图眼睛带在纵向 35%–42%、中心约 38.5%，
    58px 通栏 cover 裁切下纵向取 36% 时眼睛正落在条的中线上（31% 时眼睛偏低近下缘）；
-   展开态的 62% 36% 不动，两层图同类名同步生效。 */
+   展开态的 62% 36% 不动，背景与人物两层图同类名同步生效。 */
 .main.compact .home-topbar .banner-landscape {
   object-position: 50% 36%;
 }
