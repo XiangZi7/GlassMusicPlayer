@@ -122,9 +122,11 @@ function load(relative, dependencies = {}) {
 }
 const palette = load('src/services/player/artwork-color.ts')
 const profile = load('src/services/player/spectrum-profile.ts')
+const halftone = load('src/services/player/halftone-profile.ts')
 const spectrum = load('src/services/player/spectrum.ts', {
   '@/services/player/artwork-color': palette,
   '@/services/player/spectrum-profile': profile,
+  '@/services/player/halftone-profile': halftone,
 })
 const first = palette.artworkColor('green', document)
 assert.equal(

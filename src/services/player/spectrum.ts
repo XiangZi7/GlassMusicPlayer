@@ -6,6 +6,10 @@ import {
   spectrumProfile,
   spectrumRhythm,
 } from '@/services/player/spectrum-profile'
+import {
+  halftoneFieldColor,
+  sampleHalftoneField,
+} from '@/services/player/halftone-profile'
 
 const fftSize = 4096
 
@@ -229,61 +233,90 @@ export function createSpectrum(
     }
   }
 
-  // 半调点阵（独立设计层，与横幅插画分离）：点阵自带一个基础剖面——基准半径沿水平方向
-  // 由左向右平滑渐强（靠文案侧渐隐、靠人物侧最密），列内再以中线为峰收边，整体是一块有意
-  // 设计的印刷半调，而不是满铺的均匀噪点。每列对应一个对数频段（低频在左、高频在右，与
-  // 底栏细柱同一映射）；只有实频（live）帧在基础剖面上调制半径与亮度，暂停、静态与示例
-  // 模拟时只画一帧静态基础剖面，不拿模拟数据冒充频峰。
+  // 半调点阵（独立设计层，与横幅插画分离）：点的大小与颜色不由等距网格上的渐变决定，
+  // 而是由原版插画的点田剖面（halftone-profile，采样自烤入半调的备份图）决定——色调云状
+  // 场、蓝→紫→品红的横向色移、贴人物轮廓的光晕都来自剖面本身。画布整幅覆盖横幅，每个点
+  // 先经横幅写入的可见图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的
+  // 实际裁切算出）映射回插画坐标再采样，窗口变窄、裁切右移时点田随图一起移动，始终贴着
+  // 人物轮廓且不压人物与贴纸本体。每列对应一个对数频段（低频在左、高频在右，与底栏细柱
+  // 同一映射）；只有实频（live）帧在静态剖面上调制半径与亮度，暂停、静态与示例模拟时只
+  // 画一帧静态剖面，不拿模拟数据冒充频峰。
   function paintDots(): void {
     if (!dots || destroyed) return
-    const { paint } = dots
-    const size = fitCanvas(dots.canvas, paint)
+    const { canvas, paint } = dots
+    const size = fitCanvas(canvas, paint)
     if (!size) return
     const { width, height } = size
-    const cols = Math.max(18, Math.min(56, Math.round(width / 10)))
-    const step = width / cols
-    const rows = Math.max(4, Math.round(height / step))
-    const rowStep = height / rows
+    // 可见图像矩形（插画归一化坐标）：组件未写入时按插画原始尺寸与缺省 object-position
+    // 现算，保证组件挂载顺序变化时第一帧也不跑偏。
+    let u0 = Number(canvas.dataset.imgU0)
+    let v0 = Number(canvas.dataset.imgV0)
+    let u1 = Number(canvas.dataset.imgU1)
+    let v1 = Number(canvas.dataset.imgV1)
+    if (
+      !Number.isFinite(u0) ||
+      !Number.isFinite(v0) ||
+      !Number.isFinite(u1) ||
+      !Number.isFinite(v1) ||
+      u1 <= u0 ||
+      v1 <= v0
+    ) {
+      const scale = Math.max(width / 2736, height / 912)
+      const dw = 2736 * scale
+      const dh = 912 * scale
+      const ox = (width - dw) * 0.5
+      const oy = (height - dh) * 0.36
+      u0 = -ox / dw
+      v0 = -oy / dh
+      u1 = (width - ox) / dw
+      v1 = (height - oy) / dh
+    }
+    // 点距跟随插画显示宽度（原图点距约占图宽 0.95%），裁切放大时点距同步放大，不变密度。
+    const pitch = Math.max(8, (width / (u1 - u0)) * 0.0095)
+    const cols = Math.ceil(width / pitch)
+    const rows = Math.ceil(height / pitch)
     const live = mode === 'live'
-    const color = currentColor.map(channel =>
+    const accent = currentColor.map(channel =>
       Math.round(channel * 0.7 + 255 * 0.3)
     )
-    const maxRadius = step * 0.42
-    const center = (rows - 1) / 2
     for (let col = 0; col < cols; col++) {
-      // 水平基础剖面：smoothstep 让左缘的点径渐变到零，点阵像印在平涂背景上的一层网屏。
-      const t = cols > 1 ? col / (cols - 1) : 1
-      const hProfile = t * t * (3 - 2 * t)
+      const px = (col + 0.5) * pitch
+      const u = u0 + (px / width) * (u1 - u0)
       let energy = 0
       if (live && levels.length) {
-        const start = Math.floor((col / cols) * levels.length)
+        const start = Math.floor((px / width) * levels.length)
         const end = Math.max(
           start + 1,
-          Math.floor(((col + 1) / cols) * levels.length)
+          Math.floor(((px + pitch) / width) * levels.length)
         )
         for (let index = start; index < end; index++)
           energy = Math.max(energy, levels[index] ?? 0)
       }
       for (let row = 0; row < rows; row++) {
-        // 垂直剖面以中线为峰、上下收边，与水平剖面相乘得到点在本列的基准大小。
-        const vProfile =
-          rows > 1 ? 1 - Math.abs(row - center) / (center + 1) : 1
-        const profile = hProfile * vProfile
-        const baseRadius = maxRadius * profile
-        if (baseRadius < 0.4) continue
-        // live 时能量在基准上放大点径并提亮；剖面薄的左侧靠提亮呈现低频脉动，不撑大点径。
+        const py = (row + 0.5) * pitch
+        const v = v0 + (py / height) * (v1 - v0)
+        const field = sampleHalftoneField(u, v)
+        if (field < 0.04) continue
+        const baseRadius = pitch * 0.46 * Math.sqrt(field)
+        // live 时能量在剖面基准上放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
         const radius = live
-          ? Math.min(step * 0.46, baseRadius * (0.5 + 1.05 * energy))
+          ? Math.min(pitch * 0.48, baseRadius * (0.55 + 0.95 * energy))
           : baseRadius
+        if (radius < 0.5) continue
+        const ramp = halftoneFieldColor(u)
+        // live 时往封面 accent 提亮色轻混三成，色移骨架保留，不被单曲封面色冲掉。
+        const cr = live ? Math.round(ramp[0] * 0.7 + accent[0]! * 0.3) : ramp[0]
+        const cg = live ? Math.round(ramp[1] * 0.7 + accent[1]! * 0.3) : ramp[1]
+        const cb = live ? Math.round(ramp[2] * 0.7 + accent[2]! * 0.3) : ramp[2]
         const alpha = live
           ? Math.min(
-              0.88,
-              0.12 + 0.3 * profile + 0.5 * energy * (0.35 + 0.65 * hProfile)
+              0.9,
+              0.15 + 0.55 * field + 0.5 * energy * (0.3 + 0.7 * field)
             )
-          : 0.1 + 0.3 * profile
-        paint.fillStyle = `rgba(${color.join(',')},${alpha.toFixed(3)})`
+          : 0.15 + 0.65 * field
+        paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()
-        paint.arc((col + 0.5) * step, (row + 0.5) * rowStep, radius, 0, Math.PI * 2)
+        paint.arc(px, py, radius, 0, Math.PI * 2)
         paint.fill()
       }
     }

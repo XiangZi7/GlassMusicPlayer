@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import HalftoneDots from '@/components/ui/HalftoneDots.vue'
 import { usePlayer } from '@/composables/usePlayer'
@@ -77,9 +77,59 @@ function fallbackCover(event: Event): void {
 function onPlay(): void {
   playFeatured(() => emit('play'))
 }
+
+const bannerRef = ref<HTMLElement>()
+const landscapeRef = ref<HTMLImageElement>()
+let dotsGeometryObserver: ResizeObserver | undefined
+
+// 把插画当前可见矩形（归一化坐标）写入点阵画布的 dataset：频谱服务据此把画布点映射回
+// 插画坐标采样点田剖面。窗口变窄、object-position 右移时矩形随之更新，点田始终贴着
+// 人物轮廓，而不是钉死在横幅盒子上。
+function syncDotsGeometry(): void {
+  const section = bannerRef.value
+  const image = landscapeRef.value
+  if (!section || !image) return
+  const canvas = section.querySelector<HTMLCanvasElement>('[data-halftone-dots]')
+  if (!canvas) return
+  const boxW = image.clientWidth
+  const boxH = image.clientHeight
+  if (!boxW || !boxH) return
+  const iw = image.naturalWidth || 2736
+  const ih = image.naturalHeight || 912
+  const position = getComputedStyle(image).objectPosition.split(' ')
+  const px = (parseFloat(position[0] ?? '50') || 0) / 100
+  const py = (parseFloat(position[1] ?? '36') || 0) / 100
+  const scale = Math.max(boxW / iw, boxH / ih)
+  const dw = iw * scale
+  const dh = ih * scale
+  const ox = (boxW - dw) * px
+  const oy = (boxH - dh) * py
+  const rect = [-ox / dw, -oy / dh, (boxW - ox) / dw, (boxH - oy) / dh].map(n =>
+    n.toFixed(4)
+  )
+  const keys = ['imgU0', 'imgV0', 'imgU1', 'imgV1'] as const
+  keys.forEach((key, index) => {
+    if (canvas.dataset[key] !== rect[index]) canvas.dataset[key] = rect[index]
+  })
+}
+
+onMounted(() => {
+  syncDotsGeometry()
+  landscapeRef.value?.addEventListener('load', syncDotsGeometry)
+  if (typeof ResizeObserver !== 'undefined' && bannerRef.value) {
+    dotsGeometryObserver = new ResizeObserver(syncDotsGeometry)
+    dotsGeometryObserver.observe(bannerRef.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  dotsGeometryObserver?.disconnect()
+  landscapeRef.value?.removeEventListener('load', syncDotsGeometry)
+})
 </script>
 <template>
   <section
+    ref="bannerRef"
     class="banner home-topbar"
     :class="{ 'banner-calm': !playerState.settings.motion }"
     data-banner
@@ -92,6 +142,7 @@ function onPlay(): void {
       aria-hidden="true"
     >
       <img
+        ref="landscapeRef"
         class="banner-landscape"
         src="/images/pop-hero.webp"
         width="2736"
@@ -101,7 +152,8 @@ function onPlay(): void {
       />
     </div>
 
-    <!-- 半调点阵层：独立于插画的一层，落在文案列与人物之间的中段空白带，左侧以 mask 渐隐避开文案列。 -->
+    <!-- 半调点阵层：独立于插画的一层，整幅覆盖横幅；画哪里、画多大、什么颜色由点田剖面
+         （图像坐标，采样自原版插画）决定，文案区在剖面里本就是空白，人物本体被剖面掩掉。 -->
     <HalftoneDots class="banner-dots" />
 
     <!-- 展开态文案列：日期 kicker、时段问候、日推摘要与主操作自上而下排布，折叠时整列让位给迷你条。 -->
@@ -207,27 +259,14 @@ function onPlay(): void {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 半调点阵层：只占中段桥接带——文案列右侧到人物脸前方的平涂空白，上下留边不铺满高；
-   左缘 mask 再渐隐一道，与点阵自身的基础剖面（左小右大）叠出干净的收尾。
-   位于插画之上、内容（z-index 2）之下，文案始终压在点阵上方。 */
+/* 半调点阵层：整幅覆盖横幅、与插画同一盒子，点的位置/大小/颜色全部由点田剖面
+   （图像坐标）决定，不再靠盒子定位圈范围——文案区在剖面里本就是空白，人物与贴纸
+   本体被剖面掩掉，只剩背景点田与贴轮廓的光晕。位于插画之上、内容（z-index 2）之下。 */
 .banner-dots {
   position: absolute;
+  inset: 0;
   z-index: 1;
-  top: 14%;
-  /* 组件自带 height:100%，这里显式给高让上下留边真正生效，剖面中心回到横幅中线。 */
-  height: 72%;
-  left: 35%;
-  width: 25%;
-  mask-image: linear-gradient(90deg, transparent, #000 26%);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 26%);
   pointer-events: none;
-}
-/* 窄窗时人物右偏、文案列变宽，桥接带随之右移收窄，继续躲开标题与人物脸。 */
-@container (max-width: 700px) {
-  .banner-dots {
-    left: 42%;
-    width: 22%;
-  }
 }
 /* 折叠成迷你条后点阵整层隐藏：画布归零后频谱服务自然停画，不在迷你条上空耗。 */
 .main.compact .banner-dots {
