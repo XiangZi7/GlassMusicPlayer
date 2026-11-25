@@ -36,8 +36,8 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ['**/src-tauri/**'],
+      // 跳过原生产物、浏览器测试资料和本地依赖仓库，避免启动时遍历大量缓存文件。
+      ignored: ['**/src-tauri/**', '**/.tmp/**', '**/.pnpm-store/**'],
     },
   },
 }))
