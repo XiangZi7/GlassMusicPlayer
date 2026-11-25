@@ -229,15 +229,18 @@ export function createSpectrum(
     }
   }
 
-  // 半调点阵：每列对应一个对数频段（低频在左、高频在右，与底栏细柱同一映射），列内点以中线为峰。
-  // 只有实频（live）帧让点的半径与亮度随该列能量起伏；暂停、静态与示例模拟时只画均匀基础小点，不拿模拟数据冒充频峰。
+  // 半调点阵（独立设计层，与横幅插画分离）：点阵自带一个基础剖面——基准半径沿水平方向
+  // 由左向右平滑渐强（靠文案侧渐隐、靠人物侧最密），列内再以中线为峰收边，整体是一块有意
+  // 设计的印刷半调，而不是满铺的均匀噪点。每列对应一个对数频段（低频在左、高频在右，与
+  // 底栏细柱同一映射）；只有实频（live）帧在基础剖面上调制半径与亮度，暂停、静态与示例
+  // 模拟时只画一帧静态基础剖面，不拿模拟数据冒充频峰。
   function paintDots(): void {
     if (!dots || destroyed) return
     const { paint } = dots
     const size = fitCanvas(dots.canvas, paint)
     if (!size) return
     const { width, height } = size
-    const cols = Math.max(48, Math.min(72, Math.round(width / 11)))
+    const cols = Math.max(18, Math.min(56, Math.round(width / 10)))
     const step = width / cols
     const rows = Math.max(4, Math.round(height / step))
     const rowStep = height / rows
@@ -245,9 +248,12 @@ export function createSpectrum(
     const color = currentColor.map(channel =>
       Math.round(channel * 0.7 + 255 * 0.3)
     )
-    const baseRadius = step * 0.1
+    const maxRadius = step * 0.42
     const center = (rows - 1) / 2
     for (let col = 0; col < cols; col++) {
+      // 水平基础剖面：smoothstep 让左缘的点径渐变到零，点阵像印在平涂背景上的一层网屏。
+      const t = cols > 1 ? col / (cols - 1) : 1
+      const hProfile = t * t * (3 - 2 * t)
       let energy = 0
       if (live && levels.length) {
         const start = Math.floor((col / cols) * levels.length)
@@ -259,11 +265,22 @@ export function createSpectrum(
           energy = Math.max(energy, levels[index] ?? 0)
       }
       for (let row = 0; row < rows; row++) {
-        const weight =
+        // 垂直剖面以中线为峰、上下收边，与水平剖面相乘得到点在本列的基准大小。
+        const vProfile =
           rows > 1 ? 1 - Math.abs(row - center) / (center + 1) : 1
-        const lift = live ? energy * weight : 0
-        const radius = baseRadius + lift * step * 0.36
-        const alpha = live ? 0.22 + lift * 0.55 : 0.3
+        const profile = hProfile * vProfile
+        const baseRadius = maxRadius * profile
+        if (baseRadius < 0.4) continue
+        // live 时能量在基准上放大点径并提亮；剖面薄的左侧靠提亮呈现低频脉动，不撑大点径。
+        const radius = live
+          ? Math.min(step * 0.46, baseRadius * (0.5 + 1.05 * energy))
+          : baseRadius
+        const alpha = live
+          ? Math.min(
+              0.88,
+              0.12 + 0.3 * profile + 0.5 * energy * (0.35 + 0.65 * hProfile)
+            )
+          : 0.1 + 0.3 * profile
         paint.fillStyle = `rgba(${color.join(',')},${alpha.toFixed(3)})`
         paint.beginPath()
         paint.arc((col + 0.5) * step, (row + 0.5) * rowStep, radius, 0, Math.PI * 2)

@@ -101,7 +101,7 @@ function onPlay(): void {
       />
     </div>
 
-    <!-- 半调点阵层：压在插画半调区上方、内容之下，左侧以 mask 渐隐避开文案列。 -->
+    <!-- 半调点阵层：独立于插画的一层，落在文案列与人物之间的中段空白带，左侧以 mask 渐隐避开文案列。 -->
     <HalftoneDots class="banner-dots" />
 
     <!-- 展开态文案列：日期 kicker、时段问候、日推摘要与主操作自上而下排布，折叠时整列让位给迷你条。 -->
@@ -207,17 +207,27 @@ function onPlay(): void {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 半调点阵层：只占右侧人物周边，左缘 mask 渐隐不碰文字区；位于插画之上、内容（z-index 2）之下，文案始终压在点阵上方。 */
+/* 半调点阵层：只占中段桥接带——文案列右侧到人物脸前方的平涂空白，上下留边不铺满高；
+   左缘 mask 再渐隐一道，与点阵自身的基础剖面（左小右大）叠出干净的收尾。
+   位于插画之上、内容（z-index 2）之下，文案始终压在点阵上方。 */
 .banner-dots {
   position: absolute;
   z-index: 1;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 62%;
+  top: 14%;
+  /* 组件自带 height:100%，这里显式给高让上下留边真正生效，剖面中心回到横幅中线。 */
+  height: 72%;
+  left: 35%;
+  width: 25%;
   mask-image: linear-gradient(90deg, transparent, #000 26%);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 26%);
   pointer-events: none;
+}
+/* 窄窗时人物右偏、文案列变宽，桥接带随之右移收窄，继续躲开标题与人物脸。 */
+@container (max-width: 700px) {
+  .banner-dots {
+    left: 42%;
+    width: 22%;
+  }
 }
 /* 折叠成迷你条后点阵整层隐藏：画布归零后频谱服务自然停画，不在迷你条上空耗。 */
 .main.compact .banner-dots {
