@@ -358,8 +358,24 @@ const dust = [
         ></span>
       </div>
       <span
-        class="fs-toptitle text-[11px] font-extrabold tracking-[.16em] opacity-[.65]"
+        class="fs-toptitle inline-flex items-center gap-[7px] text-[11px] font-extrabold tracking-[.16em] opacity-[.65]"
         data-tauri-drag-region
+      >
+        <!-- 页头波普点缀：与队列面板同一星形贴纸配方，骨架层点缀不进歌词区。 -->
+        <span
+          class="fs-sticker fs-sticker--sm pop-sticker"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              class="sticker-halo"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+            <path
+              class="sticker-star"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+          </svg> </span
         >正在播放 · NOW PLAYING</span
       >
       <div
@@ -439,16 +455,34 @@ const dust = [
     <div
       class="fs-themebar relative z-[3] flex flex-none justify-center px-5 pt-[10px] max-sm:pt-[7px]"
     >
-      <SlidingTabs
-        class="set-seg fs-theme-seg flex flex-none"
-        role="group"
-        aria-label="全屏舞台主题"
-        kind="segment"
-        :model-value="theme"
-        :options="themes"
-        @update:model-value="selectLyricsTheme"
-        @keydown="focusTheme"
-      />
+      <div class="fs-theme-wrap relative flex flex-none">
+        <!-- 切换器波普点缀：右上角一枚星星贴纸，胶囊本体在样式层改贴纸风。 -->
+        <span
+          class="fs-sticker fs-theme-sticker pop-sticker"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              class="sticker-halo"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+            <path
+              class="sticker-star"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+          </svg>
+        </span>
+        <SlidingTabs
+          class="set-seg fs-theme-seg flex flex-none"
+          role="group"
+          aria-label="全屏舞台主题"
+          kind="segment"
+          :model-value="theme"
+          :options="themes"
+          @update:model-value="selectLyricsTheme"
+          @keydown="focusTheme"
+        />
+      </div>
     </div>
     <div
       class="fs-giant pointer-events-none absolute top-[9%] left-[-12px] z-[1] text-[clamp(96px,13.5vw,172px)] leading-[1] font-extrabold tracking-[-.02em] whitespace-nowrap text-transparent opacity-[.29]"
@@ -643,9 +677,27 @@ const dust = [
             >
               <path d="M7 5h2.5v14H7zM19 5v14L9.5 12z" /></svg
           ></BaseButton>
-          <PlayerPlayButton
-            class="playbtn relative grid h-[48px] w-[48px] flex-none place-items-center rounded-full border-none"
-          />
+          <span class="fs-playwrap relative flex flex-none">
+            <!-- 播放键波普点缀：黄星贴纸从键角探出，静止态控件本体仍保持玻璃样。 -->
+            <span
+              class="fs-sticker fs-play-sticker pop-sticker"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <path
+                  class="sticker-halo"
+                  d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+                />
+                <path
+                  class="sticker-star"
+                  d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+                />
+              </svg>
+            </span>
+            <PlayerPlayButton
+              class="playbtn relative grid h-[48px] w-[48px] flex-none place-items-center rounded-full border-none"
+            />
+          </span>
           <BaseButton
             class="ctl grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
             data-next
@@ -770,7 +822,22 @@ const dust = [
       <div
         class="fs-queue-head m-[2px_4px_10px] flex items-center justify-between text-[12px] font-extrabold tracking-[.1em]"
       >
-        <span>播放队列 · QUEUE</span
+        <span>播放队列 · QUEUE</span>
+        <!-- 队列头波普点缀：与主队列面板标题旁同一枚星星贴纸。 -->
+        <span
+          class="fs-sticker pop-sticker"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              class="sticker-halo"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+            <path
+              class="sticker-star"
+              d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z"
+            />
+          </svg> </span
         ><span
           class="q-radio-chip rounded-full p-[3px_8px] text-[9.5px] font-extrabold tracking-[.06em] whitespace-nowrap text-white"
           data-radio-chip
@@ -836,6 +903,84 @@ const dust = [
 }
 .fs.fs-calm .fs-theme-seg :deep(.tab-pill) {
   transition: none;
+}
+
+/* ---------- 全屏波普点缀：只落骨架层（切换器、控件、页头、队列头），不进歌词本体 ---------- */
+/* 星星贴纸本体：与队列面板同一配方（白晕 + 黄星墨边），尺寸由使用处决定。 */
+.fs-sticker {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.fs-sticker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fs-sticker .sticker-halo {
+  fill: #fff;
+}
+.fs-sticker .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+.fs-sticker--sm {
+  width: 13px;
+  height: 13px;
+}
+.fs-theme-sticker {
+  position: absolute;
+  top: -9px;
+  right: -12px;
+  z-index: 2;
+  width: 19px;
+  height: 19px;
+}
+.fs-play-sticker {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+}
+/* 舞台切换器贴纸风：墨色粗边与硬阴影压住玻璃轨，选中胶囊换波普黄平涂，滑动与切换动画不变。 */
+.fs .fs-theme-seg {
+  border: 2px solid var(--pop-ink);
+  box-shadow: 4px 4px 0 rgb(23 18 31 / 45%);
+}
+.fs .fs-theme-seg :deep(.tab-pill) {
+  background: var(--pop-yellow);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 30%);
+}
+/* 控件点缀：静止保持原有玻璃样，悬停与激活才上波普色（播放系黄、收藏粉）。 */
+.fs .dock-controls .ctl,
+.fs .dock-right .ctl {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+.fs .dock-controls .ctl:hover,
+.fs .dock-right .ctl:hover {
+  color: var(--pop-yellow);
+}
+.fs .dock-controls .ctl.on {
+  color: var(--pop-yellow);
+}
+.fs .heart {
+  transition: color 160ms ease;
+}
+.fs .heart:hover {
+  color: var(--pop-pink);
+}
+/* 下一首音质 chip：波普蓝平涂加墨边，与详情页来源 chip 同一口径。 */
+.fs .dock-nextwrap .quality-badge {
+  background: var(--pop-blue);
+  border: 1.5px solid rgb(23 18 31 / 55%);
+  color: #fff;
 }
 
 /* 行高保持稳定，强调通过透明度与轻微缩放完成，不逐句动画字号。 */
@@ -1285,7 +1430,7 @@ const dust = [
 @keyframes ink-reveal {
   from {
     opacity: 0.55;
-    transform: translateX(-9px) rotate(-1deg);
+    transform: translateX(calc(var(--lx-enter, 9px) * -1)) rotate(-1deg);
   }
   to {
     opacity: 1;
@@ -1295,7 +1440,7 @@ const dust = [
 @keyframes lyric-reveal {
   from {
     opacity: 0.65;
-    transform: translateY(7px);
+    transform: translateY(var(--lx-enter, 7px));
   }
   to {
     opacity: 1;
@@ -1335,6 +1480,86 @@ const dust = [
 }
 .fs.fs-calm .fs-main .fs-lyrics {
   scroll-behavior: auto;
+}
+
+/* 暂停时封面整组收至 86%：只缩放包裹层，不碰浮动动画与切歌动画的子层变换；
+   缓动与入场同语言，关动效或系统减动效时直接到位不做过渡。 */
+.fs-coverwrap {
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fs-paused .fs-coverwrap {
+  transform: scale(0.86);
+}
+.fs.fs-calm .fs-coverwrap {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-coverwrap {
+    transition: none;
+  }
+}
+
+/* 种子动态排版（时尚/手书/字幕）：每行的偏移、倾斜、字号因子与入场位移由行内
+   --lx-* 种子变量决定（runtime 按曲目与行号生成）；当前行一律清零偏移与倾斜回到
+   共享基线，滚动居中按真实行高测量、与变换无关，当前行始终落在视觉中心。
+   时尚用横向偏移，手书用倾斜（原有隔行缩进保留），字幕只动字号因子守住居中字幕条。 */
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line) {
+  transform: translateX(var(--lx-shift, 0px)) scale(0.98);
+}
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on) {
+  transform: none;
+}
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(21px, 3vw, 42px) * var(--lx-scale, 1));
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line) {
+  transform: rotate(var(--lx-tilt, 0deg)) scale(0.98);
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on) {
+  transform: none;
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(21px, 3vw, 42px) * var(--lx-scale, 1));
+}
+.fs[data-lyric-theme='cinema']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(23px, 3.8vw, 56px) * var(--lx-scale, 1));
+}
+/* 关动效与系统减动效时，种子位移与倾斜一并清零，只保留静态字号因子。 */
+.fs.fs-calm[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-main
+  .fs-lyrics
+  :deep(.fl-line),
+.fs.fs-calm[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-main
+  .fs-lyrics
+  :deep(.fl-line) {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs[data-lyric-theme='magazine']:not(.fs-reading)
+    .fs-main
+    .fs-lyrics
+    :deep(.fl-line),
+  .fs[data-lyric-theme='ink']:not(.fs-reading)
+    .fs-main
+    .fs-lyrics
+    :deep(.fl-line) {
+    transform: none;
+  }
 }
 
 /* 无封面兜底：背景层换成波普舞台插画——只做轻模糊与压暗，保留聚光灯锥与人物轮廓，不走真封面同款重模糊；
