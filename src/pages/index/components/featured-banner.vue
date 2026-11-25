@@ -304,12 +304,9 @@ onBeforeUnmount(() => {
 }
 .main.compact .banner.home-topbar {
   height: var(--banner-compact-height);
-  /* 折叠后迷你条真钉顶：compact 时转 sticky 钉在滚动容器（.main）顶部，滚到任何深度都
-     常驻可见可点。钉位已实测标定：钉住时边框顶 = 容器上内边距 18px + top 值（margin-top
-     在钉住时不叠加），取 top 2px 时边框顶落在距容器顶 20px 处，与展开态静止位置
-     （18px 内边距 + 2px 上外边距）严丝合缝，不留怪缝。 */
-  position: sticky;
-  top: 2px;
+  /* 迷你条保持流内布局：随滚动先缩成迷你条、继续滚动就随页面滚走，不钉顶。曾试过
+     sticky 钉在滚动容器顶部，真机观感是迷你条浮在内容之上不好看，用户明确要求恢复
+     原来的流内滚动，不要再加回 position: sticky。 */
 }
 @container (max-width: 700px) {
   .banner.home-topbar {
@@ -343,10 +340,12 @@ onBeforeUnmount(() => {
   inset: 0;
 }
 /* 平滑无点图层：默认全透明只露底图原版；播放时淡入盖住底图，让点阵叠加层在干净底子
-   上绘制。交叉淡化约 320ms；关动效（banner-calm）或系统减动效时直接切换不淡化。 */
+   上绘制。平滑图已按特征配准到原图坐标（人物轮廓逐点对位），交叉淡化放慢到约 450ms
+   ease-in-out——这是两张图片之间的溶解、不是面板过渡，慢溶解才能把图面差异化开、不显
+   割裂；关动效（banner-calm）或系统减动效时直接切换不淡化。 */
 .home-topbar .banner-landscape.banner-landscape-smooth {
   opacity: 0;
-  transition: opacity 320ms ease;
+  transition: opacity 450ms ease-in-out;
 }
 .home-topbar .banner-landscape.banner-landscape-smooth.is-on {
   opacity: 1;

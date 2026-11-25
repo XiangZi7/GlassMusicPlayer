@@ -306,10 +306,15 @@ export function createSpectrum(
         const py = (row + 0.5) * pitch
         const v = v0 + (py / height) * (v1 - v0)
         const field = sampleHalftoneField(u, v)
-        if (field < 0.04) continue
-        const baseRadius = pitch * 0.46 * Math.sqrt(field)
-        // 能量在剖面基准上放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
-        const radius = Math.min(pitch * 0.48, baseRadius * (0.55 + 0.95 * energy))
+        // 剖面权重再强化：强度先过 1.6 次幂，稀疏区（低强度格）即使在 live 也压到近乎
+        // 不可见，点田的密度印象完全由采样剖面主导——播放帧与未播时底图的烤入场看上去
+        // 是同一片田活过来，而不是另罩一张均匀机械网格。能量只在权重之上调制点径的
+        // 呼吸幅度与节奏，不决定哪里有点、点有多密。
+        const weight = Math.pow(field, 1.6)
+        if (weight < 0.05) continue
+        const baseRadius = pitch * 0.46 * Math.sqrt(weight)
+        // 能量在剖面基准上小幅放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
+        const radius = Math.min(pitch * 0.48, baseRadius * (0.72 + 0.55 * energy))
         if (radius < 0.5) continue
         let cr = 0
         let cg = 0
@@ -352,10 +357,9 @@ export function createSpectrum(
         cr = Math.round(cr)
         cg = Math.round(cg)
         cb = Math.round(cb)
-        const alpha = Math.min(
-          0.9,
-          0.15 + 0.55 * field + 0.5 * energy * (0.3 + 0.7 * field)
-        )
+        // alpha 同样由剖面权重主导且上限压低（0.9 → 0.62）：能量项乘着权重走，稀疏区
+        // 再强的能量也提不亮，整场不会比底图烤入点田更抢眼，切换瞬间不换图案感。
+        const alpha = Math.min(0.62, 0.05 + 0.5 * weight + 0.3 * energy * weight)
         paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()
         paint.arc(px, py, radius, 0, Math.PI * 2)
