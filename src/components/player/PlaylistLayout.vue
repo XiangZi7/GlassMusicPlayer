@@ -50,6 +50,23 @@ function useFallbackCover(event: Event): void {
           <span data-pl-meta>{{ meta }}</span>
         </div>
       </div>
+      <!-- 页头右侧波普填充：黑胶少女方框贴纸压住原空区，星与加号小贴纸在左侧两角点缀，整组不拦截交互。 -->
+      <div class="pl-pop" aria-hidden="true">
+        <img class="pl-pop-art pop-sticker pop-sticker--framed" style="--pop-sticker-angle: -3deg"
+          src="/images/pop-radio.webp" width="1600" height="1600" alt="" decoding="async" />
+        <span class="pl-pop-star pop-sticker" style="--pop-sticker-angle: 8deg">
+          <svg viewBox="0 0 24 24">
+            <path class="sticker-halo" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+            <path class="sticker-star" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+          </svg>
+        </span>
+        <span class="pl-pop-plus pop-sticker" style="--pop-sticker-angle: -10deg">
+          <svg viewBox="0 0 24 24">
+            <path class="sticker-halo" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+            <path class="sticker-plus" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+          </svg>
+        </span>
+      </div>
     </header>
     <template v-if="showListTools">
       <div class="sortbar m-[12px_2px_2px] flex flex-wrap items-center gap-[9px]">
@@ -67,11 +84,13 @@ function useFallbackCover(event: Event): void {
 
 <style scoped>
 .pl-head { position: relative; padding-block: 4px 8px; }
-/* 半调点阵层：压低点阵色到 9%，只做页头氛围，不与标题文字抢对比。 */
+/* 半调点阵层：点色回到半调缺省的 16%，遮罩推迟到 40% 后才渐显——左侧文案区保持干净，右侧空区点田可感知。 */
 .pl-head-dots {
   position: absolute;
   inset: -6px -12px;
-  --pop-halftone-color: rgb(255 255 255 / 9%);
+  --pop-halftone-color: rgb(255 255 255 / 16%);
+  mask-image: linear-gradient(90deg, transparent 40%, #000 78%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 40%, #000 78%);
 }
 .pl-head > :not(.pl-head-dots) { position: relative; }
 /* 类型 kicker 改波普平涂 chip：pop-blue 实底白字，歌单/发现/每日三处详情页头统一。 */
@@ -86,4 +105,63 @@ function useFallbackCover(event: Event): void {
 .pl-info { max-width: 100%; }
 .pl-info h3:focus { outline: none; }
 .banner-play:disabled { opacity: .45; }
+/* 右侧波普填充组：靠右与封面近同高，高度收在页头内不撑高；窄窗先缩小再整体隐藏，不挤压左侧文案与按钮。 */
+.pl-pop {
+  flex: none;
+  margin-left: auto;
+  margin-right: 8px;
+  width: 124px;
+  height: 124px;
+}
+.pl-pop-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}
+/* 小贴纸与榜单 tile 同配方：白晕作白边、内形平涂加墨描边；倾斜与投影走共享 .pop-sticker。 */
+.pl-pop-star {
+  position: absolute;
+  top: -12px;
+  left: -15px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+}
+.pl-pop-plus {
+  position: absolute;
+  bottom: -9px;
+  left: -16px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+}
+.pl-pop-star svg,
+.pl-pop-plus svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pl-pop .sticker-halo { fill: #fff; }
+.pl-pop .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+.pl-pop .sticker-plus {
+  fill: var(--pop-pink);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.7);
+  transform-origin: center;
+}
+@media (max-width: 1120px) {
+  .pl-pop { width: 100px; height: 100px; }
+}
+@media (max-width: 880px) {
+  .pl-pop { display: none; }
+}
 </style>
