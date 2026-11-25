@@ -5,6 +5,10 @@
 // 非背景格由邻域扩散填充，避免双线性采样把人物肤色、衣色渗进轮廓边缘的点）。剖面活在插画
 // 图像坐标里：横幅以 object-fit: cover 显示插画时，先把画布点映射回图像坐标再采样，点田便随
 // 裁切一起移动、始终贴着人物，而不是钉死在横幅盒子上。
+// 当前取色口径（一比一复刻轮次）：横幅插画已换回带烤入点田的原图，静态点田由底图承担，叠加层
+// 只在实频（live）时按 halftoneFieldColor 的横向色移取色；背景色表与 sampleHalftoneBgColor 是
+// 为无点平涂版准备的印刷极性取色（亮底深点、暗底亮点），本轮停用但保留在此——日后插画再换回
+// 平涂版时，频谱服务把取色切回 sampleHalftoneBgColor 即可恢复，数据与采样函数都不要删。
 const FIELD_W = 171
 const FIELD_H = 57
 const FIELD_DATA =
@@ -501,4 +505,29 @@ export function sampleHalftoneBgColor(u: number, v: number): [number, number, nu
     out[k] = top * (1 - ty) + bottom * ty
   }
   return out
+}
+
+// 点田颜色随插画横向位置色移：左段亮青蓝、中段紫、右段品红紫，与原图蓝→紫背景渐变同系。
+// 这是叠加层在实频帧的取色基准（再向封面 accent 轻混三成），与底图烤入点田的色相进程一致，
+// 静态时底图点田就是这个颜色，不需要叠加层再画一遍。
+export function halftoneFieldColor(u: number): [number, number, number] {
+  const stops: Array<[number, [number, number, number]]> = [
+    [0.5, [56, 182, 255]],
+    [0.74, [116, 84, 232]],
+    [0.97, [208, 74, 228]],
+  ]
+  if (u <= stops[0]![0]) return [...stops[0]![1]]
+  for (let i = 1; i < stops.length; i++) {
+    const [u2, c2] = stops[i]!
+    if (u <= u2) {
+      const [u1, c1] = stops[i - 1]!
+      const t = (u - u1) / (u2 - u1)
+      return [
+        Math.round(c1[0] + (c2[0] - c1[0]) * t),
+        Math.round(c1[1] + (c2[1] - c1[1]) * t),
+        Math.round(c1[2] + (c2[2] - c1[2]) * t),
+      ]
+    }
+  }
+  return [...stops[stops.length - 1]![1]]
 }

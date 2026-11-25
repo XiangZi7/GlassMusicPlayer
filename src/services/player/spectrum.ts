@@ -7,6 +7,7 @@ import {
   spectrumRhythm,
 } from '@/services/player/spectrum-profile'
 import {
+  halftoneFieldColor,
   sampleHalftoneBgColor,
   sampleHalftoneField,
 } from '@/services/player/halftone-profile'
@@ -199,7 +200,12 @@ export function createSpectrum(
     const color = currentColor.map(channel =>
       Math.round(channel * 0.76 + 255 * 0.24)
     )
-    paint.fillStyle = `rgba(${color.join(',')},${live ? 0.46 : 0.19})`
+    // 静态种子帧改用 pop-yellow 实色小条，对齐参照 hero 左下的黄色 EQ；实频帧仍走封面
+    // accent 提亮色，让条带在播放时回到与底栏一致的专辑色体系。取舍：静态帧的形状仍是
+    // 既有正弦种子轮廓（细条密排），只换颜色不换形，与参照 7 根粗条的疏密不完全一致。
+    paint.fillStyle = live
+      ? `rgba(${color.join(',')},0.46)`
+      : 'rgba(255,216,61,0.85)'
     for (let band = 0; band < count; band++) {
       let barHeight: number
       if (live) {
@@ -233,21 +239,28 @@ export function createSpectrum(
     }
   }
 
-  // 半调点阵（独立设计层，与横幅插画分离）：点的大小不由等距网格上的渐变决定，而是由
-  // 原版插画的点田剖面（halftone-profile，采样自烤入半调的备份图）决定——色调云状场、贴
-  // 人物轮廓的光晕都来自剖面本身。点的颜色按印刷半调的极性取自剖面里的背景色表（采样自
-  // 丰富渐变版插画）：亮背景（如青蓝光池）把背景色压暗约一半成深色墨点，暗背景把背景色
-  // 提亮成亮点，中间按背景亮度平滑混合——亮处深点、暗处亮点，而不是一色铺全场。画布整幅
-  // 覆盖横幅，每个点先经横幅写入的可见图像矩形（data-img-*，由 featured-banner 按
-  // object-fit: cover 的实际裁切算出）映射回插画坐标再采样，窗口变窄、裁切右移时点田随图
-  // 一起移动，始终贴着人物轮廓且不压人物与贴纸本体。每列对应一个对数频段（低频在左、
-  // 高频在右，与底栏细柱同一映射）；只有实频（live）帧在静态剖面上调制半径与亮度，暂停、
-  // 静态与示例模拟时只画一帧静态剖面，不拿模拟数据冒充频峰。
+  // 点阵取色路径开关：false = 按插画横向色移取色（halftoneFieldColor）再向封面 accent
+  // 轻混，与原图烤入点田的色相进程一致——横幅插画换回带烤入点田的原图后采用这一路；
+  // true = 按背景色表的印刷极性取色（亮底深点、暗底亮点），那是为无点平涂版插画准备的，
+  // 原图回归后叠加层若再按极性取色会与底图点色打架，故本轮停用。极性分支与
+  // sampleHalftoneBgColor / 背景色表都保留不删：日后插画再换回平涂版时把开关置 true
+  // 即可恢复下方极性取色块，不需要重写采样与混合逻辑。
+  const DOTS_POLARITY_COLOR = false
+
+  // 半调点阵叠加层：横幅插画已换回带烤入点田的原图，静态/暂停时底图点田就是参照的
+  // 静态长相，叠加层什么都不画（fitCanvas 清空后直接返回），避免两层点田双印错位；
+  // 只有实频（live）帧才在采样剖面（halftone-profile，本就采自这张原图、场形天然对位）
+  // 上调制点径与亮度，让原田随音乐活过来。画布整幅覆盖横幅，每个点先经横幅写入的可见
+  // 图像矩形（data-img-*，由 featured-banner 按 object-fit: cover 的实际裁切算出）映射回
+  // 插画坐标再采样，窗口变窄、裁切右移时叠加田随图一起移动，始终贴着人物轮廓且不压
+  // 人物与贴纸本体。每列对应一个对数频段（低频在左、高频在右，与底栏细柱同一映射）；
+  // data-spectrum-mode 仍按实频与否诚实标注，示例模拟不驱动这一层，不拿模拟冒充频峰。
   function paintDots(): void {
     if (!dots || destroyed) return
     const { canvas, paint } = dots
     const size = fitCanvas(canvas, paint)
     if (!size) return
+    if (mode !== 'live') return
     const { width, height } = size
     // 可见图像矩形（插画归一化坐标）：组件未写入时按插画原始尺寸与缺省 object-position
     // 现算，保证组件挂载顺序变化时第一帧也不跑偏。
@@ -263,9 +276,9 @@ export function createSpectrum(
       u1 <= u0 ||
       v1 <= v0
     ) {
-      const scale = Math.max(width / 2640, height / 864)
-      const dw = 2640 * scale
-      const dh = 864 * scale
+      const scale = Math.max(width / 2736, height / 912)
+      const dw = 2736 * scale
+      const dh = 912 * scale
       const ox = (width - dw) * 0.5
       const oy = (height - dh) * 0.36
       u0 = -ox / dw
@@ -277,7 +290,6 @@ export function createSpectrum(
     const pitch = Math.max(8, (width / (u1 - u0)) * 0.0095)
     const cols = Math.ceil(width / pitch)
     const rows = Math.ceil(height / pitch)
-    const live = mode === 'live'
     const accent = currentColor.map(channel =>
       Math.round(channel * 0.7 + 255 * 0.3)
     )
@@ -285,7 +297,7 @@ export function createSpectrum(
       const px = (col + 0.5) * pitch
       const u = u0 + (px / width) * (u1 - u0)
       let energy = 0
-      if (live && levels.length) {
+      if (levels.length) {
         const start = Math.floor((px / width) * levels.length)
         const end = Math.max(
           start + 1,
@@ -300,32 +312,27 @@ export function createSpectrum(
         const field = sampleHalftoneField(u, v)
         if (field < 0.04) continue
         const baseRadius = pitch * 0.46 * Math.sqrt(field)
-        // live 时能量在剖面基准上放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
-        const radius = live
-          ? Math.min(pitch * 0.48, baseRadius * (0.55 + 0.95 * energy))
-          : baseRadius
+        // 能量在剖面基准上放大点径；剖面为零处再有能量也不冒点，场的形状不被频谱改写。
+        const radius = Math.min(pitch * 0.48, baseRadius * (0.55 + 0.95 * energy))
         if (radius < 0.5) continue
-        // 极性取色：先采样该点在丰富渐变版里的背景色，按其亮度在「提亮亮点」与「压暗
-        // 墨点」之间平滑混合（亮度带 0.24–0.44，标定自光池与左缘深蓝的实测亮度）。
-        const bg = sampleHalftoneBgColor(u, v)
-        const bgLum = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255
-        const bend = Math.min(1, Math.max(0, (bgLum - 0.24) / 0.2))
-        const polarity = bend * bend * (3 - 2 * bend)
         let cr = 0
         let cg = 0
         let cb = 0
-        {
-          // 亮点把通道向高位拉升保色相提亮，墨点整体压到一半；极性混合后即为基准点色。
+        if (DOTS_POLARITY_COLOR) {
+          // 极性取色（本轮停用，保留供平涂版插画恢复使用）：先采样该点在平涂版里的背景
+          // 色，按其亮度在「提亮亮点」与「压暗墨点」之间平滑混合（亮度带 0.24–0.44，
+          // 标定自光池与左缘深蓝的实测亮度）；随后往封面 accent 提亮色轻混三成，再按
+          // 混合前亮度等比缩放回去——色相可以向封面色靠，但明暗极性关系不被冲掉。
+          const bg = sampleHalftoneBgColor(u, v)
+          const bgLum = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255
+          const bend = Math.min(1, Math.max(0, (bgLum - 0.24) / 0.2))
+          const polarity = bend * bend * (3 - 2 * bend)
           const lightR = Math.min(255, bg[0] * 1.85 + 12)
           const lightG = Math.min(255, bg[1] * 1.85 + 12)
           const lightB = Math.min(255, bg[2] * 1.85 + 12)
           cr = lightR + (bg[0] * 0.5 - lightR) * polarity
           cg = lightG + (bg[1] * 0.5 - lightG) * polarity
           cb = lightB + (bg[2] * 0.5 - lightB) * polarity
-        }
-        if (live) {
-          // live 时往封面 accent 提亮色轻混三成，随后按混合前亮度等比缩放回去：
-          // 色相可以向封面色靠，但与背景的明暗极性关系不被冲掉。
           const mixed: [number, number, number] = [
             cr * 0.7 + accent[0]! * 0.3,
             cg * 0.7 + accent[1]! * 0.3,
@@ -338,16 +345,21 @@ export function createSpectrum(
           cr = Math.min(255, mixed[0] * restore)
           cg = Math.min(255, mixed[1] * restore)
           cb = Math.min(255, mixed[2] * restore)
+        } else {
+          // 色移取色（本轮采用）：按插画横向位置取原田色相（青蓝→紫→品红紫），再向
+          // 封面 accent 提亮色轻混三成，让叠加点与底图烤入点田同色系、只随能量呼吸。
+          const fc = halftoneFieldColor(u)
+          cr = fc[0] * 0.7 + accent[0]! * 0.3
+          cg = fc[1] * 0.7 + accent[1]! * 0.3
+          cb = fc[2] * 0.7 + accent[2]! * 0.3
         }
         cr = Math.round(cr)
         cg = Math.round(cg)
         cb = Math.round(cb)
-        const alpha = live
-          ? Math.min(
-              0.9,
-              0.15 + 0.55 * field + 0.5 * energy * (0.3 + 0.7 * field)
-            )
-          : 0.15 + 0.65 * field
+        const alpha = Math.min(
+          0.9,
+          0.15 + 0.55 * field + 0.5 * energy * (0.3 + 0.7 * field)
+        )
         paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()
         paint.arc(px, py, radius, 0, Math.PI * 2)

@@ -34,10 +34,18 @@ const cover = computed(() => {
   const source = props.songs[0]?.cover
   return source && !state.failedCovers.includes(source) ? source : defaultCover
 })
-// 摘要行把来源、首数与总时长拼成一行；时长只在全部曲目可计时时由 useDailyMix 给出。
+// kicker 行对齐参照 hero：时段问候领起，其后是今日推荐的中英双语小字（拉丁部分靠
+// text-transform 与字距呈现大写跟踪效果），问候不另占一行。
+const kickerLine = computed(() => `${props.greeting} · 今日推荐 · TODAY'S RECOMMENDATION`)
+// 大标题对齐参照 hero 用歌单名做题：日推歌单在主打 tile 里的定名就是「今日主打歌单」，
+// 横幅与 tile 同名同指；尚无曲目时回退到栏目名「每日推荐」。
+const mixTitle = computed(() => (props.songs.length ? '今日主打歌单' : '每日推荐'))
+// 摘要行对齐参照 hero 的 meta 结构：日期打头，其后是首数、来源与总时长；时长只在全部
+// 曲目可计时时由 useDailyMix 给出。日期从 dateline 里取月日与星期两段，不带推荐语尾巴。
 const metaLine = computed(() => {
-  const parts = [props.sourceLabel]
+  const parts = props.dateline.split(' · ').slice(0, 2)
   if (props.songs.length) parts.push(`${props.songs.length} 首歌`)
+  parts.push(props.sourceLabel)
   if (props.songs.length && duration.value) parts.push(`共 ${duration.value}`)
   return parts.join(' · ')
 })
@@ -94,8 +102,8 @@ function syncDotsGeometry(): void {
   const boxW = image.clientWidth
   const boxH = image.clientHeight
   if (!boxW || !boxH) return
-  const iw = image.naturalWidth || 2640
-  const ih = image.naturalHeight || 864
+  const iw = image.naturalWidth || 2736
+  const ih = image.naturalHeight || 912
   const position = getComputedStyle(image).objectPosition.split(' ')
   const px = (parseFloat(position[0] ?? '50') || 0) / 100
   const py = (parseFloat(position[1] ?? '36') || 0) / 100
@@ -145,25 +153,26 @@ onBeforeUnmount(() => {
         ref="landscapeRef"
         class="banner-landscape"
         src="/images/pop-hero.webp"
-        width="2640"
-        height="864"
+        width="2736"
+        height="912"
         alt=""
         decoding="async"
       />
     </div>
 
-    <!-- 半调点阵层：独立于插画的一层，整幅覆盖横幅；画哪里、画多大、什么颜色由点田剖面
-         （图像坐标，采样自原版插画）决定，文案区在剖面里本就是空白，人物本体被剖面掩掉。 -->
+    <!-- 半调点阵叠加层：插画已换回带烤入点田的原图，静态时底图点田即参照长相，这一层
+         不画任何东西；只有实频播放时频谱服务才在采样剖面上叠加呼吸的点，让原田活过来。 -->
     <HalftoneDots class="banner-dots" />
 
-    <!-- 展开态文案列：日期 kicker、时段问候、日推摘要与主操作自上而下排布，折叠时整列让位给迷你条。 -->
+    <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
+         折叠时整列让位给迷你条。 -->
     <div class="banner-content">
-      <p class="banner-kicker">{{ dateline }}</p>
+      <p class="banner-kicker">{{ kickerLine }}</p>
       <h2
         id="home-banner-title"
         data-banner-title
       >
-        {{ greeting }}
+        {{ mixTitle }}
       </h2>
       <p
         class="banner-meta-line"
@@ -259,9 +268,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 半调点阵层：整幅覆盖横幅、与插画同一盒子，点的位置/大小/颜色全部由点田剖面
-   （图像坐标）决定，不再靠盒子定位圈范围——文案区在剖面里本就是空白，人物与贴纸
-   本体被剖面掩掉，只剩背景点田与贴轮廓的光晕。位于插画之上、内容（z-index 2）之下。 */
+/* 半调点阵叠加层：整幅覆盖横幅、与插画同一盒子，位于插画之上、内容（z-index 2）之下。
+   静态时频谱服务不往这层画任何点——底图原版插画的烤入点田就是静态长相；只有实频帧
+   才按点田剖面（图像坐标）叠加同形同色的呼吸点，人物与贴纸本体被剖面掩掉不会冒点。 */
 .banner-dots {
   position: absolute;
   inset: 0;
@@ -286,17 +295,19 @@ onBeforeUnmount(() => {
     height: 238px;
   }
 }
-/* 波普插画全幅铺满：左半自带深蓝留白承载文案列，右侧人物与贴纸完整透出，色彩由插画承担。 */
+/* 波普插画全幅铺满：左半自带深蓝留白承载文案列，右侧人物与贴纸完整透出，色彩由插画承担。
+   裁切对齐参照 hero：人物右置、脸落在上三分之一（纵向 36%），横向略偏右让人物区更靠右。 */
 .home-topbar .banner-landscape {
   width: 100%;
   mask-image: none;
-  object-position: 50% 36%;
+  object-position: 62% 36%;
   opacity: 1;
 }
-/* 轻罩面：左侧给文案列压一层深蓝托底保证可读，底部一道渐隐与页面衔接。 */
+/* 罩面对齐参照 hero 的 shade：左侧深蓝 55% 起、34% 处收至 18%、55% 后全透；
+   底部再叠一道渐隐与页面衔接。 */
 .home-topbar .banner-bg::after {
   background:
-    linear-gradient(90deg, rgb(7 18 48 / 30%), transparent 46%),
+    linear-gradient(90deg, rgb(9 22 54 / 55%), rgb(9 22 54 / 18%) 34%, transparent 55%),
     linear-gradient(0deg, rgb(10 8 18 / 42%), transparent 34%);
 }
 /* 窄窗时裁切窗口右偏：人物保持完整入框，文字仍落在左侧平整的深蓝留白上。 */
@@ -315,43 +326,56 @@ onBeforeUnmount(() => {
     width: 62%;
   }
 }
-/* 大标题改走无衬线粗体，贴参考图的编辑式排版，不再用原稿的斜体衬线。 */
+/* kicker 对齐参照 hero：11px 大写跟踪小字、字距 .18em、白 55%，前导横线保留全局样式。 */
+.home-topbar .banner-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgb(255 255 255 / 55%);
+  text-transform: uppercase;
+}
+/* 大标题对齐参照 hero：约 40px 无衬线 800 粗的歌单名。参照里拉丁部分是斜体，中文歌单名
+   用伪斜体会糊字形，这里保持正体，只借它的字重与字号气质。 */
 .home-topbar .banner-content h2 {
-  margin: 10px 0 4px;
+  margin: 12px 0 0;
   font-family: inherit;
   font-style: normal;
-  font-size: clamp(36px, 4.8cqw, 54px);
+  font-size: clamp(34px, 4.6cqw, 44px);
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0.01em;
 }
-/* 摘要行：来源、首数与总时长一行排完，过长时省略不换行。 */
+/* 摘要行对齐参照 hero 的 meta：14px、白 75%，与大标题拉开约 10px。 */
 .banner-meta-line {
   max-width: 100%;
-  margin: 0;
+  margin: 10px 0 0;
   overflow: hidden;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 550;
   line-height: 1.5;
-  color: rgb(255 250 247 / 78%);
+  color: rgb(244 242 250 / 75%);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 主操作一行：白色播放胶囊在前，玻璃查看胶囊在后，间距与上方摘要拉开。 */
+/* 主操作一行对齐参照 hero：白色播放胶囊在前，描边玻璃查看胶囊在后，高约 40px、
+   间距 12px，与上方摘要拉开约 22px（参照 54px 高按钮按横幅高度比例折算）。 */
 .banner-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 22px;
 }
 .home-topbar .banner-actions .banner-play {
   margin-top: 0;
+  padding: 0 24px;
+  font-size: 14px;
 }
-/* 查看歌单走玻璃胶囊：半透明白底加细边，压在插画上仍读得清。 */
+/* 查看歌单走描边玻璃胶囊：8% 白底、28% 白边加背景模糊，对齐参照 ghost 按钮。 */
 .home-topbar .banner-open {
-  background: rgb(255 255 255 / 12%);
+  background: rgb(255 255 255 / 8%);
   color: #fff;
-  border-color: rgb(255 255 255 / 38%);
+  border-color: rgb(255 255 255 / 28%);
+  backdrop-filter: blur(8px);
 }
 .liquid-win .home-topbar .banner-open {
   background: rgb(255 255 255 / 16%);
