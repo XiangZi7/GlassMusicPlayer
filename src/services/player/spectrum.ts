@@ -325,13 +325,16 @@ export function createSpectrum(
         // 圆与近方形的固有残差）。旧公式 0.46·field^0.8 在中场只有实测的一半，是此前
         // 点显小、大小渐变被压平的主因。
         const baseRadius = pitch * Math.min(0.56, 0.6 * Math.sqrt(field))
-        // 实频时点径在基准上随能量呼吸（0.78–1.23 倍，中性能量 0.5 时恰回基准，与静态
-        // 提取层严丝合缝），按混合进度与静态基准插值；上限 0.58 点距给强场交叠留余量。
-        const liveRadius = Math.min(
-          pitch * 0.58,
-          baseRadius * (0.78 + 0.45 * energy)
-        )
-        const radius = baseRadius + (liveRadius - baseRadius) * blend
+        // 点径在任何能量下都恒等于静态基准，能量只调制 alpha、不再调制点径（v16 尺寸
+        // 取证结论，脚本 qa/measure-dots.py + qa/shot-home-v16.mjs）：静态提取层与几何
+        // 经同宽量测无放大（点径中位差 ≤6%、pitch 一致），放大只出现在实频态——旧律
+        // 点径随能量放大到 1.23 倍、强点核心 p90 实测比基准大 41%，真机真实音乐能量
+        // 高于测试音、增益更明显，用户遂报「播放时点太大」。点径恒定后，实频帧与静态
+        // 提取层的点大小严丝合缝，呼吸感全部由 alpha 承担。实频侧另乘 0.94 的足迹
+        // 补偿：提取点带提取模糊留下的软边、画布点是硬边圆，同半径下硬边的实测覆盖
+        // 足迹偏大（同轮量测左场等效点径仍 +9–14%），按混合进度引入这 6% 收缩后两态
+        // 的等效点径回到 ±10% 内。
+        const radius = baseRadius * (1 - 0.06 * blend)
         if (radius < 0.5) continue
         // 取色：原图是单墨印刷，点墨色在全场近恒定（实测青蓝一族，见 halftoneFieldColor
         // 注释），深浅层次由点径/覆盖率承担、不再按场强压暗墨色（旧 shade 压暗是把底色
@@ -342,11 +345,12 @@ export function createSpectrum(
         const cr = Math.round(fc[0]! * (1 - accentMix) + accent[0]! * accentMix)
         const cg = Math.round(fc[1]! * (1 - accentMix) + accent[1]! * accentMix)
         const cb = Math.round(fc[2]! * (1 - accentMix) + accent[2]! * accentMix)
-        // alpha：原图点是近不透明的实墨（静态参数 0.92）；实频随能量在 0.30–0.95 间
-        // 呼吸，中性能量 0.5 时回到 0.92 与静态一致。旧实频口径上限 0.62 全程半透明，
-        // 是播放帧点田发虚、像罩了层纱的原因。
+        // alpha：原图点是近不透明的实墨（静态参数 0.92）；实频随能量在 0.30–0.92 间
+        // 呼吸，中性能量 0.5 时回到 0.92 与静态一致，上限与静态同值，保证实频帧的点
+        // 足迹不超过静态帧（v16 取证：旧上限 0.95 的满值硬碟也是点显大的成因之一）。
+        // 更旧的实频口径上限 0.62 全程半透明，是播放帧点田发虚、像罩了层纱的原因。
         const staticAlpha = 0.92
-        const liveAlpha = Math.min(0.95, 0.3 + 1.24 * energy)
+        const liveAlpha = Math.min(0.92, 0.3 + 1.24 * energy)
         const alpha = staticAlpha + (liveAlpha - staticAlpha) * blend
         paint.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`
         paint.beginPath()
