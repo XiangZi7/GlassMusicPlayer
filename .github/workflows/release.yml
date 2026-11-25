@@ -74,7 +74,24 @@ jobs:
       - run: pnpm check:native
       - run: pnpm check:storage
       - name: Build desktop packages
+        if: runner.os != 'macOS'
         run: pnpm release:build
+      - name: Build macOS disk image
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -eo pipefail
+          log="$RUNNER_TEMP/mirai-dmg-build.log"
+          if pnpm release:build 2>&1 | tee "$log"; then
+            exit 0
+          else
+            status=$?
+          fi
+          grep -Eq "hdiutil: couldn't eject .*Resource busy" "$log" || exit "$status"
+          echo "::warning::磁盘映像暂时被占用，15 秒后重试生成 DMG。"
+          sleep 15
+          pnpm exec tauri bundle --bundles dmg
+          node scripts/package-release.mjs
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: MiraiPlayer-${{ matrix.platform }}
