@@ -13,7 +13,8 @@ import { useEventListener, useResizeObserver } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { usePlayer } from '@/composables/usePlayer'
 
-defineProps<{ variant: 'titlebar' | 'page' }>()
+const props = defineProps<{ variant: 'titlebar' | 'page'; label?: string }>()
+const searchLabel = computed(() => props.label ?? (props.variant === 'titlebar' ? '搜索曲库' : '搜索歌曲、歌手'))
 const { state, controller } = usePlayer()
 const draft = toRef(state, 'queryDraft')
 const anchor = useTemplateRef<HTMLFormElement>('anchor')
@@ -223,8 +224,8 @@ onDeactivated(close)
       type="text"
       :data-top-search="variant === 'titlebar' ? '' : null"
       :data-search-input="variant === 'page' ? '' : null"
-      aria-label="搜索歌曲、歌手"
-      placeholder="搜索歌曲、歌手…"
+      :aria-label="searchLabel"
+      :placeholder="searchLabel + '…'"
       autocomplete="off"
       role="combobox"
       aria-autocomplete="list"

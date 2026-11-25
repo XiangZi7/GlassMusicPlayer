@@ -78,6 +78,7 @@ function spectrumAudio(longLyrics = false) {
   return wav
 }
 const stagePerformance = process.argv.includes('--stage-performance')
+const playlistSearch = process.argv.includes('--playlist-search')
 const wav = spectrumAudio(stagePerformance)
 
 let releasePlayback
@@ -123,6 +124,10 @@ async function runBrowserChecks() {
   const diagnostics = []
   // 故意让一次第二页失败，确保详情和快捷播放均不会使用半份歌单。
   let failPlaylistPage = ''
+  let oldSearchServer = false
+  let oldCapabilityRequested = false
+  let failSearchOnce = true
+  const playlistQueries = []
   socket.addEventListener('message', event => {
     const message = JSON.parse(event.data)
     if (message.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(message.params.type))
@@ -196,7 +201,29 @@ async function runBrowserChecks() {
       favoriteRequests.push([path, JSON.parse(request.postData).liked, request.headers.Authorization ?? request.headers.authorization])
       return send('Fetch.fulfillRequest', { requestId, responseCode: path.endsWith('/19') ? 503 : 204, responseHeaders: headers })
     }
-    if (path === '/v1/forecast' && new URL(request.url).hostname === 'api.open-meteo.com') {
+    if (playlistSearch && path === '/api/v1/platforms/playlist-search') {
+      if (oldSearchServer) {
+        oldCapabilityRequested = true
+        return send('Fetch.fulfillRequest', { requestId, responseCode: 404, responseHeaders: headers })
+      }
+      data = ['netease', 'kuwo']
+    } else if (playlistSearch && path.endsWith('/search/playlists')) {
+      const platform = path.split('/')[3]
+      const params = new URL(request.url).searchParams
+      const keyword = params.get('q')
+      const pageNum = Number(params.get('pageNum'))
+      playlistQueries.push({ platform, keyword, pageNum })
+      if (keyword === '慢查询') await delay(450)
+      if (keyword === '重试' && failSearchOnce) {
+        failSearchOnce = false
+        return send('Fetch.fulfillRequest', { requestId, responseCode: 503, responseHeaders: headers })
+      }
+      data = { platform, pageNum, pageSize: 10, total: keyword === '空结果' ? 0 : 11,
+        playlists: keyword === '空结果' ? [] : [{ id: platform === 'netease' ? '3779629' : '1082685104',
+          title: platform + ' ' + keyword + ' ' + pageNum, coverUrl: null, trackCount: 37 }] }
+    } else if (playlistSearch && path.endsWith('/search')) {
+      data = { platform: path.split('/')[3], pageNum: 1, pageSize: 10, total: 0, tracks: [] }
+    } else if (path === '/v1/forecast' && new URL(request.url).hostname === 'api.open-meteo.com') {
       data = { current_units: { time: 'unixtime', temperature_2m: '°C' },
         current: { time: Math.floor(Date.now() / 1000), temperature_2m: 23, weather_code: 51, is_day: 1 } }
     } else if (path === '/api/v1/netease/auth/recommendations/daily') {
@@ -564,6 +591,77 @@ async function runBrowserChecks() {
   await send('Page.navigate', { url: origin })
   // 冷启动需要下载完整的开发模块图，加载完成后各交互继续使用短超时。
   await until('播放器首页已布局', () => evaluate("document.querySelector('[data-top-search]')?.clientWidth > 0"), 900)
+  if (process.argv.includes('--playlist-filter')) {
+    const { checkPlaylistFilter } = await import('./check-playlist-filter.mjs')
+    await checkPlaylistFilter({ evaluate, waitFor, send, key, resize })
+    assert.deepEqual(errors, [])
+    return
+  }
+  if (playlistSearch) {
+    const panel = 'document.querySelector(\'[data-panel="search"]\')'
+    const category = `${panel}?.querySelector('[aria-label="搜索类型"]')`
+    const hit = `${panel}?.querySelector('.playlist-hit')`
+    // 使用页面输入框提交关键词，覆盖空格、中文和键盘交互。
+    async function search(word) {
+      await evaluate(`(() => { const i = ${panel}.querySelector('[data-search-input]'); i.focus();
+        i.value = ${JSON.stringify(word)}; i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+      await key('Enter', 13)
+    }
+    // 点击真实平台按钮，分别验证支持与不支持歌单搜索的平台。
+    async function selectPlatform(label) {
+      await evaluate(`[...${panel}.querySelectorAll('.src-chip')].find(b => b.textContent.includes('${label}')).click()`)
+    }
+    await evaluate("location.hash = '#/search'")
+    for (const style of ['glass', 'liquid']) {
+      const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', {
+        source: `localStorage.setItem('miraiMusic.preferences.v1', JSON.stringify({version:1,settings:{glassStyle:'${style}'}}))`,
+      })
+      await send('Page.reload', { ignoreCache: true })
+      await waitFor('服务端提供歌单搜索', `!!${category}?.closest('.${style}-win')`)
+      await send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+      await evaluate(`${category}.querySelector('[data-slide-value="playlists"]').click()`)
+      await search('民谣 城市')
+      await waitFor('网易云关键词与结果', `${hit}?.textContent.includes('netease 民谣 城市 1')`)
+      await waitFor('同一结果随材质更新', `!!${hit}?.closest('.${style}-win')`)
+      assert.equal(await evaluate(`getComputedStyle(${hit}).backgroundImage !== 'none'`), style === 'liquid')
+    }
+    await evaluate(`${panel}.querySelector('[aria-label="下一页"]').click()`)
+    await waitFor('歌单分页', `${hit}?.textContent.includes('netease 民谣 城市 2')`)
+    await evaluate(`${hit}.focus()`)
+    await key('Enter', 13)
+    await waitFor('打开同平台歌单详情', "location.hash.endsWith('/discovery/netease/3779629') && !!document.querySelector('[data-panel=discovery]')")
+    await evaluate('history.back()')
+    await waitFor('返回保留搜索页码', `${hit}?.textContent.includes('netease 民谣 城市 2')`)
+    await selectPlatform('酷我')
+    await waitFor('另一平台从第一页开始', `${hit}?.textContent.includes('kuwo 民谣 城市 1')`)
+    await resize(780, 620)
+    assert.ok(await evaluate(`${hit}.getBoundingClientRect().right <= window.innerWidth`))
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    await search('慢查询')
+    await until('慢请求已发出', () => playlistQueries.some(q => q.keyword === '慢查询'))
+    await search('空结果')
+    await waitFor('歌单空态', `${panel}?.textContent.includes('没有找到匹配的歌单')`)
+    await delay(500)
+    assert.equal(await evaluate(`!!${hit}`), false)
+    await search('重试')
+    await waitFor('失败可重试', `${panel}?.textContent.includes('重新搜索')`)
+    await evaluate(`[...${panel}.querySelectorAll('button')].find(b => b.textContent === '重新搜索').click()`)
+    await waitFor('重试成功', `${hit}?.textContent.includes('kuwo 重试 1')`)
+    await selectPlatform('酷狗')
+    await waitFor('无接口时保留歌曲搜索', `!${category} && ${panel}?.textContent.includes('没有找到匹配的歌曲')`)
+    await selectPlatform('本地')
+    await waitFor('本地曲库隐藏歌单搜索', `!${category} && !!${panel}?.querySelector('[data-search-label]')`)
+    assert.ok(playlistQueries.every(q => ['netease', 'kuwo'].includes(q.platform)))
+    oldSearchServer = true
+    await send('Page.reload', { ignoreCache: true })
+    await until('旧服务端返回能力接口缺失', () => oldCapabilityRequested)
+    await waitFor('旧版服务端仍可搜索歌曲', `!!${panel}?.querySelector('[data-search-input]') && !${category}`)
+    await search('旧版')
+    await waitFor('旧服务端歌曲结果正常返回', `!${category} && ${panel}?.textContent.includes('没有找到匹配的歌曲')`)
+    assert.deepEqual(errors, [])
+    console.log('歌单搜索的平台能力、分页、详情、重试和双材质回归通过')
+    return
+  }
   if (process.argv.includes('--library-controls')) {
     const { checkLibraryControls } = await import('./check-library-controls.mjs')
     // 仅在请求截图的验收运行中保留两种材质和排版预览。

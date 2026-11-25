@@ -67,7 +67,8 @@ function play(index: number, order: number[]): void {
 
 <template>
   <div ref="root" class="page-panel active discovery-detail" data-panel="discovery">
-    <PlaylistLayout list-key="discovery" :title="metadata?.title || '公开歌单'"
+    <PlaylistLayout :key="platform + ':' + id" v-slot="{ indices: matching }" list-key="discovery"
+      :tracks="rows" :indices="indices" :title="metadata?.title || '公开歌单'"
       :description="platformNames[platform]" :cover="metadata?.coverUrl || metadata?.tracks[0]?.coverUrl || undefined"
       :meta="total != null ? '共 ' + total + ' 首' : ''" :playable="!!rows.length && !!list" :show-list-tools="!!rows.length" @play="list?.playFirst()">
       <Transition name="playlist-content" mode="out-in" :css="state.settings.motion">
@@ -75,7 +76,7 @@ function play(index: number, order: number[]): void {
           <p role="status">{{ detail.error || (detail.count ? '已读取 ' + detail.count + ' 首…' : '正在读取完整歌单…') }}</p>
           <BaseButton v-if="detail.error" class="rounded-full border border-white/20 px-4 py-2" @click="detail.retry++">重新获取</BaseButton>
         </div>
-        <TrackList v-else ref="list" :source-tracks="rows" :indices="indices" list-key="discovery" play-as-queue
+        <TrackList v-else ref="list" :source-tracks="rows" :indices="matching" list-key="discovery" play-as-queue
           empty="歌单里没有可读取的曲目。" @play-source="play" />
       </Transition>
     </PlaylistLayout>

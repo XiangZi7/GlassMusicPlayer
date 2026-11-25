@@ -25,6 +25,8 @@
     "check:fullscreen": "node scripts/check-fullscreen.mjs",
     "check:equalizer": "node scripts/check-equalizer.mjs",
     "check:player-ui": "node scripts/check-home-settings.mjs",
+    "check:playlist-search": "node scripts/check-home-settings.mjs --playlist-search",
+    "check:playlist-filter": "node scripts/check-home-settings.mjs --playlist-filter",
     "check:library-controls": "node scripts/check-home-settings.mjs --library-controls",
     "check:loading": "node scripts/check-home-settings.mjs --loading",
     "check:stage-performance": "node scripts/check-home-settings.mjs --stage-performance",

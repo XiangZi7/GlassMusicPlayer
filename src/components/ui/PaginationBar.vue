@@ -8,8 +8,9 @@ const props = withDefaults(
     total: number
     slots?: (number | string)[]
     pageSize?: number
+    unit?: '首' | '个歌单'
   }>(),
-  { pageSize: 10 }
+  { pageSize: 10, unit: '首' }
 )
 const current = defineModel<number>('current', { default: 1 })
 const root = useTemplateRef<HTMLElement>('root')
@@ -35,7 +36,7 @@ function go(page: number): void {
     ref="root"
     class="pager m-[18px_auto_6px] flex w-[fit-content] max-w-[100%] flex-wrap items-center justify-center gap-[3px] rounded-full p-[5px]"
     :data-vue-pager="pageKey"
-    aria-label="歌曲分页"
+    :aria-label="unit === '首' ? '歌曲分页' : '歌单分页'"
   >
     <BaseButton
       class="pg-btn h-[34px] min-w-[34px] place-items-center rounded-full border-none bg-transparent p-[0_7px] font-mono text-[12.5px] font-extrabold text-inherit"
@@ -90,7 +91,7 @@ function go(page: number): void {
     ></BaseButton>
     <span
       class="pg-total m-[0_8px_0_6px] text-[11px] font-bold whitespace-nowrap opacity-[.6]"
-      >共 {{ total }} 首</span
+      >共 {{ total }} {{ unit }}</span
     ><span
       class="pg-pill pointer-events-none absolute top-[0] left-[0] z-[0] rounded-full opacity-[0]"
       data-slide-pill

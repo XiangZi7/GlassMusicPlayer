@@ -49,6 +49,14 @@ export interface PublicPlaylistSummary {
   trackCount: number | null
 }
 
+export interface PlaylistSearchPage {
+  platform: MusicPlatform
+  pageNum: number
+  pageSize: number
+  total: number | null
+  playlists: PublicPlaylistSummary[]
+}
+
 export interface PublicUserPlaylists {
   platform: PublicProfilePlatform
   userId: string
@@ -81,6 +89,20 @@ export function searchCatalog(
   return httpGet<CatalogPage>(`/${platform}/search`, {
     params: { q, pageNum, pageSize },
     signal,
+  })
+}
+
+// 读取当前服务已接通歌单搜索的平台。
+export function getPlaylistSearchPlatforms(signal: AbortSignal) {
+  return httpGet<MusicPlatform[]>('/platforms/playlist-search', { signal })
+}
+
+// 按关键词搜索所选平台的公开歌单，列表仅获取摘要。
+export function searchCatalogPlaylists(
+  platform: MusicPlatform, q: string, pageNum: number, pageSize: number, signal: AbortSignal
+) {
+  return httpGet<PlaylistSearchPage>(`/${platform}/search/playlists`, {
+    params: { q, pageNum, pageSize }, signal,
   })
 }
 
