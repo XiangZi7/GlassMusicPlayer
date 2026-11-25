@@ -309,10 +309,9 @@ function focusPlayer(): void {
   padding: 32px;
 }
 .island-notification { top: 32px; }
-/* 灵动岛播放态波普点缀：均衡器柱走 bg-current，播放时把柱色染成 pop-yellow（ON AIR 式黄点），暂停回到白色。 */
-.island-trigger.playing .cap-eq {
-  color: var(--pop-yellow);
-}
+/* 灵动岛均衡器柱走 bg-current，颜色随触发按钮的白色文字色，播放与暂停都保持白色。
+   波普轮曾把播放态柱色染成 pop-yellow，用户要求恢复白色，故不再有任何播放态颜色覆盖；
+   柱子的动画节奏在全局样式的 .cap-eq 关键帧里，本次不动。 */
 .liquid-win .island-surface {
   border-color: rgb(255 255 255 / 48%);
   background: linear-gradient(160deg, rgb(58 58 74 / 98.5%), rgb(20 20 33 / 98%));

@@ -158,7 +158,9 @@ export function createDefaultSettings() {
     sleep: '关闭',
     deskLyrics: true,
     deskLock: false,
-    lyricIsland: true,
+    // 灵动岛默认不启动：首次启动不创建桌面小窗，用户在设置里开启后才按需创建；
+    // 已保存过偏好的用户仍以存量值为准（store 初始化时本地存储优先于此默认值）。
+    lyricIsland: false,
     lyricIslandSnap: true,
     trayMini: true,
     smtc: false,
