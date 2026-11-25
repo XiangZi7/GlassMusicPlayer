@@ -26,6 +26,8 @@ import {
   type PlayerSettings,
 } from '@/stores/player'
 import { notify } from '@/services/notification'
+import { isValidUpdateProxy } from '@/services/update-preferences'
+import { useAppUpdaterStore } from '@/stores/app-updater'
 import { setCloseToTray } from '@/services/desktop'
 import { defaultCover } from '@/constants/music'
 import { getStorageInfo, updateStorageConfig } from '@/services/storage'
@@ -41,6 +43,7 @@ const {
   saveIslandPreferences,
   savePreferences,
 } = usePlayerStore()
+const updater = useAppUpdaterStore()
 const router = useRouter()
 const navigation = useTemplateRef<HTMLElement>('navigation')
 const content = useTemplateRef<HTMLElement>('content')
@@ -105,7 +108,7 @@ const sections: {
     key: 'about',
     label: '关于',
     title: '关于播放器',
-    description: '应用信息与数据来源。',
+    description: '检查播放器更新，查看应用信息与数据来源。',
     icon: 'M12 8h.01M11 12h1v5m9-5a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
     chip: 'var(--pop-blue)',
   },
@@ -203,6 +206,13 @@ function applySnapshot(snapshot: SettingsSnapshot): void {
 // 一次提交整份草稿；成功后更新基线，让取消只撤销之后的修改。
 async function applySettings(): Promise<boolean> {
   if (!state.ready || state.saving) return false
+  const proxy = playerState.settings.updateDownloadProxy.trim()
+  if (playerState.settings.updateSource === 'custom' && !isValidUpdateProxy(proxy)) {
+    selectSection('about')
+    notify('请填写有效的 HTTPS 转发地址，地址中不能包含账号、查询参数或片段。', 'error')
+    return false
+  }
+  playerState.settings.updateDownloadProxy = isValidUpdateProxy(proxy) ? proxy : ''
   state.saving = true
   const action: SettingsAction = {
     kind: 'apply',
@@ -228,6 +238,7 @@ async function applySettings(): Promise<boolean> {
     } else {
       saveIslandPreferences()
       savePreferences()
+      updater.applyPreferences(action.settings)
     }
     Object.assign(state.baseline, action.settings)
     state.baselinePanel = action.npOpen

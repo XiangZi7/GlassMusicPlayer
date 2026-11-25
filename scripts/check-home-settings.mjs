@@ -12,6 +12,8 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 // 使用现有开发服务器和独立 Edge 配置，只在测试浏览器内写入歌单样本。
 const origin = 'http://127.0.0.1:' + (process.env.MIRAI_QA_PORT || '1420')
+const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, '../package.json'), 'utf8'))
+let fixtureRelease = pkg.version
 const favoritesTitle = '喜欢的音乐'
 const edge =
   process.env.MIRAI_EDGE_EXECUTABLE ||
@@ -187,6 +189,17 @@ async function runBrowserChecks() {
       return send('Fetch.continueRequest', { requestId })
     }
     const headers = [{ name: 'Access-Control-Allow-Origin', value: origin }]
+    if (path.endsWith('/XiangZi7/MiraiPlayer/releases/latest') || path.endsWith('/releases/latest/download/version.json')) {
+      const direct = path.endsWith('/releases/latest')
+      const data = direct
+        ? { tag_name: 'v' + fixtureRelease, prerelease: false, draft: false }
+        : { name: 'MiraiPlayer', version: fixtureRelease, tag: 'v' + fixtureRelease, prerelease: false }
+      return send('Fetch.fulfillRequest', {
+        requestId, responseCode: fixtureRelease ? 200 : 503,
+        responseHeaders: [...headers, { name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(JSON.stringify(data)).toString('base64'),
+      })
+    }
     let data
     if (process.argv.includes('--library-controls') && path === '/api/v1/netease/search') {
       return send('Fetch.fulfillRequest', {
@@ -576,6 +589,8 @@ async function runBrowserChecks() {
   await send('Runtime.enable')
   await send('Fetch.enable', {
     patterns: [
+      { urlPattern: 'https://api.github.com/repos/XiangZi7/MiraiPlayer/releases/latest' },
+      { urlPattern: '*/XiangZi7/MiraiPlayer/releases/latest/download/version.json' },
       { urlPattern: '*/api/v1/*' },
       { urlPattern: '*/components/equalizer-panel.vue*' },
       { urlPattern: '*/components/storage-panel.vue*' },
@@ -677,7 +692,17 @@ async function runBrowserChecks() {
     return
   }
   if (process.argv.includes('--about')) {
-    const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, '../package.json'), 'utf8'))
+    const { checkUpdateTitlebar } = await import('./check-update-titlebar.mjs')
+    // 按需留存两个入口在各自窗口和材质下的实际画面。
+    async function capture(label) {
+      if (!process.argv.includes('--screenshots')) return
+      await waitFor('截图前等待过渡和临时提示结束', "!document.querySelector('.settings-section-enter-active,.update-fade-enter-active,.notification-toast')")
+      const { data } = await send('Page.captureScreenshot', { format: 'png' })
+      const file = join(profile, label + '.png')
+      writeFileSync(file, Buffer.from(data, 'base64'))
+      console.log(file)
+    }
+    await checkUpdateTitlebar({ evaluate, waitFor, key, resize, capture })
     await send('Page.navigate', { url: origin + '/#/settings' })
     await resize(760, 520)
     for (const [setting, material] of [['frosted', 'glass-win'], ['liquid', 'liquid-win']]) {
@@ -696,8 +721,49 @@ async function runBrowserChecks() {
         return [node.href, node === document.activeElement, rect.left >= 0 && rect.right <= innerWidth]
       })()`)
       assert.deepEqual(link, [pkg.homepage, true, true])
+      assert(await evaluate(`(() => {
+        const panel = document.querySelector('#app-update-heading')?.closest('section')
+        return panel?.querySelector('button[role="switch"]') && panel.querySelector('select')?.length === 5 &&
+          panel.querySelector('.update-action')?.getBoundingClientRect().right <= innerWidth
+      })()`))
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('#update-source')).backgroundImage.includes('gradient')"), material === 'liquid-win')
+      await evaluate("document.querySelector('main .panel-scroll').scrollTo({top:0})")
+      await capture('about-updates-' + setting)
       console.log('PASS ' + material + ' 关于页版本、项目链接及键盘焦点')
     }
+    // 真实点击和键盘驱动两个入口，用隔离的 GitHub 响应覆盖已最新、离线重试和发现新版。
+    const action = "document.querySelector('.update-summary .update-primary')"
+    const status = "document.querySelector('.update-title')?.textContent"
+    const selectRoute = value => evaluate(`(() => {
+      const select = document.querySelector('#update-source')
+      select.value = ${JSON.stringify(value)}
+      select.dispatchEvent(new Event('change', {bubbles:true}))
+    })()`)
+    const apply = "[...document.querySelectorAll('footer button')].find(b => b.textContent.trim() === '应用')"
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    await selectRoute('custom')
+    await waitFor('自定义线路显示地址', "!!document.querySelector('#update-proxy')")
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('#update-proxy').parentElement).transitionDuration"), '0s')
+    await evaluate(`${apply}.click()`)
+    await waitFor('无效地址提示', "document.querySelector('.notification-toast')?.textContent.includes('HTTPS')")
+    await selectRoute('github')
+    await evaluate("document.querySelector('button[aria-label=自动检查更新]').click()")
+    await evaluate(`${apply}.click()`)
+    await waitFor('更新偏好持久化', "JSON.parse(localStorage.getItem('miraiMusic.preferences.v1')).settings.updateSource === 'github' && JSON.parse(localStorage.getItem('miraiMusic.preferences.v1')).settings.autoUpdate === false")
+    await evaluate(`${action}.focus()`)
+    await key('Enter', 13)
+    await waitFor('手动检查已最新', `${status}?.includes('当前已是最新版本')`)
+    fixtureRelease = ''
+    await evaluate(`${action}.click()`)
+    await waitFor('离线后可重试', `${action}?.textContent === '重试' && !!document.querySelector('.update-summary details')`)
+    fixtureRelease = '999.1.2'
+    await evaluate(`${action}.click()`)
+    await waitFor('手动下载版本可见', `${status}?.includes('999.1.2') && ${action}?.textContent === '前往下载'`)
+    await evaluate("document.querySelector('button[aria-label=自动检查更新]').click()")
+    await evaluate("[...document.querySelectorAll('footer button')].find(b => b.textContent.trim() === '取消').click()")
+    await waitFor('返回主窗口显示相同版本', "document.querySelector('[data-update-trigger]')?.getAttribute('aria-label')?.includes('999.1.2')")
+    assert.equal(await evaluate("JSON.parse(localStorage.getItem('miraiMusic.preferences.v1')).settings.autoUpdate"), false)
+    console.log('PASS 检查更新真实按钮、模拟发行结果、网络失败重试、偏好应用与取消、两个入口共享版本')
     assert.deepEqual(errors, [])
     return
   }

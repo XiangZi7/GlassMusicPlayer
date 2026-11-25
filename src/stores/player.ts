@@ -132,6 +132,12 @@ export type SortMode = 'def' | 'title' | 'artist' | 'dur'
 // 设置弹窗重置和播放器首次启动共用原稿默认值，每次返回独立对象。
 export function createDefaultSettings() {
   return {
+    // 启动后及使用期间定时发现新版本，下载由用户触发。
+    autoUpdate: true,
+    // 已应用的更新下载线路。
+    updateSource: 'auto',
+    // 自定义 HTTPS 转发前缀。
+    updateDownloadProxy: '',
     // 关闭主窗口时收起到系统托盘并继续播放。
     closeToTray: true,
     gapless: true,

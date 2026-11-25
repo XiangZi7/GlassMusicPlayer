@@ -9,6 +9,7 @@ import { publicAvatar } from '@/services/public-avatar'
 import { usePlayerStore } from '@/stores/player'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlayerSearchBox from '@/components/player/PlayerSearchBox.vue'
+import PlayerUpdateControl from '@/components/player/PlayerUpdateControl.vue'
 import AccountMenu from '@/components/player/AccountMenu.vue'
 import LocalWeather from '@/components/player/LocalWeather.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
@@ -111,6 +112,7 @@ function openSettings(): void {
     <PlayerSearchBox variant="titlebar" />
     <LocalWeather :enabled="settings.weather" :motion="settings.motion" />
     <div class="titlebar-account-actions flex flex-none items-center gap-1">
+      <PlayerUpdateControl :motion="settings.motion" />
       <BaseButton
         type="button"
         class="titlebar-settings grid size-9 place-items-center rounded-[10px] bg-transparent text-white/65 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75"

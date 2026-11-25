@@ -15,6 +15,14 @@ export const releaseTargets = {
   ],
 }
 
+// 每个可升级的安装方式对应 Tauri 静态更新清单中的平台与文件。
+export const updaterTargets = {
+  windows_x64: { key: 'windows-x86_64', extension: 'setup.exe' },
+  macos_x64: { key: 'darwin-x86_64', extension: 'app.tar.gz' },
+  macos_arm64: { key: 'darwin-aarch64', extension: 'app.tar.gz' },
+  linux_x64: { key: 'linux-x86_64', extension: 'AppImage' },
+}
+
 // 按平台拼出用户下载的文件名。
 export function assetName(version, platform, { extension }) {
   const separator = platform === 'windows_x64' ? '_' : '.'

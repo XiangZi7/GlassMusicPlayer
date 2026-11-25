@@ -28,6 +28,7 @@ if (process.platform !== 'win32') {
     '--lib',
     'desktop::',
   ])
+  run(cargo, ['test', '--locked', '--manifest-path', manifestPath, '--lib', 'updater::'])
 } else {
   // Windows 的 Tauri 单元测试没有应用 EXE 的 Common-Controls v6 声明。
   // 仅为 cargo 生成的测试产物附加相同声明，不修改源码、主程序或系统库。
@@ -129,6 +130,7 @@ if (process.platform !== 'win32') {
     '-nologo',
   ])
   run(executable, ['desktop::'])
+  run(executable, ['updater::'])
   run(executable, ['playback_credential::vault::windows_vault_round_trip'])
 }
 console.log(

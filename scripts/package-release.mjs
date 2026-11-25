@@ -4,7 +4,7 @@ import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'nod
 import { join, resolve } from 'node:path'
 import './check-release.mjs'
 import { parseReleaseTag } from './release-version.mjs'
-import { assetName, checksum, releaseTargets } from './release-targets.mjs'
+import { assetName, checksum, releaseTargets, updaterTargets } from './release-targets.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const { version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -21,9 +21,23 @@ const release = join(root, 'src-tauri/target/release')
 const output = join(root, 'src-tauri/target/distribution', version, platform)
 await mkdir(output, { recursive: true })
 const names = []
+const updater = process.env.TAURI_UPDATER_PUBLIC_KEY?.trim() ? updaterTargets[platform] : undefined
+const artifacts = [...targets]
+if (updater?.extension === 'app.tar.gz') {
+  artifacts.push({ ...updater, folder: 'macos', filename: 'MiraiPlayer.app.tar.gz' })
+}
+
+// 先检查安装文件或签名，再原子替换分发目录中同名的产物。
+async function collect(source, name) {
+  if (!(await stat(source)).size) throw new Error('构建产物为空 ' + source)
+  const temporary = join(output, randomUUID() + '.partial')
+  await copyFile(source, temporary)
+  await rename(temporary, join(output, name))
+  names.push(name)
+}
 
 // 只收集本次版本的原生安装包，有歧义或缺少产物时中止。
-for (const target of targets) {
+for (const target of artifacts) {
   const name = assetName(version, platform, target)
   if (target.extension === 'portable.zip') {
     const temporary = join(output, randomUUID() + '.zip')
@@ -34,16 +48,13 @@ for (const target of targets) {
   }
   const { folder, sourceSuffix } = target
   const folderPath = join(release, 'bundle', folder)
-  const matches = (await readdir(folderPath)).filter(file =>
-    file.includes('_' + version + '_') && file.endsWith(sourceSuffix)
-  )
+  const matches = (await readdir(folderPath)).filter(file => target.filename
+    ? file === target.filename
+    : file.includes('_' + version + '_') && file.endsWith(sourceSuffix))
   if (matches.length !== 1) throw new Error('应有一个匹配版本的 ' + folder + ' 安装包，找到 ' + matches.length)
   const source = join(folderPath, matches[0])
-  if (!(await stat(source)).size) throw new Error('安装包为空 ' + source)
-  const temporary = join(output, randomUUID() + '.partial')
-  await copyFile(source, temporary)
-  await rename(temporary, join(output, name))
-  names.push(name)
+  await collect(source, name)
+  if (target.extension === updater?.extension) await collect(source + '.sig', name + '.sig')
 }
 
 await writeFile(join(output, 'version.json'), JSON.stringify(metadata, null, 2) + '\n')

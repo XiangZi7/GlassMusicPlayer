@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import * as updatePreferences from '../src/services/update-preferences.ts'
 import { reactive, toRefs } from 'vue'
 import {
   parse,
@@ -449,7 +450,10 @@ console.log(
 const preferencesStorage = new Map()
 const preferences = loadTs(
   'src/services/player/preferences.ts',
-  { '@/constants/music': { defaultCover: '/images/test-cover.webp' } },
+  {
+    '@/constants/music': { defaultCover: '/images/test-cover.webp' },
+    '@/services/update-preferences': updatePreferences,
+  },
   {
     localStorage: {
       getItem: key => preferencesStorage.get(key) ?? null,

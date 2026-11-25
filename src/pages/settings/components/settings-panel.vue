@@ -3,6 +3,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import { playbackQualities } from '@/constants/music'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import DeferredSettingsPanel from '@/pages/settings/components/deferred-settings-panel.vue'
+import AppUpdatePanel from '@/pages/settings/components/app-update-panel.vue'
 import { toRefs } from 'vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SettingsSection } from '@/types/settings'
@@ -474,8 +475,10 @@ function updateCrossfade(event: Event): void {
       </section></template
     >
     <!-- 设置分组：保留原稿控件，按左侧分类展示。 -->
-    <template v-if="section === 'about'"
-      ><section>
+    <template v-if="section === 'about'">
+      <!-- 关于页的更新操作与已安装的播放器信息。 -->
+      <AppUpdatePanel />
+      <section>
         <h3
           class="pg-secttl m-[0_2px_8px] text-[11px] font-extrabold tracking-[.11em] opacity-[.6]"
         >

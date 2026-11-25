@@ -50,9 +50,25 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 默认补丁版本从本地应用版本及远端、本地版本标签中的最高版本递增。如果要首次发布当前已设置的版本，先运行 `pnpm check:release`，在干净的发布提交上手动创建并推送与该版本一致的注解标签。
 
-版本标签触发四个构建任务。发布任务核对每个平台的源提交、版本、架构和 SHA-256，根据上次公开版本以来的提交生成中文更新日志与安装包直链。八个附件上传完成后公开 Release。预发布标签会标为 *Pre-release*。
+版本标签触发四个构建任务。发布任务核对每个平台的源提交、版本、架构和 SHA-256，根据上次公开版本以来的提交生成中文更新日志与安装包直链。全部附件上传完成后公开 Release。预发布标签会标为 *Pre-release*。
 
 构建失败可重跑失败任务，或在工作流手动运行时填写已推送的版本标签。已有草稿会继续上传；已公开的版本受到保护。普通主分支推送和留空标签的手动运行只产生开发包。
+
+### 启用应用内更新
+
+正式版通过 GitHub Releases 的 `version.json` 检查版本。两项签名配置均留空时，流程继续发布六种分发包、版本信息和校验清单，用户可在发行页获取新版本。
+
+要启用应用内下载和安装，在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置下表。使用 Tauri 签名工具生成的本项目密钥对，并离线备份私钥与密码。已安装的客户端会使用内置公钥验证后续更新，后续版本应沿用同一对密钥。[Tauri 更新签名说明](https://v2.tauri.app/plugin/updater/#signing-updates)
+
+| 名称 | 类型 | 填写内容 |
+| --- | --- | --- |
+| `TAURI_UPDATER_PUBLIC_KEY` | Variable | Tauri 生成的 `.pub` 文件内容 |
+| `TAURI_SIGNING_PRIVATE_KEY` | Secret | 对应私钥文件的内容 |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Secret | 生成密钥时设置的密码，无密码时留空 |
+
+版本标签构建时，工作流将公钥编入应用并签名 Windows NSIS、两个架构的 macOS 应用归档和 Linux AppImage。发布任务用同一公钥验证各文件，并将签名记录的版本与 Git 标签核对。通过后，随版本上传四个签名、两个 macOS 更新归档和 `latest.json`，并在 `version.json` 标记 `updater: true`。只配置公钥或私钥其中一项时，构建会报告缺项。
+
+用户首次安装内置公钥的版本后，即可在后续正式版发布时从右上角或「设置 → 关于」更新。Windows 免安装版和 Linux DEB 通过发行页更新。可用 `pnpm test:release` 检查不同平台的文件映射、版本清单、签名配置和缺件处理。
 
 ### 排查失败步骤
 

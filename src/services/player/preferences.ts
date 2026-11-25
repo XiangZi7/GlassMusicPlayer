@@ -1,5 +1,6 @@
 import type { SourceTrack } from '@/types/prototype'
 import { defaultCover } from '@/constants/music'
+import { isUpdateSource, isValidUpdateProxy } from '@/services/update-preferences'
 
 type SettingValue = string | number | boolean
 export interface PlayerPreferences<T extends Record<string, SettingValue>> {
@@ -150,6 +151,13 @@ export function readPlayerPreferences<T extends Record<string, SettingValue>>(
         continue
       Object.assign(result.settings, { [key]: value })
     }
+    if ('updateSource' in defaults && (
+      !isUpdateSource(String(result.settings.updateSource)) ||
+      (result.settings.updateSource === 'custom' && !isValidUpdateProxy(String(result.settings.updateDownloadProxy)))
+    )) Object.assign(result.settings, { updateSource: defaults.updateSource })
+    if ('updateDownloadProxy' in defaults && !isValidUpdateProxy(String(result.settings.updateDownloadProxy))) {
+      Object.assign(result.settings, { updateDownloadProxy: '' })
+    }
     if (typeof saved.volume === 'number' && Number.isFinite(saved.volume))
       result.volume = Math.max(0, Math.min(100, saved.volume))
     result.muted = saved.muted === true
@@ -197,6 +205,9 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
           Object.entries(preferences.settings).filter(([key]) =>
             [
               'closeToTray',
+              'autoUpdate',
+              'updateSource',
+              'updateDownloadProxy',
               'gapless',
               'crossfadeOn',
               'normalize',

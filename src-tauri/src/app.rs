@@ -12,7 +12,11 @@ pub fn run() {
         .manage(storage::StorageState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            crate::updater::updater_check_source,
+            crate::updater::updater_can_install,
+            crate::updater::updater_restart,
             crate::playback_credential::read_playback_credential,
             crate::playback_credential::write_playback_credential,
             windows::open_desktop_window,

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import * as updatePreferences from '../src/services/update-preferences.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
 const compile = file =>
@@ -116,6 +117,7 @@ function harness(options = {}) {
     URL,
     require: name => {
       if (name === '@/constants/music') return musicModule.exports
+      if (name === '@/services/update-preferences') return updatePreferences
       throw new Error(`Unexpected preference dependency ${name}`)
     },
   })

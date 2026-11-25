@@ -53,6 +53,7 @@ jobs:
           run_install: false
           cache: true
       - run: pnpm install --frozen-lockfile
+      - run: node --test tests/app-updater.test.mjs
       - name: Install Linux desktop and media libraries
         if: runner.os == 'Linux'
         run: |
@@ -74,13 +75,17 @@ jobs:
       - run: pnpm check:native
       - run: pnpm check:storage
       - name: Build desktop packages
-        if: runner.os != 'macOS'
-        run: pnpm release:build
-      - name: Build macOS disk image
-        if: runner.os == 'macOS'
         shell: bash
+        env:
+          TAURI_UPDATER_PUBLIC_KEY: ${{ env.RELEASE_TAG != '' && vars.TAURI_UPDATER_PUBLIC_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.RELEASE_TAG != '' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ env.RELEASE_TAG != '' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         run: |
           set -eo pipefail
+          if [[ "$RUNNER_OS" != macOS ]]; then
+            pnpm release:build
+            exit 0
+          fi
           log="$RUNNER_TEMP/mirai-dmg-build.log"
           if pnpm release:build 2>&1 | tee "$log"; then
             exit 0
@@ -90,7 +95,7 @@ jobs:
           grep -Eq "hdiutil: couldn't eject .*Resource busy" "$log" || exit "$status"
           echo "::warning::磁盘映像暂时被占用，15 秒后重试生成 DMG。"
           sleep 15
-          pnpm exec tauri bundle --bundles dmg
+          node scripts/release-build.mjs --bundle-only
           node scripts/package-release.mjs
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -111,6 +116,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ inputs.tag || github.ref_name }}
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -132,6 +138,15 @@ jobs:
           commit=$(git rev-parse HEAD)
           node scripts/assemble-release.mjs "$TAG" "$commit" release-input release-output
           (cd release-output && sha256sum --check --strict SHA256SUMS.txt)
+          if [[ -f release-output/latest.json ]]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y minisign
+            printf '%s' "$TAURI_UPDATER_PUBLIC_KEY" | base64 --decode > "$RUNNER_TEMP/updater.pub"
+            for sig in release-output/*.sig; do
+              base64 --decode "$sig" > "$RUNNER_TEMP/updater.minisig"
+              node scripts/verify-update-signature.mjs "$TAG" "$RUNNER_TEMP/updater.pub" "$RUNNER_TEMP/updater.minisig" "${sig%.sig}"
+            done
+          fi
           object=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object')
           while [[ $(jq -r '.type' <<< "$object") == tag ]]; do
             tag_sha=$(jq -r '.sha' <<< "$object")
