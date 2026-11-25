@@ -110,31 +110,25 @@ function watchDotsMode(): void {
   })
 }
 
-// 把插画当前可见矩形（归一化坐标）写入点阵画布的 dataset：频谱服务据此把画布点映射回
-// 插画坐标采样点田剖面。窗口变窄、object-position 右移时矩形随之更新，点田始终贴着
-// 人物轮廓，而不是钉死在横幅盒子上。
+// 把插画在点阵画布上的覆盖矩形（归一化坐标）写入画布 dataset：频谱服务据此把画布点
+// 映射回插画坐标采样点田剖面。取景由 .banner-art 的统一变换承担、三层图与画布同盒同
+// 尺寸，所以这里不复算任何裁切公式，直接量两者的实际渲染矩形作差——取景参数怎么改，
+// 点田都自动跟着同一套几何走，不会各算一套而错位。
 function syncDotsGeometry(): void {
   const section = bannerRef.value
   const image = landscapeRef.value
   if (!section || !image) return
   const canvas = section.querySelector<HTMLCanvasElement>('[data-halftone-dots]')
   if (!canvas) return
-  const boxW = image.clientWidth
-  const boxH = image.clientHeight
-  if (!boxW || !boxH) return
-  const iw = image.naturalWidth || 2736
-  const ih = image.naturalHeight || 912
-  const position = getComputedStyle(image).objectPosition.split(' ')
-  const px = (parseFloat(position[0] ?? '50') || 0) / 100
-  const py = (parseFloat(position[1] ?? '36') || 0) / 100
-  const scale = Math.max(boxW / iw, boxH / ih)
-  const dw = iw * scale
-  const dh = ih * scale
-  const ox = (boxW - dw) * px
-  const oy = (boxH - dh) * py
-  const rect = [-ox / dw, -oy / dh, (boxW - ox) / dw, (boxH - oy) / dh].map(n =>
-    n.toFixed(4)
-  )
+  const artRect = image.getBoundingClientRect()
+  const canvasRect = canvas.getBoundingClientRect()
+  if (!artRect.width || !artRect.height) return
+  const rect = [
+    (canvasRect.left - artRect.left) / artRect.width,
+    (canvasRect.top - artRect.top) / artRect.height,
+    (canvasRect.right - artRect.left) / artRect.width,
+    (canvasRect.bottom - artRect.top) / artRect.height,
+  ].map(n => n.toFixed(4))
   const keys = ['imgU0', 'imgV0', 'imgU1', 'imgV1'] as const
   keys.forEach((key, index) => {
     if (canvas.dataset[key] !== rect[index]) canvas.dataset[key] = rect[index]
@@ -374,39 +368,60 @@ onBeforeUnmount(() => {
     height: 238px;
   }
 }
-/* 波普插画全幅铺满：左半自带深蓝留白承载文案列，右侧人物与贴纸完整透出，色彩由插画承担。
-   裁切对齐参照 hero：人物右置、脸落在上三分之一（纵向 36%），横向略偏右让人物区更靠右。 */
+/* 三层图只负责把 .banner-art 包裹层铺满：包裹层与原图同宽高比（2736:912），cover
+   没有多余空间可裁，object-position 在这里不再起作用——取景（放大窗口与锚点）统一
+   由 .banner-art 的尺寸与 translate 承担，三层与点阵画布共用同一套几何。 */
 .home-topbar .banner-landscape {
   width: 100%;
   mask-image: none;
-  object-position: 62% 36%;
   opacity: 1;
 }
-/* 罩面对齐参照 hero 的 shade：左侧深蓝 55% 起、34% 处收至 18%、55% 后全透；
-   底部再叠一道渐隐与页面衔接。 */
+/* 罩面只罩左侧文字区：横向深蓝从 58% 起、33% 处全透，右 2/3 艺术区不罩，保持原图
+   本色；底部渐隐只落在左 55% 宽、底 30% 高的角落（background-size 限定），与页面
+   衔接的同时不压人物与贴纸。放大取景后左区底图是点田，文字可读性就靠这道局部罩。 */
 .home-topbar .banner-bg::after {
   background:
-    linear-gradient(90deg, rgb(9 22 54 / 55%), rgb(9 22 54 / 18%) 34%, transparent 55%),
-    linear-gradient(0deg, rgb(10 8 18 / 42%), transparent 34%);
+    linear-gradient(90deg, rgb(9 22 54 / 58%), rgb(9 22 54 / 26%) 20%, transparent 33%),
+    linear-gradient(0deg, rgb(10 8 18 / 40%), transparent 100%);
+  background-size:
+    100% 100%,
+    55% 30%;
+  background-position:
+    0 0,
+    0 100%;
+  background-repeat: no-repeat;
 }
-/* 窄窗时裁切窗口右偏：人物保持完整入框，文字仍落在左侧平整的深蓝留白上。 */
-@container (max-width: 700px) {
-  .home-topbar .banner-landscape {
-    object-position: 88% 36%;
-  }
-}
-/* 层栈包裹层：占满背景盒，背景图、静态点层图、点阵画布、人物图同盒同裁切上下叠放
-   （banner-landscape 类名规则对三张图一致生效）。状态切换只在点层图与画布之间交叉
-   淡化，背景与人物纹丝不动。 */
+/* 层栈包裹层 = 全横幅唯一的取景层：背景图、静态点层图、点阵画布、人物图在里面同盒
+   同尺寸叠放，取景只由这一层的尺寸与 translate 决定，各层不再各算裁切。
+   取景按用户参考图配准（黄星/笑脸/闪电四地标均匀缩放拟合，残差 <1px）：参考图里
+   原图显示宽是画面宽的 1.637 倍、右边缘与画面右缘对齐，所以这里宽度取盒宽的
+   1/0.611、translateX -38.9%（可见窗 u 38.9%→100%）；纵向按眼线对齐参考图
+   （眼睛带中心在原图 38.5%，落在画高约 35%），发顶 3%、下巴 67.5% 的实测下
+   translateY 取 -18.5%，可见头高约占横幅高 86%。translate 百分比以包裹层自身
+   尺寸为基准，盒宽怎么变窗口比例都不变；展开/折叠切换时与横幅高度同拍过渡。 */
 .banner-art {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: calc(100% / 0.611);
+  aspect-ratio: 2736 / 912;
+  transform: translate(-38.9%, -18.5%);
+  transition: transform 220ms ease;
 }
-/* 迷你条里的人物裁切单独对准眼睛带：实测原图眼睛带在纵向 35%–42%、中心约 38.5%，
-   58px 通栏 cover 裁切下纵向取 36% 时眼睛正落在条的中线上（31% 时眼睛偏低近下缘）；
-   展开态的 62% 36% 不动，背景与人物两层图同类名同步生效。 */
-.main.compact .home-topbar .banner-landscape {
-  object-position: 50% 36%;
+/* 关动效或系统减动效时，取景切换直接到位，不做滑动过渡。 */
+.banner-calm .banner-art {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .banner-art {
+    transition: none;
+  }
+}
+/* 迷你条单独给纵向取景：58px 条在展开取景下只露出约 12% 的图高，把窗口上沿移到
+   眼睛带中心（38.5%）减去半个可见高，眼睛就落在条的中线附近；横向与展开态一致，
+   人物的脸保持在画面中右。 */
+.main.compact .home-topbar .banner-art {
+  transform: translate(-38.9%, -32.4%);
 }
 /* 文案列加宽到左半区，底部留出左下频谱条带的高度，整列垂直居中。 */
 .home-topbar .banner-content {
