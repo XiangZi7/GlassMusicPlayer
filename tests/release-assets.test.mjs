@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, relative, resolve } from 'node:path'
+import { delimiter, join, relative, resolve } from 'node:path'
 import { test } from 'node:test'
 import { assembleRelease } from '../scripts/assemble-release.mjs'
 import { checkSignedVersion } from '../scripts/verify-update-signature.mjs'
 import { releaseBuildArgs } from '../scripts/release-build.mjs'
 import { generateReleaseNotes } from '../scripts/release-notes.mjs'
-import { assetName, checksum, releaseTargets, updaterTargets } from '../scripts/release-targets.mjs'
+import { assetName, checksum, createWindowsPortableZip, releaseTargets, updaterTargets } from '../scripts/release-targets.mjs'
 
 // 将本次临时输入、输出和 Git 标签都限制在独立目录。
 async function fixture(t) {
@@ -49,6 +49,27 @@ async function createArchives(root, commit, signed = false) {
   }
   return names
 }
+
+test('Windows portable ZIP ignores a conflicting tar.exe on PATH and preserves the executable bytes', {
+  skip: process.platform !== 'win32',
+}, async t => {
+  const root = await fixture(t)
+  const binary = Buffer.from([0x4d, 0x5a, 0x00, 0xff])
+  const archive = join(root, 'portable build.zip')
+  await writeFile(join(root, 'miraiplayer.exe'), binary)
+  await writeFile(join(root, 'tar.exe'), 'PATH lookup must not run this file')
+  const oldPath = process.env.PATH
+  try {
+    process.env.PATH = root + delimiter + oldPath
+    createWindowsPortableZip(root, archive)
+  } finally {
+    process.env.PATH = oldPath
+  }
+  const tar = join(process.env.SystemRoot, 'System32', 'tar.exe')
+  assert.equal((await readFile(archive)).readUInt32LE(), 0x04034b50)
+  assert.equal(execFileSync(tar, ['-tf', archive], { encoding: 'utf8' }).trim(), 'miraiplayer.exe')
+  assert.deepEqual(execFileSync(tar, ['-xOf', archive, 'miraiplayer.exe']), binary)
+})
 
 test('four checked archives assemble six packages and two verifiable manifests', async t => {
   const root = await fixture(t)

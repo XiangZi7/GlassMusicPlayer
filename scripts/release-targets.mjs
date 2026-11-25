@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { join } from 'node:path'
 
 // 本机收集、云端验收和 Release 下载表共同使用的六种分发包。
 export const releaseTargets = {
@@ -27,6 +29,12 @@ export const updaterTargets = {
 export function assetName(version, platform, { extension }) {
   const separator = platform === 'windows_x64' ? '_' : '.'
   return `MiraiPlayer_${version}_${platform}${separator}${extension}`
+}
+
+// 用 Windows 自带的 bsdtar 写入 ZIP，避免 Git Bash 的 GNU tar 把盘符解析为远程主机。
+export function createWindowsPortableZip(sourceDirectory, archive) {
+  const tar = join(process.env.SystemRoot, 'System32', 'tar.exe')
+  execFileSync(tar, ['-a', '-cf', archive, '-C', sourceDirectory, 'miraiplayer.exe'])
 }
 
 // 流式计算大安装包的摘要，兼容开发机和发布运行器。

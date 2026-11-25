@@ -4,7 +4,7 @@ import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'nod
 import { join, resolve } from 'node:path'
 import './check-release.mjs'
 import { parseReleaseTag } from './release-version.mjs'
-import { assetName, checksum, releaseTargets, updaterTargets } from './release-targets.mjs'
+import { assetName, checksum, createWindowsPortableZip, releaseTargets, updaterTargets } from './release-targets.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const { version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -41,7 +41,7 @@ for (const target of artifacts) {
   const name = assetName(version, platform, target)
   if (target.extension === 'portable.zip') {
     const temporary = join(output, randomUUID() + '.zip')
-    execFileSync('tar.exe', ['-a', '-cf', temporary, '-C', release, 'miraiplayer.exe'])
+    createWindowsPortableZip(release, temporary)
     await rename(temporary, join(output, name))
     names.push(name)
     continue
