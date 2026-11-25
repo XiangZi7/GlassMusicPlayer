@@ -3242,9 +3242,10 @@ input[type='range']::-moz-range-thumb {
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 开启态归一到波普薄荷令牌，不再用与全站色板无关的系统绿。 */
 .switch.on {
   @apply border-transparent;
-  background: #34c759;
+  background: var(--pop-mint);
 }
 
 .switch.on i {
