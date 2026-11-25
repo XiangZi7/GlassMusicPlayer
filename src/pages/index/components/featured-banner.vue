@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import HalftoneDots from '@/components/ui/HalftoneDots.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
 import { artworkColor } from '@/services/player/artwork-color'
@@ -24,9 +23,6 @@ const state = reactive({
   failedCovers: [] as string[],
   // 第一首封面的主色，供顶部条渐变派生相邻色相。
   accent: '',
-  // 点阵画布是否处于实频（live）：由画布的 data-spectrum-mode 同步，驱动静态点层图
-  // 与画布之间的交叉淡化（live 时点层图淡出、画布淡入接管动态点）。
-  dotsLive: false,
 })
 const { pending, playing, duration, actionLabel, playFeatured } = useDailyMix(
   () => props.songs,
@@ -89,76 +85,11 @@ function onPlay(): void {
   playFeatured(() => emit('play'))
 }
 
-const bannerRef = ref<HTMLElement>()
-const landscapeRef = ref<HTMLImageElement>()
-let dotsGeometryObserver: ResizeObserver | undefined
-let dotsModeObserver: MutationObserver | undefined
-
-// 追踪点阵画布的频谱模式属性：频谱服务在模式切换时写 data-spectrum-mode，组件据此
-// 把 state.dotsLive 同步过去，层栈随之交叉淡化（静态点层图 ↔ 实频画布）。
-function watchDotsMode(): void {
-  const canvas = bannerRef.value?.querySelector<HTMLCanvasElement>('[data-halftone-dots]')
-  if (!canvas) return
-  const apply = () => {
-    state.dotsLive = canvas.dataset.spectrumMode === 'live'
-  }
-  apply()
-  dotsModeObserver = new MutationObserver(apply)
-  dotsModeObserver.observe(canvas, {
-    attributes: true,
-    attributeFilter: ['data-spectrum-mode'],
-  })
-}
-
-// 把插画在点阵画布上的覆盖矩形（归一化坐标）写入画布 dataset：频谱服务据此把画布点
-// 映射回插画坐标采样点田剖面。取景由 .banner-art 的统一变换承担、三层图与画布同盒同
-// 尺寸，所以这里不复算任何裁切公式，直接量两者的实际渲染矩形作差——取景参数怎么改，
-// 点田都自动跟着同一套几何走，不会各算一套而错位。
-function syncDotsGeometry(): void {
-  const section = bannerRef.value
-  const image = landscapeRef.value
-  if (!section || !image) return
-  const canvas = section.querySelector<HTMLCanvasElement>('[data-halftone-dots]')
-  if (!canvas) return
-  const artRect = image.getBoundingClientRect()
-  const canvasRect = canvas.getBoundingClientRect()
-  if (!artRect.width || !artRect.height) return
-  const rect = [
-    (canvasRect.left - artRect.left) / artRect.width,
-    (canvasRect.top - artRect.top) / artRect.height,
-    (canvasRect.right - artRect.left) / artRect.width,
-    (canvasRect.bottom - artRect.top) / artRect.height,
-  ].map(n => n.toFixed(4))
-  const keys = ['imgU0', 'imgV0', 'imgU1', 'imgV1'] as const
-  keys.forEach((key, index) => {
-    if (canvas.dataset[key] !== rect[index]) canvas.dataset[key] = rect[index]
-  })
-}
-
-onMounted(() => {
-  syncDotsGeometry()
-  watchDotsMode()
-  landscapeRef.value?.addEventListener('load', syncDotsGeometry)
-  if (typeof ResizeObserver !== 'undefined' && bannerRef.value) {
-    dotsGeometryObserver = new ResizeObserver(syncDotsGeometry)
-    dotsGeometryObserver.observe(bannerRef.value)
-  }
-})
-
-onBeforeUnmount(() => {
-  dotsGeometryObserver?.disconnect()
-  dotsModeObserver?.disconnect()
-  landscapeRef.value?.removeEventListener('load', syncDotsGeometry)
-})
 </script>
 <template>
   <section
-    ref="bannerRef"
     class="banner home-topbar"
-    :class="{
-      'banner-calm': !playerState.settings.motion,
-      'banner-dots-live': state.dotsLive,
-    }"
+    :class="{ 'banner-calm': !playerState.settings.motion }"
     data-banner
     aria-labelledby="home-banner-title"
   >
@@ -168,41 +99,14 @@ onBeforeUnmount(() => {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <!-- 层栈仍装在这一个子元素内部（data-banner-bg 单子元素契约不变），自下而上：
-           干净渐变背景 → 静态点层图（从原图逐点提取的点田，未播时它就是点田本体）→
-           点阵画布（只在实频时接管动态点，稳态非 live 全透明）→ 全画幅透明的人物+
-           贴纸层。人物层在所有状态下都是同一个元素、永不更换；播放/未播切换只在
-           点层图与画布之间交叉淡化，人物位移问题从根上不存在。 -->
-      <div class="banner-art">
-        <img
-          ref="landscapeRef"
-          class="banner-landscape"
-          src="/images/pop-hero-bg.webp"
-          width="2736"
-          height="912"
-          alt=""
-          decoding="async"
-        />
-        <img
-          class="banner-landscape banner-dots-static"
-          src="/images/pop-hero-dots.webp"
-          width="2736"
-          height="912"
-          alt=""
-          decoding="async"
-          aria-hidden="true"
-        />
-        <HalftoneDots class="banner-dots" />
-        <img
-          class="banner-landscape banner-chara"
-          src="/images/pop-hero-chara.webp"
-          width="2736"
-          height="912"
-          alt=""
-          decoding="async"
-          aria-hidden="true"
-        />
-      </div>
+      <img
+        class="banner-landscape"
+        src="/images/pop-hero.webp"
+        width="2736"
+        height="912"
+        alt=""
+        decoding="async"
+      />
     </div>
 
     <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
@@ -309,49 +213,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
-/* 静态点层图：从原图逐点提取的点田，与背景/人物两层同盒同裁切（banner-landscape），
-   位于背景渐变之上、画布之下。未播时它就是点田本体（opacity 1）；进入实频后淡出，
-   让位给画布在同一片田上画的动态点。迷你条用同一套层栈，点层随盒子一起裁切。 */
-.banner-dots-static {
-  z-index: 1;
-  opacity: 1;
-  transition: opacity 300ms ease;
-}
-/* 祖先链多带一层 .banner-art 提优先级：.home-topbar .banner-landscape 也写了 opacity: 1
-   且同分时靠后，不能让它在 live 时把点层图按住不放。 */
-.banner-dots-live .banner-art .banner-dots-static {
-  opacity: 0;
-}
-/* 点阵画布：只在实频时接管（稳态非 live 时频谱服务不画点、画布全透明），默认
-   opacity 0 藏在静态点层之下，live 时淡入；人物与贴纸本体所在格剖面为零不会冒点，
-   且人物层盖在上面，轮廓光晕不压人物。 */
-.banner-dots {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 300ms ease;
-}
-.banner-dots-live .banner-dots {
-  opacity: 1;
-}
-/* 关动效（banner-calm）或系统减动效时，点层图与画布之间直接切换、不做交叉淡化。 */
-.banner-calm .banner-dots-static,
-.banner-calm .banner-dots {
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .banner-dots-static,
-  .banner-dots {
-    transition: none;
-  }
-}
-/* 人物层：全画幅透明 PNG 式图层，永远盖在点阵之上（z-index 2），两种播放状态共用。 */
-.home-topbar .banner-chara {
-  z-index: 2;
-}
-
 /* ---------- 展开态 hero ---------- */
 /* 展开高度约 272px 承载完整文案列与左下频谱，滚动折叠时仍回到全局迷你条高度。 */
 .banner.home-topbar {
@@ -359,69 +220,38 @@ onBeforeUnmount(() => {
 }
 .main.compact .banner.home-topbar {
   height: var(--banner-compact-height);
-  /* 迷你条保持流内布局：随滚动先缩成迷你条、继续滚动就随页面滚走，不钉顶。曾试过
-     sticky 钉在滚动容器顶部，真机观感是迷你条浮在内容之上不好看，用户明确要求恢复
-     原来的流内滚动，不要再加回 position: sticky。 */
 }
 @container (max-width: 700px) {
   .banner.home-topbar {
     height: 238px;
   }
 }
-/* 三层图只负责把 .banner-art 包裹层铺满：包裹层与原图同宽高比（2736:912），cover
-   没有多余空间可裁，object-position 在这里不再起作用——取景（放大窗口与锚点）统一
-   由 .banner-art 的尺寸与 translate 承担，三层与点阵画布共用同一套几何。 */
+/* 迷你条里的人物裁切单独对准眼睛带：原图眼睛带在纵向 35%–42%、中心约 38.5%，
+   58px 通栏 cover 裁切下横向 50%、纵向取 36% 时眼睛正落在条的中线一带；
+   展开态的 62% 36% 不动，同一张整图在两种高度下共用这一套裁切口径。 */
+.main.compact .home-topbar .banner-landscape {
+  object-position: 50% 36%;
+}
+/* 波普插画全幅铺满：左半自带深蓝留白承载文案列，右侧人物与贴纸完整透出，色彩由插画承担。
+   裁切对齐参照 hero：人物右置、脸落在上三分之一（纵向 36%），横向略偏右让人物区更靠右。 */
 .home-topbar .banner-landscape {
   width: 100%;
   mask-image: none;
+  object-position: 62% 36%;
   opacity: 1;
 }
-/* 罩面只罩左侧文字区：横向深蓝从 58% 起、33% 处全透，右 2/3 艺术区不罩，保持原图
-   本色；底部渐隐只落在左 55% 宽、底 30% 高的角落（background-size 限定），与页面
-   衔接的同时不压人物与贴纸。放大取景后左区底图是点田，文字可读性就靠这道局部罩。 */
+/* 罩面对齐参照 hero 的 shade：左侧深蓝 55% 起、34% 处收至 18%、55% 后全透；
+   底部再叠一道渐隐与页面衔接。 */
 .home-topbar .banner-bg::after {
   background:
-    linear-gradient(90deg, rgb(9 22 54 / 58%), rgb(9 22 54 / 26%) 20%, transparent 33%),
-    linear-gradient(0deg, rgb(10 8 18 / 40%), transparent 100%);
-  background-size:
-    100% 100%,
-    55% 30%;
-  background-position:
-    0 0,
-    0 100%;
-  background-repeat: no-repeat;
+    linear-gradient(90deg, rgb(9 22 54 / 55%), rgb(9 22 54 / 18%) 34%, transparent 55%),
+    linear-gradient(0deg, rgb(10 8 18 / 42%), transparent 34%);
 }
-/* 层栈包裹层 = 全横幅唯一的取景层：背景图、静态点层图、点阵画布、人物图在里面同盒
-   同尺寸叠放，取景只由这一层的尺寸与 translate 决定，各层不再各算裁切。
-   取景按用户参考图配准（黄星/笑脸/闪电四地标均匀缩放拟合，残差 <1px）：参考图里
-   原图显示宽是画面宽的 1.637 倍、右边缘与画面右缘对齐，所以这里宽度取盒宽的
-   1/0.611、translateX -38.9%（可见窗 u 38.9%→100%）；纵向按眼线对齐参考图
-   （眼睛带中心在原图 38.5%，落在画高约 35%），发顶 3%、下巴 67.5% 的实测下
-   translateY 取 -18.5%，可见头高约占横幅高 86%。translate 百分比以包裹层自身
-   尺寸为基准，盒宽怎么变窗口比例都不变；展开/折叠切换时与横幅高度同拍过渡。 */
-.banner-art {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: calc(100% / 0.611);
-  aspect-ratio: 2736 / 912;
-  transform: translate(-38.9%, -18.5%);
-  transition: transform 220ms ease;
-}
-/* 关动效或系统减动效时，取景切换直接到位，不做滑动过渡。 */
-.banner-calm .banner-art {
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .banner-art {
-    transition: none;
+/* 窄窗时裁切窗口右偏：人物保持完整入框，文字仍落在左侧平整的深蓝留白上。 */
+@container (max-width: 700px) {
+  .home-topbar .banner-landscape {
+    object-position: 88% 36%;
   }
-}
-/* 迷你条单独给纵向取景：58px 条在展开取景下只露出约 12% 的图高，把窗口上沿移到
-   眼睛带中心（38.5%）减去半个可见高，眼睛就落在条的中线附近；横向与展开态一致，
-   人物的脸保持在画面中右。 */
-.main.compact .home-topbar .banner-art {
-  transform: translate(-38.9%, -32.4%);
 }
 /* 文案列加宽到左半区，底部留出左下频谱条带的高度，整列垂直居中。 */
 .home-topbar .banner-content {

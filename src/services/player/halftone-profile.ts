@@ -5,12 +5,10 @@
 // 非背景格由邻域扩散填充，避免双线性采样把人物肤色、衣色渗进轮廓边缘的点）。剖面活在插画
 // 图像坐标里：横幅以 object-fit: cover 显示插画时，先把画布点映射回图像坐标再采样，点田便随
 // 裁切一起移动、始终贴着人物，而不是钉死在横幅盒子上。
-// 当前取色口径（v15 一比一还原轮次）：静态点田不再重绘，而是从原图提取成独立图层
-// （pop-hero-dots.webp，提取脚本 qa/make-hero-dots.py），画布只在实频（live）时按本剖面
-// 画动态点，取色用 halftoneFieldColor 的实测墨色（见该函数注释）。背景色表与
-// sampleHalftoneBgColor 是为无点平涂版准备的印刷极性取色（亮底深点、暗底亮点），停用
-// 但保留在此——日后插画再换回平涂版时，频谱服务把取色切回 sampleHalftoneBgColor 即可
-// 恢复，数据与采样函数都不要删。
+// 当前取色口径（一比一复刻轮次）：横幅插画已换回带烤入点田的原图，静态点田由底图承担，叠加层
+// 只在实频（live）时按 halftoneFieldColor 的横向色移取色；背景色表与 sampleHalftoneBgColor 是
+// 为无点平涂版准备的印刷极性取色（亮底深点、暗底亮点），本轮停用但保留在此——日后插画再换回
+// 平涂版时，频谱服务把取色切回 sampleHalftoneBgColor 即可恢复，数据与采样函数都不要删。
 const FIELD_W = 171
 const FIELD_H = 57
 const FIELD_DATA =
@@ -509,17 +507,14 @@ export function sampleHalftoneBgColor(u: number, v: number): [number, number, nu
   return out
 }
 
-// 点田墨色（v15 按原图实测校准，脚本 qa/measure-hero-dots2.py）：原图点田是单墨印刷——
-// 从左场到右场始终是同一支亮青蓝墨，逐区取点中心像素中位数为左 (24,135,216)、中
-// (3,157,245)、右 (23,151,243)；右场的紫与品红来自底色（由背景层承担），不是点的颜色。
-// 早先「左青蓝→中紫→右品红紫」的色带把底色进程误记到点上，实频帧右场会冒紫点，与原图
-// 不符，已按实测改平为青蓝一族（仅随横向位置微调明度/饱和）。这是画布实频帧的取色基准
-// （再向封面 accent 轻混约一成），静态点田由提取图层 pop-hero-dots.webp 承担、不经此函数。
+// 点田颜色随插画横向位置色移：左段亮青蓝、中段紫、右段品红紫，与原图蓝→紫背景渐变同系。
+// 这是叠加层在实频帧的取色基准（再向封面 accent 轻混三成），与底图烤入点田的色相进程一致，
+// 静态时底图点田就是这个颜色，不需要叠加层再画一遍。
 export function halftoneFieldColor(u: number): [number, number, number] {
   const stops: Array<[number, [number, number, number]]> = [
-    [0.28, [24, 135, 216]],
-    [0.62, [3, 157, 245]],
-    [1.0, [23, 151, 243]],
+    [0.5, [56, 182, 255]],
+    [0.74, [116, 84, 232]],
+    [0.97, [208, 74, 228]],
   ]
   if (u <= stops[0]![0]) return [...stops[0]![1]]
   for (let i = 1; i < stops.length; i++) {
