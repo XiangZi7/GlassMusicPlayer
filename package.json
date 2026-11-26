@@ -1,7 +1,7 @@
 {
   "name": "miraiplayer",
   "private": true,
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "支持在线曲库、同步歌词和桌面小窗的玻璃风格音乐播放器",
   "author": "XiangZi",
   "homepage": "https://github.com/XiangZi7/MiraiPlayer",
