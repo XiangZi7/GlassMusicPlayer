@@ -21,6 +21,7 @@ import {
   platformNames,
   toSourceTrack,
 } from '@/services/player/catalog'
+import { normalizeBannerCharacter } from '@/services/player/banner-art'
 
 export interface Playlist {
   id?: string
@@ -146,6 +147,10 @@ export function createDefaultSettings() {
     weather: true,
     motion: true,
     glassStyle: 'match',
+    // 首页横幅人物选择：'original' 原始人物 / 'mirai-blade' 栗山未来·血刃 /
+    // 'pinkwave' 粉发波浪 / 'tealtwin' 青蓝双马尾 / 'custom' 自定义上传，
+    // 选项列表与素材映射在 services/player/banner-art.ts，自定义图本体不进设置。
+    bannerCharacter: 'original',
     crossfade: 6,
     quality: 'auto',
     // 主窗口底部频谱独立于首页横幅。
@@ -178,6 +183,10 @@ export const usePlayerStore = defineStore('player', () => {
   const tracks = reactive<SourceTrack[]>([])
   const preferences = readPlayerPreferences(createDefaultSettings())
   preferences.settings.quality = normalizePlaybackQuality(preferences.settings.quality)
+  // 存量人物的选项已下线时（如侧脸版 'mirai'）回退原始人物，各窗口共用这一处校验。
+  preferences.settings.bannerCharacter = normalizeBannerCharacter(
+    preferences.settings.bannerCharacter
+  )
   const islandPreferences = useLocalStorage('miraiMusic.lyricIsland', {
     lyricIsland: preferences.settings.lyricIsland,
     lyricIslandSnap: preferences.settings.lyricIslandSnap,

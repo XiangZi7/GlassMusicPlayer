@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Mesh,
   OrthographicCamera,
   PlaneGeometry,
   Scene,
   ShaderMaterial,
+  Texture,
   TextureLoader,
   Vector2,
   Vector3,
@@ -51,6 +52,39 @@ const BREATH_COLS = 7
 const GRAD_MIN = 0.3
 const GRAD_END = 0.6
 const DOT_INK = new Vector3(15 / 255, 148 / 255, 235 / 255)
+
+// 三层素材与裁切口径由横幅按当前人物传入（素材映射在 services/player/banner-art.ts），
+// 缺省即原始人物那套，老调用方不传参时行为与参数化之前一致。
+const props = withDefaults(
+  defineProps<{
+    // 干净背景层路径。
+    bgSrc?: string
+    // 人物层路径（带透明通道）。
+    charaSrc?: string
+    // 覆盖场纹理路径（半分辨率）。
+    coverageSrc?: string
+    // 素材原生宽（图像空间口径）。
+    imageWidth?: number
+    // 素材原生高。
+    imageHeight?: number
+    // 展开态 cover 裁切横向位置（0–1 分数）。
+    posX?: number
+    // 展开态 cover 裁切纵向位置。
+    posY?: number
+    // 窄窗（≤700px）裁切横向位置。
+    posXNarrow?: number
+  }>(),
+  {
+    bgSrc: '/images/pop-hero-bg.webp',
+    charaSrc: '/images/pop-hero-chara.webp',
+    coverageSrc: '/images/pop-hero-coverage.webp',
+    imageWidth: 2736,
+    imageHeight: 912,
+    posX: 0.62,
+    posY: 0.36,
+    posXNarrow: 0.88,
+  }
+)
 
 const root = ref<HTMLElement>()
 const glCanvas = ref<HTMLCanvasElement>()
@@ -195,21 +229,21 @@ function shapeLevels(timestamp: number): void {
 }
 
 // 按横幅 cover 裁切口径刷新 shader 的图像空间参数：与底图 object-position 同口径
-// （展开 62% 36%，窄窗 ≤700px 时 88% 36%），保证点场与三层素材严丝合缝。
+// （位置分数由当前人物素材映射经 props 传入），保证点场与三层素材严丝合缝。
 function syncGeometry(): void {
   if (!renderer || !material || !glCanvas.value) return
   const width = glCanvas.value.clientWidth
   const height = glCanvas.value.clientHeight
   if (!width || !height) return
   renderer.setSize(width, height, false)
-  const scale = Math.max(width / 2736, height / 912)
-  const posX = width <= 700 ? 0.88 : 0.62
-  const posY = 0.36
+  const scale = Math.max(width / props.imageWidth, height / props.imageHeight)
+  const posX = width <= 700 ? props.posXNarrow : props.posX
+  const posY = props.posY
   material.uniforms.uSize!.value.set(width, height)
   material.uniforms.uScale!.value = scale
   material.uniforms.uOffset!.value.set(
-    (width - 2736 * scale) * posX,
-    (height - 912 * scale) * posY
+    (width - props.imageWidth * scale) * posX,
+    (height - props.imageHeight * scale) * posY
   )
   if (glCanvas.value) {
     glCanvas.value.dataset.threePitch = (NATIVE_PITCH * scale).toFixed(2)
@@ -262,9 +296,36 @@ function tick(): void {
   glCanvas.value.dataset.threeFrameMs = (previous * 0.9 + elapsed * 0.1).toFixed(2)
 }
 
+// 加载当前人物的覆盖场纹理（离线派生：提取点层 alpha 经格尺度模糊并按 4/π 标定，
+// 模糊尺度已按细版新点距同比缩放）；切换人物时换纹理，旧纹理释放不残留。
+function loadCoverage(src: string): void {
+  new TextureLoader().load(src, texture => {
+    if (!material) {
+      texture.dispose()
+      return
+    }
+    const previous = material.uniforms.uCoverage!.value as
+      | InstanceType<typeof Texture>
+      | null
+    material.uniforms.uCoverage!.value = texture
+    previous?.dispose()
+  })
+}
+
+// 人物切换时同步新素材：覆盖场换纹理、图像空间尺寸换新图口径、裁切几何立即重算，
+// 不等下一次窗口尺寸变化才对齐。
+watch(
+  () => [props.coverageSrc, props.imageWidth, props.imageHeight, props.posX, props.posY, props.posXNarrow] as const,
+  ([src ]) => {
+    if (!material) return
+    material.uniforms.uImageSize!.value.set(props.imageWidth, props.imageHeight)
+    loadCoverage(src)
+    syncGeometry()
+  }
+)
+
 // 初始化 three.js 场景：只引入渲染器/正交相机/平面/着色器材质四件，覆盖场纹理来自
-// 离线生成的 pop-hero-coverage.webp（提取点层 alpha 经格尺度模糊并按 4/π 标定，
-// 模糊尺度已按细版新点距同比缩放），加载完成前整层保持隐藏，不让无点版本闪现。
+// 当前人物的离线派生素材，加载完成前整层保持隐藏，不让无点版本闪现。
 function initThree(): void {
   if (!glCanvas.value) return
   try {
@@ -294,7 +355,7 @@ function initThree(): void {
       uLevels: { value: dispLevels },
       uBreath: { value: 0 },
       uSize: { value: new Vector2(1, 1) },
-      uImageSize: { value: new Vector2(2736, 912) },
+      uImageSize: { value: new Vector2(props.imageWidth, props.imageHeight) },
       uScale: { value: 1 },
       uOffset: { value: new Vector2(0, 0) },
       uInk: { value: DOT_INK },
@@ -302,9 +363,7 @@ function initThree(): void {
   })
   const mesh = new Mesh(geometry, material)
   scene.add(mesh)
-  new TextureLoader().load('/images/pop-hero-coverage.webp', texture => {
-    if (material) material.uniforms.uCoverage!.value = texture
-  })
+  loadCoverage(props.coverageSrc)
   syncGeometry()
   observer = new ResizeObserver(syncGeometry)
   if (glCanvas.value.parentElement) observer.observe(glCanvas.value.parentElement)
@@ -332,9 +391,9 @@ onBeforeUnmount(() => {
   >
     <img
       class="halftone-three-layer"
-      src="/images/pop-hero-bg.webp"
-      width="2736"
-      height="912"
+      :src="props.bgSrc"
+      :width="props.imageWidth"
+      :height="props.imageHeight"
       alt=""
       decoding="async"
     />
@@ -345,9 +404,9 @@ onBeforeUnmount(() => {
     />
     <img
       class="halftone-three-layer"
-      src="/images/pop-hero-chara.webp"
-      width="2736"
-      height="912"
+      :src="props.charaSrc"
+      :width="props.imageWidth"
+      :height="props.imageHeight"
       alt=""
       decoding="async"
     />
@@ -363,18 +422,19 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 /* 干净背景层与人物层共用底图的 cover 几何：同尺寸、同裁切、同 object-position，
-   与单图版严丝合缝，点层夹在两者之间。 */
+   与单图版严丝合缝，点层夹在两者之间。裁切位置读横幅根节点按当前人物写入的
+   CSS 变量，与底图、shader 几何同一口径，缺省即原始人物的 62% 36% / 88% 36%。 */
 .halftone-three-layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 62% 36%;
+  object-position: var(--banner-art-pos, 62% 36%);
 }
 @container (max-width: 700px) {
   .halftone-three-layer {
-    object-position: 88% 36%;
+    object-position: var(--banner-art-pos-narrow, 88% 36%);
   }
 }
 /* WebGL 点层画布夹在背景层与人物层之间，尺寸与根层一致。 */

@@ -214,6 +214,7 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
               'weather',
               'motion',
               'glassStyle',
+              'bannerCharacter',
               'crossfade',
               'quality',
               'bottomSpectrum',

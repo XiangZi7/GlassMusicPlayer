@@ -4,7 +4,14 @@ import { playbackQualities } from '@/constants/music'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
 import DeferredSettingsPanel from '@/pages/settings/components/deferred-settings-panel.vue'
 import AppUpdatePanel from '@/pages/settings/components/app-update-panel.vue'
-import { toRefs } from 'vue'
+import { reactive, toRefs, useTemplateRef } from 'vue'
+import {
+  bannerArtAssets,
+  bannerArtOptions,
+  clearCustomBannerArt,
+  customBannerArt,
+  saveCustomBannerArt,
+} from '@/services/player/banner-art'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SettingsSection } from '@/types/settings'
 import { isTauri } from '@tauri-apps/api/core'
@@ -30,6 +37,56 @@ async function openProject(event: MouseEvent): Promise<void> {
 // 淡化滑块更新当前设置草稿，由底栏的应用或保存统一提交。
 function updateCrossfade(event: Event): void {
   setSetting('crossfade', Number((event.target as HTMLInputElement).value))
+}
+
+const bannerArtInput = useTemplateRef<HTMLInputElement>('bannerArtInput')
+// 横幅自定义图上传状态：处理期间禁止重复选择同一入口。
+const bannerArtState = reactive({
+  /** 压缩与写入本机存储进行中。 */ busy: false,
+})
+
+// 打开系统文件选择器挑一张横幅图。
+function pickBannerArt(): void {
+  bannerArtInput.value?.click()
+}
+
+// 保存选中的图片为自定义横幅图：压缩与存储走 banner-art 服务，成功失败都给通知；
+// 图片是即时数据（不走设置草稿），选完即存、横幅随选择生效。
+async function onBannerArtFile(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || bannerArtState.busy) return
+  bannerArtState.busy = true
+  try {
+    await saveCustomBannerArt(file)
+    notify('横幅图片已更新')
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : '横幅图片保存失败，请重试。',
+      'error'
+    )
+  } finally {
+    bannerArtState.busy = false
+  }
+}
+
+// 移除自定义横幅图：只清图数据，横幅随即回退原始人物，人物选择本身不动。
+function removeBannerArt(): void {
+  clearCustomBannerArt()
+  notify('已移除自定义横幅图')
+}
+
+// 人物预览卡的缩略图来源：内置人物用各自的横幅整图，自定义卡用已上传的图
+// （没传时返回空，卡面显示未上传占位）。
+function bannerArtThumb(value: string): string {
+  if (value === 'custom') return customBannerArt.value
+  return bannerArtAssets[value]?.art ?? ''
+}
+
+// 点选人物预览卡：与原分段控件同一条草稿通路，应用或保存后正式生效。
+function pickBannerCharacter(value: string): void {
+  setSetting('bannerCharacter', value)
 }
 </script>
 
@@ -261,6 +318,121 @@ function updateCrossfade(event: Event): void {
               ]"
             />
           </div>
+          <div class="set-row flex flex-col gap-[10px] p-[12px_0]">
+            <div class="set-txt min-w-[0]">
+              <b>横幅人物</b
+              ><span
+                >首页横幅右侧的人物形象 —
+                内置人物自带随音乐律动的点阵；自定义上传只显示图片本身</span
+              >
+            </div>
+            <!-- 横幅人物预览卡：每张卡带人物横幅缩略图，点卡即选；选项数据驱动，新增内置人物只改 banner-art.ts。 -->
+            <div
+              class="banner-art-cards"
+              role="radiogroup"
+              aria-label="横幅人物"
+            >
+              <button
+                v-for="option in bannerArtOptions"
+                :key="option.value"
+                type="button"
+                class="banner-art-card"
+                :class="{ on: settings.bannerCharacter === option.value }"
+                role="radio"
+                :aria-checked="settings.bannerCharacter === option.value"
+                :data-banner-card="option.value"
+                @click="pickBannerCharacter(option.value)"
+              >
+                <span class="banner-art-thumb">
+                  <img
+                    v-if="bannerArtThumb(option.value)"
+                    :src="bannerArtThumb(option.value)"
+                    alt=""
+                  />
+                  <span v-else class="banner-art-empty">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 16V5" />
+                      <path d="m7.5 9.5 4.5-4.5 4.5 4.5" />
+                      <path d="M4 16.5V19a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-2.5" />
+                    </svg>
+                    <span>未上传</span>
+                  </span>
+                  <span
+                    v-if="settings.bannerCharacter === option.value"
+                    class="banner-art-check"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="m4.5 12.5 5 5 10-11" />
+                    </svg>
+                  </span>
+                </span>
+                <span class="banner-art-name">{{ option.label }}</span>
+              </button>
+            </div>
+          </div>
+          <!-- 自定义上传展开区：选中“自定义上传”才出现，含预览、换图与移除。 -->
+          <Transition name="banner-art">
+            <div
+              v-if="settings.bannerCharacter === 'custom'"
+              class="set-row flex items-center gap-[14px] p-[12px_0]"
+            >
+              <img
+                v-if="customBannerArt"
+                :src="customBannerArt"
+                class="banner-art-preview"
+                alt="自定义横幅图预览"
+              />
+              <div class="set-txt min-w-[0] flex-1">
+                <b>{{ customBannerArt ? '已上传自定义图' : '尚未上传' }}</b
+                ><span>{{
+                  customBannerArt
+                    ? '横幅正在使用这张图，换一张会立即生效。'
+                    : '还没上传时横幅先显示原始人物，上传后立即切换。'
+                }}</span>
+              </div>
+              <div class="flex flex-none items-center gap-[7px]">
+                <!-- 页面操作按钮：打开系统文件选择器挑图。 -->
+                <BaseButton
+                  class="min-h-[30px] rounded-full px-[13px] py-[6px] text-[11.5px] font-bold disabled:opacity-40"
+                  :loading="bannerArtState.busy"
+                  :disabled="bannerArtState.busy"
+                  @click="pickBannerArt"
+                  >{{ customBannerArt ? '更换图片' : '选择图片' }}</BaseButton
+                >
+                <!-- 页面操作按钮：移除自定义图，横幅回退原始人物。 -->
+                <BaseButton
+                  v-if="customBannerArt"
+                  class="min-h-[30px] rounded-full px-[13px] py-[6px] text-[11.5px] font-bold disabled:opacity-40"
+                  :disabled="bannerArtState.busy"
+                  @click="removeBannerArt"
+                  >移除</BaseButton
+                >
+              </div>
+              <input
+                ref="bannerArtInput"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="onBannerArtFile"
+              />
+            </div>
+          </Transition>
           <div class="set-row flex items-center gap-[14px] p-[12px_0]">
             <div class="set-txt min-w-[0] flex-1">
               <b>底栏频谱</b><span>在播放进度条下方显示音频频谱</span>
@@ -527,3 +699,155 @@ function updateCrossfade(event: Event): void {
     >
   </div>
 </template>
+
+<style scoped>
+/* 横幅人物预览卡：等分排布（宽窗 6 列、中窗 4 列、窄窗 2 列，11 张卡排 6+5 两行不落单），缩略图按横幅 3:1 裁切不变形。 */
+.banner-art-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1080px) {
+  .banner-art-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 680px) {
+  .banner-art-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.banner-art-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+.banner-art-card:hover {
+  border-color: rgb(255 255 255 / 32%);
+}
+.banner-art-card:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 75%);
+  outline-offset: 2px;
+}
+/* 选中态沿用设置页的亮边语言：提亮描边与底色，右上角白色勾选角标，不另起彩色。 */
+.banner-art-card.on {
+  border-color: rgb(255 255 255 / 78%);
+  background: rgb(255 255 255 / 9%);
+}
+.banner-art-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 5%);
+}
+.banner-art-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.banner-art-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1.5px dashed rgb(255 255 255 / 28%);
+  border-radius: 8px;
+  color: rgb(255 255 255 / 55%);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.banner-art-empty svg {
+  width: 16px;
+  height: 16px;
+}
+.banner-art-check {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 45%);
+}
+.banner-art-check svg {
+  width: 11px;
+  height: 11px;
+}
+.banner-art-name {
+  padding: 0 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  opacity: 0.72;
+}
+.banner-art-card.on .banner-art-name {
+  opacity: 1;
+}
+.settings-calm .banner-art-card {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .banner-art-card {
+    transition: none;
+  }
+}
+/* 自定义横幅图预览：按横幅 3:1 比例裁切的小图，与设置卡片的圆角和细边一致。 */
+.banner-art-preview {
+  width: 120px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  object-fit: cover;
+}
+/* 自定义上传展开区淡入淡出：与设置分类切换同档（约 200ms），只动透明度与小位移。 */
+.banner-art-enter-active,
+.banner-art-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+.banner-art-enter-from,
+.banner-art-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.settings-calm .banner-art-enter-active,
+.settings-calm .banner-art-leave-active {
+  transition: none;
+}
+.settings-calm .banner-art-enter-from,
+.settings-calm .banner-art-leave-to {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .banner-art-enter-active,
+  .banner-art-leave-active {
+    transition: none;
+  }
+  .banner-art-enter-from,
+  .banner-art-leave-to {
+    transform: none;
+  }
+}
+</style>

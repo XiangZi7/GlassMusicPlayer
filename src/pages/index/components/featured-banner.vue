@@ -4,6 +4,11 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import HalftoneThree from '@/components/ui/HalftoneThree.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
+import {
+  bannerArtAssets,
+  customBannerArt,
+  type BannerArtAssets,
+} from '@/services/player/banner-art'
 import { artworkColor } from '@/services/player/artwork-color'
 import { useDailyMix } from '@/pages/index/use-daily-mix'
 import type { SourceTrack } from '@/types/prototype'
@@ -28,7 +33,46 @@ const state = reactive({
   failedCovers: [] as string[],
   // 第一首封面的主色，供顶部条渐变派生相邻色相。
   accent: '',
+  // 加载失败的横幅整图地址：自定义图或内置素材坏掉时按它回退原始人物。
+  failedArt: '',
 })
+// 当前选中的横幅人物（设置项 settings.bannerCharacter，选项见 banner-art.ts）。
+const selectedArt = computed(() => playerState.settings.bannerCharacter)
+// 自定义图真正生效的条件：选了自定义、已有图、且这张图没加载失败过。
+const customActive = computed(
+  () =>
+    selectedArt.value === 'custom' &&
+    !!customBannerArt.value &&
+    state.failedArt !== customBannerArt.value
+)
+// 当前内置素材组：自定义生效时为 null（无派生素材）；选了自定义但还没传图、
+// 或内置素材加载失败时回退原始人物整套，点阵行为随之回到原始人物口径。
+const artAssets = computed<BannerArtAssets | null>(() => {
+  if (customActive.value) return null
+  const picked = bannerArtAssets[selectedArt.value]
+  if (picked && state.failedArt !== picked.art) return picked
+  return bannerArtAssets.original!
+})
+// 横幅整图地址：自定义生效时用用户图，其余用当前内置素材的整图。
+const artSrc = computed(() =>
+  customActive.value ? customBannerArt.value : artAssets.value!.art
+)
+// 裁切位置按当前素材实测值写入 CSS 变量：底图、three 三层与画布几何共用同一口径；
+// 自定义图没有实测值时沿用原始人物的位置（构图差异大也不做智能识别）。
+const artPosVars = computed(() => {
+  const assets = artAssets.value ?? bannerArtAssets.original!
+  const pct = (value: number) => `${Math.round(value * 100)}%`
+  return {
+    '--banner-art-pos': `${pct(assets.posX)} ${pct(assets.posY)}`,
+    '--banner-art-pos-narrow': `${pct(assets.posXNarrow)} ${pct(assets.posY)}`,
+    '--banner-art-pos-compact': `${pct(assets.posCompactX)} ${pct(assets.posCompactY)}`,
+  }
+})
+
+// 横幅整图加载失败时记下地址，computed 随即回退到原始人物整套素材。
+function onArtError(): void {
+  state.failedArt = artSrc.value
+}
 const { pending, playing, duration, actionLabel, playFeatured } = useDailyMix(
   () => props.songs,
   () => props.loading
@@ -95,6 +139,7 @@ function onPlay(): void {
   <section
     class="banner home-topbar"
     :class="{ 'banner-calm': !playerState.settings.motion }"
+    :style="artPosVars"
     data-banner
     aria-labelledby="home-banner-title"
   >
@@ -106,24 +151,47 @@ function onPlay(): void {
     >
       <img
         class="banner-landscape"
-        src="/images/pop-hero.webp"
-        width="2736"
-        height="912"
+        :src="artSrc"
+        :width="artAssets?.width ?? 2736"
+        :height="artAssets?.height ?? 912"
         alt=""
         decoding="async"
+        @error="onArtError"
       />
       <!-- 原图提取点层的音频叠加画布：与底图同坐标系同裁切，只在实频时按列调
            alpha 让原点亮起来；未播/暂停稳态时全透明，横幅就是单图版原样。
-           three 引擎下这块画布不再示人，只作 spectrum 发布每列 alpha 的数据源。 -->
+           three 引擎下这块画布不再示人，只作 spectrum 发布每列 alpha 的数据源。
+           画布 dataset 上的 dots-src 与 art-* 是当前人物素材的几何口径，spectrum
+           按它取点图与裁切（与素材映射同源）；自定义图没有派生点层，画布整层隐藏。 -->
       <canvas
         class="banner-dots"
-        :class="{ 'banner-dots--source': halftoneEngine === 'three' }"
+        :class="{
+          'banner-dots--source': halftoneEngine === 'three',
+          'banner-dots--off': customActive,
+        }"
         data-halftone-dots
+        :data-dots-src="artAssets?.dots"
+        :data-art-width="artAssets?.width"
+        :data-art-height="artAssets?.height"
+        :data-art-pos-x="artAssets?.posX"
+        :data-art-pos-y="artAssets?.posY"
+        :data-art-pos-x-narrow="artAssets?.posXNarrow"
         aria-hidden="true"
       />
       <!-- three.js 点阵版：干净背景 + WebGL 覆盖场点层 + 人物层的三层合成，
-           只在实频包络大于零时盖过单图，未播静态时完全不呈现。 -->
-      <HalftoneThree v-if="halftoneEngine === 'three'" />
+           只在实频包络大于零时盖过单图，未播静态时完全不呈现。素材按当前
+           人物传入；自定义图没有派生素材，整层不渲染，只显示图片本身。 -->
+      <HalftoneThree
+        v-if="halftoneEngine === 'three' && artAssets"
+        :bg-src="artAssets.bg"
+        :chara-src="artAssets.chara"
+        :coverage-src="artAssets.coverage"
+        :image-width="artAssets.width"
+        :image-height="artAssets.height"
+        :pos-x="artAssets.posX"
+        :pos-y="artAssets.posY"
+        :pos-x-narrow="artAssets.posXNarrow"
+      />
     </div>
 
     <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
@@ -247,6 +315,11 @@ function onPlay(): void {
 .home-topbar .banner-dots--source {
   visibility: hidden;
 }
+/* 自定义图没有派生点层：同位点画布整层隐藏，只显示图片本身，
+   避免拿原始人物的点图错位盖到用户图上。 */
+.home-topbar .banner-dots--off {
+  visibility: hidden;
+}
 
 /* ---------- 展开态 hero ---------- */
 /* 展开高度约 272px 承载完整文案列与左下频谱，滚动折叠时仍回到全局迷你条高度。 */
@@ -265,14 +338,14 @@ function onPlay(): void {
    58px 通栏 cover 裁切下横向 50%、纵向取 36% 时眼睛正落在条的中线一带；
    展开态的 62% 36% 不动，同一张整图在两种高度下共用这一套裁切口径。 */
 .main.compact .home-topbar .banner-landscape {
-  object-position: 50% 36%;
+  object-position: var(--banner-art-pos-compact, 50% 36%);
 }
 /* 波普插画全幅铺满：左半自带深蓝留白承载文案列，右侧人物与贴纸完整透出，色彩由插画承担。
    裁切对齐参照 hero：人物右置、脸落在上三分之一（纵向 36%），横向略偏右让人物区更靠右。 */
 .home-topbar .banner-landscape {
   width: 100%;
   mask-image: none;
-  object-position: 62% 36%;
+  object-position: var(--banner-art-pos, 62% 36%);
   opacity: 1;
 }
 /* 罩面对齐参照 hero 的 shade：左侧深蓝 55% 起、34% 处收至 18%、55% 后全透；
@@ -285,7 +358,7 @@ function onPlay(): void {
 /* 窄窗时裁切窗口右偏：人物保持完整入框，文字仍落在左侧平整的深蓝留白上。 */
 @container (max-width: 700px) {
   .home-topbar .banner-landscape {
-    object-position: 88% 36%;
+    object-position: var(--banner-art-pos-narrow, 88% 36%);
   }
 }
 /* 文案列加宽到左半区，底部留出左下频谱条带的高度，整列垂直居中。 */

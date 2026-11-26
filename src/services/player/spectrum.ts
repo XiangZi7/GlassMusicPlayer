@@ -66,9 +66,11 @@ export function createSpectrum(
     { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
   let dots:
     { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
-  // 原图提取点层的位图与就绪标记：只在横幅点阵画布接入时懒加载一次。
+  // 原图提取点层的位图与就绪标记：只在横幅点阵画布接入时懒加载，
+  // 人物切换导致地址变化时重新加载（当前地址单独记一份用于比对）。
   let dotsImage: HTMLImageElement | undefined
   let dotsImageReady = false
+  let dotsImageSrc = ''
   // 点阵整层淡入淡出进度：0 时叠加层完全不画，静态横幅与单图版逐像素一致。
   let dotsFade = 0
   let dotsFadeFrame: number | undefined
@@ -115,14 +117,20 @@ export function createSpectrum(
     }
   }
 
-  // 懒加载原图提取点层（82b292a 的逐点提取成果，与现行 pop-hero.webp 逐像素同源）：
+  // 懒加载当前人物的提取点层（逐点提取成果，与对应整图逐像素同源）：
   // 叠加层不重画任何网格，只把这张与底图同尺寸、同点位的透明点图按列调 alpha 贴回
   // 原位再轻微提亮——点位、点径、点形与静态图严格一致，从根上避开双重印点与摩尔纹。
+  // 地址由 featured-banner 按素材映射写在画布 dataset 上，缺省为原始人物那张。
   function ensureDotsImage(): void {
-    if (dotsImage || typeof Image === 'undefined') return
+    if (typeof Image === 'undefined' || !dots) return
+    const src = dots.canvas.dataset.dotsSrc || '/images/pop-hero-dots.webp'
+    if (dotsImage && dotsImageSrc === src) return
+    dotsImageSrc = src
+    dotsImageReady = false
     const image = new Image()
-    image.src = '/images/pop-hero-dots.webp'
+    image.src = src
     image.onload = () => {
+      if (dotsImage !== image) return
       dotsImageReady = true
       if (dotsFade > 0) paintDots()
     }
@@ -204,18 +212,27 @@ export function createSpectrum(
     stepDots(timestamp)
     const size = fitCanvas(canvas, paint)
     if (!size) return
+    // 人物切换后地址可能已变，先确认点图仍是当前人物的那张再绘制。
+    ensureDotsImage()
     if (!dotsImageReady || !dotsImage) return
     if (dotAlphas.every(value => value < 0.004)) return
     const { width, height } = size
-    // 与 featured-banner 的 object-position 口径一致：展开态 62% 36%，
-    // 窄窗（横幅宽 ≤700px）88% 36%；折叠迷你条下画布被 CSS 隐藏、尺寸为零已在上方返回。
-    const posX = width <= 700 ? 0.88 : 0.62
-    const posY = 0.36
-    const scale = Math.max(width / 2736, height / 912)
-    const ox = (width - 2736 * scale) * posX
-    const oy = (height - 912 * scale) * posY
+    // 图像空间口径随当前人物素材走：原生尺寸与裁切分数由 featured-banner 按素材
+    // 映射写在画布 dataset 上，与底图 object-position 同口径；缺省即原始人物
+    // 的 2736×912 与展开 62%·36% / 窄窗 88%·36%。折叠迷你条下画布被 CSS 隐藏、
+    // 尺寸为零已在上方返回。
+    const artW = Number(canvas.dataset.artWidth) || 2736
+    const artH = Number(canvas.dataset.artHeight) || 912
+    const posX =
+      width <= 700
+        ? Number(canvas.dataset.artPosXNarrow) || 0.88
+        : Number(canvas.dataset.artPosX) || 0.62
+    const posY = Number(canvas.dataset.artPosY) || 0.36
+    const scale = Math.max(width / artW, height / artH)
+    const ox = (width - artW * scale) * posX
+    const oy = (height - artH * scale) * posY
     const sy0 = Math.max(0, (0 - oy) / scale)
-    const sy1 = Math.min(912, (height - oy) / scale)
+    const sy1 = Math.min(artH, (height - oy) / scale)
     const dy0 = oy + sy0 * scale
     const dy1 = oy + sy1 * scale
     if (sy1 <= sy0) return
@@ -226,7 +243,7 @@ export function createSpectrum(
       const dx0 = (col / DOTS_COLS) * width
       const dx1 = ((col + 1) / DOTS_COLS) * width
       const sx0 = Math.max(0, (dx0 - ox) / scale)
-      const sx1 = Math.min(2736, (dx1 - ox) / scale)
+      const sx1 = Math.min(artW, (dx1 - ox) / scale)
       if (sx1 <= sx0) continue
       paint.globalAlpha = alpha
       paint.drawImage(
