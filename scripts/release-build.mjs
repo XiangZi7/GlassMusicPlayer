@@ -2,11 +2,16 @@ import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseReleaseTag } from './release-version.mjs'
 
 // 配置正式版签名；macOS 重试沿用 app 和 dmg 两种目标以生成更新归档。
 export function releaseBuildArgs(environment, bundleOnly = false) {
   const pubkey = environment.TAURI_UPDATER_PUBLIC_KEY?.trim()
   const hasPrivateKey = Boolean(environment.TAURI_SIGNING_PRIVATE_KEY?.trim())
+  const tag = environment.RELEASE_TAG
+  if (tag && !parseReleaseTag(tag).prerelease && (!pubkey || !hasPrivateKey)) {
+    throw new Error('正式版需要配置 TAURI_UPDATER_PUBLIC_KEY 和 TAURI_SIGNING_PRIVATE_KEY，以生成应用内更新包')
+  }
   if (Boolean(pubkey) !== hasPrivateKey) {
     throw new Error('更新签名需要同时配置 TAURI_UPDATER_PUBLIC_KEY 和 TAURI_SIGNING_PRIVATE_KEY')
   }

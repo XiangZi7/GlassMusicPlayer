@@ -56,7 +56,7 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 ### 启用应用内更新
 
-正式版通过 GitHub Releases 的 `version.json` 检查版本。两项签名配置均留空时，流程继续发布六种分发包、版本信息和校验清单，用户可在发行页获取新版本。
+正式版通过 GitHub Releases 的 `version.json` 检查版本。正式版标签构建必须配置签名密钥对，确保发布的版本可在应用内下载。开发包和预发布包仍可在未配置密钥时构建。
 
 要启用应用内下载和安装，在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置下表。使用 Tauri 签名工具生成的本项目密钥对，并离线备份私钥与密码。已安装的客户端会使用内置公钥验证后续更新，后续版本应沿用同一对密钥。[Tauri 更新签名说明](https://v2.tauri.app/plugin/updater/#signing-updates)
 
@@ -68,7 +68,7 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 版本标签构建时，工作流将公钥编入应用并签名 Windows NSIS、两个架构的 macOS 应用归档和 Linux AppImage。发布任务用同一公钥验证各文件，并将签名记录的版本与 Git 标签核对。通过后，随版本上传四个签名、两个 macOS 更新归档和 `latest.json`，并在 `version.json` 标记 `updater: true`。只配置公钥或私钥其中一项时，构建会报告缺项。
 
-用户首次安装内置公钥的版本后，即可在后续正式版发布时从右上角或「设置 → 关于」更新。Windows 免安装版和 Linux DEB 通过发行页更新。
+使用旧的未签名安装包的用户，需要从发行页安装一次内置公钥的版本，随后即可从右上角或「设置 → 关于」接收正式版更新。Windows 免安装版和 Linux DEB 通过发行页更新。
 
 ### 排查失败步骤
 

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>标题栏更新流程验证</title>
+  <div id="app"></div>
+  <script type="module">
+    import { createApp, h } from 'vue'
+    import { createPinia } from 'pinia'
+    import { mockIPC, mockWindows } from '@tauri-apps/api/mocks'
+    import PlayerWindowFrame from '@/components/player/PlayerWindowFrame.vue'
+    import PlayerUpdateControl from '@/components/player/PlayerUpdateControl.vue'
+    import { useAppUpdaterStore } from '@/stores/app-updater'
+    import { usePlayerStore } from '@/stores/player'
+    import '@fontsource-variable/manrope'
+    import '@fontsource-variable/noto-sans-sc'
+    import '@fontsource-variable/jetbrains-mono'
+    import '@/styles/main.css'
+
+    const query = new URLSearchParams(location.search)
+    const version = '9.0.0'
+    const size = 100 * 1024 * 1024
+    const calls = { download: 0, install: 0, urls: [] }
+    let transfer
+
+    // 使用真实的更新 Store 和插件前端，桌面命令只返回模拟安装包和事件。
+    window.isTauri = true
+    mockWindows('main')
+    mockIPC((command, args) => {
+      switch (command) {
+        case 'updater_can_install':
+          return true
+        case 'updater_check_source':
+          return {
+            version,
+            package: query.has('manual')
+              ? null
+              : { rid: 1, currentVersion: '0.1.8', version },
+          }
+        case 'plugin:updater|download': {
+          calls.download++
+          const channel = args.onEvent
+          return new Promise((resolve, reject) => {
+            channel.onmessage({
+              event: 'Started',
+              data: { contentLength: query.has('unknown') ? null : size },
+            })
+            transfer = {
+              report: percent => channel.onmessage({
+                event: 'Progress',
+                data: { chunkLength: size * percent / 100 },
+              }),
+              finish: () => {
+                channel.onmessage({ event: 'Finished' })
+                channel.cleanupCallback()
+                resolve(2)
+              },
+              fail: () => {
+                channel.cleanupCallback()
+                reject(new Error('模拟下载失败'))
+              },
+            }
+          })
+        }
+        case 'plugin:updater|install':
+          calls.install++
+          break
+        case 'plugin:opener|open_url':
+          calls.urls.push(args.url)
+          break
+      }
+    }, { shouldMockEvents: true })
+
+    const pinia = createPinia()
+    const player = usePlayerStore(pinia)
+    const settings = player.state.settings
+    settings.autoUpdate = true
+    settings.updateSource = 'github'
+    settings.glassStyle = query.has('liquid') ? 'liquid' : 'glass'
+    settings.motion = !query.has('calm')
+    const updater = useAppUpdaterStore(pinia)
+
+    // 下列控制项供手动与浏览器自动化重复测试，不会下载文件或退出应用。
+    window.updateFixture = {
+      calls,
+      state: updater.state,
+      report: percent => transfer?.report(percent),
+      finish: () => transfer?.finish(),
+      fail: () => transfer?.fail(),
+      setMotion: enabled => { settings.motion = enabled },
+      setMaterial: material => { settings.glassStyle = material },
+    }
+
+    createApp({
+      render: () => h(PlayerWindowFrame, {
+        glassStyle: settings.glassStyle,
+        cover: '/images/pop-hero-bg.webp',
+      }, () => [
+        h('header', {
+          class: 'win-chrome',
+          style: 'display:flex;justify-content:flex-end;align-items:center;gap:4px;height:48px;padding:0 16px',
+        }, [
+          h(PlayerUpdateControl, { motion: settings.motion }),
+          h('button', { id: 'adjacent' }, '相邻控件'),
+        ]),
+        h('main', { style: 'position:relative;z-index:2;padding:24px' }, [
+          h('p', '模拟更新。约 15 秒后发现新版本，点击右上角图标开始。'),
+          h('button', { onClick: () => transfer?.report(40) }, '增加 40%'),
+          '　',
+          h('button', { onClick: () => transfer?.finish() }, '模拟校验完成'),
+          '　',
+          h('button', { onClick: () => transfer?.fail() }, '模拟下载失败'),
+        ]),
+      ]),
+    }).use(pinia).mount('#app')
+  </script>
+</html>
