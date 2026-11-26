@@ -184,7 +184,8 @@ export function releaseProject(
     syncReleaseVersion(root, tag);
     git(root, "add", "--", ...versionFiles);
     try {
-      git(root, "commit", "-m", `chore(release): ${tag}`);
+      // 分支和标签会原子推送，标记这个提交，让标签负责本次桌面打包。
+      git(root, "commit", "-m", `chore(release): ${tag}`, "-m", "Desktop-Build: tag");
       if (git(root, "status", "--porcelain=v1", "--untracked-files=normal"))
         throw new Error("提交后仍有文件改动，请检查 Git hooks 的执行结果");
       syncReleaseVersion(root, tag, { check: true });

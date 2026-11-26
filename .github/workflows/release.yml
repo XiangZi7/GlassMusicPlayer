@@ -24,16 +24,20 @@ concurrency:
 jobs:
   build:
     name: Build ${{ matrix.platform }}
+    # pnpm release 的分支和标签指向同一提交，只调度标签的四个平台。
+    if: >-
+      github.event_name != 'push' || github.ref_type != 'branch' ||
+      !contains(github.event.head_commit.message, 'Desktop-Build: tag')
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { platform: windows_x64, runner: windows-2025 }
+          - { platform: windows_x64, runner: windows-2025, bundler_tools: '~/AppData/Local/tauri' }
           - { platform: macos_x64, runner: macos-15-intel }
           - { platform: macos_arm64, runner: macos-15 }
-          - { platform: linux_x64, runner: ubuntu-22.04 }
+          - { platform: linux_x64, runner: ubuntu-22.04, bundler_tools: '~/.cache/tauri' }
     env:
       RELEASE_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
       APPIMAGE_EXTRACT_AND_RUN: '1'
@@ -51,7 +55,7 @@ jobs:
         with:
           run_install: false
           cache: true
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --prefer-offline
       - name: Install Linux desktop and media libraries
         if: runner.os == 'Linux'
         run: |
@@ -67,6 +71,12 @@ jobs:
         with:
           workspaces: src-tauri -> target
           key: ${{ matrix.platform }}
+      - name: Cache Tauri bundler tools
+        if: matrix.bundler_tools != ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ matrix.bundler_tools }}
+          key: tauri-tools-v1-${{ matrix.platform }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Build desktop packages
         shell: bash
         env:

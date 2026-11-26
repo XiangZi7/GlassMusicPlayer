@@ -635,7 +635,7 @@ pub async fn tuneweave_favorites(
         Some(
             page["next_offset"]
                 .as_u64()
-                .filter(|n| *n > offset.into() && *n <= u32::MAX.into())
+                .filter(|n| *n > u64::from(offset) && *n <= u64::from(u32::MAX))
                 .ok_or(INVALID)?,
         )
     } else {

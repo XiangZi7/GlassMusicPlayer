@@ -8,9 +8,10 @@ use std::sync::{
 };
 use tauri::{
     AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalRect, PhysicalSize, Rect,
-    WebviewUrl, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent, Wry, menu::Menu,
-    utils::config::Color, webview::PageLoadEvent,
+    WebviewWindow, Window, WindowEvent, Wry, menu::Menu,
 };
+#[cfg(target_os = "windows")]
+use tauri::{WebviewUrl, WebviewWindowBuilder, utils::config::Color, webview::PageLoadEvent};
 
 pub(crate) const TRAY_LABEL: &str = "tray";
 const CONTENT_WIDTH: f64 = 288.0;

@@ -256,7 +256,7 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     if !visible {
         return Ok(());
     }
-    let window = WebviewWindowBuilder::new(
+    let _window = WebviewWindowBuilder::new(
         &app,
         "island",
         WebviewUrl::App("index.html#/desktop/island".into()),
@@ -276,7 +276,7 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     .build()
     .map_err(|error| format!("创建灵动岛窗口失败：{error}"))?;
     #[cfg(target_os = "windows")]
-    super::shadow_hit_test::add_surface_window(&window, SURFACE_INSET, 20.0)
+    super::shadow_hit_test::add_surface_window(&_window, SURFACE_INSET, 20.0)
         .map_err(|error| error.to_string())?;
     Ok(())
 }
