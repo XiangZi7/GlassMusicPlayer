@@ -15,15 +15,17 @@ import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
 import PlatformQrLogin from '@/components/player/PlatformQrLogin.vue'
+import PlatformFavoriteLogin from '@/components/player/PlatformFavoriteLogin.vue'
 import { platformNames } from '@/services/player/catalog'
 
+type Mode = 'profile' | 'login' | 'favorites'
 const props = withDefaults(
   defineProps<{
     platform: MusicPlatform | null
     busy?: boolean
     error?: string
     initialValue?: string
-    initialMode?: 'profile' | 'login'
+    initialMode?: Mode
     loginSupported?: boolean
     loginStatus?: LoginViewStatus
     loginQrCodeUrl?: string
@@ -46,7 +48,7 @@ const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   profile: [input: string]
   login: []
-  modeChange: [mode: 'profile' | 'login']
+  modeChange: [mode: Mode]
   clearError: []
 }>()
 const id = useId()
@@ -61,14 +63,18 @@ const platformLabel = computed(() =>
 const profileSupported = computed(
   () => !!props.platform && props.platform !== 'kugou'
 )
+const favoritePlatform = computed(() => props.platform === 'kuwo' || props.platform === 'kugou' ? props.platform : null)
 const preferredMode = computed(() =>
-  !props.loginSupported
+  props.initialMode === 'favorites' && favoritePlatform.value
+    ? 'favorites'
+  : !props.loginSupported
     ? 'profile'
     : !profileSupported.value
       ? 'login'
       : props.initialMode
 )
 const methodDescription = computed(() => {
+  if (favoritePlatform.value) return '选择收藏同步，或关联平台公开资料。'
   if (!props.loginSupported) return '通过个人主页关联公开资料与歌单。'
   return profileSupported.value
     ? '选择连接方式，关联公开资料与歌单。'
@@ -78,7 +84,7 @@ const methodDescription = computed(() => {
 // 响应式状态
 const state = reactive({
   // 当前选中的连接方式。
-  mode: 'profile' as 'profile' | 'login',
+  mode: 'profile' as Mode,
   // 用户填写的个人主页链接或 UID，不保存账号密码。
   draft: '',
 })
@@ -124,6 +130,7 @@ function submitProfile(): void {
 <template>
   <BaseDialog
     id="platform-connection-dialog"
+    class="panel-scroll"
     v-model="open"
     :labelled-by="titleId"
     :described-by="descriptionId"
@@ -170,11 +177,12 @@ function submitProfile(): void {
       </header>
 
       <fieldset
-        v-if="loginSupported && profileSupported"
+        v-if="(loginSupported && profileSupported) || favoritePlatform"
         class="mt-5 grid grid-cols-2 gap-2 border-0 p-0"
         aria-label="连接方式"
       >
         <label
+          v-if="loginSupported"
           class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'login'
@@ -209,6 +217,7 @@ function submitProfile(): void {
           登录平台
         </label>
         <label
+          v-if="profileSupported"
           class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
           :class="
             mode === 'profile'
@@ -238,6 +247,15 @@ function submitProfile(): void {
             />
           </svg>
           主页链接
+        </label>
+        <label
+          v-if="favoritePlatform"
+          class="flex cursor-pointer items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] font-bold transition-colors focus-within:ring-2 focus-within:ring-white/60"
+          :class="mode === 'favorites' ? 'border-white/30 bg-white/10' : 'border-white/10 hover:bg-white/5'"
+        >
+          <input v-model="mode" :name="id + '-mode'" class="sr-only" type="radio" value="favorites" :disabled="busy" />
+          <svg class="size-4.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20.5 4.9a5 5 0 0 0-7.1 0L12 6.3l-1.4-1.4a5 5 0 0 0-7.1 7.1l1.4 1.4L12 20.5l7.1-7.1 1.4-1.4a5 5 0 0 0 0-7.1Z"/></svg>
+          收藏同步
         </label>
       </fieldset>
 
@@ -294,8 +312,9 @@ function submitProfile(): void {
             >
           </div>
         </form>
+        <PlatformFavoriteLogin v-else-if="open && mode === 'favorites' && favoritePlatform" :key="favoritePlatform" :platform="favoritePlatform" />
         <PlatformQrLogin
-          v-else
+          v-else-if="mode === 'login'"
           :platform="platform"
           :supported="loginSupported"
           :status="loginStatus"
@@ -312,6 +331,17 @@ function submitProfile(): void {
 </template>
 
 <style scoped>
+.glass-win #platform-connection-dialog {
+  border-color: rgb(255 255 255 / 18%);
+  background: rgb(25 25 33 / 91%);
+  backdrop-filter: blur(18px);
+}
+.liquid-win #platform-connection-dialog {
+  border-color: rgb(255 255 255 / 36%);
+  background: linear-gradient(145deg, rgb(58 57 73 / 90%), rgb(21 22 31 / 89%));
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: inset 0 1px 1px #ffffff55, 0 20px 72px #0007;
+}
 @media (prefers-reduced-motion: no-preference) {
   .connection-method-enter-active,
   .connection-method-leave-active {

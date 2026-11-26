@@ -34,6 +34,7 @@ export function toSourceTrack(track: CatalogTrack): SourceTrack {
       platform: track.platform,
       id: track.id,
       sourceUrl: track.sourceUrl,
+      kugouAlbumAudioId: track.platform === 'kugou' ? track.kugouAlbumAudioId ?? undefined : undefined,
     },
   }
 }

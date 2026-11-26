@@ -2,6 +2,7 @@
 import {
   computed,
   nextTick,
+  onMounted,
   onBeforeUnmount,
   reactive,
   toRefs,
@@ -15,6 +16,7 @@ import type { LinkedProfile, LinkedProfiles } from '@/stores/player'
 import { platformNames } from '@/services/player/catalog'
 import { publicAvatar } from '@/services/public-avatar'
 import { playbackAccount } from '@/services/player/playback-session'
+import { refreshTuneWeaveAccount, tuneWeaveAccounts } from '@/services/player/tuneweave-session'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
 
@@ -34,19 +36,30 @@ const latest = computed(
 const avatar = computed(() =>
   publicAvatar((playbackAccount.value ?? latest.value)?.avatarUrl)
 )
-const identity = computed(() => playbackAccount.value ?? latest.value)
+const favoriteIdentity = computed(() => tuneWeaveAccounts.kugou ?? tuneWeaveAccounts.kuwo)
+const identity = computed(() => playbackAccount.value ?? latest.value ?? favoriteIdentity.value)
 const name = computed(() => identity.value?.displayName || (identity.value ? '音乐账号' : '访客'))
 const statusIcons = {
   '已关联': 'M9 12l2 2 4-4 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  '收藏已连接': 'M20.5 4.9a5 5 0 0 0-7.1 0L12 6.3l-1.4-1.4a5 5 0 0 0-7.1 7.1L12 20.5l8.5-8.5a5 5 0 0 0 0-7.1Z',
   '扫码连接': 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M6 12h12',
   '公开资料': 'M10 13a4 4 0 0 0 6 .3l3-3a4 4 0 0 0-6-6l-2 2m2 5a4 4 0 0 0-6-.3l-3 3a4 4 0 0 0 6 6l2-2',
 }
-// 按各平台的真实关联状态显示对应入口和图标。
+// 优先显示有权同步收藏的账号状态，公开资料保留单独的关联标识。
 const rows = computed(() => platforms.map(platform => {
-  const status = props.profiles[platform] || (platform === 'netease' && playbackAccount.value)
+  const status = platform !== 'netease' && tuneWeaveAccounts[platform] ? '收藏已连接'
+    : props.profiles[platform] || (platform === 'netease' && playbackAccount.value)
     ? '已关联' : platform === 'kuwo' ? '公开资料' : '扫码连接'
   return { platform, status, icon: statusIcons[status] }
 }))
+
+// 窗口重载或重新获得焦点时，以原生内存中的登录身份同步本窗口。
+function refreshFavoriteAccounts(): void {
+  for (const platform of ['kugou', 'kuwo'] as const)
+    void refreshTuneWeaveAccount(platform).catch(() => {})
+}
+onMounted(refreshFavoriteAccounts)
+useEventListener(window, 'focus', refreshFavoriteAccounts)
 
 // 响应式状态
 const state = reactive({
@@ -222,7 +235,7 @@ onBeforeUnmount(hide)
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
           </span>
           <div class="min-w-0"><b class="block truncate text-sm" :title="name">{{ name }}</b>
-            <span class="text-xs text-white/70">{{ playbackAccount ? '网易云播放账号' : latest ? '已关联的公开账号' : '音乐平台账号' }}</span>
+            <span class="text-xs text-white/70">{{ playbackAccount ? '网易云播放账号' : latest ? '已关联的公开账号' : favoriteIdentity ? (tuneWeaveAccounts.kugou ? '酷狗收藏账号' : '酷我收藏账号') : '音乐平台账号' }}</span>
           </div>
           <span v-if="playbackAccount?.badge" class="account-level" :aria-label="'网易云会员 ' + playbackAccount.badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
@@ -241,7 +254,7 @@ onBeforeUnmount(hide)
         >
           <PlatformIcon :platform="platform" />
           <span>{{ platformNames[platform] }}</span>
-          <span class="account-status" :class="{ linked: status === '已关联' }">
+          <span class="account-status" :class="{ linked: status === '已关联' || status === '收藏已连接' }">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="icon"/></svg>{{ status }}
           </span>
         </BaseButton>

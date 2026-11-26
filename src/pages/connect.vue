@@ -11,6 +11,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlatformImport } from '@/composables/usePlatformImport'
 import { usePlatformQrLogin } from '@/composables/usePlatformQrLogin'
 import { defaultCover, platformNames } from '@/services/player/catalog'
+import { kugouEditionNames, tuneWeaveAccounts, tuneWeaveDesktop, type TuneWeavePlatform } from '@/services/player/tuneweave-session'
 
 const route = useRoute()
 const importer = usePlatformImport()
@@ -48,7 +49,7 @@ const state = reactive({
   // 本次连接弹窗所对应的平台。
   dialogPlatform: null as MusicPlatform | null,
   // 当前连接方式，只有登录面板可启动短期扫码请求。
-  dialogMode: 'profile' as 'profile' | 'login',
+  dialogMode: 'profile' as 'profile' | 'login' | 'favorites',
   // 账号歌单只在独立选择弹窗展示，不占据平台页主体。
   selectionOpen: false,
 })
@@ -90,6 +91,13 @@ const activeProfile = computed(() =>
     : undefined
 )
 const profileByPlatform = computed(() => importer.linkedProfiles.value)
+// 平台卡分别列出收藏写入的版本和 UID，避免与公开资料的用户名混淆。
+function favoriteAccountLabel(platform: TuneWeavePlatform): string {
+  const account = tuneWeaveAccounts[platform]
+  if (!account) return '连接收藏账号'
+  const edition = account.edition ? kugouEditionNames[account.edition] + ' · ' : ''
+  return '收藏账号 · ' + edition + 'UID ' + account.userId
+}
 const dialogInitialValue = computed(() => {
   const platform = state.dialogPlatform
   return platform && platform !== 'kugou'
@@ -97,10 +105,10 @@ const dialogInitialValue = computed(() => {
     : ''
 })
 
-// 未关联平台优先展示可用扫码方式，酷我沿用公开主页方式。
+// 按所选入口打开收藏授权、扫码或主页关联；切换到收藏时停止公开资料扫码。
 function openConnectionDialog(
   platform: MusicPlatform,
-  mode: 'profile' | 'login' = platform === 'kuwo' ? 'profile' : 'login'
+  mode: 'profile' | 'login' | 'favorites' = platform === 'kuwo' ? 'profile' : 'login'
 ): void {
   state.selectionOpen = false
   state.dialogMode = mode
@@ -162,7 +170,7 @@ watch(
       path === '/connect' &&
       (platform === 'netease' || platform === 'kugou' || platform === 'kuwo')
     )
-      openConnectionDialog(platform, platform === 'kuwo' ? 'profile' : 'login')
+      openConnectionDialog(platform, platform !== 'netease' && tuneWeaveDesktop ? 'favorites' : platform === 'kuwo' ? 'profile' : 'login')
   },
   { immediate: true }
 )
@@ -266,15 +274,22 @@ onDeactivated(() => {
         </div>
         <p>{{ card.description }}</p>
         <div
-          class="plat-meta flex flex-wrap gap-[8px] text-[11px] opacity-[.7]"
+          class="plat-meta flex flex-wrap items-center gap-[8px] text-[11px] opacity-[.7]"
         >
-          <span v-if="profileByPlatform[card.id]">{{
+          <span v-if="profileByPlatform[card.id]">公开资料 · {{
             profileByPlatform[card.id]?.displayName ||
             'UID ' + profileByPlatform[card.id]?.userId
           }}</span>
           <span v-else>{{
             card.id === 'kugou' ? '需平台授权' : '公开歌单'
           }}</span>
+          <BaseButton
+            v-if="card.id !== 'netease'"
+            class="max-w-full truncate rounded-full border border-white/30 bg-black/15 px-2.5 py-1.5 font-bold text-white hover:bg-black/25 focus-visible:outline-2 focus-visible:outline-offset-2"
+            aria-haspopup="dialog"
+            aria-controls="platform-connection-dialog"
+            @click="openConnectionDialog(card.id, 'favorites')"
+          >{{ favoriteAccountLabel(card.id) }}</BaseButton>
         </div>
         <!-- 卡片按钮展开连接表单，或读取已关联的公开歌单。 -->
         <BaseButton

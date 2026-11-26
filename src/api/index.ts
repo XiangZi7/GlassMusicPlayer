@@ -11,6 +11,8 @@ export type PublicProfilePlatform = Exclude<MusicPlatform, 'kugou'>
 export interface CatalogTrack {
   platform: MusicPlatform
   id: string
+  /** 酷狗公开曲目记录里与文件 hash 对应的专辑曲目编号。 */
+  kugouAlbumAudioId?: string | null
   title: string
   artists: string[]
   album: string | null

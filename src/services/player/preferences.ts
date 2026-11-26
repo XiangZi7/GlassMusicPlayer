@@ -101,6 +101,10 @@ function publicTrack(value: unknown): SourceTrack | undefined {
       platform: catalog.platform as 'netease' | 'kugou' | 'kuwo',
       id: catalog.id,
       sourceUrl: catalog.sourceUrl,
+      kugouAlbumAudioId: catalog.platform !== 'kugou' ? undefined
+        : catalog.kugouAlbumAudioId === null ? null
+        : typeof catalog.kugouAlbumAudioId === 'string' && /^[1-9][0-9]{0,19}$/.test(catalog.kugouAlbumAudioId)
+          ? catalog.kugouAlbumAudioId : undefined,
     },
   }
 }

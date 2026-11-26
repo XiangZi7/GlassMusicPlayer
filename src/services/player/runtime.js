@@ -9,7 +9,7 @@ import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
 import { notify } from '@/services/notification'
 import { recentSearches } from '@/services/player/preferences'
-import { favoriteHint } from '@/services/player/favorites'
+import { favoriteHint, favoriteKey, favoriteTarget } from '@/services/player/favorites'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
 // 页面、列表和状态由 Vue / Pinia 管理；保留播放时序、歌词跟随和原始动画协调。
@@ -1293,7 +1293,7 @@ export function mountSourcePlayer(root, options = {}) {
           'aria-label',
           state.liked[state.idx] ? '取消收藏' : '收藏'
         )
-        el.setAttribute('aria-busy', String(tr.catalog?.platform === 'netease' && state.pendingFavorites.has(tr.catalog.id)))
+        el.setAttribute('aria-busy', String(!!tr.catalog && state.pendingFavorites.has(favoriteKey(tr.catalog))))
         el.title = el.getAttribute('aria-label') + ' · ' + favoriteHint(tr)
       })
       p.querySelectorAll('[data-shuffle]').forEach(function (el) {
@@ -2398,8 +2398,9 @@ export function mountSourcePlayer(root, options = {}) {
       time: state.t,
       volume: effVol(),
       liked: !!state.liked[state.idx],
-      favoriteBusy: track.catalog?.platform === 'netease' && state.pendingFavorites.has(track.catalog.id),
+      favoriteBusy: !!track.catalog && state.pendingFavorites.has(favoriteKey(track.catalog)),
       favoriteHint: favoriteHint(track),
+      favoriteTarget: favoriteTarget(TRACKS[state.idx]),
       lyrics,
       lyricIndex,
       capsuleLyric: state.capsuleLyric,
@@ -2415,7 +2416,10 @@ export function mountSourcePlayer(root, options = {}) {
     if (action.type === 'toggle') togglePlayback()
     else if (action.type === 'next') nextTrack()
     else if (action.type === 'previous') prevTrack()
-    else if (action.type === 'like') void toggleFavorite()
+    else if (action.type === 'like') {
+      if (action.favoriteTarget && action.favoriteTarget === favoriteTarget(TRACKS[state.idx])) void toggleFavorite()
+      else render()
+    }
     else if (action.type === 'volume') setVol(action.value)
     else if (action.type === 'seek') {
       seekTo(Math.max(0, Math.min(1, action.value)) * currentDuration())

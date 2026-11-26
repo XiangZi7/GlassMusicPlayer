@@ -163,9 +163,11 @@ useEventListener('keydown', event => {
     void getCurrentWindow().close()
 })
 
-// 原稿小窗操作定向交回主窗口，继续调用原来的播放、切歌与收藏方法。
+// 小窗收藏携带画面中的歌曲和账号标记，主窗口在切歌或切号后忽略过期的点击。
 function sendAction(type: SourceAction['type'], value?: number): void {
-  if (isTauri()) void emitTo('main', 'player-action', { type, value })
+  if (isTauri()) void emitTo('main', 'player-action', {
+    type, value, favoriteTarget: type === 'like' ? state.snapshot.favoriteTarget : undefined,
+  })
 }
 // 原稿进度条点击时换算为歌曲的相对位置。
 function seekNative(event: MouseEvent): void {

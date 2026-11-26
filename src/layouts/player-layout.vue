@@ -46,6 +46,7 @@ import { notify } from '@/services/notification'
 import type { SourceAction, SourceSnapshot } from '@/types/prototype'
 import { getStorageInfo } from '@/services/storage'
 import { emptyTrack } from '@/constants/music'
+import { tuneWeaveAccounts } from '@/services/player/tuneweave-session'
 import {
   clearPlaybackGrant,
   initializePlaybackGrant,
@@ -77,7 +78,10 @@ watch([() => state.page === 'playlist' && state.customPl?.id, () => state.linked
   void resolveFavoriteOwner(id, request.signal).catch(() => {})
 }, { immediate: true })
 // 登录态、平台快照与本机曲库变化后，同步已挂载的底栏、全屏和桌面小窗。
-watch([() => state.liked, () => state.pendingFavorites.size, playbackAccount], () => player.value?.render(), { flush: 'post' })
+watch([
+  () => state.liked, () => state.pendingFavorites, playbackAccount,
+  () => tuneWeaveAccounts.kugou, () => tuneWeaveAccounts.kuwo,
+], () => player.value?.render(), { flush: 'post' })
 const checkedDetails = new Set<string>()
 // 仅为当前曲目补查作品和专辑，按平台与 ID 复用结果，切歌时取消旧请求。
 watch(() => tracks[state.idx], async (track, _previous, onCleanup) => {

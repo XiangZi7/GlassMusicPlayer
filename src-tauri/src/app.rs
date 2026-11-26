@@ -10,10 +10,20 @@ pub fn run() {
         .manage(tray::TrayPreferences::default())
         .manage(tray_menu::TrayMenuState::default())
         .manage(storage::StorageState::default())
+        .manage(crate::tuneweave::Accounts::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            crate::tuneweave::tuneweave_begin_login,
+            crate::tuneweave_catalog::tuneweave_kugou_search_hash,
+            crate::tuneweave::tuneweave_finish_login,
+            crate::tuneweave::tuneweave_cancel_login,
+            crate::tuneweave::tuneweave_logout,
+            crate::tuneweave::tuneweave_account,
+            crate::tuneweave::tuneweave_favorites,
+            crate::tuneweave::tuneweave_kugou_track_hash,
+            crate::tuneweave::tuneweave_set_favorite,
             crate::updater::updater_check_source,
             crate::updater::updater_can_install,
             crate::updater::updater_restart,

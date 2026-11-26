@@ -198,7 +198,7 @@ export const usePlayerStore = defineStore('player', () => {
   const profilePages = new Map<string, Map<string, number>>()
   const savedPlaylists = shallowRef(readImportedPlaylists())
   const linkedProfiles = shallowRef(readLinkedProfiles())
-  const favorites = useTrackFavorites(tracks, preferences.liked, linkedProfiles, savedPlaylists, updateImportedFavorite)
+  const favorites = useTrackFavorites(tracks, preferences.liked, linkedProfiles, savedPlaylists, updateImportedFavorite, registerCatalogTracks)
   const checkedFavoriteOwners = new Set<string>()
   const state = reactive({
     /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
@@ -216,7 +216,7 @@ export const usePlayerStore = defineStore('player', () => {
     actualQuality: '',
     catalogStatus: null as PlaybackStatus | 'loading' | 'error' | null,
     /** 当前平台账号及本机曲目实际显示的红心。 */ liked: favorites.liked,
-    /** 网易云正在写回的曲目与最终意图。 */ pendingFavorites: favorites.pending,
+    /** 正在向平台账号写回的歌曲，以平台与曲目 ID 标识。 */ pendingFavorites: favorites.pending,
     /** 播放顺序模式。 */ shuffle: false,
     repeat: 0,
     /** 音量及静音前音量。 */ vol: preferences.volume,
@@ -279,6 +279,11 @@ export const usePlayerStore = defineStore('player', () => {
       const existing = catalogIndices.get(key)
       if (existing !== undefined) {
         const track = tracks[existing]!
+        if (track.catalog?.platform === 'kugou' && item.kugouAlbumAudioId && track.catalog.kugouAlbumAudioId !== null) {
+          const known = track.catalog.kugouAlbumAudioId
+          // 同一音频可能收录于多个专辑；遇到不同歌曲 ID 时保留冲突，避免点错版本。
+          track.catalog.kugouAlbumAudioId = known && known !== item.kugouAlbumAudioId ? null : item.kugouAlbumAudioId
+        }
         if (item.subtitle) track.subtitle = item.subtitle
         if ((!track.album || track.album === '—') && item.album) track.album = item.album
         if ((!track.cover || track.cover === defaultCover) && item.coverUrl) track.cover = item.coverUrl
@@ -349,7 +354,7 @@ export const usePlayerStore = defineStore('player', () => {
     try {
       commitPlaylists(savedPlaylists.value.map(list => list === saved ? updated : list), [], updated)
     } catch {
-      notify('网易云已确认红心变更，本机歌单副本保存失败。', 'error')
+      notify(platformNames[source.platform] + '已确认红心变更，本机歌单副本保存失败。', 'error')
     }
   }
 

@@ -1,7 +1,7 @@
 import { computed, reactive, shallowRef, watch, type Ref } from 'vue'
-import type { CatalogPlaylist, MusicPlatform } from '@/api'
+import type { CatalogPlaylist, CatalogTrack, MusicPlatform } from '@/api'
 import type { LinkedProfiles } from '@/stores/player'
-import type { SourceTrack } from '@/types/prototype'
+import type { CatalogSource, SourceTrack } from '@/types/prototype'
 import { notify } from '@/services/notification'
 import { platformNames } from '@/services/player/catalog'
 import { preferenceTrackKey } from '@/services/player/preferences'
@@ -11,256 +11,421 @@ import {
   playbackRevision,
   restorePlaybackGrant,
 } from '@/services/player/playback-session'
+import {
+  refreshTuneWeaveAccount,
+  tuneWeaveAccounts,
+} from '@/services/player/tuneweave-session'
+import {
+  readTuneWeaveFavorites,
+  writeTuneWeaveFavorite,
+} from '@/services/player/tuneweave-favorites'
 import { httpGet, httpPost } from '@/utils/http'
 
-// 红心提示在主窗和独立小窗共用，平台缺少写权限时说明可用的操作。
+// 酷狗曲库以文件哈希标识歌曲，大小写不影响同一首歌的判断。
+function favoriteId(source: CatalogSource): string {
+  return source.platform === 'kugou' ? source.id.toLowerCase() : source.id
+}
+
+// 各窗口按平台与歌曲 ID 判断同一红心的写入进度。
+export function favoriteKey(source: CatalogSource): string {
+  return source.platform + ':' + favoriteId(source)
+}
+
+// 仅已授权的账号可写入收藏，公开主页单独用于歌单归属判断。
+function authorizedOwner(platform: MusicPlatform): string | undefined {
+  if (platform === 'netease')
+    return playbackAccount.value?.favorites && playbackBearer()
+      ? playbackAccount.value.userId
+      : undefined
+  return tuneWeaveAccounts[platform]?.userId
+}
+
+// 红心提示说明目标账号，未授权时给出对应的连接入口。
 export function favoriteHint(track?: SourceTrack): string {
   const platform = track?.catalog?.platform
   if (!platform) return '本机收藏'
-  if (platform !== 'netease')
-    return '当前服务尚未接入' + platformNames[platform] + '账号收藏'
-  return playbackAccount.value?.favorites
-    ? '同步到网易云音乐'
-    : '请扫码登录网易云并授权红心同步'
+  const owner = authorizedOwner(platform)
+  if (platform === 'kugou' && owner) {
+    const account = tuneWeaveAccounts.kugou
+    const edition = account?.edition === 'concept' ? '概念版' : '标准版'
+    return `同步到酷狗${edition} · UID ${owner}`
+  }
+  if (owner) return `同步到${platformNames[platform]} · UID ${owner}`
+  return platform === 'netease'
+    ? '请扫码登录网易云并授权红心同步'
+    : `请在平台对接中连接${platformNames[platform]}的收藏账号`
 }
 
-// 按平台和账号维护红心，完整列表与已确认的写回都可用于之后才登记的歌曲。
+// 给桌面小窗标记它显示的歌曲与收藏账号，防止迟到的点击改动另一首或另一版账号。
+export function favoriteTarget(track?: SourceTrack): string {
+  if (!track) return ''
+  const source = track.catalog
+  if (!source) return preferenceTrackKey(track)
+  const edition = source.platform === 'kugou' ? tuneWeaveAccounts.kugou?.edition : ''
+  return [favoriteKey(source), authorizedOwner(source.platform) ?? '', edition ?? ''].join('|')
+}
+
+// 兼容原生 IPC 的字符串错误与 HTTP 的 Error 对象。
+function errorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : '请稍后重试。'
+}
+
+// 每个平台独立维护账号快照和写入队列，切号时终止旧会话的后续工作。
+function usePlatformFavorites(
+  platform: MusicPlatform,
+  profiles: Ref<LinkedProfiles>,
+  registerTracks: (items: CatalogTrack[]) => unknown,
+  updateImported: (owner: string, track: SourceTrack, liked: boolean) => void
+) {
+  const state = reactive({
+    /** 最近一次完整的账号红心快照，null 表示尚未取得。 */
+    ids: null as Set<string> | null,
+    /** 酷狗账号里仅有歌曲 ID、暂时缺少音频哈希的已确认收藏。 */
+    unmappedKugouIds: new Set<string>(),
+    /** 在快照读取期间或之后成功写回的歌曲。 */
+    writes: new Map<string, boolean>(),
+    /** 等待提交或确认的每首歌曲的最终意图。 */
+    pending: new Map<string, boolean>(),
+  })
+  let session = new AbortController()
+  let reading: Promise<void> | undefined
+  let writesDuringRead: Set<string> | undefined
+  let writer = Promise.resolve()
+  let refreshedAt = 0
+  let reportedReadError = false
+  let needsRead = false
+
+  // 完整读取当前账号的红心，保留读列表期间已经写入的结果。
+  async function refresh(): Promise<void> {
+    const owner = authorizedOwner(platform)
+    if (!owner || state.pending.size || Date.now() - refreshedAt < 60_000)
+      return
+    if (reading) return reading
+    const { signal } = session
+    const changes = new Set<string>()
+    writesDuringRead = changes
+    reading = (async () => {
+      if (platform === 'netease') {
+        const result = await httpGet<{ ids: string[] }>(
+          '/netease/auth/favorites',
+          {
+            headers: { Authorization: 'Bearer ' + playbackBearer() },
+            signal,
+          }
+        )
+        if (signal.aborted) return
+        if (
+          !Array.isArray(result.ids) ||
+          !result.ids.every(id => typeof id === 'string' && /^\d+$/.test(id))
+        )
+          throw new Error('网易云返回的红心列表无效')
+        state.ids = new Set(result.ids)
+      } else {
+        const edition =
+          platform === 'kugou' ? tuneWeaveAccounts.kugou?.edition : undefined
+        const result = await readTuneWeaveFavorites(
+          platform,
+          owner,
+          signal,
+          edition
+        )
+        if (signal.aborted) return
+        registerTracks(result.tracks)
+        state.ids = new Set(result.ids)
+        state.unmappedKugouIds = new Set(result.unmappedKugouIds)
+      }
+      for (const id of state.writes.keys()) {
+        if (!changes.has(id)) state.writes.delete(id)
+      }
+      refreshedAt = Date.now()
+      reportedReadError = false
+    })()
+      .catch((error: unknown) => {
+        if (!signal.aborted && !reportedReadError) {
+          reportedReadError = true
+          notify(
+            platformNames[platform] +
+              '红心列表读取失败。' +
+              errorMessage(error),
+            'error'
+          )
+          if (platform !== 'netease')
+            void refreshTuneWeaveAccount(platform).catch(() => {})
+        }
+      })
+      .finally(() => {
+        if (!signal.aborted) {
+          reading = undefined
+          writesDuringRead = undefined
+        }
+      })
+    return reading
+  }
+
+  // 账号变更后立即丢弃前一账号的红心及等待队列，只刷新本平台。
+  watch(
+    [
+      () =>
+        platform === 'netease'
+          ? playbackRevision.value
+          : tuneWeaveAccounts[platform],
+      () => (platform === 'netease' ? playbackAccount.value : null),
+      () =>
+        platform === 'netease' ? profiles.value.netease?.userId : undefined,
+    ],
+    () => {
+      session.abort()
+      session = new AbortController()
+      reading = undefined
+      writer = Promise.resolve()
+      writesDuringRead = undefined
+      refreshedAt = 0
+      needsRead = false
+      reportedReadError = false
+      state.ids = null
+      state.unmappedKugouIds.clear()
+      state.writes.clear()
+      state.pending.clear()
+      void refresh()
+    },
+    { flush: 'sync' }
+  )
+
+  // 当前授权的已确认写入和完整列表优先于公开歌单副本。
+  function confirmed(source: CatalogSource, inPlaylist: boolean): boolean {
+    const id = favoriteId(source)
+    const found =
+      state.ids &&
+      (state.ids.has(id) ||
+        (source.platform === 'kugou' &&
+          !!source.kugouAlbumAudioId &&
+          state.unmappedKugouIds.has(source.kugouAlbumAudioId)))
+    return state.writes.get(id) ?? found ?? inPlaylist
+  }
+
+  // 对同账号的写入串行处理，同一首歌反复点击时保留最后意图。
+  async function toggle(
+    track: SourceTrack,
+    inPlaylist: boolean
+  ): Promise<void> {
+    const source = track.catalog
+    if (!source) return
+    const id = favoriteId(source)
+    if (platform === 'netease') {
+      const revision = playbackRevision.value
+      try {
+        await restorePlaybackGrant()
+      } catch (error) {
+        notify(errorMessage(error), 'error')
+        return
+      }
+      if (revision !== playbackRevision.value) return
+    }
+    const { signal } = session
+    const owner = authorizedOwner(platform)
+    const kugouAccount = platform === 'kugou' ? tuneWeaveAccounts.kugou : null
+    if (!owner) {
+      notify(favoriteHint(track))
+      return
+    }
+    if (
+      !state.ids &&
+      !inPlaylist &&
+      !state.writes.has(id) &&
+      !state.pending.has(id)
+    ) {
+      if (state.pending.size) await writer
+      if (signal.aborted) return
+      reportedReadError = false
+      await refresh()
+      if (signal.aborted || !state.ids) return
+    }
+    const alreadyPending = state.pending.has(id)
+    const wanted = !(state.pending.get(id) ?? confirmed(source, inPlaylist))
+    if (
+      wanted &&
+      kugouAccount?.edition === 'concept' &&
+      !kugouAccount.canAddFavorites
+    ) {
+      notify(
+        '请在酷狗收藏账号中用标准版补充授权，确认同一份喜欢歌单后即可新增。'
+      )
+      return
+    }
+    state.pending.set(id, wanted)
+    if (alreadyPending) return
+    writer = writer.then(async () => {
+      if (signal.aborted) return
+      try {
+        while (!signal.aborted) {
+          const desired = state.pending.get(id)
+          if (
+            desired === undefined ||
+            confirmed(source, inPlaylist) === desired
+          )
+            break
+          if (platform === 'netease') {
+            await httpPost(
+              `/netease/auth/favorites/${encodeURIComponent(id)}`,
+              { liked: desired },
+              {
+                headers: { Authorization: 'Bearer ' + playbackBearer() },
+                signal,
+                validateStatus: status => status === 204,
+              }
+            )
+          } else {
+            await writeTuneWeaveFavorite(
+              platform,
+              owner,
+              track,
+              desired,
+              signal,
+              kugouAccount?.edition
+            )
+          }
+          if (signal.aborted) return
+          writesDuringRead?.add(id)
+          state.writes.set(id, desired)
+          updateImported(owner, track, desired)
+        }
+      } catch (error) {
+        if (!signal.aborted) {
+          needsRead = true
+          if (platform !== 'netease') void refreshTuneWeaveAccount(platform).catch(() => {})
+          notify(
+            platformNames[platform] + '收藏未能确认。' + errorMessage(error),
+            'error'
+          )
+        }
+      } finally {
+        if (!signal.aborted) {
+          state.pending.delete(id)
+          if (needsRead && !state.pending.size) {
+            needsRead = false
+            await reading
+            if (!signal.aborted) {
+              refreshedAt = 0
+              await refresh()
+            }
+          }
+        }
+      }
+    })
+    await writer
+  }
+  return { state, confirmed, toggle, refresh }
+}
+
+// 汇总各平台当前账号的红心，分别保留设备曲目与旧版本机收藏。
 export function useTrackFavorites(
   tracks: SourceTrack[],
   savedLocalKeys: string[],
   profiles: Ref<LinkedProfiles>,
   playlists: Ref<CatalogPlaylist[]>,
-  updateImported: (owner: string, track: SourceTrack, liked: boolean) => void
+  updateImported: (owner: string, track: SourceTrack, liked: boolean) => void,
+  registerTracks: (items: CatalogTrack[]) => unknown
 ) {
   const localKeys = reactive(new Set(savedLocalKeys))
-  // 旧版收藏没有平台账号归属，单独展示这些记录，避免替用户上传或覆盖。
   const legacyIndices = computed(() =>
     tracks.flatMap((track, index) =>
       track.catalog && localKeys.has(preferenceTrackKey(track)) ? [index] : []
     )
   )
-  const browsedList = shallowRef<CatalogPlaylist>()
-  const accountState = reactive({
-    /** 经过当前授权确认的完整网易云红心集合，首次读取前保留公开歌单依据。 */
-    ids: null as Set<string> | null,
-    /** 当前账号已写回的结果，优先于可能过期的导入歌单。 */
-    writes: new Map<string, boolean>(),
-    /** 正在提交的最终意图，重复点击同一首时只由首个请求负责写回。 */
-    pending: new Map<string, boolean>(),
-  })
-  let loading: Promise<void> | undefined
-  let request: AbortController | undefined
-  let generation = 0
-  let writtenDuringRead: Set<string> | undefined
-  let refreshedAt = 0
-  let reportedReadError = false
-
-  // 登录、切号或退出后立即丢弃上一个身份的快照和操作。
-  watch(
-    [
-      playbackRevision,
-      () => playbackAccount.value?.userId,
-      () => profiles.value.netease?.userId,
-    ],
-    () => {
-      generation++
-      browsedList.value = undefined
-      request?.abort()
-      request = undefined
-      writtenDuringRead = undefined
-      loading = undefined
-      refreshedAt = 0
-      reportedReadError = false
-      accountState.ids = null
-      accountState.writes.clear()
-      accountState.pending.clear()
-    },
-    { flush: 'sync' }
-  )
-
-  // 网易云以实际登录账号为先，公开模式和其他来源沿用用户关联的 UID。
-  function ownerOf(platform: MusicPlatform): string | undefined {
-    if (platform === 'netease' && playbackAccount.value)
-      return playbackAccount.value.userId
-    return profiles.value[platform]?.userId
+  const accounts = {
+    netease: usePlatformFavorites(
+      'netease',
+      profiles,
+      registerTracks,
+      updateImported
+    ),
+    kugou: usePlatformFavorites(
+      'kugou',
+      profiles,
+      registerTracks,
+      updateImported
+    ),
+    kuwo: usePlatformFavorites(
+      'kuwo',
+      profiles,
+      registerTracks,
+      updateImported
+    ),
   }
-
-  // 只采信平台标注归属的系统喜欢歌单；同名普通歌单和其他人的喜欢歌单均独立。
+  const browsedList = shallowRef<CatalogPlaylist>()
+  // 公开喜欢歌单须由当前平台账号拥有。
+  function ownerOf(platform: MusicPlatform): string | undefined {
+    return authorizedOwner(platform) ?? profiles.value[platform]?.userId
+  }
   const playlistKeys = computed(() => {
     const keys = new Set<string>()
     const lists = browsedList.value
       ? [...playlists.value, browsedList.value]
       : playlists.value
     for (const list of lists) {
-      const owner = ownerOf(list.platform)
-      if (!owner || list.favoriteOwnerId !== owner) continue
+      if (
+        !list.favoriteOwnerId ||
+        list.favoriteOwnerId !== ownerOf(list.platform)
+      )
+        continue
       for (const track of list.tracks) {
-        if (track.platform === list.platform)
-          keys.add(track.platform + ':' + track.id)
+        if (track.platform === list.platform) keys.add(favoriteKey(track))
       }
     }
     return keys
   })
-
-  // 曲库索引只负责界面定位，所有平台匹配都用稳定歌曲 ID。
   const liked = computed(() => {
     const result: Record<number, boolean> = {}
     tracks.forEach((track, index) => {
-      const key = preferenceTrackKey(track)
       const source = track.catalog
-      let selected = source ? playlistKeys.value.has(key) : localKeys.has(key)
-      if (source?.platform === 'netease') {
-        selected =
-          accountState.pending.get(source.id) ??
-          accountState.writes.get(source.id) ??
-          accountState.ids?.has(source.id) ??
-          selected
+      if (source) {
+        const id = favoriteId(source)
+        const account = accounts[source.platform]
+        if (
+          account.state.pending.get(id) ??
+          account.confirmed(source, playlistKeys.value.has(favoriteKey(source)))
+        )
+          result[index] = true
+      } else if (localKeys.has(preferenceTrackKey(track))) {
+        result[index] = true
       }
-      if (selected) result[index] = true
     })
     return result
   })
-
-  // 读取当前扫码账号的红心列表，正在读取时发生的成功写入优先于旧响应。
-  async function refreshFavorites(): Promise<void> {
-    const token = playbackBearer()
-    if (
-      !token ||
-      !playbackAccount.value?.favorites ||
-      Date.now() - refreshedAt < 60_000
-    )
-      return
-    if (loading) return loading
-    if (accountState.pending.size) return
-    const controller = new AbortController()
-    request = controller
-    const changes = new Set<string>()
-    writtenDuringRead = changes
-    loading = httpGet<{ ids: string[] }>('/netease/auth/favorites', {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
-      .then(result => {
-        if (controller.signal.aborted || token !== playbackBearer()) return
-        if (
-          !Array.isArray(result.ids) ||
-          !result.ids.every(id => typeof id === 'string' && /^\d+$/.test(id))
-        ) {
-          throw new Error('网易云返回的红心列表无效')
-        }
-        accountState.ids = new Set(result.ids)
-        // 请求发出后新确认的写入仍覆盖这份快照。
-        for (const id of accountState.writes.keys()) {
-          if (!changes.has(id)) accountState.writes.delete(id)
-        }
-        refreshedAt = Date.now()
-        reportedReadError = false
-      })
-      .catch((error: unknown) => {
-        if (
-          controller.signal.aborted ||
-          token !== playbackBearer() ||
-          reportedReadError
-        )
-          return
-        reportedReadError = true
-        notify(
-          '网易云红心列表读取失败。' +
-            (error instanceof Error ? error.message : '请稍后重试。'),
-          'error'
-        )
-      })
-      .finally(() => {
-        if (request === controller) {
-          loading = undefined
-          writtenDuringRead = undefined
-        }
-      })
-    return loading
-  }
-
-  // 首次浏览系统喜欢歌单时即可显示红心，无需把该歌单另行导入曲库。
+  const pending = computed(() => {
+    const keys = new Set<string>()
+    for (const [platform, account] of Object.entries(accounts)) {
+      for (const id of account.state.pending.keys())
+        keys.add(platform + ':' + id)
+    }
+    return keys
+  })
+  // 打开有明确归属的系统歌单后，即使尚未导入也能立即显示其歌曲的红心。
   function observeFavoritePlaylist(list: CatalogPlaylist): void {
-    const owner = ownerOf(list.platform)
-    if (owner && list.favoriteOwnerId === owner) browsedList.value = list
+    if (list.favoriteOwnerId && list.favoriteOwnerId === ownerOf(list.platform))
+      browsedList.value = list
   }
-
-  // 在点击时锁定曲目与身份，按平台确认结果收敛，同一首快速连续点击合并到最后一次。
+  // 设备曲目直接保存在本机，在线曲目由对应的平台账号确认。
   async function toggleFavorite(index: number): Promise<void> {
     const track = tracks[index]
     if (!track) return
-    const wanted = !liked.value[index]
-    const source = track.catalog
-    if (!source) {
-      const key = preferenceTrackKey(track)
-      if (wanted) localKeys.add(key)
-      else localKeys.delete(key)
-      return
-    }
-    if (source.platform !== 'netease') {
-      notify(favoriteHint(track))
-      return
-    }
-    const revision = playbackRevision.value
-    try {
-      await restorePlaybackGrant()
-    } catch (error) {
-      notify(
-        error instanceof Error ? error.message : '无法恢复网易云授权',
-        'error'
+    if (track.catalog)
+      return accounts[track.catalog.platform].toggle(
+        track,
+        playlistKeys.value.has(favoriteKey(track.catalog))
       )
-      return
-    }
-    const token = playbackBearer()
-    if (revision !== playbackRevision.value) return
-    const account = playbackAccount.value
-    if (!token || !account?.favorites) {
-      notify(favoriteHint(track))
-      return
-    }
-    const id = source.id
-    if (accountState.pending.has(id)) {
-      accountState.pending.set(id, !accountState.pending.get(id))
-      return
-    }
-    const started = generation
-    // 写回和失败回滚只作用于发起点击的同一份账号授权。
-    const current = () => started === generation && token === playbackBearer()
-    accountState.pending.set(id, wanted)
-    try {
-      while (current()) {
-        const desired = accountState.pending.get(id)
-        if (desired === undefined) break
-        try {
-          await httpPost(
-            `/netease/auth/favorites/${encodeURIComponent(id)}`,
-            { liked: desired },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-              validateStatus: status => status === 204,
-            }
-          )
-          if (!current()) return
-          writtenDuringRead?.add(id)
-          accountState.writes.set(id, desired)
-          updateImported(account.userId, track, desired)
-        } catch (error) {
-          if (desired === accountState.pending.get(id)) throw error
-        }
-        if (desired === accountState.pending.get(id)) break
-      }
-    } catch (error) {
-      if (current())
-        notify(
-          '网易云收藏未能确认。' +
-            (error instanceof Error ? error.message : '请重试。'),
-          'error'
-        )
-    } finally {
-      if (current()) accountState.pending.delete(id)
-    }
+    const key = preferenceTrackKey(track)
+    if (localKeys.has(key)) localKeys.delete(key)
+    else localKeys.add(key)
   }
-
+  // 返回前台时独立刷新每个已授权平台。
+  async function refreshFavorites(): Promise<void> {
+    await Promise.all(Object.values(accounts).map(account => account.refresh()))
+  }
   return {
     liked,
     localKeys,
@@ -268,6 +433,6 @@ export function useTrackFavorites(
     refreshFavorites,
     observeFavoritePlaylist,
     toggleFavorite,
-    pending: accountState.pending,
+    pending,
   }
 }

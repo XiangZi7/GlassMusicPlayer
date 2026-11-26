@@ -4,6 +4,8 @@ export interface CatalogSource {
   platform: MusicPlatform
   id: string
   sourceUrl: string
+  /** 酷狗账号收藏使用的专辑曲目编号，null 表示同一 hash 曾对应多个编号。 */
+  kugouAlbumAudioId?: string | null
 }
 
 export interface SourceTrack {
@@ -31,6 +33,7 @@ export interface SourceSnapshot {
   liked: boolean
   favoriteBusy?: boolean
   favoriteHint?: string
+  favoriteTarget?: string
   lyrics: string[]
   lyricIndex: number
   capsuleLyric?: string
@@ -44,6 +47,7 @@ export interface SourceSnapshot {
 export interface SourceAction {
   type: 'toggle' | 'next' | 'previous' | 'like' | 'volume' | 'seek' | 'focus'
   value?: number
+  favoriteTarget?: string
 }
 
 export interface SourcePlayer {
