@@ -60,7 +60,7 @@ const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
 const root = computed(() => frame.value?.element ?? null)
 const route = useRoute()
 const router = useRouter()
-const { state, tracks, saveIslandPreferences, savePreferences, refreshFavorites, resolveFavoriteOwner, toggleFavorite } =
+const { state, tracks, saveIslandPreferences, savePreferences, refreshFavorites, toggleFavorite } =
   usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
@@ -70,13 +70,6 @@ function syncFavorites(): void {
 }
 watch([() => playbackAccount.value?.userId, () => playbackAccount.value?.favorites, playbackRevision, () => state.linkedProfiles.netease?.userId], syncFavorites, { immediate: true })
 useEventListener(window, 'focus', syncFavorites)
-// 首次打开已导入的旧歌单时向平台补查系统红心标记，网络中断仍可播放本机歌单。
-watch([() => state.page === 'playlist' && state.customPl?.id, () => state.linkedProfiles.netease?.userId], ([id, owner], _, onCleanup) => {
-  if (!id || !owner || !id.startsWith('netease:')) return
-  const request = new AbortController()
-  onCleanup(() => request.abort())
-  void resolveFavoriteOwner(id, request.signal).catch(() => {})
-}, { immediate: true })
 // 登录态、平台快照与本机曲库变化后，同步已挂载的底栏、全屏和桌面小窗。
 watch([
   () => state.liked, () => state.pendingFavorites, playbackAccount,
@@ -86,15 +79,18 @@ const checkedDetails = new Set<string>()
 // 仅为当前曲目补查作品和专辑，按平台与 ID 复用结果，切歌时取消旧请求。
 watch(() => tracks[state.idx], async (track, _previous, onCleanup) => {
   if (!track?.catalog || track.subtitle) return
-  const { platform, id } = track.catalog
-  const key = `${platform}:${id}`
+  const { platform, id, kugouAlbumAudioId } = track.catalog
+  const key = [platform, id, kugouAlbumAudioId].join(':')
   if (checkedDetails.has(key)) return
   const request = new AbortController()
   onCleanup(() => request.abort())
   try {
-    const detail = await getCatalogTrack(platform, id, request.signal)
+    const detail = await getCatalogTrack(platform, id, request.signal, kugouAlbumAudioId)
+    if (kugouAlbumAudioId && detail.kugouAlbumAudioId !== kugouAlbumAudioId) return
     if (request.signal.aborted || detail.platform !== platform || detail.id !== id) return
     checkedDetails.add(key)
+    if (detail.artistRefs?.length) track.catalog.artistRefs = detail.artistRefs
+    if (detail.albumRef) track.catalog.albumRef = detail.albumRef
     if (detail.subtitle) track.subtitle = detail.subtitle
     if (detail.album && (!track.album || track.album === '—')) track.album = detail.album
     player.value?.render()
@@ -345,6 +341,8 @@ onMounted(async () => {
     toggleFavorite,
     onNavigate: navigate,
     currentPath: () => route.fullPath,
+    detailName: () => typeof route.query.name === 'string' ? route.query.name.trim()
+      : route.query.platform !== undefined ? '' : typeof route.query.artist === 'string' ? route.query.artist.trim() : undefined,
     onStateChange: isTauri() ? publishSnapshot : undefined,
     prepareStage,
     onDesktop: openSourceDesktop,

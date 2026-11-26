@@ -27,19 +27,22 @@ async function loadClient(baseURL: string): Promise<AxiosInstance> {
   client.interceptors.response.use(undefined, (cause: unknown) => {
     if (
       axios.isCancel(cause) ||
-      !axios.isAxiosError<{ detail?: { code?: string } }>(cause)
+      !axios.isAxiosError<{ detail?: string | { code?: string } }>(cause)
     )
       throw cause
     if (cause.code === 'ECONNABORTED' || cause.code === 'ETIMEDOUT')
       throw new Error('音乐服务响应超时，请重试。')
     if (!cause.response)
       throw new Error('无法连接音乐服务，请检查网络连接后重试。')
-    const code = cause.response.data?.detail?.code
+    const detail = cause.response.data?.detail
+    const code = typeof detail === 'object' ? detail?.code : undefined
     const error = new Error(
       (code && errorMessages[code]) ||
         `音乐服务请求失败（${cause.response.status}）。`
     )
     if (code) error.name = code
+    else if (cause.response.status === 404 && detail === 'Not Found')
+      error.name = 'route_not_found'
     throw error
   })
   return client

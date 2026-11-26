@@ -6,7 +6,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { sortTrackIndices } from '@/services/player/library'
-import { catalogKey } from '@/services/player/catalog'
+import { catalogPlaybackKey } from '@/services/player/preferences'
 import type { SourceTrack } from '@/types/prototype'
 
 const props = defineProps<{
@@ -77,12 +77,12 @@ function play(index: number): void {
   else controller()?.selectTrack(index, true)
 }
 const { idx } = toRefs(state)
-// 外部歌单以平台和曲目 ID 判断当前曲目，无需在浏览时写入曲库。
+// 外部列表按平台及发行版本高亮当前行，酷狗同 hash 的其他专辑保持未选中。
 function isCurrent(index: number): boolean {
   if (!props.sourceTracks) return index === idx.value
   const song = rows.value[index]?.catalog
   const current = tracks[idx.value]?.catalog
-  return !!song && !!current && catalogKey(song) === catalogKey(current)
+  return !!song && !!current && catalogPlaybackKey(song) === catalogPlaybackKey(current)
 }
 // 信息区的播放全部使用此时列表显示的排序。
 function playFirst(): void {

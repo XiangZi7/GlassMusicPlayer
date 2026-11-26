@@ -1,4 +1,5 @@
-import type { SourceTrack } from '@/types/prototype'
+import type { CatalogSource, SourceTrack } from '@/types/prototype'
+import type { CatalogRef } from '@/api'
 import { defaultCover } from '@/constants/music'
 import { isUpdateSource, isValidUpdateProxy } from '@/services/update-preferences'
 
@@ -16,6 +17,8 @@ export interface PlayerPreferences<T extends Record<string, SettingValue>> {
   catalogTracks: SourceTrack[]
 }
 export const preferencesKey = 'miraiMusic.preferences.v1'
+const maxSavedTracks = 3000
+const maxPreferenceLength = 4 * 1024 * 1024
 
 // 整理搜索历史，过滤无效值并保留最近使用的十二个不同关键词。
 export function recentSearches(value: unknown): string[] {
@@ -33,11 +36,25 @@ export function recentSearches(value: unknown): string[] {
   return result
 }
 
-// 曲目持久化使用平台 ID；演示曲目使用内容标识，避免曲库索引变化指向其它歌曲。
+// 兼容旧版本机红心和队列使用的平台 ID；本机曲目按内容标识。
 export function preferenceTrackKey(track: SourceTrack): string {
   return track.catalog
     ? `${track.catalog.platform}:${track.catalog.id}`
     : `demo:${encodeURIComponent([track.title, track.artist, track.album].join('|'))}`
+}
+
+// 酷狗文件可在不同专辑重复收录；优先用专辑曲目编号区分，缺失时使用已知专辑编号。
+export function catalogPlaybackKey(source: CatalogSource): string {
+  if (source.platform !== 'kugou') return `${source.platform}:${source.id}`
+  const hash = 'kugou:' + source.id.toLowerCase()
+  if (source.kugouAlbumAudioId) return hash + ':audio:' + source.kugouAlbumAudioId
+  if (source.albumRef?.id) return hash + ':album:' + source.albumRef.id
+  return hash
+}
+
+// 队列、进度和最近播放都定位到用户实际选中的发行版本。
+export function playbackPreferenceKey(track: SourceTrack): string {
+  return track.catalog ? catalogPlaybackKey(track.catalog) : preferenceTrackKey(track)
 }
 
 // 只接受普通对象，防止损坏缓存或原型字段污染播放器偏好。
@@ -45,6 +62,14 @@ function object(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {}
+}
+
+// 只持久化可用于目录查询的公开编号和显示名称。
+function publicCatalogRef(value: unknown): CatalogRef | undefined {
+  const ref = object(value)
+  if (typeof ref.id === 'string' && /^[1-9]\d{0,19}$/.test(ref.id) &&
+    typeof ref.name === 'string' && ref.name.trim() && ref.name.length <= 500)
+    return { id: ref.id, name: ref.name.trim() }
 }
 
 // 恢复曲目仅保留公开展示字段，绝不缓存临时音频 URL、Cookie 或 token。
@@ -82,6 +107,9 @@ function publicTrack(value: unknown): SourceTrack | undefined {
   return {
     title: row.title.slice(0, 500),
     artist: row.artist.slice(0, 500),
+    artists: Array.isArray(row.artists) && row.artists.length <= 100 &&
+      row.artists.every(name => typeof name === 'string' && name.length <= 500) &&
+      row.artists.join(' / ').length <= 500 ? row.artists : undefined,
     album: typeof row.album === 'string' ? row.album.slice(0, 500) : '—',
     subtitle: typeof row.subtitle === 'string' ? row.subtitle.slice(0, 1000) : undefined,
     cover,
@@ -101,6 +129,9 @@ function publicTrack(value: unknown): SourceTrack | undefined {
       platform: catalog.platform as 'netease' | 'kugou' | 'kuwo',
       id: catalog.id,
       sourceUrl: catalog.sourceUrl,
+      artistRefs: Array.isArray(catalog.artistRefs) ? catalog.artistRefs.slice(0, 100)
+        .map(publicCatalogRef).filter((ref): ref is CatalogRef => !!ref) : undefined,
+      albumRef: publicCatalogRef(catalog.albumRef),
       kugouAlbumAudioId: catalog.platform !== 'kugou' ? undefined
         : catalog.kugouAlbumAudioId === null ? null
         : typeof catalog.kugouAlbumAudioId === 'string' && /^[1-9][0-9]{0,19}$/.test(catalog.kugouAlbumAudioId)
@@ -119,7 +150,7 @@ function keys(value: unknown): string[] {
               typeof item === 'string' && item.length > 0 && item.length <= 2000
           )
         ),
-      ].slice(0, 3000)
+      ].slice(0, maxSavedTracks)
     : []
 }
 
@@ -141,7 +172,7 @@ export function readPlayerPreferences<T extends Record<string, SettingValue>>(
   }
   try {
     const text = localStorage.getItem(preferencesKey)
-    if (!text || text.length > 1000000) return result
+    if (!text || text.length > maxPreferenceLength) return result
     const saved = object(JSON.parse(text))
     if (saved.version !== 1) return result
     const settings = object(saved.settings)
@@ -183,7 +214,7 @@ export function readPlayerPreferences<T extends Record<string, SettingValue>>(
     result.searchHistory = recentSearches(saved.searchHistory)
     if (Array.isArray(saved.catalogTracks))
       result.catalogTracks = saved.catalogTracks
-        .slice(0, 512)
+        .slice(0, maxSavedTracks)
         .map(publicTrack)
         .filter((track): track is SourceTrack => !!track)
   } catch {
@@ -197,65 +228,63 @@ export function writePlayerPreferences<T extends Record<string, SettingValue>>(
   preferences: PlayerPreferences<T>
 ): boolean {
   try {
-    const catalogTracks = preferences.catalogTracks
+    const catalogTracks = preferences.catalogTracks.slice(0, maxSavedTracks)
       .map(publicTrack)
       .filter((track): track is SourceTrack => !!track)
-      .slice(0, 512)
-    localStorage.setItem(
-      preferencesKey,
-      JSON.stringify({
-        version: 1,
-        settings: Object.fromEntries(
-          Object.entries(preferences.settings).filter(([key]) =>
-            [
-              'closeToTray',
-              'autoUpdate',
-              'updateSource',
-              'updateDownloadProxy',
-              'gapless',
-              'crossfadeOn',
-              'normalize',
-              'weather',
-              'motion',
-              'glassStyle',
-              'bannerCharacter',
-              'crossfade',
-              'quality',
-              'bottomSpectrum',
-              'output',
-              'eq',
-              'eqEnabled',
-              'eqPreamp',
-              'eqGains',
-              'eqAutoHeadroom',
-              'eqCustomPresets',
-              'downloadQuality',
-              'cacheDirectory',
-              'downloadDirectory',
-              'rememberPlayback',
-              'sleep',
-              'deskLyrics',
-              'deskLock',
-              'lyricIsland',
-              'lyricIslandSnap',
-              'trayMini',
-              'smtc',
-            ].includes(key)
-          )
-        ),
-        volume: preferences.volume,
-        muted: preferences.muted,
-        panelOpen: preferences.panelOpen,
-        current: preferences.current
-          ? { key: preferences.current.key, time: preferences.current.time }
-          : null,
-        queue: keys(preferences.queue),
-        liked: keys(preferences.liked),
-        recent: keys(preferences.recent),
-        searchHistory: recentSearches(preferences.searchHistory),
-        catalogTracks,
-      })
-    )
+    const serialized = JSON.stringify({
+      version: 1,
+      settings: Object.fromEntries(
+        Object.entries(preferences.settings).filter(([key]) =>
+          [
+            'closeToTray',
+            'autoUpdate',
+            'updateSource',
+            'updateDownloadProxy',
+            'gapless',
+            'crossfadeOn',
+            'normalize',
+            'weather',
+            'motion',
+            'glassStyle',
+            'bannerCharacter',
+            'crossfade',
+            'quality',
+            'bottomSpectrum',
+            'output',
+            'eq',
+            'eqEnabled',
+            'eqPreamp',
+            'eqGains',
+            'eqAutoHeadroom',
+            'eqCustomPresets',
+            'downloadQuality',
+            'cacheDirectory',
+            'downloadDirectory',
+            'rememberPlayback',
+            'sleep',
+            'deskLyrics',
+            'deskLock',
+            'lyricIsland',
+            'lyricIslandSnap',
+            'trayMini',
+            'smtc',
+          ].includes(key)
+        )
+      ),
+      volume: preferences.volume,
+      muted: preferences.muted,
+      panelOpen: preferences.panelOpen,
+      current: preferences.current
+        ? { key: preferences.current.key, time: preferences.current.time }
+        : null,
+      queue: keys(preferences.queue),
+      liked: keys(preferences.liked),
+      recent: keys(preferences.recent),
+      searchHistory: recentSearches(preferences.searchHistory),
+      catalogTracks,
+    })
+    if (serialized.length > maxPreferenceLength) return false
+    localStorage.setItem(preferencesKey, serialized)
     return true
   } catch {
     return false

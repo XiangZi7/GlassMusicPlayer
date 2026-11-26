@@ -1,11 +1,39 @@
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue'
+import { computed, reactive, useTemplateRef, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import PlaylistLayout from '@/components/player/PlaylistLayout.vue'
 import TrackList from '@/components/player/TrackList.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { formatTime } from '@/utils/format'
+import { usePlayerStore } from '@/stores/player'
 
 const { state, tracks, controller } = usePlayer()
+const route = useRoute()
+const store = usePlayerStore()
+const sync = reactive({
+  /** 只显示当前打开歌单的同步进度。 */
+  pending: false,
+  /** 保留可播放的上次完整内容时说明原因。 */
+  error: '',
+})
+const openId = computed(() => route.path === '/playlist' && typeof route.query.playlist === 'string' ? route.query.playlist : '')
+// 切换、返回、重选及重试都回源，离开时取消旧请求的所有后续分页。
+watch([openId, () => state.playlistReload], async ([id], _, onCleanup) => {
+  sync.pending = false
+  sync.error = ''
+  if (!id) return
+  const request = new AbortController()
+  onCleanup(() => request.abort())
+  sync.pending = true
+  try {
+    await store.refreshImportedPlaylist(id, request.signal)
+  } catch (error) {
+    if (!request.signal.aborted) sync.error = error instanceof Error ? error.message : '歌单同步失败。'
+  } finally {
+    if (!request.signal.aborted) sync.pending = false
+  }
+}, { immediate: true, flush: 'sync' })
 const list = useTemplateRef<InstanceType<typeof TrackList>>('list')
 const imported = computed(() => state.customPl?.trackIndices)
 const first = computed(() => tracks[state.playlistIdx])
@@ -32,12 +60,18 @@ function playAll(indices: number[], searching: boolean): void {
 
 <template>
   <div class="page-panel hidden" data-panel="playlist">
-    <PlaylistLayout :key="state.customPl?.id ?? state.playlistIdx" v-slot="{ indices }" list-key="pl"
+    <PlaylistLayout :key="state.customPl?.id ?? state.playlistIdx" list-key="pl"
       :tracks="tracks" :indices="playlistIndices" :title="state.customPl?.name || first?.album || '暂无歌单'"
       :cover="state.customPl?.cover || first?.cover" :description="description" :meta="meta"
       :playable="!!imported?.length" show-list-tools @play="playAll">
-      <TrackList ref="list" :indices="indices" :play-as-queue="!!imported"
-        :empty="imported ? '歌单里没有可读取的曲目。' : undefined" list-key="pl" />
+      <template #sync-status>
+        <span v-if="sync.pending || sync.error" role="status">{{ sync.pending ? '正在同步…' : '显示上次保存的歌单。' + sync.error }}</span>
+        <BaseButton v-if="sync.error" class="rounded-full border border-white/20 px-3 py-1" @click="state.playlistReload++">重新同步</BaseButton>
+      </template>
+      <template #default="{ indices }">
+        <TrackList ref="list" :indices="indices" :play-as-queue="!!imported"
+          :empty="sync.pending ? '正在读取歌单…' : imported ? '歌单里没有可读取的曲目。' : undefined" list-key="pl" />
+      </template>
     </PlaylistLayout>
   </div>
 </template>

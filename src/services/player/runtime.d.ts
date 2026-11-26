@@ -9,5 +9,6 @@ export function mountSourcePlayer(
     toggleFavorite: (index: number) => Promise<void>
     onNavigate: (page: PlayerPage, index: number, path?: string) => void
     currentPath: () => string
+    detailName?: () => string | undefined
   }
 ): PlayerController

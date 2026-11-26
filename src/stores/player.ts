@@ -5,6 +5,8 @@ import type { SourceTrack } from '@/types/prototype'
 import { publicAvatar } from '@/services/public-avatar'
 import { defaultCover, normalizePlaybackQuality } from '@/constants/music'
 import {
+  catalogPlaybackKey,
+  playbackPreferenceKey,
   preferenceTrackKey,
   readPlayerPreferences,
   writePlayerPreferences,
@@ -18,12 +20,13 @@ import type {
 } from '@/api'
 import {
   catalogKey,
+  fetchLinkedPlaylist,
   platformNames,
   toSourceTrack,
 } from '@/services/player/catalog'
 import { normalizeBannerCharacter } from '@/services/player/banner-art'
 import { useTrackFavorites } from '@/services/player/favorites'
-import { getCatalogPlaylist } from '@/api'
+import { trackArtistNames } from '@/services/player/library'
 import { notify } from '@/services/notification'
 
 export interface Playlist {
@@ -195,11 +198,11 @@ export const usePlayerStore = defineStore('player', () => {
     lyricIslandSnap: preferences.settings.lyricIslandSnap,
   })
   const catalogIndices = new Map<string, number>()
+  const kugouVersions = new Map<string, { known?: string | null; unresolved: Set<number> }>()
   const profilePages = new Map<string, Map<string, number>>()
   const savedPlaylists = shallowRef(readImportedPlaylists())
   const linkedProfiles = shallowRef(readLinkedProfiles())
   const favorites = useTrackFavorites(tracks, preferences.liked, linkedProfiles, savedPlaylists, updateImportedFavorite, registerCatalogTracks)
-  const checkedFavoriteOwners = new Set<string>()
   const state = reactive({
     /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
     /** 播放和进度状态。 */ playing: false,
@@ -231,6 +234,10 @@ export const usePlayerStore = defineStore('player', () => {
     /** 当前页面和选中的歌单、专辑或歌手。 */ page: 'home' as PlayerPage,
     playlistIdx: 0,
     /** 全局搜索词。 */ query: '',
+    /** 搜索页当前曲库，快捷搜索歌名时跟随歌曲来源。 */
+    searchPlatform: 'netease' as MusicPlatform | 'local',
+    /** 当前搜索类别，手动提交关键词时保留用户的选择。 */
+    searchKind: 'tracks' as 'tracks' | 'playlists',
     /** 输入草稿与提交次数，编辑不触发搜索。 */
     queryDraft: '',
     queryRevision: 0,
@@ -247,6 +254,8 @@ export const usePlayerStore = defineStore('player', () => {
     /** 导入和自建歌单。 */ imported: [] as Playlist[],
     myLists: [] as Playlist[],
     customPl: null as Playlist | null,
+    /** 重选当前导入歌单时触发一次平台刷新。 */
+    playlistReload: 0,
     /** 上传队列与已加入曲库的数量。 */ uploads: [] as UploadFile[],
     upAdded: 0,
     /** 下载暂停状态和原稿流程反馈。 */ dlPaused: {} as Record<number, boolean>,
@@ -272,26 +281,53 @@ export const usePlayerStore = defineStore('player', () => {
     _lyrHoldUntil: 0,
   })
 
-  // 复用已登记曲目的稳定索引，保证收藏、队列和歌单引用同一首歌。
-  function registerCatalogTracks(items: CatalogTrack[]): number[] {
+  // 已知专辑曲目编号只属于其自身；缺编号的旧记录在同一文件有多个版本时保留歧义。
+  function recordKugouVersion(index: number, declared?: string | null): void {
+    const source = tracks[index]?.catalog
+    if (source?.platform !== 'kugou') return
+    const hash = source.id.toLowerCase()
+    const versions = kugouVersions.get(hash) ?? { known: undefined, unresolved: new Set<number>() }
+    kugouVersions.set(hash, versions)
+    if (!source.kugouAlbumAudioId) versions.unresolved.add(index)
+    if (declared === null || (declared && versions.known && versions.known !== declared)) {
+      versions.known = null
+      for (const unresolved of versions.unresolved) tracks[unresolved]!.catalog!.kugouAlbumAudioId = null
+    } else if (declared && versions.known === undefined) {
+      versions.known = declared
+    }
+    if (!source.kugouAlbumAudioId && versions.known === null) source.kugouAlbumAudioId = null
+  }
+
+  // 同一发行版本复用稳定索引，酷狗同文件的不同专辑曲目各自进入播放队列。
+  function registerCatalogTracks(items: CatalogTrack[], refreshDetails = false): number[] {
     return items.map(item => {
-      const key = catalogKey(item)
+      const key = catalogPlaybackKey(item)
       const existing = catalogIndices.get(key)
       if (existing !== undefined) {
         const track = tracks[existing]!
-        if (track.catalog?.platform === 'kugou' && item.kugouAlbumAudioId && track.catalog.kugouAlbumAudioId !== null) {
-          const known = track.catalog.kugouAlbumAudioId
-          // 同一音频可能收录于多个专辑；遇到不同歌曲 ID 时保留冲突，避免点错版本。
-          track.catalog.kugouAlbumAudioId = known && known !== item.kugouAlbumAudioId ? null : item.kugouAlbumAudioId
+        if (refreshDetails) {
+          track.title = item.title
+          if (item.album) track.album = item.album
+          if (item.coverUrl) track.cover = item.coverUrl
+          if (item.durationMs != null) track.dur = Math.max(0, item.durationMs / 1000)
+        }
+        if (item.kugouAlbumAudioId === null) recordKugouVersion(existing, null)
+        if (item.artists.length && (track.artists?.length !== item.artists.length ||
+          item.artists.some((name, i) => name !== track.artists?.[i]))) {
+          track.artists = item.artists
+          track.artist = item.artists.join(' / ')
         }
         if (item.subtitle) track.subtitle = item.subtitle
         if ((!track.album || track.album === '—') && item.album) track.album = item.album
+        if (track.catalog && item.artistRefs?.length) track.catalog.artistRefs = item.artistRefs
+        if (track.catalog && item.albumRef?.name === track.album) track.catalog.albumRef = item.albumRef
         if ((!track.cover || track.cover === defaultCover) && item.coverUrl) track.cover = item.coverUrl
         return existing
       }
       const index = tracks.length
       tracks.push(toSourceTrack(item))
       catalogIndices.set(key, index)
+      recordKugouVersion(index, item.kugouAlbumAudioId)
       return index
     })
   }
@@ -304,7 +340,7 @@ export const usePlayerStore = defineStore('player', () => {
       source: platformNames[item.platform],
       count: item.tracks.length,
       cover: item.coverUrl || item.tracks[0]?.coverUrl || undefined,
-      trackIndices: registerCatalogTracks(item.tracks),
+      trackIndices: registerCatalogTracks(item.tracks, true),
     }
   }
 
@@ -333,13 +369,22 @@ export const usePlayerStore = defineStore('player', () => {
     const saved = savedPlaylists.value.find(
       list => list.platform === source.platform && list.favoriteOwnerId === owner
     )
-    if (!saved || saved.tracks.some(item => item.id === source.id) === liked) return
-    const items = saved.tracks.filter(item => item.id !== source.id)
+    if (!saved) return
+    const { platform, id, kugouAlbumAudioId } = source
+    // 酷狗的同一音频可对应不同收藏条目，只修改平台已经确认的那一版。
+    function matchesEntry(item: CatalogTrack): boolean {
+      if (item.platform !== platform) return false
+      if (platform !== 'kugou') return item.id === id
+      if (kugouAlbumAudioId) return item.kugouAlbumAudioId === kugouAlbumAudioId
+      return !item.kugouAlbumAudioId && item.id.toLowerCase() === id.toLowerCase()
+    }
+    if (saved.tracks.some(matchesEntry) === liked) return
+    const items = saved.tracks.filter(item => !matchesEntry(item))
     if (liked) {
       items.unshift({
         ...source,
         title: track.title,
-        artists: track.artist.split(' / '),
+        artists: trackArtistNames(track),
         album: track.album,
         subtitle: track.subtitle,
         durationMs: track.dur ? track.dur * 1000 : null,
@@ -403,19 +448,23 @@ export const usePlayerStore = defineStore('player', () => {
     return state.imported.find(list => list.id === id)!
   }
 
-  // 打开旧版导入的网易云歌单时，只补查第一页的归属，保留用户原有曲目和排序。
-  async function resolveFavoriteOwner(id: string, signal: AbortSignal): Promise<void> {
-    const item = savedPlaylists.value.find(list => catalogKey(list) === id)
-    if (item?.platform !== 'netease' || item.favoriteOwnerId || checkedFavoriteOwners.has(id)) return
-    const detail = await getCatalogPlaylist(item.platform, item.id, 1, 1, signal)
-    if (signal.aborted || detail.id !== item.id || detail.platform !== item.platform) return
-    checkedFavoriteOwners.add(id)
-    if (!detail.favoriteOwnerId) return
-    const current = savedPlaylists.value.find(list => catalogKey(list) === id)
-    if (!current || current.favoriteOwnerId) return
-    const updated = { ...current, favoriteOwnerId: detail.favoriteOwnerId }
-    favorites.observeFavoritePlaylist(updated)
-    commitPlaylists(savedPlaylists.value.map(list => list === current ? updated : list), [])
+  // 重新进入来源歌单时读取所有分页，完整成功后原位替换；期间有红心写入则重读最新版本。
+  async function refreshImportedPlaylist(id: string, signal: AbortSignal): Promise<void> {
+    let saved = savedPlaylists.value.find(list => catalogKey(list) === id)
+    while (saved) {
+      const fresh = await fetchLinkedPlaylist(saved.platform, saved.id, signal)
+      signal.throwIfAborted()
+      const current = savedPlaylists.value.find(list => catalogKey(list) === id)
+      if (!current) return
+      if (current.tracks !== saved.tracks) {
+        saved = current
+        continue
+      }
+      const updated = { ...fresh, favoriteOwnerId: fresh.favoriteOwnerId ?? current.favoriteOwnerId, profilePosition: current.profilePosition }
+      commitPlaylists(savedPlaylists.value.map(list => list === current ? updated : list), [], updated)
+      if (updated.favoriteOwnerId) void favorites.refreshPlaylistFavorites(updated)
+      return
+    }
   }
 
   // 保存或取消一个平台的公开资料关联，已导入歌单仍可在曲库中打开。
@@ -464,26 +513,33 @@ export const usePlayerStore = defineStore('player', () => {
       .filter(list => list.platform === platform && list.profilePosition?.userId === userId)
       .flatMap(list => list.tracks)
   }
-  // 先恢复已保存歌单，再补缓存中的搜索曲目；公开 ID 相同的曲目不重复登记。
+  // 旧版只保存文件 hash；用其随附的曲目快照识别原先选中的专辑版本。
+  const restoredIndices = new Map<string, number | null>()
+  tracks.forEach((track, index) => {
+    const legacy = preferenceTrackKey(track)
+    restoredIndices.set(legacy, restoredIndices.has(legacy) ? null : index)
+  })
+  // 先恢复已保存歌单，再补缓存中的搜索曲目，保留每个发行版本自身的元数据。
   for (const track of preferences.catalogTracks) {
     if (!track.catalog) continue
-    const key = catalogKey(track.catalog)
-    const existing = catalogIndices.get(key)
-    if (existing !== undefined) {
-      if (!tracks[existing]!.subtitle && track.subtitle) tracks[existing]!.subtitle = track.subtitle
-      continue
+    const key = catalogPlaybackKey(track.catalog)
+    let index = catalogIndices.get(key)
+    if (index === undefined) {
+      index = tracks.length
+      catalogIndices.set(key, index)
+      tracks.push(track)
+    } else if (!tracks[index]!.subtitle && track.subtitle) {
+      tracks[index]!.subtitle = track.subtitle
     }
-    catalogIndices.set(key, tracks.length)
-    tracks.push(track)
+    recordKugouVersion(index, track.catalog.kugouAlbumAudioId)
+    restoredIndices.set(preferenceTrackKey(track), index)
   }
-  const restoredIndices = new Map(
-    tracks.map((track, index) => [preferenceTrackKey(track), index])
-  )
+  tracks.forEach((track, index) => restoredIndices.set(playbackPreferenceKey(track), index))
   // 缓存不自动播放；失效曲目键忽略，不把旧数组索引强行指向新曲库。
   const currentIndex = preferences.current
     ? restoredIndices.get(preferences.current.key)
     : undefined
-  if (currentIndex !== undefined && state.settings.rememberPlayback) {
+  if (currentIndex != null && state.settings.rememberPlayback) {
     state.idx = currentIndex
     state.t = Math.min(
       preferences.current!.time,
@@ -493,11 +549,11 @@ export const usePlayerStore = defineStore('player', () => {
   }
   const queued = preferences.queue
     .map(key => restoredIndices.get(key))
-    .filter((index): index is number => index !== undefined)
+    .filter((index): index is number => index != null)
   if (queued.length) state.queue = queued
   state.recent = preferences.recent
     .map(key => restoredIndices.get(key))
-    .filter((index): index is number => index !== undefined)
+    .filter((index): index is number => index != null)
 
   // 只在主窗口或用户明确应用时保存，设置窗口的未应用草稿不会覆盖缓存。
   function savePreferences(): boolean {
@@ -507,11 +563,12 @@ export const usePlayerStore = defineStore('player', () => {
         state.idx,
         ...(state.queue || []),
         ...state.recent,
-        ...[...favorites.localKeys].map(key => catalogIndices.get(key)).filter((index): index is number => index !== undefined),
+        ...(favorites.localKeys.size ? tracks.flatMap((track, index) =>
+          favorites.localKeys.has(preferenceTrackKey(track)) ? [index] : []) : []),
       ]),
     ]
     const keyFor = (index: number) =>
-      tracks[index] ? preferenceTrackKey(tracks[index]!) : ''
+      tracks[index] ? playbackPreferenceKey(tracks[index]!) : ''
     return writePlayerPreferences({
       settings: { ...state.settings },
       volume: state.vol,
@@ -519,7 +576,7 @@ export const usePlayerStore = defineStore('player', () => {
       panelOpen: state.npOpen,
       current:
         current && state.settings.rememberPlayback
-          ? { key: preferenceTrackKey(current), time: state.t }
+          ? { key: playbackPreferenceKey(current), time: state.t }
           : null,
       queue: (state.queue || []).map(keyFor).filter(Boolean),
       liked: [...favorites.localKeys],
@@ -535,7 +592,7 @@ export const usePlayerStore = defineStore('player', () => {
     tracks,
     registerCatalogTracks,
     refreshFavorites: favorites.refreshFavorites,
-    resolveFavoriteOwner,
+    refreshImportedPlaylist,
     toggleFavorite: favorites.toggleFavorite,
     observeFavoritePlaylist: favorites.observeFavoritePlaylist,
     legacyFavoriteIndices: favorites.legacyIndices,

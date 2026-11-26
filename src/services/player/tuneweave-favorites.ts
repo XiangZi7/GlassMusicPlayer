@@ -11,6 +11,7 @@ interface FavoriteRow {
   hash?: string | null
   name: string
   artist: string
+  artists?: string[]
   album: string
   cover?: string | null
   durationMs?: number | null
@@ -72,14 +73,13 @@ async function fillMissingHashes(rows: FavoriteRow[], signal: AbortSignal): Prom
   }
 }
 
-// 读取同一账户的完整快照；可播放曲目使用 Mirai 的歌曲标识，缺 hash 的酷狗收藏单独保留编号。
+// 按账号收藏编号读取完整快照，同一酷狗音频在不同专辑中的收藏各有一条记录。
 export async function readTuneWeaveFavorites(
   platform: FavoriteCloudPlatform, userId: string, signal: AbortSignal, edition?: KugouEdition
 ) {
   const ids = new Set<string>()
   const tracks = new Map<string, CatalogTrack>()
   const mappings = new Map<string, string | null>()
-  const unmapped = new Set<string>()
   let offset = 0
   let snapshot: string | null = null
   while (true) {
@@ -94,16 +94,17 @@ export async function readTuneWeaveFavorites(
       throw new Error('平台未确认收藏歌曲的编号，请重新读取。')
     if (platform === 'kugou') await fillMissingHashes(page.items, signal)
     for (const row of page.items) {
+      ids.add(row.id)
       let id = row.id
       if (platform === 'kugou') {
-        if (!row.hash || !hashPattern.test(row.hash)) { unmapped.add(row.id); continue }
+        if (!row.hash || !hashPattern.test(row.hash)) continue
         id = row.hash.toLowerCase()
         rememberMapping(mappings, id, row.id)
       }
-      ids.add(id)
-      if (!row.name?.trim() || tracks.has(id)) continue
-      tracks.set(id, {
-        platform, id, title: row.name, artists: row.artist ? [row.artist] : [],
+      if (!row.name?.trim() || tracks.has(row.id)) continue
+      tracks.set(row.id, {
+        platform, id, title: row.name, artists: row.artists ?? (row.artist ? row.artist.split(' / ') : []),
+        ...(platform === 'kugou' ? { kugouAlbumAudioId: row.id } : {}),
         album: row.album || null, coverUrl: row.cover || null, durationMs: row.durationMs ?? null,
         sourceUrl: platform === 'kuwo'
           ? `https://www.kuwo.cn/play_detail/${id}`
@@ -116,12 +117,9 @@ export async function readTuneWeaveFavorites(
     offset = page.nextOffset
   }
   signal.throwIfAborted()
-  if (platform === 'kugou' && edition) {
+  if (platform === 'kugou' && edition)
     sessionMappings.set(signal, { uid: userId, edition, ids: mappings })
-    for (const track of tracks.values()) track.kugouAlbumAudioId = mappings.get(track.id)
-    for (const id of mappings.values()) if (id) unmapped.delete(id)
-  }
-  return { ids: [...ids], tracks: [...tracks.values()], unmappedKugouIds: [...unmapped] }
+  return { ids: [...ids], tracks: [...tracks.values()] }
 }
 
 // 旧曲库只提供 hash，按曲名歌手查本机 TuneWeave，完整结果中只有一个匹配编号才可写入。
@@ -149,7 +147,27 @@ async function resolveKugouId(track: SourceTrack, signal: AbortSignal): Promise<
   throw new Error('无法唯一确认这首酷狗歌曲对应的收藏编号。')
 }
 
-// 按当前账户和原曲编号写入收藏，只有原生端确认目标状态后才返回。
+// 有明确发行编号时使用原记录，旧曲目必须在公开查询中唯一匹配并与账号快照相符。
+export async function resolveKugouFavoriteId(
+  userId: string, track: SourceTrack, signal: AbortSignal, edition?: KugouEdition
+): Promise<string> {
+  const source = track.catalog
+  if (source?.platform !== 'kugou' || !hashPattern.test(source.id))
+    throw new Error('缺少有效的酷狗歌曲 hash。')
+  const declared = source.kugouAlbumAudioId
+  if (declared !== undefined && declared !== null && numericId.test(declared)) return declared
+  const snapshot = sessionMappings.get(signal)
+  const mapped = snapshot?.uid === userId && snapshot.edition === edition
+    ? snapshot.ids.get(source.id.toLowerCase()) : undefined
+  if (declared !== undefined || mapped === null)
+    throw new Error('同一酷狗文件对应多个歌曲编号，无法确认要修改哪一首。')
+  const resolved = await resolveKugouId(track, signal)
+  if (mapped && resolved !== mapped)
+    throw new Error('酷狗曲库与账号收藏中的歌曲编号不一致，无法确认要修改哪一首。')
+  return resolved
+}
+
+// 按当前账户和已确认的发行版本写入收藏，只有原生端确认目标状态后才返回。
 export async function writeTuneWeaveFavorite(
   platform: FavoriteCloudPlatform, userId: string, track: SourceTrack, liked: boolean,
   signal: AbortSignal, edition?: KugouEdition
@@ -157,17 +175,8 @@ export async function writeTuneWeaveFavorite(
   signal.throwIfAborted()
   const source = track.catalog
   if (!source || source.platform !== platform) throw new Error('收藏歌曲与当前平台不一致。')
-  let id = source.id
-  if (platform === 'kugou') {
-    if (!hashPattern.test(id)) throw new Error('缺少有效的酷狗歌曲 hash。')
-    const snapshot = sessionMappings.get(signal)
-    const mapped = snapshot?.uid === userId && snapshot.edition === edition ? snapshot.ids.get(id.toLowerCase()) : undefined
-    const declared = source.kugouAlbumAudioId
-    if (mapped === null || declared === null || (mapped && declared && mapped !== declared))
-      throw new Error('同一酷狗文件对应多个歌曲编号，无法确认要修改哪一首。')
-    id = declared ?? mapped ?? await resolveKugouId(track, signal)
-  }
-  if (!numericId.test(id)) throw new Error('缺少平台确认的收藏歌曲编号。')
+  const id = platform === 'kugou' ? source.kugouAlbumAudioId : source.id
+  if (!id || !numericId.test(id)) throw new Error('缺少平台确认的收藏歌曲编号。')
   const confirmed = await request<boolean>('tuneweave_set_favorite', {
     platform, uid: userId, edition, trackId: id, liked,
   }, signal)

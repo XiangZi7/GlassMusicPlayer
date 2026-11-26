@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, reactive, useTemplateRef, watch } from 'vue'
 import { useEventListener, useMediaQuery, useResizeObserver } from '@vueuse/core'
+import { useRouter } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
-import { firstTrackIndices } from '@/services/player/library'
-import { formatTime } from '@/utils/format'
+import { collectionRoute, libraryCollections } from '@/services/player/library'
+import { platformNames } from '@/services/player/catalog'
+import type { SourceTrack } from '@/types/prototype'
 
 const props = defineProps<{ kind: 'album' | 'artist'; emptyArt?: string }>()
 const { state: player, tracks, controller } = usePlayer()
-const indices = computed(() => firstTrackIndices(tracks, props.kind))
+const router = useRouter()
+const collections = computed(() => libraryCollections(tracks, props.kind))
 const viewport = useTemplateRef<HTMLElement>('viewport')
 const grid = useTemplateRef<HTMLElement>('grid')
 const narrow = useMediaQuery('(max-width: 640px)')
@@ -27,7 +30,7 @@ const state = reactive({
   focused: -1,
 })
 const pitch = computed(() => state.cardHeight + rowGap)
-const rowCount = computed(() => Math.ceil(indices.value.length / columns.value))
+const rowCount = computed(() => Math.ceil(collections.value.length / columns.value))
 const totalHeight = computed(() =>
   Math.max(0, rowCount.value * pitch.value - rowGap)
 )
@@ -39,7 +42,7 @@ const visibleCards = computed(() => {
   const start =
     Math.max(0, Math.floor(top / pitch.value) - overscan) * columns.value
   const end = Math.min(
-    indices.value.length,
+    collections.value.length,
     (Math.ceil((top + state.height) / pitch.value) + overscan) * columns.value
   )
   const visible = Array.from(
@@ -48,13 +51,16 @@ const visibleCards = computed(() => {
   )
   if (state.focused >= 0 && state.focused < start)
     visible.unshift(state.focused)
-  if (state.focused >= end && state.focused < indices.value.length)
+  if (state.focused >= end && state.focused < collections.value.length)
     visible.push(state.focused)
-  return visible.map(position => {
-    const index = indices.value[position]!
-    return { position, index, track: tracks[index]! }
-  })
+  return visible.map(position => ({ position, ...collections.value[position]! }))
 })
+
+// 将选中卡片的平台、原曲及署名一起交给详情页。
+function openCollection(track: SourceTrack, index: number, name: string): void {
+  const path = router.resolve(collectionRoute(props.kind, track, index, name)).fullPath
+  controller()?.navigate(props.kind, index, false, path)
+}
 
 // 从原稿卡片实测行高；缓存页面隐藏时保留已有尺寸。
 function measure(): void {
@@ -80,7 +86,7 @@ function syncScroll(): void {
 async function browse(event: KeyboardEvent): Promise<void> {
   if (event.ctrlKey || event.altKey || event.metaKey || !(event.target instanceof HTMLButtonElement))
     return
-  const last = indices.value.length - 1
+  const last = collections.value.length - 1
   const current = Number(event.target.dataset.position)
   const targets: Record<string, number> = {
     Home: 0,
@@ -122,7 +128,7 @@ async function browse(event: KeyboardEvent): Promise<void> {
   >
     <!-- 空态波普贴纸：页面传入插画时以 framed 贴纸图呈现，未传时沿用原图标空态。 -->
     <div
-      v-if="!indices.length && emptyArt"
+      v-if="!collections.length && emptyArt"
       class="collection-empty"
       data-empty-state
       role="img"
@@ -139,7 +145,7 @@ async function browse(event: KeyboardEvent): Promise<void> {
       <p>{{ kind === 'album' ? '暂无专辑' : '暂无歌手' }}</p>
     </div>
     <EmptyState
-      v-else-if="!indices.length"
+      v-else-if="!collections.length"
       :icon="kind === 'album' ? 'playlist' : 'music'"
       :label="kind === 'album' ? '暂无专辑' : '暂无歌手'"
     />
@@ -154,8 +160,8 @@ async function browse(event: KeyboardEvent): Promise<void> {
       }"
     >
       <BaseButton
-        v-for="{ position, index, track } in visibleCards"
-        :key="index"
+        v-for="{ position, key, index, track, name } in visibleCards"
+        :key="key"
         class="absolute inset-x-0 min-w-0 cursor-pointer rounded-[18px] border border-transparent p-[10px_10px_12px] text-left text-inherit focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/80"
         :class="kind === 'album' ? 'feat bg-transparent' : 'artist-card'"
         :data-position="position"
@@ -165,7 +171,7 @@ async function browse(event: KeyboardEvent): Promise<void> {
         }"
         @focus="state.focused = position"
         @blur="state.focused === position && (state.focused = -1)"
-        @click="controller()?.navigate(kind, index)"
+        @click="openCollection(track, index, name)"
       >
         <img
           :src="track.cover"
@@ -173,11 +179,10 @@ async function browse(event: KeyboardEvent): Promise<void> {
           loading="lazy"
           decoding="async"
         />
-        <b :title="track[kind]">{{ track[kind] }}</b>
+        <b :title="name">{{ name }}</b>
         <span class="block truncate">{{
-          kind === 'album'
-            ? track.artist + ' · ' + track.q
-            : track.album + ' · ' + formatTime(track.dur)
+          (track.catalog ? platformNames[track.catalog.platform] : '本地') + ' · ' +
+          (kind === 'album' ? track.artist : track.album)
         }}</span>
       </BaseButton>
     </div>

@@ -611,15 +611,15 @@ pub async fn tuneweave_favorites(
             .ok_or(INVALID)?
             .iter()
             .filter_map(|v| v["name"].as_str())
-            .collect::<Vec<_>>()
-            .join(" / ");
+            .collect::<Vec<_>>();
         let hash = track["extensions"]["hash"]
             .as_str()
             .filter(|v| v.len() == 32 && v.bytes().all(|c| c.is_ascii_hexdigit()));
         items.push(json!({
             "id": id,
             "name": track["name"].as_str().ok_or(INVALID)?,
-            "artist": artists,
+            "artist": artists.join(" / "),
+            "artists": artists,
             "album": track["album"]["name"].as_str().unwrap_or_default(),
             "cover": track["album"]["cover_url"].as_str(),
             "durationMs": track["duration_ms"].as_u64(),

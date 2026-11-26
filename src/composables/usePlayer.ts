@@ -1,4 +1,5 @@
 import { inject, type InjectionKey } from 'vue'
+import type { MusicPlatform } from '@/api'
 import type { SourcePlayer, SourceTrack } from '@/types/prototype'
 import type { PlayerPage, PlayerState, PlayerSettings } from '@/stores/player'
 
@@ -11,7 +12,7 @@ export interface PlayerController extends SourcePlayer {
   reloadPlayback(resume?: boolean): void
   playTracks(indices: number[], index: number): void
   toggleRadio(): void
-  setQuery(query: string): void
+  setQuery(query: string, songPlatform?: MusicPlatform | 'local'): void
   playSmart(): void
   smartList(day?: string): number[]
   playNext(index: number): void

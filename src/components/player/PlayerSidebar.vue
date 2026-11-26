@@ -20,7 +20,12 @@ function openPlaylist(index: number): void {
 // 已导入歌单按稳定 ID 进入路由，自建歌单沿用现有本地入口。
 function openCustom(item: Playlist): void {
   if (item.id) {
-    void router.push({ path: '/playlist', query: { playlist: item.id } })
+    if (router.currentRoute.value.path === '/playlist' && router.currentRoute.value.query.playlist === item.id) {
+      state.playlistReload++
+      return
+    }
+    const path = router.resolve({ path: '/playlist', query: { playlist: item.id } }).fullPath
+    controller()?.navigate('playlist', state.playlistIdx, false, path)
     return
   }
   state.customPl = { ...item }

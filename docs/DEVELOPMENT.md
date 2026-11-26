@@ -91,6 +91,10 @@ Windows 客户端通过本机服务或 HTTPS 服务扫码后，将网易云设�
 
 播放器默认连接 `https://music-api.yxcr.top`。本地联调时，在 MiraiMusic-Server 仓库运行 `uv run --locked uvicorn main:app`，将播放器的 `VITE_APP_BASE_API` 设为 `http://127.0.0.1:8000`，再启动或重新构建播放器。公开歌单导入支持三平台带数字 ID 的歌单详情链接。
 
+歌手和专辑详情需要配套服务的 `GET /api/v1/{platform}/artists/{id}` 和 `GET /api/v1/{platform}/albums/{id}`。可分别在网易云、酷狗、酷我搜索《敢爱敢做》，点播后从底栏进入林子祥详情，确认平台标签、后续分页和「播放全部」。已有歌单缺少歌手或专辑编号时，播放器会回查该平台的原曲。
+
+验证侧栏歌单同步时，先导入公开歌单，在原平台调整曲目，再从另一份歌单切回来，或再点一次已选歌单。歌曲顺序、数量和标题都会随完整分页更新。中途断网应保留上次保存的内容，恢复网络后可点「重新同步」。
+
 ```sh
 pnpm install
 pnpm tauri dev

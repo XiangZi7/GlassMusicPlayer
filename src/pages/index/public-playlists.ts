@@ -8,18 +8,10 @@ const sources: readonly [MusicPlatform, string][] = [
   ['netease', '3778678'], ['kugou', '9183003'], ['kuwo', '2952464073'],
 ]
 const cache = new Map<string, { day: string; playlist: CatalogPlaylist }>()
-// 最近完整读完的一份公开歌单供详情和快捷播放复用，与十二首预览分别保存。
-let lastFullPlaylist: { day: string; playlist: CatalogPlaylist } | undefined
 
-// 详情和快捷播放都在平台分页全部成功后才交付曲单；失败或取消不会缓存半份结果。
+// 每次打开或播放都从所属平台重新读取完整歌单，首页卡片的预览独立缓存。
 export async function loadDiscoveryPlaylist(platform: MusicPlatform, id: string, signal: AbortSignal, onProgress?: (count: number) => void) {
-  const day = new Date().toDateString()
-  if (lastFullPlaylist?.day === day && lastFullPlaylist.playlist.platform === platform && lastFullPlaylist.playlist.id === id)
-    return lastFullPlaylist.playlist
-  const playlist = await fetchLinkedPlaylist(platform, id, signal, onProgress)
-  signal.throwIfAborted()
-  lastFullPlaylist = { day, playlist }
-  return playlist
+  return fetchLinkedPlaylist(platform, id, signal, onProgress)
 }
 
 // 读取首页已有的元数据，打开详情时可立即显示歌单名与封面。

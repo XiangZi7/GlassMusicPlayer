@@ -1,4 +1,5 @@
 import { apiBaseUrl, httpGet, httpPost } from '@/utils/http'
+import { creditedCollectionId } from '@/services/player/library'
 import {
   playbackBearer,
   restorePlaybackGrant,
@@ -7,6 +8,12 @@ import {
 
 export type MusicPlatform = 'netease' | 'kugou' | 'kuwo'
 export type PublicProfilePlatform = Exclude<MusicPlatform, 'kugou'>
+export type CatalogCollectionKind = 'artist' | 'album'
+
+export interface CatalogRef {
+  id: string
+  name: string
+}
 
 export interface CatalogTrack {
   platform: MusicPlatform
@@ -15,6 +22,9 @@ export interface CatalogTrack {
   kugouAlbumAudioId?: string | null
   title: string
   artists: string[]
+  /** 来自这首歌所属平台的歌手与专辑编号，旧版曲目可能缺少。 */
+  artistRefs?: CatalogRef[]
+  albumRef?: CatalogRef | null
   album: string | null
   subtitle?: string | null
   durationMs: number | null
@@ -37,6 +47,16 @@ export interface CatalogPlaylist extends CatalogPage {
   title: string | null
   coverUrl: string | null
   sourceUrl: string
+}
+
+export interface CatalogCollectionPage extends CatalogPage {
+  kind: CatalogCollectionKind
+  id: string
+  name: string
+  coverUrl: string | null
+  description: string | null
+  sourceUrl: string
+  hasMore: boolean
 }
 
 export interface CatalogLyrics {
@@ -113,8 +133,44 @@ export function searchCatalogPlaylists(
 }
 
 // 读取同平台曲目详情，为旧歌单和精简列表补齐作品说明。
-export function getCatalogTrack(platform: MusicPlatform, id: string, signal: AbortSignal) {
-  return httpGet<CatalogTrack>(`/${platform}/tracks/${encodeURIComponent(id)}`, { signal })
+export function getCatalogTrack(platform: MusicPlatform, id: string, signal: AbortSignal, kugouAlbumAudioId?: string | null) {
+  const params = platform === 'kugou' && kugouAlbumAudioId ? { kugouAlbumAudioId } : undefined
+  return httpGet<CatalogTrack>(`/${platform}/tracks/${encodeURIComponent(id)}`, { signal, params })
+}
+
+// 按平台目录的稳定编号读取一页歌手作品或专辑曲目。
+export async function getCatalogCollection(
+  platform: MusicPlatform, kind: CatalogCollectionKind, id: string,
+  pageNum: number, pageSize: number, signal: AbortSignal
+) {
+  const collection = kind === 'artist' ? 'artists' : 'albums'
+  try {
+    return await httpGet<CatalogCollectionPage>(`/${platform}/${collection}/${encodeURIComponent(id)}`, {
+      params: { pageNum, pageSize }, signal,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'route_not_found')
+      throw new Error('当前音乐服务尚未提供这个目录接口，请更新 MiraiMusic-Server 后重试。')
+    throw error
+  }
+}
+
+// 旧版曲库只有展示名称时，回查同一平台的原曲；仅接受与所点署名唯一对应的编号。
+export async function resolveCatalogCollectionId(
+  platform: MusicPlatform, kind: CatalogCollectionKind, trackId: string, name: string, signal: AbortSignal,
+  kugouAlbumAudioId?: string | null,
+): Promise<string> {
+  const track = await getCatalogTrack(platform, trackId, signal, kugouAlbumAudioId)
+  const sameTrack = platform === 'kugou' ? track.id.toLowerCase() === trackId.toLowerCase() : track.id === trackId
+  if (track.platform !== platform || !sameTrack) throw new Error('返回的歌曲与所选平台曲目不一致。')
+  if (platform === 'kugou' && kugouAlbumAudioId && track.kugouAlbumAudioId !== kugouAlbumAudioId)
+    throw new Error('酷狗未确认所选专辑版本的曲目编号。')
+  if (!('artistRefs' in track) && !('albumRef' in track))
+    throw new Error('音乐服务尚未返回歌手和专辑编号，请更新 MiraiMusic-Server 后重试。')
+  const refs = kind === 'artist' ? track.artistRefs : track.albumRef ? [track.albumRef] : []
+  const id = creditedCollectionId(refs, name)
+  if (!id) throw new Error('音乐服务未返回可确认的' + (kind === 'artist' ? '歌手' : '专辑') + '编号。')
+  return id
 }
 
 // 首次请求解析链接并读取歌单第一页，平台与 ID 由服务端确认。

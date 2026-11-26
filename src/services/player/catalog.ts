@@ -24,6 +24,7 @@ export function toSourceTrack(track: CatalogTrack): SourceTrack {
   return {
     title: track.title,
     artist: track.artists.join(' / ') || '未知歌手',
+    artists: track.artists,
     album: track.album || '—',
     subtitle: track.subtitle,
     dur: Math.max(0, (track.durationMs || 0) / 1000),
@@ -34,6 +35,8 @@ export function toSourceTrack(track: CatalogTrack): SourceTrack {
       platform: track.platform,
       id: track.id,
       sourceUrl: track.sourceUrl,
+      artistRefs: track.artistRefs,
+      albumRef: track.albumRef,
       kugouAlbumAudioId: track.platform === 'kugou' ? track.kugouAlbumAudioId ?? undefined : undefined,
     },
   }
@@ -71,6 +74,8 @@ async function fetchFollowingPages(
   onProgress?: (count: number) => void
 ): Promise<CatalogPlaylist> {
   const pageSize = first.pageSize
+  if (first.tracks.some(track => track.platform !== first.platform) || (!first.tracks.length && (first.total ?? 0) > 0))
+    throw new Error('音乐平台未返回这份歌单的完整曲目，请重试。')
   const tracks = [...first.tracks]
   onProgress?.(tracks.length)
   let previous = first
@@ -92,10 +97,13 @@ async function fetchFollowingPages(
     if (
       page.id !== first.id ||
       page.platform !== first.platform ||
-      page.pageNum !== pageNum || page.pageSize !== pageSize
+      page.pageNum !== pageNum || page.pageSize !== pageSize ||
+      page.tracks.some(track => track.platform !== first.platform)
     ) {
       throw new Error('音乐平台返回了其他歌单的曲目，请重试。')
     }
+    if (page.total !== first.total || (!page.tracks.length && (first.total ?? 0) > (pageNum - 1) * pageSize))
+      throw new Error('歌单在读取期间发生变化或分页不完整，请重试。')
     tracks.push(...page.tracks)
     onProgress?.(tracks.length)
     previous = page

@@ -17,13 +17,16 @@ import {
 } from '@/services/player/tuneweave-session'
 import {
   readTuneWeaveFavorites,
+  resolveKugouFavoriteId,
   writeTuneWeaveFavorite,
 } from '@/services/player/tuneweave-favorites'
 import { httpGet, httpPost } from '@/utils/http'
 
-// 酷狗曲库以文件哈希标识歌曲，大小写不影响同一首歌的判断。
+// 酷狗账号按专辑曲目编号收藏，旧记录在确认版本前使用单独的查询标识。
 function favoriteId(source: CatalogSource): string {
-  return source.platform === 'kugou' ? source.id.toLowerCase() : source.id
+  if (source.platform !== 'kugou') return source.id
+  return source.kugouAlbumAudioId || [source.kugouAlbumAudioId === null ? 'ambiguous' : 'hash',
+    source.id.toLowerCase(), source.albumRef?.id ?? ''].join(':')
 }
 
 // 各窗口按平台与歌曲 ID 判断同一红心的写入进度。
@@ -84,8 +87,8 @@ function usePlatformFavorites(
   const state = reactive({
     /** 最近一次完整的账号红心快照，null 表示尚未取得。 */
     ids: null as Set<string> | null,
-    /** 酷狗账号里仅有歌曲 ID、暂时缺少音频哈希的已确认收藏。 */
-    unmappedKugouIds: new Set<string>(),
+    /** 当前账号会话中已通过完整公开查询确认的旧曲目编号。 */
+    resolvedIds: new Map<CatalogSource, string>(),
     /** 在快照读取期间或之后成功写回的歌曲。 */
     writes: new Map<string, boolean>(),
     /** 等待提交或确认的每首歌曲的最终意图。 */
@@ -100,10 +103,14 @@ function usePlatformFavorites(
   let needsRead = false
 
   // 完整读取当前账号的红心，保留读列表期间已经写入的结果。
-  async function refresh(): Promise<void> {
+  async function refresh(force = false): Promise<void> {
     const owner = authorizedOwner(platform)
-    if (!owner || state.pending.size || Date.now() - refreshedAt < 60_000)
+    if (!owner) return
+    if (state.pending.size) {
+      if (force) needsRead = true
       return
+    }
+    if (!force && Date.now() - refreshedAt < 60_000) return
     if (reading) return reading
     const { signal } = session
     const changes = new Set<string>()
@@ -136,7 +143,6 @@ function usePlatformFavorites(
         if (signal.aborted) return
         registerTracks(result.tracks)
         state.ids = new Set(result.ids)
-        state.unmappedKugouIds = new Set(result.unmappedKugouIds)
       }
       for (const id of state.writes.keys()) {
         if (!changes.has(id)) state.writes.delete(id)
@@ -187,7 +193,7 @@ function usePlatformFavorites(
       needsRead = false
       reportedReadError = false
       state.ids = null
-      state.unmappedKugouIds.clear()
+      state.resolvedIds.clear()
       state.writes.clear()
       state.pending.clear()
       void refresh()
@@ -195,16 +201,16 @@ function usePlatformFavorites(
     { flush: 'sync' }
   )
 
-  // 当前授权的已确认写入和完整列表优先于公开歌单副本。
+  // 旧曲目只有成功定位发行版本后，才能读取该版本的账号红心与写入进度。
+  function accountId(source: CatalogSource): string {
+    return source.platform === 'kugou' && source.kugouAlbumAudioId === undefined
+      ? state.resolvedIds.get(source) ?? favoriteId(source) : favoriteId(source)
+  }
+
+  // 当前授权的已确认版本、写入结果和完整列表优先于公开歌单副本。
   function confirmed(source: CatalogSource, inPlaylist: boolean): boolean {
-    const id = favoriteId(source)
-    const found =
-      state.ids &&
-      (state.ids.has(id) ||
-        (source.platform === 'kugou' &&
-          !!source.kugouAlbumAudioId &&
-          state.unmappedKugouIds.has(source.kugouAlbumAudioId)))
-    return state.writes.get(id) ?? found ?? inPlaylist
+    const id = accountId(source)
+    return state.writes.get(id) ?? state.ids?.has(id) ?? inPlaylist
   }
 
   // 对同账号的写入串行处理，同一首歌反复点击时保留最后意图。
@@ -214,7 +220,7 @@ function usePlatformFavorites(
   ): Promise<void> {
     const source = track.catalog
     if (!source) return
-    const id = favoriteId(source)
+    let id = accountId(source)
     if (platform === 'netease') {
       const revision = playbackRevision.value
       try {
@@ -244,8 +250,27 @@ function usePlatformFavorites(
       await refresh()
       if (signal.aborted || !state.ids) return
     }
+    let targetTrack = track
+    let unresolvedIntent: boolean | undefined
+    if (platform === 'kugou') {
+      try {
+        id = await resolveKugouFavoriteId(owner, track, signal, kugouAccount?.edition)
+      } catch (error) {
+        if (!signal.aborted) notify(errorMessage(error), 'error')
+        return
+      }
+      if (signal.aborted) return
+      if (source.kugouAlbumAudioId === undefined) {
+        // 第一次确认旧版本时保留用户看到的红心意图，避免点击空心后反而删除已有收藏。
+        if (!state.resolvedIds.has(source)) unresolvedIntent = !confirmed(source, inPlaylist)
+        state.resolvedIds.set(source, id)
+        targetTrack = { ...track, catalog: { ...source, kugouAlbumAudioId: id } }
+      }
+    }
     const alreadyPending = state.pending.has(id)
-    const wanted = !(state.pending.get(id) ?? confirmed(source, inPlaylist))
+    const current = confirmed(source, inPlaylist)
+    const wanted = alreadyPending ? !state.pending.get(id) : unresolvedIntent ?? !current
+    if (!alreadyPending && wanted === current) return
     if (
       wanted &&
       kugouAccount?.edition === 'concept' &&
@@ -282,7 +307,7 @@ function usePlatformFavorites(
             await writeTuneWeaveFavorite(
               platform,
               owner,
-              track,
+              targetTrack,
               desired,
               signal,
               kugouAccount?.edition
@@ -291,7 +316,7 @@ function usePlatformFavorites(
           if (signal.aborted) return
           writesDuringRead?.add(id)
           state.writes.set(id, desired)
-          updateImported(owner, track, desired)
+          updateImported(owner, targetTrack, desired)
         }
       } catch (error) {
         if (!signal.aborted) {
@@ -318,7 +343,7 @@ function usePlatformFavorites(
     })
     await writer
   }
-  return { state, confirmed, toggle, refresh }
+  return { state, accountId, confirmed, toggle, refresh }
 }
 
 // 汇总各平台当前账号的红心，分别保留设备曲目与旧版本机收藏。
@@ -363,9 +388,10 @@ export function useTrackFavorites(
   }
   const playlistKeys = computed(() => {
     const keys = new Set<string>()
-    const lists = browsedList.value
-      ? [...playlists.value, browsedList.value]
-      : playlists.value
+    const preview = browsedList.value
+    const saved = playlists.value
+    const lists = preview && !saved.some(list => list.platform === preview.platform && list.id === preview.id)
+      ? [...saved, preview] : saved
     for (const list of lists) {
       if (
         !list.favoriteOwnerId ||
@@ -383,10 +409,9 @@ export function useTrackFavorites(
     tracks.forEach((track, index) => {
       const source = track.catalog
       if (source) {
-        const id = favoriteId(source)
         const account = accounts[source.platform]
         if (
-          account.state.pending.get(id) ??
+          account.state.pending.get(account.accountId(source)) ??
           account.confirmed(source, playlistKeys.value.has(favoriteKey(source)))
         )
           result[index] = true
@@ -401,6 +426,8 @@ export function useTrackFavorites(
     for (const [platform, account] of Object.entries(accounts)) {
       for (const id of account.state.pending.keys())
         keys.add(platform + ':' + id)
+      for (const [source, id] of account.state.resolvedIds)
+        if (account.state.pending.has(id)) keys.add(favoriteKey(source))
     }
     return keys
   })
@@ -408,6 +435,11 @@ export function useTrackFavorites(
   function observeFavoritePlaylist(list: CatalogPlaylist): void {
     if (list.favoriteOwnerId && list.favoriteOwnerId === ownerOf(list.platform))
       browsedList.value = list
+  }
+  // 系统喜欢歌单重新打开后，同步该账号的红心快照，保留并发写入的最终意图。
+  async function refreshPlaylistFavorites(list: CatalogPlaylist): Promise<void> {
+    if (list.favoriteOwnerId && list.favoriteOwnerId === authorizedOwner(list.platform))
+      await accounts[list.platform].refresh(true)
   }
   // 设备曲目直接保存在本机，在线曲目由对应的平台账号确认。
   async function toggleFavorite(index: number): Promise<void> {
@@ -431,6 +463,7 @@ export function useTrackFavorites(
     localKeys,
     legacyIndices,
     refreshFavorites,
+    refreshPlaylistFavorites,
     observeFavoritePlaylist,
     toggleFavorite,
     pending,

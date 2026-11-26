@@ -1,4 +1,4 @@
-import { computed, reactive, toRefs, watch } from 'vue'
+import { computed, reactive, toRef, toRefs, watch } from 'vue'
 import {
   getPlaylistSearchPlatforms,
   searchCatalog,
@@ -14,11 +14,9 @@ export const searchPageSize = 10
 
 // 在搜索页按平台和页码取结果，离开页面及更改查询时取消过期请求。
 export function useCatalogSearch(player: PlayerState) {
+  const platform = toRef(player, 'searchPlatform')
+  const kind = toRef(player, 'searchKind')
   const state = reactive({
-    /** 用户选中的曲库。 */
-    platform: 'netease' as MusicPlatform | 'local',
-    /** 用户偏好的搜索类型，平台不支持时自动显示歌曲。 */
-    kind: 'tracks' as 'tracks' | 'playlists',
     /** 服务端声明支持歌单搜索的平台。 */
     playlistPlatforms: null as MusicPlatform[] | null,
     /** 当前搜索页码。 */
@@ -35,11 +33,11 @@ export function useCatalogSearch(player: PlayerState) {
   const query = computed(() => player.query.trim())
   const supportsPlaylists = computed(
     () =>
-      state.platform !== 'local' &&
-      !!state.playlistPlatforms?.includes(state.platform)
+      platform.value !== 'local' &&
+      !!state.playlistPlatforms?.includes(platform.value)
   )
   const activeKind = computed(() =>
-    supportsPlaylists.value ? state.kind : 'tracks'
+    supportsPlaylists.value ? kind.value : 'tracks'
   )
   // 旧版服务端没有能力接口，继续提供歌曲搜索；网络故障可在下次进入时重试。
   watch(
@@ -59,7 +57,7 @@ export function useCatalogSearch(player: PlayerState) {
     { immediate: true }
   )
   watch(
-    [() => player.queryRevision, () => state.platform, activeKind],
+    [() => player.queryRevision, platform, activeKind],
     () => {
       state.pageNum = 1
     },
@@ -69,7 +67,7 @@ export function useCatalogSearch(player: PlayerState) {
   watch(
     [
       () => player.page,
-      () => state.platform,
+      platform,
       query,
       () => state.pageNum,
       activeKind,
@@ -132,5 +130,5 @@ export function useCatalogSearch(player: PlayerState) {
     { immediate: true }
   )
 
-  return { query, supportsPlaylists, activeKind, ...toRefs(state) }
+  return { query, platform, kind, supportsPlaylists, activeKind, ...toRefs(state) }
 }

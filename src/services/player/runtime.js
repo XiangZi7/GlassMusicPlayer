@@ -781,7 +781,9 @@ export function mountSourcePlayer(root, options = {}) {
       if (main) main.classList.toggle('show-page', state.page !== 'home')
       p.querySelectorAll('[data-chrome-title]').forEach(function (el) {
         var dt = TRACKS[state.playlistIdx]
-        var name = state.page === 'artist' ? dt?.artist : dt?.album
+        var name = state.page === 'artist' || state.page === 'album'
+          ? options.detailName?.() ?? (state.page === 'artist' ? dt?.artist : dt?.album)
+          : dt?.album
         var detail = ['playlist', 'album', 'artist'].includes(state.page)
         el.textContent = PAGE_NAMES[state.page] + (detail && name ? ' · ' + name : '')
       })
@@ -832,63 +834,11 @@ export function mountSourcePlayer(root, options = {}) {
               (state.customPl.id || state.customPl.name)
         )
       })
-      var ptr = TRACKS[state.playlistIdx] || emptyTrack
       if (state.page === 'playlist' && state.customPl) {
         p.querySelectorAll('[data-chrome-title]').forEach(function (el) {
           el.textContent = '歌单 · ' + state.customPl.name
         })
       }
-      var dtr = ptr
-      var albIdx = TRACKS.map(function (tr, i) {
-        return i
-      }).filter(function (i) {
-        return TRACKS[i].album === dtr.album
-      })
-      var artIdx = TRACKS.map(function (tr, i) {
-        return i
-      }).filter(function (i) {
-        return TRACKS[i].artist === dtr.artist
-      })
-      p.querySelectorAll('[data-ad-cover]').forEach(function (el) {
-        el.src = dtr.cover
-      })
-      p.querySelectorAll('[data-ad-name]').forEach(function (el) {
-        el.textContent = dtr.album || '暂无专辑'
-      })
-      p.querySelectorAll('[data-ad-desc]').forEach(function (el) {
-        el.textContent = dtr.album ? dtr.artist + ' · ' + dtr.q + ' · 主打 ' + dtr.title : ''
-      })
-      p.querySelectorAll('[data-ad-meta]').forEach(function (el) {
-        el.textContent =
-          '共 ' +
-          albIdx.length +
-          ' 首 · ' +
-          fmt(
-            albIdx.reduce(function (s, i) {
-              return s + TRACKS[i].dur
-            }, 0)
-          )
-      })
-      p.querySelectorAll('[data-ard-cover]').forEach(function (el) {
-        el.src = dtr.cover
-      })
-      p.querySelectorAll('[data-ard-name]').forEach(function (el) {
-        el.textContent = dtr.artist || '暂无歌手'
-      })
-      p.querySelectorAll('[data-ard-desc]').forEach(function (el) {
-        el.textContent = dtr.artist ? '代表专辑 ' + dtr.album + ' · ' + dtr.q : ''
-      })
-      p.querySelectorAll('[data-ard-meta]').forEach(function (el) {
-        el.textContent =
-          '共 ' +
-          artIdx.length +
-          ' 首 · ' +
-          fmt(
-            artIdx.reduce(function (s, i) {
-              return s + TRACKS[i].dur
-            }, 0)
-          )
-      })
       var likedIdx = TRACKS.map(function (tr, i) {
         return i
       }).filter(function (i) {
@@ -1381,6 +1331,8 @@ export function mountSourcePlayer(root, options = {}) {
       (state._util || '') +
       '|' +
       (state.customPl ? state.customPl.id || state.customPl.name : '') +
+      '|' +
+      (state.customPl?.name || '') +
       '|' +
       TRACKS.length +
       '|' +
@@ -1942,28 +1894,6 @@ export function mountSourcePlayer(root, options = {}) {
         setQuery(tg.getAttribute('data-tag'))
       })
     })
-    p.querySelectorAll('[data-ad-play]').forEach(function (pb) {
-      listenElement(pb, 'click', function () {
-        var dt = TRACKS[state.playlistIdx]
-        for (var i = 0; i < TRACKS.length; i++) {
-          if (TRACKS[i].catalog && TRACKS[i].album === dt.album) {
-            selectTrack(i, true)
-            break
-          }
-        }
-      })
-    })
-    p.querySelectorAll('[data-ard-play]').forEach(function (pb) {
-      listenElement(pb, 'click', function () {
-        var dt = TRACKS[state.playlistIdx]
-        for (var i = 0; i < TRACKS.length; i++) {
-          if (TRACKS[i].catalog && TRACKS[i].artist === dt.artist) {
-            selectTrack(i, true)
-            break
-          }
-        }
-      })
-    })
     p.querySelectorAll('[data-set-toggle]').forEach(function (b) {
       listenElement(b, 'click', function () {
         var k = b.getAttribute('data-set-toggle')
@@ -2450,12 +2380,21 @@ export function mountSourcePlayer(root, options = {}) {
     buildLists()
     render()
   }
-  // 两个搜索入口和歌手快捷筛选共用提交逻辑，只有提交的关键词才进入历史。
-  function setQuery(query) {
+  // 提交关键词并更新历史；从曲名进入时按来源打开歌曲结果第一页。
+  function setQuery(query, songPlatform) {
+    if (songPlatform) {
+      state.searchPlatform = songPlatform
+      state.searchKind = 'tracks'
+      state.pg.search = 1
+    }
     state.queryDraft = query
     state.query = query.trim()
     if (state.query) state.searchHistory = recentSearches([state.query, ...state.searchHistory])
     state.queryRevision++
+    if (songPlatform) {
+      setPage('search')
+      return
+    }
     state._pageKey = ''
     render()
   }

@@ -1,9 +1,12 @@
-import type { MusicPlatform } from '@/api'
+import type { CatalogRef, MusicPlatform } from '@/api'
 
 export interface CatalogSource {
   platform: MusicPlatform
   id: string
   sourceUrl: string
+  /** 原曲所在平台的歌手、专辑身份，点击详情时使用。 */
+  artistRefs?: CatalogRef[]
+  albumRef?: CatalogRef | null
   /** 酷狗账号收藏使用的专辑曲目编号，null 表示同一 hash 曾对应多个编号。 */
   kugouAlbumAudioId?: string | null
 }
@@ -11,6 +14,8 @@ export interface CatalogSource {
 export interface SourceTrack {
   title: string
   artist: string
+  /** 平台的独立歌手署名，旧曲目和本机文件可能只提供展示文本。 */
+  artists?: string[]
   album: string
   subtitle?: string | null
   dur: number

@@ -4,11 +4,43 @@ import PlayerQueueMenu from '@/components/player/PlayerQueueMenu.vue'
 import PlayerPlayButton from '@/components/player/PlayerPlayButton.vue'
 import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
 import { computed, toRefs } from 'vue'
+import { useRouter } from 'vue-router'
 import { usePlayer } from '@/composables/usePlayer'
-import { playbackQualities } from '@/constants/music'
+import { emptyTrack, playbackQualities } from '@/constants/music'
+import { collectionRoute, trackArtistNames } from '@/services/player/library'
 
-const { state, tracks, setSetting } = usePlayer()
+const { state, tracks, setSetting, controller } = usePlayer()
+const router = useRouter()
 const { settings, stage } = toRefs(state)
+const current = computed(() => tracks[state.idx])
+const artistLinks = computed(() =>
+  trackArtistNames(current.value).map(name => ({
+    name,
+    route: router.resolve(collectionRoute('artist', current.value!, state.idx, name)),
+  }))
+)
+const albumLink = computed(() => {
+  const name = current.value?.album.trim()
+  if (!name || name === '—' || name === '未知专辑') return
+  return { name, route: router.resolve(collectionRoute('album', current.value!, state.idx, name)) }
+})
+
+// 以当前曲目的来源搜索歌名或作品说明，继续播放当前队列。
+function searchMetadata(text: string): void {
+  const track = current.value
+  if (track && text.trim()) controller()?.setQuery(text, track.catalog?.platform ?? 'local')
+}
+
+// 普通点击进入播放器详情页并保留返回历史，带修饰键的点击由链接本身处理。
+function openDetail(event: MouseEvent, page: 'artist' | 'album', path: string): void {
+  const player = controller()
+  if (
+    !player || event.defaultPrevented || event.button !== 0 ||
+    event.ctrlKey || event.metaKey || event.shiftKey || event.altKey
+  ) return
+  event.preventDefault()
+  player.navigate(page, state.idx, false, path)
+}
 const supportsQuality = computed(
   () => tracks[state.idx]?.catalog?.platform === 'netease'
 )
@@ -42,9 +74,53 @@ const qualityHint = computed(() => {
           data-cover
           alt="专辑封面"
       /></BaseButton>
-      <div class="mini-txt min-w-[0]">
-        <b data-title></b><span data-artist></span>
-        <small class="track-subtitle" data-track-subtitle hidden></small>
+      <!-- 底栏曲目信息以独立入口呈现，封面和红心各自保留原有操作。 -->
+      <div class="mini-txt min-w-0" :inert="stage">
+        <b v-if="!current">{{ emptyTrack.title }}</b>
+        <template v-else>
+          <b>
+            <BaseButton
+              class="metadata-link block"
+              :aria-label="'搜索歌曲：' + current.title"
+              :title="'搜索歌曲：' + current.title"
+              @click="searchMetadata(current.title)"
+            >
+              {{ current.title }}
+            </BaseButton>
+          </b>
+          <div class="metadata-credits flex min-w-0 items-baseline gap-1 text-[12px]">
+            <template v-for="(artist, index) in artistLinks" :key="artist.name">
+              <i v-if="index" class="shrink-0 not-italic" aria-hidden="true">/</i>
+              <a
+                class="metadata-link"
+                :href="artist.route.href"
+                :aria-label="'查看歌手：' + artist.name"
+                :title="'查看歌手：' + artist.name"
+                @click="openDetail($event, 'artist', artist.route.fullPath)"
+              >{{ artist.name }}</a>
+            </template>
+            <i v-if="!artistLinks.length && current.artist" class="truncate not-italic">{{ current.artist }}</i>
+            <i v-if="current.artist && albumLink" class="shrink-0 not-italic" aria-hidden="true">·</i>
+            <a
+              v-if="albumLink"
+              class="metadata-link"
+              :href="albumLink.route.href"
+              :aria-label="'查看专辑：' + albumLink.name"
+              :title="'查看专辑：' + albumLink.name"
+              @click="openDetail($event, 'album', albumLink.route.fullPath)"
+            >{{ albumLink.name }}</a>
+          </div>
+          <small v-if="current.subtitle" class="track-subtitle">
+            <BaseButton
+              class="metadata-link block"
+              :aria-label="'搜索：' + current.subtitle"
+              :title="'搜索：' + current.subtitle"
+              @click="searchMetadata(current.subtitle)"
+            >
+              {{ current.subtitle }}
+            </BaseButton>
+          </small>
+        </template>
       </div>
       <BaseButton
         class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
@@ -219,3 +295,34 @@ const qualityHint = computed(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.metadata-credits {
+  color: rgb(255 255 255 / 65%);
+}
+.metadata-link {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.metadata-link:hover, .metadata-link:focus-visible {
+  color: white;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.metadata-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+</style>

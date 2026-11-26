@@ -90,6 +90,7 @@ function useFallbackCover(event: Event): void {
             {{ keyword ? '播放搜索结果' : '播放全部' }}
           </BaseButton>
           <span data-pl-meta>{{ meta }}</span>
+          <slot name="sync-status" />
           <span aria-live="polite" aria-atomic="true">{{ keyword ? '找到 ' + matches.length + ' 首' : '' }}</span>
         </div>
       </div>
