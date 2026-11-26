@@ -10,6 +10,7 @@ import {
   shallowRef,
   useTemplateRef,
   watch,
+  watchPostEffect,
   type Component,
 } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
@@ -35,6 +36,7 @@ import {
 } from '@/stores/player'
 import PlayerWindowFrame from '@/components/player/PlayerWindowFrame.vue'
 import { mountSourcePlayer } from '@/services/player/runtime'
+import { createSystemMediaSession } from '@/services/player/system-media-session'
 import {
   openDesktop,
   openSettingsWindow,
@@ -64,6 +66,11 @@ const { state, tracks, saveIslandPreferences, savePreferences, refreshFavorites,
   usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
+const systemMedia = isTauri() && /\bWindows\b/.test(navigator.userAgent)
+  ? createSystemMediaSession()
+  : undefined
+// 等本轮切歌和音频状态一起提交后，再同步 Windows 媒体卡片。
+if (systemMedia) watchPostEffect(() => systemMedia.update(tracks[state.idx], state))
 // 首次授权和返回前台都刷新平台红心，保留已知数据以便暂时离线时继续浏览。
 function syncFavorites(): void {
   void refreshFavorites()
@@ -397,6 +404,7 @@ onMounted(async () => {
 onUnmounted(() => {
   savePreferences()
   disposed = true
+  systemMedia?.clear()
   unlisteners.forEach(stop => stop())
   player.value?.destroy()
 })

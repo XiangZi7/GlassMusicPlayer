@@ -1,5 +1,5 @@
 use tauri::{
-    AppHandle, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Manager, Runtime, WebviewWindow, WebviewWindowBuilder,
     utils::config::{Color, WindowConfig},
 };
 
@@ -26,7 +26,7 @@ fn is_windows_10() -> bool {
 }
 
 /// 根据系统创建主窗口；Windows 10 使用透明阴影区域，Windows 11 使用系统圆角和阴影。
-pub(crate) fn create_main_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, Box<dyn std::error::Error>> {
     let config = app
         .config()
         .app
@@ -34,8 +34,19 @@ pub(crate) fn create_main_window(app: &AppHandle) -> Result<(), Box<dyn std::err
         .iter()
         .find(|window| window.label == "main")
         .ok_or_else(|| std::io::Error::other("缺少主窗口配置"))?;
-    create_window(app, config, None)?;
-    Ok(())
+    create_window(app, config, None)
+}
+
+/// 所有 Windows 小窗共享 WebView2 数据目录和启动参数，由主窗口的原生会话接管系统媒体键。
+pub(crate) fn configure_webview<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    #[cfg(target_os = "windows")]
+    let builder = builder.additional_browser_args(concat!(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling",
+        " --autoplay-policy=no-user-gesture-required",
+    ));
+    builder
 }
 
 /// 主窗口和设置弹窗共用系统外观策略，独立桌面卡片保留各自的配置。
@@ -44,7 +55,7 @@ pub(crate) fn create_window(
     config: &WindowConfig,
     parent: Option<&WebviewWindow>,
 ) -> Result<WebviewWindow, Box<dyn std::error::Error>> {
-    let mut builder = WebviewWindowBuilder::from_config(app, config)?;
+    let mut builder = configure_webview(WebviewWindowBuilder::from_config(app, config)?);
     if let Some(parent) = parent {
         builder = builder.parent(parent)?;
     }

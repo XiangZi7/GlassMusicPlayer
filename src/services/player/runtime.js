@@ -8,7 +8,7 @@ import { createLyricWindow, lyricRow, mountedLyricRows } from '@/services/player
 import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
 import { notify } from '@/services/notification'
-import { recentSearches } from '@/services/player/preferences'
+import { catalogPlaybackKey, recentSearches } from '@/services/player/preferences'
 import { favoriteHint, favoriteKey, favoriteTarget } from '@/services/player/favorites'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
@@ -2344,9 +2344,15 @@ export function mountSourcePlayer(root, options = {}) {
       direction: nativeDirection,
     }
   }
-  // 独立窗口共用主播放器的收藏、点播和进度操作。
+  // 独立窗口与系统媒体会话共用主播放器的控制，系统拖动进度只作用于发出请求的曲目。
   function dispatch(action) {
     if (action.type === 'toggle') togglePlayback()
+    else if (action.type === 'play') {
+      if (!state.playing) setPlaying(true)
+    }
+    else if (action.type === 'pause') {
+      if (state.playing || state.audioLoading) setPlaying(false)
+    }
     else if (action.type === 'next') nextTrack()
     else if (action.type === 'previous') prevTrack()
     else if (action.type === 'like') {
@@ -2356,6 +2362,11 @@ export function mountSourcePlayer(root, options = {}) {
     else if (action.type === 'volume') setVol(action.value)
     else if (action.type === 'seek') {
       seekTo(Math.max(0, Math.min(1, action.value)) * currentDuration())
+    }
+    else if (action.type === 'seek-to') {
+      const source = TRACKS[state.idx]?.catalog
+      if (source && action.trackId === catalogPlaybackKey(source) && state.streamDuration > 0 && Number.isFinite(action.value))
+        seekTo(action.value)
     }
   }
   // Vue 页面退出时只释放宿主资源，不修改原稿的交互状态与视觉规则。

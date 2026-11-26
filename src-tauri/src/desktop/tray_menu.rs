@@ -175,11 +175,11 @@ pub(crate) fn prepare_window(app: &AppHandle) {
 /// 在后台工作线程创建隐藏菜单，页面和尺寸就绪后再接管系统菜单。
 #[cfg(target_os = "windows")]
 fn create_window(app: &AppHandle) -> Result<(), String> {
-    let window = WebviewWindowBuilder::new(
+    let window = super::appearance::configure_webview(WebviewWindowBuilder::new(
         app,
         TRAY_LABEL,
         WebviewUrl::App("index.html#/desktop/tray".into()),
-    )
+    ))
     .title("MiraiPlayer · 托盘菜单")
     .inner_size(
         CONTENT_WIDTH + SURFACE_INSET * 2.0,

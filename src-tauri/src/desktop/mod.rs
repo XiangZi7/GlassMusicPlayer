@@ -2,6 +2,8 @@
 
 pub(crate) mod appearance;
 pub(crate) mod location;
+#[cfg(target_os = "windows")]
+pub(crate) mod media_session;
 pub(crate) mod settings;
 #[cfg(target_os = "windows")]
 pub(crate) mod shadow_hit_test;

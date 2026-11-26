@@ -52,8 +52,9 @@ export interface SourceSnapshot {
 }
 
 export interface SourceAction {
-  type: 'toggle' | 'next' | 'previous' | 'like' | 'volume' | 'seek' | 'focus'
+  type: 'toggle' | 'play' | 'pause' | 'next' | 'previous' | 'like' | 'volume' | 'seek' | 'seek-to' | 'focus'
   value?: number
+  trackId?: string
   favoriteTarget?: string
 }
 

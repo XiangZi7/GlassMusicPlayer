@@ -5,6 +5,8 @@ use crate::storage;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut context = tauri::generate_context!();
+    #[cfg(target_os = "windows")]
+    crate::desktop::media_session::set_app_identity(&context.config().identifier);
     context.set_default_window_icon(Some(tauri::include_image!("./icons/128x128.png")));
     tauri::Builder::default()
         .manage(tray::TrayPreferences::default())
@@ -40,6 +42,8 @@ pub fn run() {
             tray_menu::dismiss_tray_menu,
             tray_menu::run_tray_action,
             settings::open_settings_window,
+            #[cfg(target_os = "windows")]
+            crate::desktop::media_session::update_system_media_session,
             crate::desktop::location::reset_location_permission,
             storage::get_storage_info,
             storage::update_storage_config,
@@ -50,7 +54,9 @@ pub fn run() {
             storage::download_catalog_track
         ])
         .setup(|app| {
-            appearance::create_main_window(app.handle())?;
+            let _main_window = appearance::create_main_window(app.handle())?;
+            #[cfg(target_os = "windows")]
+            crate::desktop::media_session::install(&_main_window);
             #[cfg(desktop)]
             tray::create(app)?;
             Ok(())

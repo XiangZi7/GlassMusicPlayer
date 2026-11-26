@@ -278,11 +278,11 @@ pub(crate) async fn show_desktop_window(
     let window = if let Some(window) = app.get_webview_window(options.label) {
         window
     } else {
-        let window = WebviewWindowBuilder::new(
+        let window = super::appearance::configure_webview(WebviewWindowBuilder::new(
             app,
             options.label,
             WebviewUrl::App(format!("index.html#/desktop/{}", options.label).into()),
-        )
+        ))
         .title(options.title)
         .inner_size(
             options.width + SURFACE_INSET * 2.0,
@@ -410,11 +410,11 @@ pub(crate) async fn set_lyric_island(app: AppHandle, visible: bool) -> Result<()
     if !visible {
         return Ok(());
     }
-    let _window = WebviewWindowBuilder::new(
+    let _window = super::appearance::configure_webview(WebviewWindowBuilder::new(
         &app,
         "island",
         WebviewUrl::App("index.html#/desktop/island".into()),
-    )
+    ))
     .title("MiraiPlayer · 灵动岛")
     // 胶囊本体继续为 320 × 40；外面留透明阴影，不拉伸成矩形卡片。
     .inner_size(320.0 + SURFACE_INSET * 2.0, 40.0 + SURFACE_INSET * 2.0)
@@ -446,6 +446,9 @@ pub(crate) fn handle_window_event(window: &Window, event: &WindowEvent) {
     }
     #[cfg(target_os = "windows")]
     if matches!(event, WindowEvent::Destroyed) {
+        if window.label() == "main" {
+            super::media_session::release(window.app_handle());
+        }
         super::shadow_hit_test::remove_window(window);
     }
     #[cfg(target_os = "windows")]
