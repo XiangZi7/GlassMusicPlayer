@@ -136,7 +136,6 @@ export function mountSourcePlayer(root, options = {}) {
       : 'npOpen'
   }
   let catalogLyrics = null
-  let lyricTexts = []
   let hasTimedLyrics = false
   let stageRequest
   let stageTrigger
@@ -214,7 +213,6 @@ export function mountSourcePlayer(root, options = {}) {
       const lines = parseCatalogLyrics(result)
       if (lines.length) {
         catalogLyrics = lines
-        lyricTexts = lines.map(line => line.o)
         hasTimedLyrics = lines.some(line => line.words || line.trWords)
         render()
       }
@@ -1477,7 +1475,6 @@ export function mountSourcePlayer(root, options = {}) {
     lyricRequest?.abort()
     lyricRequest = undefined
     catalogLyrics = null
-    lyricTexts = []
     hasTimedLyrics = false
     state.resumeTime = 0
     state.idx = i
@@ -2221,8 +2218,11 @@ export function mountSourcePlayer(root, options = {}) {
     }
     var banner = p.querySelector('[data-banner]')
     if (banner) {
+      // 隐藏、全屏覆盖或减动效时跳过横幅的鼠标取景和样式写入。
       listenElement(banner, 'mousemove', function (e) {
+        if (banner.classList.contains('banner-calm')) return
         var r = banner.getBoundingClientRect()
+        if (!r.width || !r.height) return
         var bx = (e.clientX - r.left) / r.width - 0.5
         var by = (e.clientY - r.top) / r.height - 0.5
         banner.style.setProperty('--bx', bx.toFixed(3))
@@ -2230,7 +2230,9 @@ export function mountSourcePlayer(root, options = {}) {
         banner.style.setProperty('--bxp', (bx + 0.5) * 100 + '%')
         banner.style.setProperty('--byp', (by + 0.5) * 100 + '%')
       })
+      // 只有仍在显示动效的横幅才需要复位视差。
       listenElement(banner, 'mouseleave', function () {
+        if (banner.classList.contains('banner-calm')) return
         banner.style.setProperty('--bx', 0)
         banner.style.setProperty('--by', 0)
       })
@@ -2312,12 +2314,12 @@ export function mountSourcePlayer(root, options = {}) {
     return scroller.scrollHeight - scroller.clientHeight - shrink >= 70
   }
 
-  // 发布原稿当前状态，供独立桌面窗口复用同一播放状态。
+  // 小窗只接收当前句及相邻歌词，以绝对行号定位动画，避免每次时钟广播整首文本。
   function getSnapshot() {
     const track = { ...(TRACKS[state.idx] || emptyTrack), dur: currentDuration() }
     const lines = fsLinesFor(state.idx)
-    const lyrics = catalogLyrics ? lyricTexts : lines.map(line => line.o)
     const lyricIndex = Math.max(0, lyricIndexAt(lines, state.t))
+    const lyricOffset = Math.max(0, lyricIndex - 1)
     return {
       track,
       playing: state.playing,
@@ -2331,7 +2333,8 @@ export function mountSourcePlayer(root, options = {}) {
       favoriteBusy: !!track.catalog && state.pendingFavorites.has(favoriteKey(track.catalog)),
       favoriteHint: favoriteHint(track),
       favoriteTarget: favoriteTarget(TRACKS[state.idx]),
-      lyrics,
+      lyrics: lines.slice(lyricOffset, lyricIndex + 2).map(line => line.o),
+      lyricOffset,
       lyricIndex,
       capsuleLyric: state.capsuleLyric,
       motion: state.settings.motion,

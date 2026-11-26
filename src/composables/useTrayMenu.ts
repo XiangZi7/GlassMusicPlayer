@@ -140,7 +140,8 @@ export function useTrayMenu() {
     try {
       await Promise.all([
         subscribe<SourceSnapshot>('player-snapshot', snapshot => {
-          state.snapshot = snapshot
+          // 托盘重新展开时原生层会向主窗索取最新快照，隐藏期间跳过界面更新。
+          if (state.opened) state.snapshot = snapshot
         }),
         subscribe<SettingsSnapshot>('settings-snapshot', snapshot => {
           state.glassStyle = snapshot.settings.glassStyle

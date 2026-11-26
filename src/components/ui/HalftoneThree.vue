@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import type { BannerSpectrumFrame } from '@/services/player/spectrum'
 import {
   Mesh,
   OrthographicCamera,
@@ -14,8 +15,7 @@ import {
 
 // 横幅点阵 three.js 版参数：点由覆盖场在 GPU 上重新生成（不采样带点原图，避免摩尔纹），
 // 点径走面积律；平滑/淡入淡出沿用 spectrum.ts 已验证的 CPU 侧口径（整层 1000ms 包络），
-// 本组件读它发布在同位点画布 dataset 上的每列 alpha（平滑后能量）与 dotsTarget（平滑前
-// 的每列原始能量），再在组件内做峰值保持 + 对比扩展 + 全场呼吸三级整形后喂给 shader——
+// 本组件直接读取同一帧的每列 alpha 与平滑前原始能量，再做峰值保持、对比扩展和全场呼吸。
 // 旧口径只拿平滑后能量做 ≤+30% 覆盖调制（点径增幅封顶 +14% 且密区被点径上限裁平），
 // 真机上肉眼看不出动；新口径让峰值列的点径增幅达到 30–40% 量级并同步提亮，静止与
 // 低能量时仍回到细版原样。
@@ -160,9 +160,7 @@ let scene: Scene | undefined
 let camera: OrthographicCamera | undefined
 let material: ShaderMaterial | undefined
 let geometry: PlaneGeometry | undefined
-let frame = 0
 let observer: ResizeObserver | undefined
-let sourceCanvas: HTMLCanvasElement | null = null
 const levels = new Float32Array(DOTS_COLS)
 // 每列原始能量（spectrum 平滑前）：峰值包络的攻击只认它，避开平滑与 alpha 限幅把瞬态磨平。
 const rawLevels = new Float32Array(DOTS_COLS)
@@ -175,30 +173,16 @@ let breathLevel = 0
 // 上一帧整形的时间戳：峰值衰减与呼吸都按真实帧间隔推进，不按帧数凑系数。
 let shapeStamp: number | undefined
 
-// 读取同位点画布 dataset 上 spectrum.ts 发布的每列 alpha 与平滑前目标，并还原能量：
-// alpha = 包络 × 0.35 × 平滑能量，能量只在包络足够大时才可信，其余时刻归零防噪声放大；
-// dotsTarget 是同一时刻未经平滑的每列原始能量，非 live 时 spectrum 侧已归零。
-function readLevels(): { fade: number; live: boolean } {
-  if (!sourceCanvas || !sourceCanvas.isConnected) {
-    sourceCanvas =
-      root.value
-        ?.closest('[data-banner-bg]')
-        ?.querySelector<HTMLCanvasElement>('[data-halftone-dots]') ?? null
-  }
-  if (!sourceCanvas) return { fade: 0, live: false }
-  const fade = Number(sourceCanvas.dataset.dotsFade ?? 0) || 0
-  const live = sourceCanvas.dataset.spectrumMode === 'live'
-  const parts = (sourceCanvas.dataset.dotsAlpha ?? '').split(',')
-  const targets = (sourceCanvas.dataset.dotsTarget ?? '').split(',')
+// 从同一时刻的实频列还原峰值与平滑能量，避免每帧经 DOM 字符串往返。
+function readLevels({ fade, live, alphas, targets }: BannerSpectrumFrame): void {
   for (let col = 0; col < DOTS_COLS; col++) {
-    const alpha = Number(parts[col] ?? 0) || 0
+    const alpha = alphas[col] ?? 0
     levels[col] =
       fade > 0.05 ? Math.min(1, Math.max(0, alpha / DOTS_MAX_ALPHA)) : 0
-    const raw = Number(targets[col] ?? 0) || 0
+    const raw = targets[col] ?? 0
     rawLevels[col] =
       live && fade > 0.05 ? Math.min(1, Math.max(0, raw)) : 0
   }
-  return { fade, live }
 }
 
 // 把原始能量整形成显示能量：每列先做峰值保持（攻击即时、释放 420ms 时间常数、
@@ -256,19 +240,15 @@ function syncGeometry(): void {
   }
 }
 
-// three.js 渲染主循环：包络为零时整层隐藏且跳过绘制（静态横幅就是单图版原样），
-// 并清零峰值/呼吸状态让下次播放从干净状态起；包络大于零时把整层透明度设为包络值
-// （与同位点版同一条 1 秒淡入淡出口径），先整形能量再写入 uniform 绘制一帧，
-// 并发布原始/显示能量、点径调制峰值与呼吸值供 QA 量化。
-function tick(): void {
-  frame = requestAnimationFrame(tick)
+// 仅随底栏发来的实频或淡出帧绘制；素材尚未就绪时保留当前人物的整图。
+function drawFrame(frame: BannerSpectrumFrame): void {
   if (!renderer || !scene || !camera || !material || !root.value || !glCanvas.value)
     return
   // 慢加载或图片损坏时继续显示当前整图，直到新人物三层素材都可绘制。
   const ready = material.uniforms.uCoverage!.value &&
     background.value?.complete && background.value.naturalWidth > 0 &&
     character.value?.complete && character.value.naturalWidth > 0
-  const fade = ready ? readLevels().fade : 0
+  const fade = ready ? frame.fade : 0
   root.value.style.opacity = fade > 0.002 ? String(fade) : '0'
   glCanvas.value.dataset.threeFade = fade.toFixed(3)
   if (fade <= 0.002) {
@@ -278,28 +258,24 @@ function tick(): void {
     shapeStamp = undefined
     return
   }
-  shapeLevels(performance.now())
-  const started = performance.now()
+  readLevels(frame)
+  shapeLevels(frame.timestamp)
   const uniform = material.uniforms.uLevels!.value as Float32Array
   uniform.set(dispLevels)
   material.uniforms.uBreath!.value = breathLevel
-  let maxEnergy = 0
-  for (const value of dispLevels) maxEnergy = Math.max(maxEnergy, value)
-  glCanvas.value.dataset.threeModMax = (
-    Math.sqrt(1 + COVERAGE_GAIN * maxEnergy) - 1
-  ).toFixed(3)
-  glCanvas.value.dataset.threeLevels = Array.from(levels, value =>
-    value.toFixed(3)
-  ).join(',')
-  glCanvas.value.dataset.threeDispLevels = Array.from(dispLevels, value =>
-    value.toFixed(3)
-  ).join(',')
-  glCanvas.value.dataset.threeBreath = breathLevel.toFixed(3)
+  const started = import.meta.env.DEV ? performance.now() : 0
   renderer.render(scene, camera)
-  const elapsed = performance.now() - started
-  const previous = Number(glCanvas.value.dataset.threeFrameMs ?? elapsed)
-  glCanvas.value.dataset.threeFrameMs = (previous * 0.9 + elapsed * 0.1).toFixed(2)
+  if (import.meta.env.DEV) {
+    const debug = glCanvas.value.dataset
+    debug.threeModMax = (Math.sqrt(1 + COVERAGE_GAIN * Math.max(...dispLevels)) - 1).toFixed(3)
+    debug.threeLevels = Array.from(levels, value => value.toFixed(3)).join(',')
+    debug.threeDispLevels = Array.from(dispLevels, value => value.toFixed(3)).join(',')
+    debug.threeBreath = breathLevel.toFixed(3)
+    const elapsed = performance.now() - started
+    debug.threeFrameMs = (Number(debug.threeFrameMs ?? elapsed) * 0.9 + elapsed * 0.1).toFixed(2)
+  }
 }
+defineExpose({ drawFrame })
 
 // 切换人物先显示新整图，只让当前人物的覆盖场恢复动态层，并释放迟到的纹理。
 function loadCoverage(src: string): void {
@@ -371,19 +347,18 @@ function initThree(): void {
   syncGeometry()
   observer = new ResizeObserver(syncGeometry)
   if (glCanvas.value.parentElement) observer.observe(glCanvas.value.parentElement)
-  frame = requestAnimationFrame(tick)
 }
 
 onMounted(initThree)
 
-// 组件卸载时释放 WebGL 资源与帧循环，避免路由切换后残留上下文。
+// 释放本层专用的上下文和纹理，连续打开、关闭或切换路由时不积累 GPU 资源。
 onBeforeUnmount(() => {
-  cancelAnimationFrame(frame)
   observer?.disconnect()
   geometry?.dispose()
   material?.uniforms.uCoverage!.value?.dispose()
   material?.dispose()
   material = undefined
+  renderer?.forceContextLoss()
   renderer?.dispose()
 })
 </script>

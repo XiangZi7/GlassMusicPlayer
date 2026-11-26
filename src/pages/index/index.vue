@@ -21,6 +21,8 @@ const props = defineProps<{ detail?: boolean }>()
 const { state, tracks, controller } = usePlayer()
 const { registerCatalogTracks, profileTracks } = usePlayerStore()
 const discovery = reactive({
+  // 榜单和发现卡片逐个显示，已展示的日推选曲保留到本轮全部完成。
+  previews: [] as CatalogPlaylist[],
   // 公开内容按来源保存，浏览时独立于本机曲库。
   playlists: [] as CatalogPlaylist[],
   // 首次加载或重试的状态。
@@ -49,7 +51,7 @@ watch([day, () => discovery.retry], async ([today], _, onCleanup) => {
   const request = new AbortController()
   onCleanup(() => request.abort())
   discovery.loading = true
-  const result = await loadPublicPlaylists(today, request.signal)
+  const result = await loadPublicPlaylists(today, request.signal, lists => { discovery.previews = lists })
   if (request.signal.aborted) return
   discovery.playlists = result.playlists
   discovery.incomplete = result.incomplete
@@ -159,13 +161,13 @@ function focusDailyView(element: Element): void {
       <DailyTile class="bento-daily" :songs="dailySongs" :source-label="sourceLabel" :loading="dailyLoading"
         :retry-account="discovery.accountFailed" :current-key="currentKey" @retry="discovery.accountRetry++" @play="playDaily()"
         @play-track="playDaily" @open="controller()?.navigate('daily')" />
-      <ChartTile class="bento-chart" :playlists="discovery.playlists" :loading="discovery.loading" @play="playPublic" />
+      <ChartTile class="bento-chart" :playlists="discovery.previews" :loading="discovery.loading" @play="playPublic" />
       <RadioTile class="bento-radio" />
       <ArtistTile class="bento-artists" :playlists="discovery.playlists" :preview="publicPreview"
         :loading="discovery.loading" @play="playPublic" />
       <!-- 发现区优先展示三平台公开歌单，离线时显示曲库专辑，整行横滑。 -->
       <div class="tile bento-rail">
-        <RecommendedAlbums :playlists="discovery.playlists" :loading="discovery.loading" :incomplete="discovery.incomplete"
+        <RecommendedAlbums :playlists="discovery.previews" :loading="discovery.loading" :incomplete="discovery.incomplete"
           @retry="discovery.retry++" @play-public="playPublic" />
       </div>
     </div>

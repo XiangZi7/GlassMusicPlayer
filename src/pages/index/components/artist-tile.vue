@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { CatalogPlaylist, CatalogTrack } from '@/api'
 import { selectArtistPicks } from '@/pages/index/public-playlists'
@@ -41,7 +42,7 @@ function fallbackCover(event: Event): void {
         <span class="record" aria-hidden="true">
           <span class="record-label">
             {{ [...pick.name][0] }}
-            <img v-if="pick.cover" :key="pick.cover" :src="pick.cover" alt="" loading="lazy" decoding="async" @error="fallbackCover" />
+            <CoverThumbnail v-if="pick.cover" :key="pick.cover" :src="pick.cover" :size="46" alt="" loading="lazy" @error="fallbackCover" />
           </span>
         </span>
         <span class="artist-meta">

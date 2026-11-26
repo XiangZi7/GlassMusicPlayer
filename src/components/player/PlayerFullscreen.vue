@@ -25,6 +25,8 @@ import { usePlayer } from '@/composables/usePlayer'
 
 const player = usePlayer()
 const { settings, stage, playing, fsQ } = toRefs(player.state)
+// 首次展开队列才挂载虚拟列表，本次舞台内保留它完成退场，下次进场再按需创建。
+const queueMounted = computed<boolean>(previous => stage.value && (fsQ.value || previous === true))
 const lyrics = useTemplateRef<HTMLElement>('lyrics')
 const fullscreen = useTemplateRef<HTMLElement>('fullscreen')
 const themes = [
@@ -791,7 +793,7 @@ const dust = [
         ></BaseButton>
       </div>
       <QueueList
-        v-if="stage"
+        v-if="queueMounted"
         :show-current="fsQ"
         compact
       />

@@ -1,3 +1,5 @@
+import { coverThumbnail } from '@/services/player/cover-thumbnail'
+
 export type ArtworkColor = readonly [number, number, number]
 const cache = new Map<string, Promise<ArtworkColor | undefined>>()
 
@@ -20,7 +22,12 @@ export function artworkColor(
       image.onerror = null
       resolve(color)
     }
-    image.onerror = () => finish(undefined)
+    const sample = coverThumbnail(url, 64)
+    // 平台缩略图不可读时仍用原图取色，保持已有封面的背景光效果。
+    image.onerror = () => {
+      if (sample !== url && image.getAttribute('src') === sample) image.src = url
+      else finish(undefined)
+    }
     image.onload = () => {
       try {
         const canvas = document.createElement('canvas')
@@ -78,7 +85,7 @@ export function artworkColor(
         finish(undefined)
       }
     }
-    image.src = url
+    image.src = sample
   })
   if (cache.size >= 64) cache.delete(cache.keys().next().value!)
   cache.set(url, pending)

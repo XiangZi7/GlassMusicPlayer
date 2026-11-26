@@ -4,6 +4,7 @@ import type { CSSProperties } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
 import { catalogKey } from '@/services/player/catalog'
@@ -88,7 +89,7 @@ function onPlay(): void {
   <article class="tile daily-tile" :style="washStyle" aria-labelledby="daily-tile-title">
     <!-- 背景：主打封面重模糊压暗作色wash，内容层在其上保持可读。 -->
     <div class="daily-wash" aria-hidden="true">
-      <img v-if="cover !== defaultCover" :src="cover" alt="" decoding="async" @error="markCoverFailed(songs[0]?.cover)" />
+      <CoverThumbnail v-if="cover !== defaultCover" :src="cover" :size="152" alt="" @error="markCoverFailed(songs[0]?.cover)" />
     </div>
     <div class="daily-body">
       <div class="daily-head">
@@ -96,7 +97,7 @@ function onPlay(): void {
         <span class="daily-source">{{ sourceLabel }}</span>
       </div>
       <div class="daily-main">
-        <img class="daily-cover" :src="cover" alt="" decoding="async" @error="markCoverFailed(songs[0]?.cover)" />
+        <CoverThumbnail class="daily-cover" :src="cover" :size="152" alt="" @error="markCoverFailed(songs[0]?.cover)" />
         <div class="daily-info">
           <h3 id="daily-tile-title">今日主打歌单</h3>
           <p class="daily-meta">
@@ -138,7 +139,7 @@ function onPlay(): void {
           @click="emit('playTrack', position)"
         >
           <span class="daily-row-cover">
-            <img :src="coverSource(song.cover)" alt="" loading="lazy" decoding="async" @error="markCoverFailed(song.cover)" />
+            <CoverThumbnail :src="coverSource(song.cover)" :size="36" alt="" loading="lazy" @error="markCoverFailed(song.cover)" />
             <span class="daily-row-play" aria-hidden="true">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>
             </span>

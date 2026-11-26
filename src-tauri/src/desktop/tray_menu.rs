@@ -20,6 +20,8 @@ const MENU_GAP: f64 = 4.0;
 
 pub(crate) struct TrayMenuState {
     ready: AtomicBool,
+    #[cfg(target_os = "windows")]
+    creating: AtomicBool,
     shown: AtomicBool,
     wanted: AtomicBool,
     generation: AtomicU64,
@@ -35,6 +37,8 @@ impl Default for TrayMenuState {
     fn default() -> Self {
         Self {
             ready: AtomicBool::new(false),
+            #[cfg(target_os = "windows")]
+            creating: AtomicBool::new(false),
             shown: AtomicBool::new(false),
             wanted: AtomicBool::new(false),
             generation: AtomicU64::new(0),
@@ -148,9 +152,29 @@ pub(crate) fn remember_native_menu(app: &AppHandle, menu: &Menu<Wry>) -> Result<
     Ok(())
 }
 
-/// 仅在 setup 中预建；同步托盘事件中创建 WebView 会阻塞 Windows UI 线程。
+/// 第一次右键后在后台准备下次使用的菜单，重复右键共用同一个创建任务。
 #[cfg(target_os = "windows")]
-pub(crate) fn create_window(app: &AppHandle) -> Result<(), String> {
+pub(crate) fn prepare_window(app: &AppHandle) {
+    if app.get_webview_window(TRAY_LABEL).is_some() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<TrayMenuState>();
+        let Some(_guard) = AtomicGuard::acquire(&state.creating) else {
+            return;
+        };
+        if app.get_webview_window(TRAY_LABEL).is_none() {
+            if let Err(error) = create_window(&app) {
+                eprintln!("{error}；继续使用原生托盘菜单");
+            }
+        }
+    });
+}
+
+/// 在后台工作线程创建隐藏菜单，页面和尺寸就绪后再接管系统菜单。
+#[cfg(target_os = "windows")]
+fn create_window(app: &AppHandle) -> Result<(), String> {
     let window = WebviewWindowBuilder::new(
         app,
         TRAY_LABEL,
@@ -488,6 +512,7 @@ pub(crate) async fn dismiss_tray_menu(
     .await
 }
 
+/// 在当前托盘会话执行菜单操作，收起菜单后再打开所选窗口。
 #[tauri::command]
 pub(crate) async fn run_tray_action(
     window: WebviewWindow,
@@ -531,21 +556,30 @@ pub(crate) async fn run_tray_action(
     let anchor = app.state::<tray::TrayPreferences>().anchor();
     let result = match action {
         TrayAction::Main => tray::focus_main(app),
-        TrayAction::Mini => super::windows::show_desktop_window(
-            app,
-            super::windows::DesktopWindowKind::Mini,
-            anchor,
-        ),
-        TrayAction::Lyrics => super::windows::show_desktop_window(
-            app,
-            super::windows::DesktopWindowKind::Lyrics,
-            anchor,
-        ),
-        TrayAction::Media => super::windows::show_desktop_window(
-            app,
-            super::windows::DesktopWindowKind::Media,
-            anchor,
-        ),
+        TrayAction::Mini => {
+            super::windows::show_desktop_window(
+                app,
+                super::windows::DesktopWindowKind::Mini,
+                anchor,
+            )
+            .await
+        }
+        TrayAction::Lyrics => {
+            super::windows::show_desktop_window(
+                app,
+                super::windows::DesktopWindowKind::Lyrics,
+                anchor,
+            )
+            .await
+        }
+        TrayAction::Media => {
+            super::windows::show_desktop_window(
+                app,
+                super::windows::DesktopWindowKind::Media,
+                anchor,
+            )
+            .await
+        }
         TrayAction::Settings => super::settings::open_settings_window(app.clone()).await,
         TrayAction::Exit => {
             app.exit(0);

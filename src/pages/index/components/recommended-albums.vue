@@ -3,6 +3,7 @@ import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, reacti
 import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { SourceTrack } from '@/types/prototype'
@@ -199,7 +200,7 @@ function turnPage(direction: number): void {
             :title="card.label" :aria-label="card.label"
             @click="card.open"
           >
-            <img decoding="async" loading="lazy"
+            <CoverThumbnail :size="160" loading="lazy"
               :src="card.cover"
               alt=""
             />

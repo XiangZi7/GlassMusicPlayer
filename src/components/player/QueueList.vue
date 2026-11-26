@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, reactive, toRefs, watch } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { formatTime } from '@/utils/format'
 
@@ -198,8 +199,8 @@ const { idx } = toRefs(state)
               r="1.6"
             /></svg
         ></span>
-        <img
-          decoding="async"
+        <CoverThumbnail
+          :size="40"
           loading="lazy"
           :src="tracks[index]!.cover"
           alt=""

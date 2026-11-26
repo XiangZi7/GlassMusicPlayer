@@ -5,7 +5,7 @@ use std::sync::{
 #[cfg(desktop)]
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    AppHandle, Manager, PhysicalPosition, State, WebviewWindow, Wry,
+    AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow, Wry,
     menu::{MenuBuilder, MenuItem},
 };
 
@@ -57,12 +57,10 @@ pub(crate) fn set_close_to_tray(
     Ok(())
 }
 
+/// 同步原生菜单的迷你播放器开关，关闭时收起已打开的窗口并安排回收。
 #[tauri::command]
-pub(crate) fn set_tray_mini(
-    app: AppHandle,
-    preferences: State<'_, TrayPreferences>,
-    enabled: bool,
-) -> Result<(), String> {
+pub(crate) async fn set_tray_mini(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let preferences = app.state::<TrayPreferences>();
     preferences.enabled.store(enabled, Ordering::Relaxed);
     let item = preferences
         .mini_item
@@ -74,11 +72,7 @@ pub(crate) fn set_tray_mini(
             .map_err(|error| format!("更新托盘菜单失败：{error}"))?;
     }
     if !enabled {
-        if let Some(window) = app.get_webview_window("mini") {
-            window
-                .hide()
-                .map_err(|error| format!("隐藏迷你播放器失败：{error}"))?;
-        }
+        super::windows::hide_disabled_mini(&app).await?;
     }
     Ok(())
 }
@@ -108,6 +102,7 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
     let mini_item = MenuItem::with_id(app, "tray-mini", "迷你播放器", true, None::<&str>)?;
     let menu = MenuBuilder::new(app)
         .text("tray-main", "打开主播放器")
+        .text("tray-toggle", "播放 / 暂停")
         .separator()
         .item(&mini_item)
         .text("tray-lyrics", "桌面歌词")
@@ -137,7 +132,9 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
                     .and_then(|value| *value);
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(error) = super::windows::show_desktop_window(&app, kind, anchor) {
+                    if let Err(error) =
+                        super::windows::show_desktop_window(&app, kind, anchor).await
+                    {
                         eprintln!("打开托盘桌面窗口失败：{error}");
                     }
                 });
@@ -145,6 +142,12 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
                 if let Err(error) = focus_main(app) {
                     eprintln!("恢复主播放器失败：{error}");
                 }
+            } else if id == "tray-toggle" {
+                let _ = app.emit_to(
+                    "main",
+                    "player-action",
+                    serde_json::json!({ "type": "toggle" }),
+                );
             } else if id == "tray-settings" {
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
@@ -196,6 +199,10 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
                             });
                         }
                     }
+                } else {
+                    // 首次右键由已连接的原生菜单承接，自定义菜单就绪后供下次打开。
+                    #[cfg(target_os = "windows")]
+                    super::tray_menu::prepare_window(app);
                 }
                 // ready 前原生菜单保持可用，ready 后只弹缓存的自定义菜单，不打开 mini。
             } else if button == MouseButton::Left {
@@ -206,9 +213,5 @@ pub(crate) fn create(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
             }
         })
         .build(app)?;
-    #[cfg(target_os = "windows")]
-    if let Err(error) = super::tray_menu::create_window(app.handle()) {
-        eprintln!("{error}；继续使用原生托盘菜单");
-    }
     Ok(())
 }

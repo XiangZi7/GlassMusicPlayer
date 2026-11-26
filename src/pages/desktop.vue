@@ -17,6 +17,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { LogicalPosition } from '@tauri-apps/api/dpi'
 import { Menu, MenuItem, type MenuOptions } from '@tauri-apps/api/menu'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import { formatTime } from '@/utils/format'
 import {
   animateSourceDesktop,
@@ -66,14 +67,16 @@ const volTip = reactive({
 let volTipTimer: number | undefined
 const { snapshot } = toRefs(state)
 const track = computed(() => state.snapshot.track)
+// 快照仅包含当前句附近的歌词，旧快照的完整歌词仍从第零行开始。
+const lyricRow = computed(() => state.snapshot.lyricIndex - (state.snapshot.lyricOffset ?? 0))
 const previousLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex - 1] || ''
+  () => state.snapshot.lyrics[lyricRow.value - 1] || ''
 )
 const currentLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex] || ''
+  () => state.snapshot.lyrics[lyricRow.value] || ''
 )
 const nextLyric = computed(
-  () => state.snapshot.lyrics[state.snapshot.lyricIndex + 1] || ''
+  () => state.snapshot.lyrics[lyricRow.value + 1] || ''
 )
 const progress = computed(
   () =>
@@ -206,13 +209,19 @@ watch(
 watch(
   () => state.snapshot,
   async (current, previous) => {
+    // Vue 替换封面前保留小窗实际显示的缩略图，切歌残影沿用已选中的分辨率。
+    const changingTrack = previous.index >= 0 && current.index !== previous.index
+    const previousImage = changingTrack
+      ? root.value?.querySelector<HTMLImageElement>('[data-desk-cover]')
+      : undefined
+    const previousCover = previousImage?.currentSrc || previousImage?.src
     await nextTick()
     if (!root.value) return
-    if (previous.index >= 0 && current.index !== previous.index) {
+    if (changingTrack) {
       animateSourceDesktop(
         root.value,
         current.direction,
-        previous.track,
+        previousCover ? { ...previous.track, cover: previousCover } : previous.track,
         current.motion
       )
     } else if (current.lyricIndex !== previous.lyricIndex) {
@@ -259,11 +268,11 @@ onUnmounted(() => {
       class="desk-lyr absolute top-[24px] left-[26px] z-[3] w-[min(440px,calc(100%_-_52px))] rounded-[16px] p-[12px_16px_13px] text-white"
       id="deskLyr"
       ref="surface"
+      :data-tauri-drag-region="snapshot.locked ? 'false' : 'deep'"
     >
       <div
         class="desk-lyr-head mb-[8px] flex cursor-default items-center gap-[8px] text-[10.5px] font-extrabold tracking-[.1em] opacity-[.75] select-none"
         id="deskLyrHead"
-        data-tauri-drag-region
       >
         <img src="@/assets/miraiplayer.png" width="18" height="18" class="pointer-events-none" alt="" /><span>桌面歌词 · Mirai Player</span
         ><span
@@ -312,6 +321,7 @@ onUnmounted(() => {
       class="tray-pop absolute right-[12px] bottom-[56px] z-[6] w-[324px] max-w-[calc(100%_-_24px)] rounded-[18px] p-[14px] text-white"
       id="trayPop"
       ref="surface"
+      data-tauri-drag-region="deep"
     >
       <div
         class="tray-pop-head mb-[11px] flex items-center justify-between text-[11px] font-extrabold tracking-[.1em]"
@@ -325,8 +335,9 @@ onUnmounted(() => {
         >
       </div>
       <div class="tray-pop-main flex items-center gap-[11px]">
-        <img decoding="async" loading="lazy"
+        <CoverThumbnail loading="lazy"
           :src="track.cover"
+          :size="46"
           data-desk-cover
           alt="专辑封面"
         />
@@ -359,6 +370,7 @@ onUnmounted(() => {
       <div
         class="tray-prog m-[12px_0_10px] h-[5px] cursor-pointer overflow-hidden rounded-[99px]"
         data-desk-seekbar
+        data-tauri-drag-region="false"
         @click="seekNative"
       >
         <i
@@ -451,13 +463,15 @@ onUnmounted(() => {
       class="desk-smtc absolute top-[26px] right-[22px] z-[3] flex w-[min(368px,calc(100%_-_44px))] items-center gap-[12px] rounded-[16px] p-[12px_14px] text-white"
       id="deskSmtc"
       ref="surface"
+      data-tauri-drag-region="deep"
     >
       <span
         class="smtc-tag absolute top-[-9px] left-[12px] rounded-[99px] bg-white p-[2px_8px] text-[9px] font-extrabold tracking-[.08em]"
         >系统媒体控制 · SMTC</span
       >
-      <img decoding="async" loading="lazy"
+      <CoverThumbnail loading="lazy"
         :src="track.cover"
+        :size="52"
         data-desk-cover
         alt="专辑封面"
       />

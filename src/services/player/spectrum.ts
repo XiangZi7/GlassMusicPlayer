@@ -38,6 +38,15 @@ export interface SpectrumPlayback {
   demo: boolean
 }
 
+// 点阵合成同步消费这组数组，频谱渲染器在下一帧复用同一份内存。
+export interface BannerSpectrumFrame {
+  timestamp: number
+  fade: number
+  live: boolean
+  alphas: Float32Array
+  targets: Float32Array
+}
+
 type CapturableAudio = HTMLAudioElement & { captureStream?: () => MediaStream }
 type SpectrumMode = 'static' | 'live' | 'simulated'
 
@@ -65,9 +74,8 @@ export function createSpectrum(
   let banner:
     { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
   let dots:
-    { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
-  // 原图提取点层的位图与就绪标记：只在横幅点阵画布接入时懒加载，
-  // 人物切换导致地址变化时重新加载（当前地址单独记一份用于比对）。
+    { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D | null } | undefined
+  // 提取点图仅由同位点 2D 版在可见实频帧使用，WebGL 合成直接消费每列能量。
   let dotsImage: HTMLImageElement | undefined
   let dotsImageReady = false
   let dotsImageSrc = ''
@@ -80,12 +88,15 @@ export function createSpectrum(
   // 两级串联后帧间变化被压到很小（量化口径见 qa 采样脚本）。
   const dotLevels = new Float32Array(DOTS_COLS)
   const dotAlphas = new Float32Array(DOTS_COLS)
+  const dotTargets = new Float32Array(DOTS_COLS)
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const bins = new Uint8Array(fftSize / 2)
   let context: AudioContext | undefined
   let analyser: AnalyserNode | undefined
   let source: MediaStreamAudioSourceNode | undefined
   let frame: number | undefined
+  // 底栏与横幅都不显示时停用这条可视化时钟，音频照常播放。
+  let hasVisibleOutput = canvas.clientWidth > 0 && canvas.clientHeight > 0
   let enabled = true
   let destroyed = false
   let analysisFailed = false
@@ -156,7 +167,6 @@ export function createSpectrum(
           : Math.max(target, dotsFade - step)
     }
     const maxStep = (dt / 1000) * DOTS_ALPHA_SLEW
-    const targets: number[] = []
     for (let col = 0; col < DOTS_COLS; col++) {
       let energy = 0
       if (live && levels.length) {
@@ -168,7 +178,7 @@ export function createSpectrum(
         for (let index = start; index < end; index++)
           energy = Math.max(energy, levels[index] ?? 0)
       }
-      targets.push(energy)
+      dotTargets[col] = energy
       const previous = dotLevels[col]!
       const tau = energy > previous ? DOTS_ATTACK_MS : DOTS_RELEASE_MS
       const smoothed =
@@ -180,16 +190,38 @@ export function createSpectrum(
         current +
         Math.max(-maxStep, Math.min(maxStep, goal - current))
     }
-    if (dots) {
+    if (dots && import.meta.env.DEV) {
       dots.canvas.dataset.dotsFade = dotsFade.toFixed(3)
       dots.canvas.dataset.dotsAlpha = Array.from(dotAlphas, value =>
         value.toFixed(3)
       ).join(',')
       // 平滑前的每列目标一并发布，供 QA 量化平滑前后的帧间跳变差。
-      dots.canvas.dataset.dotsTarget = targets
-        .map(value => value.toFixed(3))
-        .join(',')
+      dots.canvas.dataset.dotsTarget = Array.from(dotTargets, value => value.toFixed(3)).join(',')
     }
+  }
+
+  // WebGL 与底栏共用同一采样时钟；暂停时最后一帧通知首页释放合成层。
+  function publishDots(timestamp: number): void {
+    if (!dots || dots.canvas.dataset.dotsRenderer !== 'three') return
+    dots.canvas.dispatchEvent(new CustomEvent<BannerSpectrumFrame>('halftone-frame', {
+      detail: { timestamp, fade: dotsFade, live: mode === 'live', alphas: dotAlphas, targets: dotTargets },
+    }))
+  }
+
+  // 隐藏横幅、撤换源或禁用动效时清空包络，下一次可见播放由零重新淡入。
+  function resetDots(): void {
+    dotsStamp = undefined
+    dotsFade = 0
+    dotLevels.fill(0)
+    dotTargets.fill(0)
+    dotAlphas.fill(0)
+    if (dots?.paint) fitCanvas(dots.canvas, dots.paint)
+    if (dots && import.meta.env.DEV) {
+      dots.canvas.dataset.dotsFade = '0.000'
+      dots.canvas.dataset.dotsAlpha = ''
+      dots.canvas.dataset.dotsTarget = ''
+    }
+    publishDots(0)
   }
 
   // 绘制横幅点阵叠加层：按横幅 cover 裁切的同一坐标系把提取点图分列贴回原位，
@@ -199,23 +231,23 @@ export function createSpectrum(
   function paintDots(timestamp = 0): void {
     if (!dots || destroyed) return
     const { canvas, paint } = dots
-    if (reduced.matches || !enabled) {
-      if (dotsFade !== 0 || dotAlphas.some(value => value > 0)) {
-        dotsFade = 0
-        dotLevels.fill(0)
-        dotAlphas.fill(0)
-      }
-      const cleared = fitCanvas(canvas, paint)
-      if (cleared) canvas.dataset.dotsAlpha = ''
+    if (reduced.matches || !enabled || canvas.dataset.dotsSuspended || !canvas.isConnected) {
+      if (dotsStamp !== undefined) resetDots()
       return
     }
-    stepDots(timestamp)
+    if (mode !== 'live' && dotsFade === 0) return
+    const now = timestamp || performance.now()
+    stepDots(now)
+    if (!paint) {
+      publishDots(now)
+      return
+    }
     const size = fitCanvas(canvas, paint)
     if (!size) return
     // 人物切换后地址可能已变，先确认点图仍是当前人物的那张再绘制。
+    if (dotAlphas.every(value => value < 0.004)) return
     ensureDotsImage()
     if (!dotsImageReady || !dotsImage) return
-    if (dotAlphas.every(value => value < 0.004)) return
     const { width, height } = size
     // 图像空间口径随当前人物素材走：原生尺寸与裁切分数由 featured-banner 按素材
     // 映射写在画布 dataset 上，与底图 object-position 同口径；缺省即原始人物
@@ -262,30 +294,18 @@ export function createSpectrum(
     paint.filter = 'none'
   }
 
-  // 点阵淡入淡出帧循环：主频谱循环在暂停后会停下，这一独立循环把 1 秒淡出走完，
-  // 不让点层在暂停瞬间硬消失；包络与各列 alpha 都归零后自动停帧。
+  // 仅在实频停下后补完一秒淡出，恢复播放后仍由底栏的采样时钟驱动。
   function fadeDots(timestamp?: number): void {
-    if (!dots || destroyed) {
-      dotsFadeFrame = undefined
-      return
-    }
+    dotsFadeFrame = undefined
+    if (!dots || destroyed || mode === 'live') return
     paintDots(timestamp ?? 0)
-    const target = mode === 'live' && enabled && !reduced.matches ? 1 : 0
-    const settled =
-      dotsFade === target && dotAlphas.every(value => value < 0.004 || target === 1)
-    if (!settled && !(target === 1 && dotsFade === 1)) {
-      dotsFadeFrame = requestAnimationFrame(fadeDots)
-    } else if (target === 1 && dotsFade === 1) {
-      // 稳态 live 时主循环 paintBars 每帧都会带 paintDots，这里只在淡入未完成时续帧。
-      dotsFadeFrame = undefined
-    } else {
-      dotsFadeFrame = undefined
-    }
+    if (dotsFade > 0) dotsFadeFrame = requestAnimationFrame(fadeDots)
+    else resetDots()
   }
 
   // 模式或动效开关变化后启动点阵过渡循环；已在目标态时不做无谓排帧。
   function kickDotsFade(): void {
-    if (!dots || destroyed || dotsFadeFrame !== undefined) return
+    if (!dots || destroyed || mode === 'live' || !dotsFade || dotsFadeFrame !== undefined) return
     dotsFadeFrame = requestAnimationFrame(fadeDots)
   }
 
@@ -308,7 +328,7 @@ export function createSpectrum(
 
   // 在底栏保留原有细柱，并把相同的一帧频带复用给横幅。
   function paintBars(timestamp: number, resting: boolean): void {
-    if (!paint || destroyed) return
+    if (!paint || destroyed || !hasVisibleOutput) return
     const size = fitCanvas(canvas, paint)
     if (!size && !banner?.canvas.clientWidth) return
     const width = size?.width || banner!.canvas.clientWidth
@@ -382,6 +402,7 @@ export function createSpectrum(
   function paintBanner(): void {
     if (!banner || destroyed) return
     const { canvas, paint } = banner
+    if (canvas.dataset.bannerSuspended) return
     const size = fitCanvas(canvas, paint)
     if (!size) return
     const { width, height } = size
@@ -482,12 +503,20 @@ export function createSpectrum(
     lastTimestamp = lastPaint = undefined
     levels.fill(0)
     setMode('static')
+    if (!hasVisibleOutput) {
+      if (dotsFadeFrame !== undefined) cancelAnimationFrame(dotsFadeFrame)
+      dotsFadeFrame = undefined
+      if (dotsStamp !== undefined) resetDots()
+      return
+    }
     paintBars(0, true)
   }
 
+  // 共享帧只在至少有一块可见画布时采样；暂停或缓冲仍使用原来的静态分支。
   function draw(timestamp?: number): void {
     if (
       destroyed ||
+      !hasVisibleOutput ||
       !enabled ||
       reduced.matches ||
       !(playback?.playing ?? !audio.paused) ||
@@ -507,8 +536,13 @@ export function createSpectrum(
     paintBars(timestamp ?? 0, false)
   }
 
+  // 音频或可见画布状态改变时启动同一采样器，离屏时忽略后续媒体时钟更新。
   function update(): void {
     if (destroyed || !paint) return
+    if (!hasVisibleOutput) {
+      if (frame !== undefined || dotsFadeFrame !== undefined || mode !== 'static') stop()
+      return
+    }
     if (!enabled || reduced.matches || !(playback?.playing ?? !audio.paused)) {
       stop()
       return
@@ -579,41 +613,62 @@ export function createSpectrum(
     analysisFailed = false
   }
 
+  // 底栏开关改变画布尺寸；首页滚动、切页及全屏通过横幅可见性标记唤醒或停止采样。
+  function syncVisibleOutputs(): void {
+    const strip = banner?.canvas
+    const needed = (canvas.clientWidth > 0 && canvas.clientHeight > 0) ||
+      !!(strip?.isConnected && !strip.dataset.bannerSuspended && strip.clientWidth && strip.clientHeight)
+    if (needed !== hasVisibleOutput) {
+      hasVisibleOutput = needed
+      update()
+    } else if (needed && frame === undefined) {
+      paintBars(0, true)
+    }
+  }
+
   reduced.addEventListener('change', update)
+  const bannerVisibilityObserver = typeof MutationObserver === 'undefined'
+    ? undefined : new MutationObserver(syncVisibleOutputs)
   const observer =
     typeof ResizeObserver === 'undefined'
       ? undefined
-      : new ResizeObserver(() => {
-          if (frame === undefined) paintBars(0, true)
-        })
+      : new ResizeObserver(syncVisibleOutputs)
   observer?.observe(canvas)
   setMode('static')
   paintBars(0, true)
 
-  // 首页挂载、切换路由或更换媒体元素时连接当前画布，只保留一个尺寸监听。
+  // 换路由或更换音源时重新连接可见性监听，确保回到横幅时恢复当前音频的频谱。
   function setBannerCanvas(canvas: HTMLCanvasElement | null): void {
     if (destroyed || (banner?.canvas ?? null) === canvas) return
+    bannerVisibilityObserver?.disconnect()
     if (banner) observer?.unobserve(banner.canvas)
     const paint = canvas?.getContext('2d')
     banner = canvas && paint ? { canvas, paint } : undefined
     if (banner) {
       banner.canvas.dataset.spectrumMode = mode === 'live' ? 'live' : 'static'
       observer?.observe(banner.canvas)
+      bannerVisibilityObserver?.observe(banner.canvas, { attributes: true, attributeFilter: ['data-banner-suspended'] })
       paintBanner()
     }
+    syncVisibleOutputs()
   }
 
-  // 首页挂载时连接横幅点阵画布：接入即懒加载提取点层并对齐当前模式，
-  // 静态时包络为零、画布保持全透明，不改变单图版的任何像素。
+  // 只给实际绘制提取点图的变体创建 2D 上下文；实频开始前，两种变体都只显示整图。
   function setDotsCanvas(canvas: HTMLCanvasElement | null): void {
     if (destroyed || (dots?.canvas ?? null) === canvas) return
-    if (dots) observer?.unobserve(dots.canvas)
-    const paint = canvas?.getContext('2d')
-    dots = canvas && paint ? { canvas, paint } : undefined
+    if (dots) {
+      observer?.unobserve(dots.canvas)
+      resetDots()
+    }
+    dotsImage = undefined
+    dotsImageReady = false
+    dots = canvas
+      ? { canvas, paint: canvas.dataset.dotsRenderer === 'three' ? null : canvas.getContext('2d') }
+      : undefined
     if (dots) {
       dots.canvas.dataset.spectrumMode = mode === 'live' ? 'live' : 'static'
-      observer?.observe(dots.canvas)
-      ensureDotsImage()
+      if (dots.paint) observer?.observe(dots.canvas)
+      resetDots()
       paintDots()
     }
   }
@@ -641,6 +696,7 @@ export function createSpectrum(
       dotsFadeFrame = undefined
       reset()
       observer?.disconnect()
+      bannerVisibilityObserver?.disconnect()
       reduced.removeEventListener('change', update)
       if (context) void context.close().catch(() => undefined)
     },

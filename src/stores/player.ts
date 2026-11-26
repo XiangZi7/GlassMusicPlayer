@@ -246,7 +246,10 @@ export const usePlayerStore = defineStore('player', () => {
     /** 最近播放记录。 */ recent: [] as number[],
     /** 原稿播放、外观及桌面窗口设置。 */ settings: {
       ...preferences.settings,
-      lyricIsland: islandPreferences.value?.lyricIsland !== false,
+      // 专用存储中有有效开关时优先采用，缺失时沿用已校验的播放器偏好。
+      lyricIsland: typeof islandPreferences.value?.lyricIsland === 'boolean'
+        ? islandPreferences.value.lyricIsland
+        : preferences.settings.lyricIsland,
       lyricIslandSnap: islandPreferences.value?.lyricIslandSnap !== false,
     },
     /** 已关联的公开资料，搜索或链接导入不会创建关联。 */

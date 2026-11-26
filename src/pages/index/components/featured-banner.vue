@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, useTemplateRef, watch } from 'vue'
+import { useDocumentVisibility, useElementVisibility, usePreferredReducedMotion } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import HalftoneThree from '@/components/ui/HalftoneThree.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
+import type { BannerSpectrumFrame } from '@/services/player/spectrum'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
 import {
@@ -27,6 +29,14 @@ const emit = defineEmits<{ play: []; retry: []; open: [] }>()
 // 横幅点阵引擎开关：'three' 为 three.js 覆盖场版（当前展示版），改回 'aligned'
 // 即恢复同位点叠加版——两版共用 spectrum.ts 的同一条音频平滑通路，可直接回退对比。
 const halftoneEngine = 'three' as 'aligned' | 'three'
+const HalftoneThree = defineAsyncComponent(() => import('@/components/ui/HalftoneThree.vue'))
+const dynamicLayer = useTemplateRef<InstanceType<typeof HalftoneThree>>('dynamicLayer')
+const bannerRoot = useTemplateRef<HTMLElement>('bannerRoot')
+const rootVisible = useElementVisibility(bannerRoot)
+const dotsCanvas = useTemplateRef<HTMLCanvasElement>('dotsCanvas')
+const canvasVisible = useElementVisibility(dotsCanvas)
+const documentVisibility = useDocumentVisibility()
+const reducedMotion = usePreferredReducedMotion()
 const { state: playerState } = usePlayer()
 const state = reactive({
   // 已加载失败的封面地址，对应位置统一回退到通用封面。
@@ -35,7 +45,16 @@ const state = reactive({
   accent: '',
   // 加载失败的横幅整图地址：自定义图或内置素材坏掉时按它回退原始人物。
   failedArt: '',
+  // 实频开始后挂载点阵合成，暂停的淡出结束后释放 WebGL 资源。
+  halftoneActive: false,
 })
+// 以整块横幅和实际页面判断可见性，保留折叠后仍在视口内的按钮反馈。
+const bannerVisible = computed(() => rootVisible.value && documentVisibility.value === 'visible' &&
+  playerState.page === 'home' && !playerState.stage)
+const bannerMotion = computed(() => bannerVisible.value &&
+  playerState.settings.motion && reducedMotion.value !== 'reduce')
+// 点阵和频谱只在展开的海报上绘制，折叠入口本身仍然可见。
+const spectrumVisible = computed(() => bannerVisible.value && canvasVisible.value)
 // 当前选中的横幅人物（设置项 settings.bannerCharacter，选项见 banner-art.ts）。
 const selectedArt = computed(() => playerState.settings.bannerCharacter)
 // 自定义图真正生效的条件：选了自定义、已有图、且这张图没加载失败过。
@@ -53,6 +72,20 @@ const artAssets = computed<BannerArtAssets | null>(() => {
   if (picked && state.failedArt !== picked.art) return picked
   return bannerArtAssets.original!
 })
+const dotsEnabled = computed(() => bannerMotion.value && canvasVisible.value && !!artAssets.value)
+
+// 离开首页或关闭动效时立即释放合成层，重新可见后等待真实频谱再启动。
+watch(dotsEnabled, enabled => {
+  if (!enabled) state.halftoneActive = false
+}, { flush: 'sync' })
+
+// 只在实频首次抵达时请求 Three 模块，之后直接消费同一份频谱帧及暂停淡出。
+function updateHalftone(event: Event): void {
+  if (!dotsEnabled.value) return
+  const frame = (event as CustomEvent<BannerSpectrumFrame>).detail
+  state.halftoneActive = frame.fade > 0.002 && (frame.live || state.halftoneActive)
+  if (state.halftoneActive) dynamicLayer.value?.drawFrame(frame)
+}
 // 横幅整图地址：自定义生效时用用户图，其余用当前内置素材的整图。
 const artSrc = computed(() =>
   customActive.value ? customBannerArt.value : artAssets.value!.art
@@ -105,10 +138,11 @@ function markCoverFailed(source?: string): void {
     state.failedCovers.push(source)
 }
 
-// 只取第一首封面的颜色，换歌或隐藏顶部条后忽略上一次取色结果。
+// 横幅可见时才请求当前封面的主色，离屏或换歌后忽略旧结果。
 watch(
-  cover,
-  async (source, _, onCleanup) => {
+  [bannerVisible, cover],
+  async ([visible, source], _, onCleanup) => {
+    if (!visible) return
     let current = true
     onCleanup(() => {
       current = false
@@ -138,10 +172,12 @@ function onPlay(): void {
 </script>
 <template>
   <section
+    ref="bannerRoot"
     class="banner home-topbar"
-    :class="{ 'banner-calm': !playerState.settings.motion }"
+    :class="{ 'banner-calm': !bannerMotion }"
     :style="artPosVars"
     data-banner
+    :data-banner-suspended="!bannerVisible || undefined"
     aria-labelledby="home-banner-title"
   >
     <div
@@ -150,7 +186,7 @@ function onPlay(): void {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <Transition name="banner-character" :css="playerState.settings.motion">
+      <Transition name="banner-character" :css="bannerMotion">
         <img
           :key="artSrc"
           class="banner-landscape"
@@ -168,12 +204,15 @@ function onPlay(): void {
            画布 dataset 上的 dots-src 与 art-* 是当前人物素材的几何口径，spectrum
            按它取点图与裁切（与素材映射同源）；自定义图没有派生点层，画布整层隐藏。 -->
       <canvas
+        ref="dotsCanvas"
         class="banner-dots"
         :class="{
           'banner-dots--source': halftoneEngine === 'three',
           'banner-dots--off': customActive,
         }"
         data-halftone-dots
+        :data-dots-renderer="halftoneEngine"
+        :data-dots-suspended="!dotsEnabled || undefined"
         :data-dots-src="artAssets?.dots"
         :data-art-width="artAssets?.width"
         :data-art-height="artAssets?.height"
@@ -181,12 +220,14 @@ function onPlay(): void {
         :data-art-pos-y="artAssets?.posY"
         :data-art-pos-x-narrow="artAssets?.posXNarrow"
         aria-hidden="true"
+        @halftone-frame="updateHalftone"
       />
       <!-- three.js 点阵版：干净背景 + WebGL 覆盖场点层 + 人物层的三层合成，
            只在实频包络大于零时盖过单图，未播静态时完全不呈现。素材按当前
            人物传入；自定义图没有派生素材，整层不渲染，只显示图片本身。 -->
       <HalftoneThree
-        v-if="halftoneEngine === 'three' && artAssets"
+        v-if="halftoneEngine === 'three' && state.halftoneActive && artAssets"
+        ref="dynamicLayer"
         :bg-src="artAssets.bg"
         :chara-src="artAssets.chara"
         :coverage-src="artAssets.coverage"
@@ -263,15 +304,18 @@ function onPlay(): void {
       <canvas
         class="banner-spectrum"
         data-banner-spectrum
+        :data-banner-suspended="!spectrumVisible || undefined"
         aria-hidden="true"
       />
     </div>
 
     <div class="banner-mini">
-      <img
+      <CoverThumbnail
         :key="cover"
         data-banner-mini-cover
         :src="cover"
+        :size="48"
+        loading="lazy"
         decoding="async"
         alt=""
         @error="fallbackCover"
@@ -302,6 +346,17 @@ function onPlay(): void {
 <style scoped>
 .banner-caption { pointer-events: none; }
 
+/* 离屏时停住横幅自己的动画和过渡，包括公共按钮内部的加载图标及材质伪元素。 */
+.home-topbar[data-banner-suspended],
+.home-topbar[data-banner-suspended]::before,
+.home-topbar[data-banner-suspended]::after,
+.home-topbar[data-banner-suspended] :deep(*),
+.home-topbar[data-banner-suspended] :deep(*::before),
+.home-topbar[data-banner-suspended] :deep(*::after) {
+  animation-play-state: paused;
+  transition: none;
+}
+
 /* 点阵叠加画布铺满背景层并跟随底图裁切，自身不接指针；折叠迷你条时隐藏，
    沿用旧纪律不在 compact 态显示点层。 */
 .home-topbar .banner-dots {
@@ -314,8 +369,7 @@ function onPlay(): void {
 .main.compact .home-topbar .banner-dots {
   display: none;
 }
-/* three 引擎下同位点画布只作数据源：visibility 隐藏但保留布局尺寸，
-   spectrum 仍能逐帧推进平滑并发布 dataset，three 层读同一组数。 */
+/* Three 模式下保留画布的布局尺寸供可视区域判断，采样事件直接驱动合成层。 */
 .home-topbar .banner-dots--source {
   visibility: hidden;
 }

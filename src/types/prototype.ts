@@ -40,6 +40,8 @@ export interface SourceSnapshot {
   favoriteHint?: string
   favoriteTarget?: string
   lyrics: string[]
+  /** 小窗歌词片段的绝对起始行；旧格式的完整歌词从零开始。 */
+  lyricOffset?: number
   lyricIndex: number
   capsuleLyric?: string
   motion: boolean

@@ -24,8 +24,18 @@ export function neteaseRecommendationDate(date: Date): string {
   return new Date(date.getTime() + (8 - 6) * 3_600_000).toISOString().slice(0, 10)
 }
 
-// 缓存当天成功读取的公开资料；单个来源失败时，保留其余歌单并允许重试。
-export async function loadPublicPlaylists(day: string, signal: AbortSignal) {
+// 各来源就绪后按固定顺序更新预览；日推选曲等全部来源结束后只生成一次。
+export async function loadPublicPlaylists(day: string, signal: AbortSignal, onPreview: (lists: CatalogPlaylist[]) => void) {
+  // 重试先恢复当日已成功的来源，迟到或取消的请求不能覆盖新一轮卡片。
+  function publishPreviews(): void {
+    if (signal.aborted) return
+    const ready = sources.flatMap(([platform, id]) => {
+      const saved = cache.get(catalogKey({ platform, id }))
+      return saved?.day === day ? [saved.playlist] : []
+    })
+    onPreview(ready)
+  }
+  publishPreviews()
   const results = await Promise.allSettled(sources.map(async ([platform, id]) => {
     const key = catalogKey({ platform, id })
     const saved = cache.get(key)
@@ -33,7 +43,10 @@ export async function loadPublicPlaylists(day: string, signal: AbortSignal) {
     const playlist = await getCatalogPlaylist(platform, id, 1, 12, signal)
     if (playlist.platform !== platform || playlist.id !== id || !playlist.tracks.length)
       throw new Error('公开歌单暂不可用')
-    if (!signal.aborted) cache.set(key, { day, playlist })
+    if (!signal.aborted) {
+      cache.set(key, { day, playlist })
+      publishPreviews()
+    }
     return playlist
   }))
   return {

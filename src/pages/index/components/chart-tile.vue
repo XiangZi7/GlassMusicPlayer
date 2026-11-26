@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import type { CatalogPlaylist, CatalogTrack } from '@/api'
 import { defaultCover, platformNames } from '@/services/player/catalog'
@@ -79,7 +80,7 @@ function fallbackCover(event: Event): void {
         :title="list.title"
         @click="playList(list)"
       >
-        <img :src="list.coverUrl || list.tracks[0]?.coverUrl || defaultCover" alt="" loading="lazy" decoding="async" @error="fallbackCover" />
+        <CoverThumbnail :src="list.coverUrl || list.tracks[0]?.coverUrl || defaultCover" :size="40" alt="" loading="lazy" @error="fallbackCover" />
         <span class="chart-text">
           <b>{{ list.title }}</b>
           <span>{{ platformNames[list.platform] }}<template v-if="list.total != null"> · {{ list.total }} 首</template></span>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BaseButton from '@/components/ui/BaseButton.vue'
 import TrackPlaybackBars from '@/components/player/TrackPlaybackBars.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import type { SourceTrack } from '@/types/prototype'
 import { formatTime } from '@/utils/format'
 
@@ -20,7 +21,7 @@ const emit = defineEmits<{ play: [] }>()
   >
     <span class="num">{{ String(number).padStart(2, '0') }}</span>
     <span class="tt">
-      <img decoding="async"
+      <CoverThumbnail :size="40"
         :src="track.cover"
         alt=""
         loading="lazy"

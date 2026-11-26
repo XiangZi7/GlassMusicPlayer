@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { CatalogPlaylist, CatalogTrack } from '@/api'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import PlatformIcon from '@/components/player/PlatformIcon.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { platformSelections } from '@/pages/index/public-playlists'
@@ -71,7 +72,7 @@ function activateRow(event: MouseEvent, songs: CatalogTrack[], position: number)
             :aria-label="'播放《' + song.title + '》 · ' + song.artists.join(' / ')"
             :title="'双击播放《' + song.title + '》 · ' + song.artists.join(' / ')"
             @click="activateRow($event, group.songs, position)" @dblclick="emit('play', group.songs, position)">
-            <img :src="song.coverUrl || defaultCover" alt="" loading="lazy" decoding="async" />
+            <CoverThumbnail :src="song.coverUrl || defaultCover" :size="40" alt="" loading="lazy" />
             <span class="min-w-0"><b>{{ song.title }}</b><small>{{ song.artists.join(' / ') }}</small></span>
             <span class="station-duration">{{ song.durationMs && song.durationMs > 0 ? formatTime(song.durationMs / 1000) : '—' }}</span>
           </BaseButton>
@@ -86,7 +87,7 @@ function activateRow(event: MouseEvent, songs: CatalogTrack[], position: number)
     </div>
     <div class="recent-grid">
       <BaseButton v-for="index in recent" :key="index" class="shelf-track" @click="controller()?.playTracks(recent, index)">
-        <img :src="tracks[index]!.cover || defaultCover" alt="" loading="lazy" decoding="async" />
+        <CoverThumbnail :src="tracks[index]!.cover || defaultCover" :size="48" alt="" loading="lazy" />
         <span class="min-w-0"><b>{{ tracks[index]!.title }}</b><small>{{ tracks[index]!.artist }}</small></span>
       </BaseButton>
     </div>
