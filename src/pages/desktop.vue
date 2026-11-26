@@ -338,8 +338,11 @@ onUnmounted(() => {
           class="heart grid h-[36px] w-[36px] flex-none place-items-center rounded-full border-none bg-transparent text-inherit"
           data-desk-like
           :class="{ liked: snapshot.liked }"
+          :aria-pressed="snapshot.liked"
+          :aria-busy="snapshot.favoriteBusy"
+          :title="snapshot.favoriteHint"
           @click="sendAction('like')"
-          aria-label="收藏"
+          :aria-label="snapshot.liked ? '取消收藏' : '收藏'"
           ><svg
             viewBox="0 0 24 24"
             fill="none"

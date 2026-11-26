@@ -87,7 +87,7 @@ Windows 客户端通过本机服务或 HTTPS 服务扫码后，将设备授权�
 
 ## 运行和验证
 
-桌面包使用 `pnpm release:build`，版本一致性可单独运行 `pnpm check:release`。在 Windows 上启动播放器的 Vite 服务后，执行 `node scripts/check-home-settings.mjs --about` 可用独立 Edge 配置验证两种材质的关于页版本、主页链接与键盘焦点。默认使用 1420 端口，测试其他本地端口时设置 `MIRAI_QA_PORT`。[跨平台打包说明](RELEASING.md)
+桌面包使用 `pnpm release:build`，版本一致性可单独运行 `pnpm check:release`。[跨平台打包说明](RELEASING.md)
 
 播放器默认连接 `https://music-api.yxcr.top`。本地联调时，在 MiraiMusic-Server 仓库运行 `uv run --locked uvicorn main:app`，将播放器的 `VITE_APP_BASE_API` 设为 `http://127.0.0.1:8000`，再启动或重新构建播放器。公开歌单导入支持三平台带数字 ID 的歌单详情链接。
 
@@ -95,28 +95,12 @@ Windows 客户端通过本机服务或 HTTPS 服务扫码后，将设备授权�
 pnpm install
 pnpm tauri dev
 pnpm build
-pnpm check:motion
-pnpm check:fullscreen
-pnpm check:equalizer
-pnpm check:queue-menu
-pnpm check:storage
-pnpm check:spectrum
-pnpm check:desktop
-pnpm check:platform-login
-pnpm check:platform-import
-pnpm check:weather
-pnpm check:native
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-cargo test --manifest-path src-tauri/Cargo.toml --lib desktop::
 pnpm tauri build --debug --no-bundle
 ```
 
-`check:equalizer` 为 26 组音频图/参数/跨域回退/生命周期模拟回归；`check:queue-menu` 为 8 组状态/焦点/键盘与 SFC 编译回归；`check:storage` 为 5 组实际 Rust 安全测试。`check:motion` 与原稿核对全屏和桌面切歌的关键帧、时长、延迟、缓动、全屏关闭时序及 CSS 关键帧。`check:fullscreen` 为 11 组实际歌词处理器的模拟键盘/拖动/恢复跟随/焦点回归，不等于原生 WebView 点击验收。`check:platform-login` 为 33 组模拟流程/身份/键盘回归，`check:platform-import` 为 31 组公开资料/批量导入/更新/重试/存储/取消/导航/分页回归，`check:weather` 为 65 组模拟定位/数据/生命周期/组件检查；它们不代表真人扫码或定位授权已通过。`check:desktop` 保留原桌面检查，并追加 12 组头像菜单模拟、2 组连接弹窗初始化回归及 7 个 SFC 的编译验证。
-
-构建会自动检查压缩后桌面卡片和灵动岛的标准 `backdrop-filter` 声明。实际效果可在原生 WebView 中检查计算样式。[压缩 CSS 检查](../scripts/check-built-css.mjs)
-
-Windows 下 `check:native` 需要已安装的 Windows SDK `mt.exe`：Tauri 的单元测试产物未自动携带应用已有的 Common-Controls v6 声明，可能在载入 `TaskDialogIndirect` 时以 `0xc0000139` 退出。脚本从 Cargo 输出定位且校验本项目的测试 EXE，只为该生成产物补相同声明，再运行真实 Rust 桌面单元测试；不修改主程序、源码或系统库，也不会安装 SDK。这与真实托盘/UIA 点击验收仍是不同层面的验证。前端单独预览使用 `pnpm dev`。浏览器与 Tauri 开发都使用 `127.0.0.1:1420`，FastAPI 按此来源放行跨域请求。`pnpm tauri dev` 会自动启动 Vite。Windows 调试应用输出为 `src-tauri/target/debug/miraiplayer.exe`。
+前端单独预览使用 `pnpm dev`。浏览器与 Tauri 开发都使用 `127.0.0.1:1420`，FastAPI 按此来源放行跨域请求。`pnpm tauri dev` 会自动启动 Vite。Windows 调试应用输出为 `src-tauri/target/debug/miraiplayer.exe`。
 
 
 ## 新增队列、EQ 与存储
@@ -131,11 +115,11 @@ Windows 下 `check:native` 需要已安装的 Windows SDK `mt.exe`：Tauri 的�
 
 **范围说明：**自动播放音频落盘缓存、断点续传、下载暂停/取消/实时百分比、应用内自动离线播放尚未接入。旧无缝播放、交叉淡化、响度标准化、睡眠定时和系统输出设备切换仍是预留偏好，页面已明确标注，不代表真实声音处理已实现。浏览器只可验证 UI/偏好，不支持原生目录或下载。
 
-## 哪些开发测试数据可清理
+## 开发产物与用户数据
 
-- 可重建候选：关闭对应进程后的 `.tmp/` QA 截图、报告、临时浏览器配置与一次性修改脚本；`dist/`；`src-tauri/target/storage-check-*` 等测试输出和可重新构建的 Cargo 产物。先核对绝对路径、确认确属开发产物，再按需要清理。本次没有自动删除这些目录。
-- 根目录 `ui/` 保存本机设计原稿，由 Git 忽略。动效回归使用从原稿独立核对的语义摘要，包含切歌、入场、取消、逐项输入处理和 CSS 关键帧。摘要记录原稿的 Git blob ID，修改动画时可在本机与原稿重新对照。[动效基准](../scripts/motion-baseline.json)
-- 用户数据不能作为测试数据删除：已导入歌单、公开账号关联、播放偏好、自定义 EQ、用户选择的下载目录及其文件。
+- `dist/` 和 `src-tauri/target/` 保存可重新构建的产物。清理前先核对绝对路径，关闭使用这些文件的进程。
+- 根目录 `ui/` 保存本机设计原稿，由 Git 忽略。修改动画时可在本机与原稿对照。
+- 已导入歌单、公开账号关联、播放偏好、自定义 EQ 和下载文件均属于用户数据，清理开发产物时应保留。
 - 已移除内置演示曲库与封面、歌词和模拟播放统计。首页主打使用曲库中的在线歌曲，封面加载失败时显示通用封面。
 
-以上 Node 模拟和 Rust 单元测试不等于真人音源试听、实际系统目录选择或破坏性清理验收。原生新命令需要重新启动/构建桌面程序后使用。
+原生新命令需要重新启动或构建桌面程序后使用。

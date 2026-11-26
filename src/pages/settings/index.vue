@@ -30,7 +30,7 @@ import { isValidUpdateProxy } from '@/services/update-preferences'
 import { useAppUpdaterStore } from '@/stores/app-updater'
 import { setCloseToTray } from '@/services/desktop'
 import { defaultCover } from '@/constants/music'
-import { getStorageInfo, updateStorageConfig } from '@/services/storage'
+import { updateStorageConfig } from '@/services/storage'
 import type {
   SettingsAction,
   SettingsSection,
@@ -221,15 +221,19 @@ async function applySettings(): Promise<boolean> {
   }
   try {
     if (isTauri()) {
-      const current = await getStorageInfo()
-      const stored = await updateStorageConfig({
-        cacheDirectory:
-          action.settings.cacheDirectory || current.cacheDirectory,
-        downloadDirectory:
-          action.settings.downloadDirectory || current.downloadDirectory,
-      })
-      action.settings.cacheDirectory = stored.cacheDirectory
-      action.settings.downloadDirectory = stored.downloadDirectory
+      // 仅在真正改了目录时写磁盘，下载中也能应用横幅等外观设置。
+      const directories: Partial<Pick<PlayerSettings, 'cacheDirectory' | 'downloadDirectory'>> = {}
+      for (const key of ['cacheDirectory', 'downloadDirectory'] as const) {
+        if (action.settings[key] && action.settings[key] !== state.baseline[key])
+          directories[key] = action.settings[key]
+        else
+          action.settings[key] = state.baseline[key]
+      }
+      if (Object.keys(directories).length) {
+        const stored = await updateStorageConfig(directories)
+        action.settings.cacheDirectory = stored.cacheDirectory
+        action.settings.downloadDirectory = stored.downloadDirectory
+      }
       if (action.settings.closeToTray !== state.baseline.closeToTray) {
         await setCloseToTray(action.settings.closeToTray)
       }

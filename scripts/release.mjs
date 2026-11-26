@@ -16,7 +16,7 @@ const usage = `用法：
   pnpm release --dry-run           只预览，不修改文件、提交或推送
   pnpm release --retry v1.0.2      重试推送已准备好的版本，不再递增
 
-发版前请先提交源码改动。安装包由 GitHub Actions 自动测试、构建并发布。`;
+发版前请先提交源码改动。安装包由 GitHub Actions 构建并发布。`;
 
 // 解析版本递增、预览和重试参数。
 export function parseReleaseArgs(args) {
@@ -214,7 +214,7 @@ export function releaseProject(
     );
   }
   log(
-    `${tag} 已推送。请在 GitHub Actions → Desktop packages 查看自动测试、打包与发布进度。`,
+    `${tag} 已推送。请在 GitHub Actions → Desktop packages 查看打包与发布进度。`,
   );
   return { tag, branch, dryRun: false };
 }

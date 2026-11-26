@@ -1023,6 +1023,28 @@ h1 .thin {
   fill: #ff4d6d;
 }
 
+.heart[aria-busy='true'] {
+  position: relative;
+}
+.heart[aria-busy='true'] svg {
+  opacity: .45;
+}
+.heart[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  width: 1.5em;
+  height: 1.5em;
+  inset: 0;
+  margin: auto;
+  border: 1px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .heart[aria-busy='true']::after { animation: spin 850ms linear infinite; }
+  .calm .heart[aria-busy='true']::after { animation: none; }
+}
+
 .lyricbox.show {
   @apply block;
 }

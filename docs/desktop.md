@@ -29,4 +29,4 @@
 
 ## 验收
 
-浏览器可检查设置草稿与材质切换。托盘定位、焦点切换、系统缩放、桌面置顶与歌词锁定需要实际桌面环境。Windows 原生验证入口为 `pnpm check:native`，独立浏览器的吸附与位置验证入口为 `pnpm check:island-position`。[开发与验证](DEVELOPMENT.md)
+浏览器可检查设置草稿与材质切换。使用 `pnpm tauri dev` 打开桌面应用后，可核对托盘定位、焦点切换、系统缩放、桌面置顶与歌词锁定。[开发与验证](DEVELOPMENT.md)

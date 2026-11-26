@@ -22,6 +22,9 @@ import {
   toSourceTrack,
 } from '@/services/player/catalog'
 import { normalizeBannerCharacter } from '@/services/player/banner-art'
+import { useTrackFavorites } from '@/services/player/favorites'
+import { getCatalogPlaylist } from '@/api'
+import { notify } from '@/services/notification'
 
 export interface Playlist {
   id?: string
@@ -194,6 +197,9 @@ export const usePlayerStore = defineStore('player', () => {
   const catalogIndices = new Map<string, number>()
   const profilePages = new Map<string, Map<string, number>>()
   const savedPlaylists = shallowRef(readImportedPlaylists())
+  const linkedProfiles = shallowRef(readLinkedProfiles())
+  const favorites = useTrackFavorites(tracks, preferences.liked, linkedProfiles, savedPlaylists, updateImportedFavorite)
+  const checkedFavoriteOwners = new Set<string>()
   const state = reactive({
     /** 当前曲目索引，-1 表示没有选中歌曲。 */ idx: -1,
     /** 播放和进度状态。 */ playing: false,
@@ -209,7 +215,8 @@ export const usePlayerStore = defineStore('player', () => {
     /** 服务端为本曲实际返回的音质或码率。 */
     actualQuality: '',
     catalogStatus: null as PlaybackStatus | 'loading' | 'error' | null,
-    /** 收藏集合。 */ liked: {} as Record<number, boolean>,
+    /** 当前平台账号及本机曲目实际显示的红心。 */ liked: favorites.liked,
+    /** 网易云正在写回的曲目与最终意图。 */ pendingFavorites: favorites.pending,
     /** 播放顺序模式。 */ shuffle: false,
     repeat: 0,
     /** 音量及静音前音量。 */ vol: preferences.volume,
@@ -236,7 +243,7 @@ export const usePlayerStore = defineStore('player', () => {
       lyricIslandSnap: islandPreferences.value?.lyricIslandSnap !== false,
     },
     /** 已关联的公开资料，搜索或链接导入不会创建关联。 */
-    linkedProfiles: readLinkedProfiles(),
+    linkedProfiles,
     /** 导入和自建歌单。 */ imported: [] as Playlist[],
     myLists: [] as Playlist[],
     customPl: null as Playlist | null,
@@ -314,6 +321,38 @@ export const usePlayerStore = defineStore('player', () => {
     state.imported = sorted.map(item => views.get(catalogKey(item))!)
   }
 
+  // 平台确认红心后更新该账号已导入的系统喜欢歌单，普通歌单和当前队列保留原序。
+  function updateImportedFavorite(owner: string, track: SourceTrack, liked: boolean): void {
+    const source = track.catalog
+    if (!source) return
+    const saved = savedPlaylists.value.find(
+      list => list.platform === source.platform && list.favoriteOwnerId === owner
+    )
+    if (!saved || saved.tracks.some(item => item.id === source.id) === liked) return
+    const items = saved.tracks.filter(item => item.id !== source.id)
+    if (liked) {
+      items.unshift({
+        ...source,
+        title: track.title,
+        artists: track.artist.split(' / '),
+        album: track.album,
+        subtitle: track.subtitle,
+        durationMs: track.dur ? track.dur * 1000 : null,
+        coverUrl: track.cover,
+      })
+    }
+    const updated = {
+      ...saved,
+      tracks: items,
+      total: saved.total == null ? null : Math.max(0, saved.total + items.length - saved.tracks.length),
+    }
+    try {
+      commitPlaylists(savedPlaylists.value.map(list => list === saved ? updated : list), [], updated)
+    } catch {
+      notify('网易云已确认红心变更，本机歌单副本保存失败。', 'error')
+    }
+  }
+
   // 从已见过的来源页得到跨页顺序，后导入的前页歌单也能排回前面。
   function profileOrder(items: SavedPlaylist[], platform: MusicPlatform, userId: string): string[] {
     return items.filter(item => item.platform === platform && item.profilePosition?.userId === userId)
@@ -326,12 +365,15 @@ export const usePlayerStore = defineStore('player', () => {
     const owner = page.platform + ':' + page.userId
     const positions = profilePages.get(owner) ?? new Map<string, number>()
     profilePages.set(owner, positions)
+    const summaries = new Map(page.playlists.map(item => [item.id, item]))
     page.playlists.forEach((item, index) => positions.set(item.id, (page.pageNum - 1) * page.pageSize + index))
     const next = savedPlaylists.value.map(item => {
       const index = positions.get(item.id)
-      if (item.platform !== page.platform || index === undefined ||
-          (item.profilePosition?.userId === page.userId && item.profilePosition.index === index)) return item
-      return { ...item, profilePosition: { userId: page.userId, index } }
+      if (item.platform !== page.platform || index === undefined) return item
+      const favoriteOwnerId = summaries.get(item.id)?.favoriteOwnerId ?? item.favoriteOwnerId
+      if (item.profilePosition?.userId === page.userId && item.profilePosition.index === index &&
+          favoriteOwnerId === item.favoriteOwnerId) return item
+      return { ...item, favoriteOwnerId, profilePosition: { userId: page.userId, index } }
     })
     const order = profileOrder(next, page.platform, page.userId)
     const current = next.filter(item => item.platform === page.platform && item.profilePosition?.userId === page.userId)
@@ -354,6 +396,21 @@ export const usePlayerStore = defineStore('player', () => {
     const order = userId ? profileOrder(next, item.platform, userId) : linkOrder
     commitPlaylists(next, order, item)
     return state.imported.find(list => list.id === id)!
+  }
+
+  // 打开旧版导入的网易云歌单时，只补查第一页的归属，保留用户原有曲目和排序。
+  async function resolveFavoriteOwner(id: string, signal: AbortSignal): Promise<void> {
+    const item = savedPlaylists.value.find(list => catalogKey(list) === id)
+    if (item?.platform !== 'netease' || item.favoriteOwnerId || checkedFavoriteOwners.has(id)) return
+    const detail = await getCatalogPlaylist(item.platform, item.id, 1, 1, signal)
+    if (signal.aborted || detail.id !== item.id || detail.platform !== item.platform) return
+    checkedFavoriteOwners.add(id)
+    if (!detail.favoriteOwnerId) return
+    const current = savedPlaylists.value.find(list => catalogKey(list) === id)
+    if (!current || current.favoriteOwnerId) return
+    const updated = { ...current, favoriteOwnerId: detail.favoriteOwnerId }
+    favorites.observeFavoritePlaylist(updated)
+    commitPlaylists(savedPlaylists.value.map(list => list === current ? updated : list), [])
   }
 
   // 保存或取消一个平台的公开资料关联，已导入歌单仍可在曲库中打开。
@@ -433,10 +490,6 @@ export const usePlayerStore = defineStore('player', () => {
     .map(key => restoredIndices.get(key))
     .filter((index): index is number => index !== undefined)
   if (queued.length) state.queue = queued
-  for (const key of preferences.liked) {
-    const index = restoredIndices.get(key)
-    if (index !== undefined) state.liked[index] = true
-  }
   state.recent = preferences.recent
     .map(key => restoredIndices.get(key))
     .filter((index): index is number => index !== undefined)
@@ -449,7 +502,7 @@ export const usePlayerStore = defineStore('player', () => {
         state.idx,
         ...(state.queue || []),
         ...state.recent,
-        ...Object.keys(state.liked).map(Number),
+        ...[...favorites.localKeys].map(key => catalogIndices.get(key)).filter((index): index is number => index !== undefined),
       ]),
     ]
     const keyFor = (index: number) =>
@@ -464,10 +517,7 @@ export const usePlayerStore = defineStore('player', () => {
           ? { key: preferenceTrackKey(current), time: state.t }
           : null,
       queue: (state.queue || []).map(keyFor).filter(Boolean),
-      liked: Object.keys(state.liked)
-        .filter(index => state.liked[Number(index)])
-        .map(index => keyFor(Number(index)))
-        .filter(Boolean),
+      liked: [...favorites.localKeys],
       recent: state.recent.map(keyFor).filter(Boolean),
       searchHistory: state.searchHistory,
       catalogTracks: used
@@ -479,6 +529,11 @@ export const usePlayerStore = defineStore('player', () => {
     state,
     tracks,
     registerCatalogTracks,
+    refreshFavorites: favorites.refreshFavorites,
+    resolveFavoriteOwner,
+    toggleFavorite: favorites.toggleFavorite,
+    observeFavoritePlaylist: favorites.observeFavoritePlaylist,
+    legacyFavoriteIndices: favorites.legacyIndices,
     profileTracks,
     savePublicPlaylist,
     syncPublicPlaylistPage,

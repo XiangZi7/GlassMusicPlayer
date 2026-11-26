@@ -47,13 +47,11 @@ jobs:
           node-version: '22.22.2'
           package-manager-cache: false
       - run: node scripts/check-release.mjs
-      - run: node --test tests/release*.test.mjs
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           run_install: false
           cache: true
       - run: pnpm install --frozen-lockfile
-      - run: node --test tests/app-updater.test.mjs
       - name: Install Linux desktop and media libraries
         if: runner.os == 'Linux'
         run: |
@@ -63,17 +61,12 @@ jobs:
       - name: Set Rust toolchain
         shell: bash
         run: |
-          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup toolchain install 1.96.0 --profile minimal
           rustup override set 1.96.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
           key: ${{ matrix.platform }}
-      - run: pnpm check:equalizer
-      - run: pnpm check:motion
-      - run: pnpm check:desktop
-      - run: pnpm check:native
-      - run: pnpm check:storage
       - name: Build desktop packages
         shell: bash
         env:

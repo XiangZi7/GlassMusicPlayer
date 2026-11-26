@@ -6,7 +6,6 @@ import {
   PlaneGeometry,
   Scene,
   ShaderMaterial,
-  Texture,
   TextureLoader,
   Vector2,
   Vector3,
@@ -88,6 +87,8 @@ const props = withDefaults(
 
 const root = ref<HTMLElement>()
 const glCanvas = ref<HTMLCanvasElement>()
+const background = ref<HTMLImageElement>()
+const character = ref<HTMLImageElement>()
 const state = reactive({
   // WebGL 初始化失败标记：失败时整层保持隐藏，横幅回落到同位点版/单图版。
   failed: false,
@@ -263,7 +264,11 @@ function tick(): void {
   frame = requestAnimationFrame(tick)
   if (!renderer || !scene || !camera || !material || !root.value || !glCanvas.value)
     return
-  const { fade } = readLevels()
+  // 慢加载或图片损坏时继续显示当前整图，直到新人物三层素材都可绘制。
+  const ready = material.uniforms.uCoverage!.value &&
+    background.value?.complete && background.value.naturalWidth > 0 &&
+    character.value?.complete && character.value.naturalWidth > 0
+  const fade = ready ? readLevels().fade : 0
   root.value.style.opacity = fade > 0.002 ? String(fade) : '0'
   glCanvas.value.dataset.threeFade = fade.toFixed(3)
   if (fade <= 0.002) {
@@ -296,19 +301,18 @@ function tick(): void {
   glCanvas.value.dataset.threeFrameMs = (previous * 0.9 + elapsed * 0.1).toFixed(2)
 }
 
-// 加载当前人物的覆盖场纹理（离线派生：提取点层 alpha 经格尺度模糊并按 4/π 标定，
-// 模糊尺度已按细版新点距同比缩放）；切换人物时换纹理，旧纹理释放不残留。
+// 切换人物先显示新整图，只让当前人物的覆盖场恢复动态层，并释放迟到的纹理。
 function loadCoverage(src: string): void {
+  if (!material) return
+  material.uniforms.uCoverage!.value?.dispose()
+  material.uniforms.uCoverage!.value = null
   new TextureLoader().load(src, texture => {
-    if (!material) {
+    if (!material || props.coverageSrc !== src) {
       texture.dispose()
       return
     }
-    const previous = material.uniforms.uCoverage!.value as
-      | InstanceType<typeof Texture>
-      | null
+    material.uniforms.uCoverage!.value?.dispose()
     material.uniforms.uCoverage!.value = texture
-    previous?.dispose()
   })
 }
 
@@ -316,7 +320,7 @@ function loadCoverage(src: string): void {
 // 不等下一次窗口尺寸变化才对齐。
 watch(
   () => [props.coverageSrc, props.imageWidth, props.imageHeight, props.posX, props.posY, props.posXNarrow] as const,
-  ([src ]) => {
+  ([src]) => {
     if (!material) return
     material.uniforms.uImageSize!.value.set(props.imageWidth, props.imageHeight)
     loadCoverage(src)
@@ -377,7 +381,9 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(frame)
   observer?.disconnect()
   geometry?.dispose()
+  material?.uniforms.uCoverage!.value?.dispose()
   material?.dispose()
+  material = undefined
   renderer?.dispose()
 })
 </script>
@@ -390,6 +396,7 @@ onBeforeUnmount(() => {
     aria-hidden="true"
   >
     <img
+      ref="background"
       class="halftone-three-layer"
       :src="props.bgSrc"
       :width="props.imageWidth"
@@ -403,6 +410,7 @@ onBeforeUnmount(() => {
       data-halftone-three-gl
     />
     <img
+      ref="character"
       class="halftone-three-layer"
       :src="props.charaSrc"
       :width="props.imageWidth"

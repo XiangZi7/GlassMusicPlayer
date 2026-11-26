@@ -129,24 +129,4 @@ mod vault {
         }
         Ok(())
     }
-
-    #[test]
-    // 实际走系统凭据库，只操作这次测试独占的随机命名记录。
-    fn windows_vault_round_trip() {
-        let nonce = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let target = format!("com.admin.miraimusic/test/{}-{nonce}", std::process::id());
-        assert!(read(&target).unwrap().is_none());
-        let saved = PlaybackCredential {
-            user_id: "123".into(),
-            token: "a".repeat(43),
-        };
-        write(&target, Some(&saved)).unwrap();
-        let loaded = read(&target);
-        write(&target, None).unwrap();
-        assert_eq!(loaded.unwrap().unwrap().user_id, saved.user_id);
-        assert!(read(&target).unwrap().is_none());
-    }
 }

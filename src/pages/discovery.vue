@@ -13,7 +13,7 @@ import { usePlayerStore } from '@/stores/player'
 const props = defineProps<{ platform: MusicPlatform; id: string }>()
 const route = useRoute()
 const { state, controller } = usePlayer()
-const { registerCatalogTracks } = usePlayerStore()
+const { registerCatalogTracks, observeFavoritePlaylist } = usePlayerStore()
 const root = useTemplateRef<HTMLElement>('root')
 const list = useTemplateRef<InstanceType<typeof TrackList>>('list')
 const detail = reactive({
@@ -60,6 +60,7 @@ watch([() => route.name, () => props.platform, () => props.id, () => detail.retr
 // 浏览不登记曲目，用户点播时才按当前排序组装整份播放队列。
 function play(index: number, order: number[]): void {
   if (!detail.playlist) return
+  observeFavoritePlaylist(detail.playlist)
   const registered = registerCatalogTracks(detail.playlist.tracks)
   controller()?.playTracks(order.map(position => registered[position]!), registered[index]!)
 }

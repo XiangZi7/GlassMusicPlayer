@@ -24,8 +24,6 @@ dist-ssr
 *.sw?
 .tmp
 
-meting-python
-
 # 本机 UI 设计原稿
 /ui/
 

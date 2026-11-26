@@ -322,8 +322,7 @@ function pickBannerCharacter(value: string): void {
             <div class="set-txt min-w-[0]">
               <b>横幅人物</b
               ><span
-                >首页横幅右侧的人物形象 —
-                内置人物自带随音乐律动的点阵；自定义上传只显示图片本身</span
+                >选择后点击「应用」或「保存」即可更换首页横幅。内置人物的点阵会随音乐律动。</span
               >
             </div>
             <!-- 横幅人物预览卡：每张卡带人物横幅缩略图，点卡即选；选项数据驱动，新增内置人物只改 banner-art.ts。 -->

@@ -29,6 +29,8 @@ export interface CatalogPage {
 }
 
 export interface CatalogPlaylist extends CatalogPage {
+  /** 平台确认的系统喜欢歌单所有者，普通歌单省略此字段。 */
+  favoriteOwnerId?: string | null
   id: string
   title: string | null
   coverUrl: string | null
@@ -43,6 +45,8 @@ export interface CatalogLyrics {
 }
 
 export interface PublicPlaylistSummary {
+  /** 平台确认的系统喜欢歌单所有者，可用于补齐旧导入记录。 */
+  favoriteOwnerId?: string | null
   id: string
   title: string
   coverUrl: string | null

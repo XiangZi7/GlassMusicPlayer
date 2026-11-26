@@ -69,9 +69,10 @@ const artPosVars = computed(() => {
   }
 })
 
-// 横幅整图加载失败时记下地址，computed 随即回退到原始人物整套素材。
-function onArtError(): void {
-  state.failedArt = artSrc.value
+// 只处理当前横幅的加载失败，忽略淡出中旧人物迟到的错误事件。
+function onArtError(event: Event): void {
+  const source = (event.currentTarget as HTMLImageElement).getAttribute('src')
+  if (source === artSrc.value) state.failedArt = source
 }
 const { pending, playing, duration, actionLabel, playFeatured } = useDailyMix(
   () => props.songs,
@@ -149,15 +150,18 @@ function onPlay(): void {
       :style="state.accent ? { '--banner-accent': state.accent } : undefined"
       aria-hidden="true"
     >
-      <img
-        class="banner-landscape"
-        :src="artSrc"
-        :width="artAssets?.width ?? 2736"
-        :height="artAssets?.height ?? 912"
-        alt=""
-        decoding="async"
-        @error="onArtError"
-      />
+      <Transition name="banner-character" :css="playerState.settings.motion">
+        <img
+          :key="artSrc"
+          class="banner-landscape"
+          :src="artSrc"
+          :width="artAssets?.width ?? 2736"
+          :height="artAssets?.height ?? 912"
+          alt=""
+          decoding="async"
+          @error="onArtError"
+        />
+      </Transition>
       <!-- 原图提取点层的音频叠加画布：与底图同坐标系同裁切，只在实频时按列调
            alpha 让原点亮起来；未播/暂停稳态时全透明，横幅就是单图版原样。
            three 引擎下这块画布不再示人，只作 spectrum 发布每列 alpha 的数据源。
@@ -347,6 +351,16 @@ function onPlay(): void {
   mask-image: none;
   object-position: var(--banner-art-pos, 62% 36%);
   opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .home-topbar:not(.banner-calm) .banner-character-enter-active,
+  .home-topbar:not(.banner-calm) .banner-character-leave-active {
+    transition: opacity 180ms ease;
+  }
+  .home-topbar:not(.banner-calm) .banner-character-enter-from,
+  .home-topbar:not(.banner-calm) .banner-character-leave-to {
+    opacity: 0;
+  }
 }
 /* 罩面对齐参照 hero 的 shade：左侧深蓝 55% 起、34% 处收至 18%、55% 后全透；
    底部再叠一道渐隐与页面衔接。 */

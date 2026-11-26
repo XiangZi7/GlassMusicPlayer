@@ -12,10 +12,6 @@ export const bannerArtOptions: { value: string; label: string }[] = [
   { value: 'tealtwin', label: '青蓝双马尾' },
   { value: 'whitehair', label: '白发' },
   { value: 'minttwin', label: '薄荷双马尾' },
-  { value: 'redcap', label: '红帽' },
-  { value: 'bluebun', label: '蓝发丸子' },
-  { value: 'starface', label: '星星脸' },
-  { value: 'tealhands', label: '青发双手' },
   { value: 'custom', label: '自定义上传' },
 ]
 
@@ -150,71 +146,6 @@ export const bannerArtAssets: Record<string, BannerArtAssets> = {
     posXNarrow: 0.85,
     posCompactX: 0.5,
     posCompactY: 0.4,
-  },
-  redcap: {
-    art: '/images/pop-hero-redcap.webp',
-    bg: '/images/pop-hero-redcap-bg.webp',
-    chara: '/images/pop-hero-redcap-chara.webp',
-    coverage: '/images/pop-hero-redcap-coverage.webp',
-    dots: '/images/pop-hero-redcap-dots.webp',
-    width: 2736,
-    height: 912,
-    // 眼睛实测在 (0.74, 0.33)：特写侧脸，脸居右；原图无印刷点阵，
-    // 点层近空属美术本身，展开横向取 0.68，迷你条纵向取 0.32。
-    posX: 0.68,
-    posY: 0.32,
-    posXNarrow: 0.86,
-    posCompactX: 0.5,
-    posCompactY: 0.32,
-  },
-  bluebun: {
-    art: '/images/pop-hero-bluebun.webp',
-    bg: '/images/pop-hero-bluebun-bg.webp',
-    chara: '/images/pop-hero-bluebun-chara.webp',
-    coverage: '/images/pop-hero-bluebun-coverage.webp',
-    dots: '/images/pop-hero-bluebun-dots.webp',
-    width: 2736,
-    height: 912,
-    // 原图人物朝右，按「横幅人物全部向左看」整图水平翻转后接入：
-    // 翻转后眼睛实测在 (0.31, 0.33)，人物落在画面左侧、深蓝在右，
-    // 裁切按翻转后坐标取，横向取 0.30 对齐脸位。
-    posX: 0.3,
-    posY: 0.32,
-    posXNarrow: 0.12,
-    posCompactX: 0.3,
-    posCompactY: 0.32,
-  },
-  starface: {
-    art: '/images/pop-hero-starface.webp',
-    bg: '/images/pop-hero-starface-bg.webp',
-    chara: '/images/pop-hero-starface-chara.webp',
-    coverage: '/images/pop-hero-starface-coverage.webp',
-    dots: '/images/pop-hero-starface-dots.webp',
-    width: 2736,
-    height: 912,
-    // 特写取景：近眼实测 (0.60, 0.29)、脸心 (0.64, 0.48)，脸约占画面
-    // 右半；展开横向取 0.60 保整张脸入框，迷你条纵向取 0.29。
-    posX: 0.6,
-    posY: 0.3,
-    posXNarrow: 0.82,
-    posCompactX: 0.5,
-    posCompactY: 0.29,
-  },
-  tealhands: {
-    art: '/images/pop-hero-tealhands.webp',
-    bg: '/images/pop-hero-tealhands-bg.webp',
-    chara: '/images/pop-hero-tealhands-chara.webp',
-    coverage: '/images/pop-hero-tealhands-coverage.webp',
-    dots: '/images/pop-hero-tealhands-dots.webp',
-    width: 2736,
-    height: 912,
-    // 特写取景：近眼实测 (0.66, 0.44)、脸心 (0.72, 0.49)，双手从上方
-    // 入画；展开横向取 0.66，纵向取 0.42，迷你条纵向取 0.42。
-    posX: 0.66,
-    posY: 0.42,
-    posXNarrow: 0.85,
-    posCompactX: 0.5,
-    posCompactY: 0.42,
   },
 }
 

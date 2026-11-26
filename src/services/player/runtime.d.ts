@@ -6,6 +6,7 @@ export function mountSourcePlayer(
   options: SourcePlayerOptions & {
     state: PlayerState
     tracks: SourceTrack[]
+    toggleFavorite: (index: number) => Promise<void>
     onNavigate: (page: PlayerPage, index: number, path?: string) => void
     currentPath: () => string
   }

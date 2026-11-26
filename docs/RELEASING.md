@@ -17,7 +17,7 @@ GitHub Actions 使用四个原生构建任务，生成六个面向用户的文�
 
 Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少运行时时下载。当前流程生成的 Windows 文件没有 Authenticode 签名。macOS 包使用 ad-hoc 签名，未做 Developer ID 公证，Gatekeeper 可能要求用户确认来源。Linux AppImage 的兼容范围取决于目标系统的 glibc、FUSE 和桌面环境。Linux 音频依赖配置依据 [Tauri 的 AppImage 多媒体说明](https://v2.tauri.app/distribute/appimage/#multimedia-support-via-gstreamer)。
 
-## 构建测试包
+## 构建开发包
 
 包含源码或构建配置的推送到达 `main` 时会自动打包并保留 Actions 附件。其他分支也可以手动触发同一流程。
 
@@ -25,7 +25,7 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 2. 打开 **Actions → Desktop packages → Run workflow**，选择要打包的分支。
 3. 在完成的运行页面展开 **Artifacts**。四个按平台命名的归档保留 14 天，每个归档包含本平台安装文件和校验清单。
 
-前端构建包含 TypeScript 检查和压缩后 CSS 检查。各平台执行 EQ、动效和桌面组件回归，以及 Rust 原生与存储测试，再打包。可在失败的任务日志中找到具体的编译、测试、打包或上传步骤。[发行工作流](../.github/workflows/release.yml)
+各平台先核对发行版本和元数据，再由 Tauri 执行前端类型检查、生产构建和原生打包。可在失败的任务日志中定位对应步骤。[发行工作流](../.github/workflows/release.yml)
 
 ### 找到要下载的文件
 
@@ -52,7 +52,7 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 版本标签触发四个构建任务。发布任务核对每个平台的源提交、版本、架构和 SHA-256，根据上次公开版本以来的提交生成中文更新日志与安装包直链。全部附件上传完成后公开 Release。预发布标签会标为 *Pre-release*。
 
-构建失败可重跑失败任务，或在工作流手动运行时填写已推送的版本标签。已有草稿会继续上传；已公开的版本受到保护。普通主分支推送和留空标签的手动运行只产生开发包。
+构建环境临时故障时可重跑失败任务，或在工作流手动运行时填写已推送的版本标签。如果修复涉及源码或工作流，先提交修复，再运行 `pnpm release` 创建指向新提交的标签。已有草稿可继续上传。普通主分支推送和留空标签的手动运行只产生开发包。
 
 ### 启用应用内更新
 
@@ -68,14 +68,13 @@ Windows 免安装版需要系统具备 WebView2 Runtime，安装版可在缺少�
 
 版本标签构建时，工作流将公钥编入应用并签名 Windows NSIS、两个架构的 macOS 应用归档和 Linux AppImage。发布任务用同一公钥验证各文件，并将签名记录的版本与 Git 标签核对。通过后，随版本上传四个签名、两个 macOS 更新归档和 `latest.json`，并在 `version.json` 标记 `updater: true`。只配置公钥或私钥其中一项时，构建会报告缺项。
 
-用户首次安装内置公钥的版本后，即可在后续正式版发布时从右上角或「设置 → 关于」更新。Windows 免安装版和 Linux DEB 通过发行页更新。可用 `pnpm test:release` 检查不同平台的文件映射、版本清单、签名配置和缺件处理。
+用户首次安装内置公钥的版本后，即可在后续正式版发布时从右上角或「设置 → 关于」更新。Windows 免安装版和 Linux DEB 通过发行页更新。
 
 ### 排查失败步骤
 
 | 现象 | 核对位置 | 处理 |
 | --- | --- | --- |
 | 版本校验失败 | 标签、`package.json`、Rust manifest 与 lock 中的本项目条目 | 将目标版本同步后重新运行本地校验 |
-| Windows 原生测试找不到 `mt.exe` | Windows SDK / C++ Build Tools | 安装相应 SDK 后运行 `pnpm check:native` |
 | Linux 打包缺少桌面库或媒体组件 | apt 安装步骤、WebKitGTK 4.1、GStreamer | 使用工作流列出的依赖和构建发行版 |
 | Windows 打包工具临时下载失败 | `Build desktop packages` 的 NSIS 下载日志 | 确认上游恢复后重试失败任务 |
 | 同名标签已有正式版 | 发布步骤和已有附件 | 保留已发布文件，准备下一版本标签 |

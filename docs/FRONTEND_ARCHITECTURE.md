@@ -35,4 +35,4 @@ Vue Router 使用 hash 路由。首页和每日推荐详情复用页面组件。
 
 ## 核对变更
 
-`pnpm build` 会运行 Vue 类型检查、Vite 生产构建和压缩 CSS 检查。改队列时核对虚拟行的绝对位置；改全屏时运行 `pnpm check:motion` 和 `pnpm check:fullscreen`；改原生窗口时运行 `pnpm check:native` 并实际打开相应窗口。[完整验证入口](PERFORMANCE.md)
+`pnpm build` 会运行 Vue 类型检查和 Vite 生产构建。改队列时核对虚拟行的绝对位置，改全屏时检查连续切歌与歌词跟随，改原生窗口时打开相应窗口核对行为。[性能与窗口验证](PERFORMANCE.md)

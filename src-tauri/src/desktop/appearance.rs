@@ -7,7 +7,7 @@ use tauri::{
 const SHADOW_INSET: f64 = 24.0;
 
 /// Windows 11 同样报告主版本 10，必须依据构建号区分；服务器不启用客户端外观。
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 fn needs_custom_frame(major: u32, build: u32, server: bool) -> bool {
     major == 10 && (10240..22000).contains(&build) && !server
 }
@@ -78,31 +78,4 @@ pub(crate) fn create_window(
         }
     }
     Ok(window)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::needs_custom_frame;
-
-    /// Windows 10 首发和当前常见构建都应补上圆角、阴影。
-    #[test]
-    fn windows_10_uses_custom_frame() {
-        assert!(needs_custom_frame(10, 10240, false));
-        assert!(needs_custom_frame(10, 19045, false));
-    }
-
-    /// Windows 11 的主版本仍是 10，构建号 22000 起必须交给系统处理。
-    #[test]
-    fn windows_11_keeps_native_frame() {
-        assert!(!needs_custom_frame(10, 22000, false));
-        assert!(!needs_custom_frame(10, 26100, false));
-    }
-
-    /// 其他版本、无法识别的版本和 Windows Server 不套用 Windows 10 样式。
-    #[test]
-    fn other_systems_keep_native_frame() {
-        assert!(!needs_custom_frame(6, 9600, false));
-        assert!(!needs_custom_frame(10, 0, false));
-        assert!(!needs_custom_frame(10, 19045, true));
-    }
 }

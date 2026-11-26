@@ -9,8 +9,7 @@ import { getCatalogLyrics } from '@/api'
 import { defaultCover, emptyTrack } from '@/constants/music'
 import { notify } from '@/services/notification'
 import { recentSearches } from '@/services/player/preferences'
-import { createFavoriteToggle } from '@/services/player/favorites'
-import { playbackAccount } from '@/services/player/playback-session'
+import { favoriteHint } from '@/services/player/favorites'
 
 // 此文件直接迁自 ui/music-player-glass-vs-minimal.html 的脚本。
 // 页面、列表和状态由 Vue / Pinia 管理；保留播放时序、歌词跟随和原始动画协调。
@@ -126,7 +125,10 @@ export function mountSourcePlayer(root, options = {}) {
     VOL_SPK +
     '<path d="M16 9.6l5.4 5.4M21.4 9.6L16 15"/></svg>'
   const state = options.state
-  const toggleFavorite = createFavoriteToggle(state, TRACKS, render)
+  // 所有红心入口将点击时的曲库位置交给同一个账号收藏流程。
+  function toggleFavorite() {
+    return options.toggleFavorite(state.idx)
+  }
   // 平台页和电台页各自沿用宽内容模式，其余页面保持常规面板设置。
   function nowPlayingKey() {
     return state.page === 'connect' || state.page === 'radio'
@@ -1291,9 +1293,8 @@ export function mountSourcePlayer(root, options = {}) {
           'aria-label',
           state.liked[state.idx] ? '取消收藏' : '收藏'
         )
-        const destination = tr.catalog?.platform === 'netease' && playbackAccount.value?.favorites
-          ? '同步到网易云音乐' : '仅此设备'
-        el.title = el.getAttribute('aria-label') + ' · ' + destination
+        el.setAttribute('aria-busy', String(tr.catalog?.platform === 'netease' && state.pendingFavorites.has(tr.catalog.id)))
+        el.title = el.getAttribute('aria-label') + ' · ' + favoriteHint(tr)
       })
       p.querySelectorAll('[data-shuffle]').forEach(function (el) {
         el.classList.toggle('on', state.shuffle)
@@ -2397,6 +2398,8 @@ export function mountSourcePlayer(root, options = {}) {
       time: state.t,
       volume: effVol(),
       liked: !!state.liked[state.idx],
+      favoriteBusy: track.catalog?.platform === 'netease' && state.pendingFavorites.has(track.catalog.id),
+      favoriteHint: favoriteHint(track),
       lyrics,
       lyricIndex,
       capsuleLyric: state.capsuleLyric,

@@ -29,6 +29,8 @@ export interface SourceSnapshot {
   time: number
   volume: number
   liked: boolean
+  favoriteBusy?: boolean
+  favoriteHint?: string
   lyrics: string[]
   lyricIndex: number
   capsuleLyric?: string

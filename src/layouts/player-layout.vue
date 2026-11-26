@@ -59,10 +59,25 @@ const frame = useTemplateRef<InstanceType<typeof PlayerWindowFrame>>('frame')
 const root = computed(() => frame.value?.element ?? null)
 const route = useRoute()
 const router = useRouter()
-const { state, tracks, saveIslandPreferences, savePreferences } =
+const { state, tracks, saveIslandPreferences, savePreferences, refreshFavorites, resolveFavoriteOwner, toggleFavorite } =
   usePlayerStore()
 const unlisteners: UnlistenFn[] = []
 const player = shallowRef<PlayerController>()
+// 首次授权和返回前台都刷新平台红心，保留已知数据以便暂时离线时继续浏览。
+function syncFavorites(): void {
+  void refreshFavorites()
+}
+watch([() => playbackAccount.value?.userId, () => playbackAccount.value?.favorites, playbackRevision, () => state.linkedProfiles.netease?.userId], syncFavorites, { immediate: true })
+useEventListener(window, 'focus', syncFavorites)
+// 首次打开已导入的旧歌单时向平台补查系统红心标记，网络中断仍可播放本机歌单。
+watch([() => state.page === 'playlist' && state.customPl?.id, () => state.linkedProfiles.netease?.userId], ([id, owner], _, onCleanup) => {
+  if (!id || !owner || !id.startsWith('netease:')) return
+  const request = new AbortController()
+  onCleanup(() => request.abort())
+  void resolveFavoriteOwner(id, request.signal).catch(() => {})
+}, { immediate: true })
+// 登录态、平台快照与本机曲库变化后，同步已挂载的底栏、全屏和桌面小窗。
+watch([() => state.liked, () => state.pendingFavorites.size, playbackAccount], () => player.value?.render(), { flush: 'post' })
 const checkedDetails = new Set<string>()
 // 仅为当前曲目补查作品和专辑，按平台与 ID 复用结果，切歌时取消旧请求。
 watch(() => tracks[state.idx], async (track, _previous, onCleanup) => {
@@ -323,6 +338,7 @@ onMounted(async () => {
   player.value = mountSourcePlayer(root.value, {
     state,
     tracks,
+    toggleFavorite,
     onNavigate: navigate,
     currentPath: () => route.fullPath,
     onStateChange: isTauri() ? publishSnapshot : undefined,

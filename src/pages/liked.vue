@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import LibraryTabs from '@/components/player/LibraryTabs.vue'
 import PlayerTabs from '@/components/player/PlayerTabs.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import SlidingTabs from '@/components/ui/SlidingTabs.vue'
+import { usePlayerStore } from '@/stores/player'
 import TrackList from '@/components/player/TrackList.vue'
 import { usePlayer } from '@/composables/usePlayer'
 const { state, tracks } = usePlayer()
+const library = usePlayerStore()
+const source = ref('current')
+const sources = [
+  { label: '当前收藏', value: 'current' },
+  { label: '旧版本机收藏', value: 'legacy' },
+]
 const likedIndices = computed(() =>
   tracks.map((_, index) => index).filter(index => state.liked[index])
 )
@@ -26,6 +34,16 @@ const likedIndices = computed(() =>
         <div
           class="sortbar mt-3 mb-1 flex flex-none flex-wrap items-center gap-2"
         >
+          <!-- 升级前保存在本机的在线曲目仍可点播，红心始终反映当前账号。 -->
+          <SlidingTabs
+            v-if="library.legacyFavoriteIndices.length"
+            v-model="source"
+            kind="segment"
+            class="sort-seg inline-flex gap-[3px] rounded-full p-[3px]"
+            role="group"
+            aria-label="收藏来源"
+            :options="sources"
+          />
           <PlayerTabs
             kind="segment"
             class="sort-seg inline-flex gap-[3px] rounded-full p-[3px]"
@@ -42,19 +60,26 @@ const likedIndices = computed(() =>
         </div>
       </div>
       <!-- 歌曲列表组件：统一曲目选择、排序、分页及播放状态。 -->
-      <TrackList
-        :indices="likedIndices"
-        list-key="liked"
-        fit-height
-        empty-icon="heart"
-        empty-art="/images/pop-hero.webp"
-        empty="还没有收藏的歌曲。在播放栏或全屏播放页点爱心，即可收藏。"
-      />
+      <Transition name="favorite-source" mode="out-in" :css="state.settings.motion">
+        <TrackList
+          :key="source"
+          :indices="source === 'legacy' ? library.legacyFavoriteIndices : likedIndices"
+          list-key="liked"
+          fit-height
+          empty-icon="heart"
+          empty-art="/images/pop-hero.webp"
+          empty="当前曲库中还没有已确认喜欢的歌曲。"
+        />
+      </Transition>
     </div>
   </div>
 </template>
 
 <style scoped>
+@media (prefers-reduced-motion: no-preference) {
+  .favorite-source-enter-active, .favorite-source-leave-active { transition: opacity 180ms ease; }
+  .favorite-source-enter-from, .favorite-source-leave-to { opacity: 0; }
+}
 /* 页头半调点阵：与歌手详情页同一配方（点阵色 9%、同尺寸），只铺页头带。 */
 .lib-pop-head { position: relative; }
 .lib-pop-dots {
