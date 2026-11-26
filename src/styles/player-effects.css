@@ -3089,10 +3089,40 @@ input[type='range']::-moz-range-thumb {
   transform: translateX(-50%) translateY(0) scale(1);
 }
 
+/* volume bubble : 跟随音量滑杆 thumb 显示百分比，与 seek-tip 共用同一套深色玻璃语言 */
+.vol-tip {
+  transform: translateX(-50%) translateY(4px) scale(0.96);
+  transform-origin: 50% 100%;
+  background: rgba(11, 11, 17, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.vol-tip::after {
+  @apply absolute bottom-[-4px] left-[50%] h-[7px] w-[7px];
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(11, 11, 17, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.vol-tip.on {
+  @apply opacity-[1];
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .edge-prow .cur,
   .edge-prow .dur,
-  .seek-tip {
+  .seek-tip,
+  .vol-tip {
     transition: none;
   }
 }

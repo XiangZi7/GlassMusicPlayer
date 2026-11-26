@@ -54,6 +54,16 @@ const state = reactive({
     direction: 1,
   } as SourceSnapshot,
 })
+// 桌面窗口音量气泡：只在本窗拖动音量时短暂显示，不参与跨窗快照同步。
+const volTip = reactive({
+  // 是否正在显示气泡。
+  show: false,
+  // 气泡中心相对滑杆左缘的像素位置，跟随 thumb 移动。
+  left: '0px',
+  // 气泡文案：百分比，音量为 0 时显示「静音」。
+  text: '',
+})
+let volTipTimer: number | undefined
 const { snapshot } = toRefs(state)
 const track = computed(() => state.snapshot.track)
 const previousLyric = computed(
@@ -162,9 +172,20 @@ function seekNative(event: MouseEvent): void {
   const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
   sendAction('seek', (event.clientX - bounds.left) / bounds.width)
 }
-// 原稿音量滑块继续控制主窗口的统一音量。
+// 原稿音量滑块继续控制主窗口的统一音量，并刷新本窗气泡的位置与文案，停手 1.2 秒后淡出。
 function setNativeVolume(event: Event): void {
-  sendAction('volume', Number((event.target as HTMLInputElement).value))
+  const input = event.target as HTMLInputElement
+  const value = Number(input.value)
+  sendAction('volume', value)
+  const thumb = 14
+  const center = thumb / 2 + (input.clientWidth - thumb) * (value / 100)
+  volTip.left = `${center}px`
+  volTip.text = value === 0 ? '静音' : `${value}%`
+  volTip.show = true
+  window.clearTimeout(volTipTimer)
+  volTipTimer = window.setTimeout(() => {
+    volTip.show = false
+  }, 1200)
 }
 // 原稿迷你卡片的打开主窗口入口恢复主窗口并收起当前迷你窗口。
 async function focusMain(): Promise<void> {
@@ -212,6 +233,7 @@ onMounted(async () => {
 })
 onUnmounted(() => {
   delete document.documentElement.dataset.desktopSurface
+  window.clearTimeout(volTipTimer)
   disposed = true
   unlisten?.()
   void contextMenu?.close().catch(() => undefined)
@@ -397,17 +419,26 @@ onUnmounted(() => {
           >
             <path d="M14.5 5H17v14h-2.5zM5 5v14l9.5-7z" /></svg
         ></BaseButton>
-        <input
-          type="range"
-          class="vol tray-vol ml-[6px] flex-1"
-          id="trayVol"
-          min="0"
-          max="100"
-          :value="snapshot.volume"
-          @input="setNativeVolume"
-          aria-label="音量"
-          :style="{ '--p': `${snapshot.volume}%` }"
-        />
+        <div class="relative ml-[6px] flex-1">
+          <input
+            type="range"
+            class="vol tray-vol block w-full"
+            id="trayVol"
+            min="0"
+            max="100"
+            :value="snapshot.volume"
+            @input="setNativeVolume"
+            aria-label="音量"
+            :style="{ '--p': `${snapshot.volume}%` }"
+          />
+          <span
+            class="vol-tip pointer-events-none absolute bottom-[calc(100%+9px)] z-[7] rounded-[8px] p-[5px_8px] font-mono text-[10.5px] leading-[1] font-bold tracking-[.02em] whitespace-nowrap text-white opacity-[0]"
+            :class="{ on: volTip.show }"
+            :style="{ left: volTip.left }"
+            aria-hidden="true"
+            >{{ volTip.text }}</span
+          >
+        </div>
       </div>
     </div>
     <div

@@ -179,6 +179,12 @@ const qualityHint = computed(() => {
         aria-label="音量"
         style="--p: 70%"
       />
+      <span
+        class="vol-tip pointer-events-none absolute z-[7] rounded-[8px] p-[5px_8px] font-mono text-[10.5px] leading-[1] font-bold tracking-[.02em] whitespace-nowrap text-white opacity-[0]"
+        data-vol-tip
+        aria-hidden="true"
+        >70%</span
+      >
     </div>
     <div
       class="prow edge-prow top-[0] right-[18px] left-[18px] z-[6] flex h-[15px] items-center gap-[10px] p-0 font-mono text-[9.5px]"

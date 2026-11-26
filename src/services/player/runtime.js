@@ -395,6 +395,7 @@ export function mountSourcePlayer(root, options = {}) {
       state.lastVol = v
     }
     renderVolume()
+    showVolTips()
   }
   // 原稿交互：保留 toggleMute 对应的界面行为与调用规则。
   function toggleMute() {
@@ -406,6 +407,53 @@ export function mountSourcePlayer(root, options = {}) {
       state.muted = true
     }
     renderVolume()
+    showVolTips()
+  }
+  var volTipTimer = 0
+  // 按滑杆当前值把气泡对准 thumb 中心，并钳制在定位父级的可见范围内。
+  function placeVolTip(v, tip) {
+    var host = tip.offsetParent
+    if (!host) return
+    var sr = v.getBoundingClientRect()
+    var hr = host.getBoundingClientRect()
+    if (!sr.width || !hr.width) return
+    var min = parseFloat(v.min) || 0
+    var max = parseFloat(v.max) || 100
+    var ratio = Math.max(
+      0,
+      Math.min(1, ((parseFloat(v.value) || 0) - min) / (max - min))
+    )
+    var thumb = 14
+    var cx = sr.left - hr.left + thumb / 2 + (sr.width - thumb) * ratio
+    tip.style.left = Math.max(26, Math.min(hr.width - 26, cx)) + 'px'
+    tip.style.bottom = hr.height - (sr.top - hr.top) + 9 + 'px'
+  }
+  // 用户调音量时刷新每把可见滑杆的气泡（有效音量为 0 显示「静音」，其余显示百分比），停手 1.2 秒后统一淡出。
+  function showVolTips() {
+    var eff = effVol()
+    var text = eff === 0 ? '静音' : eff + '%'
+    players().forEach(function (p) {
+      p.querySelectorAll('.vol').forEach(function (v) {
+        var tip = v.parentNode
+          ? v.parentNode.querySelector('[data-vol-tip]')
+          : null
+        if (!tip) return
+        if (!v.getClientRects().length) {
+          tip.classList.remove('on')
+          return
+        }
+        tip.textContent = text
+        placeVolTip(v, tip)
+        tip.classList.add('on')
+      })
+    })
+    if (volTipTimer) clearTimeout(volTipTimer)
+    volTipTimer = setTimeout(function () {
+      volTipTimer = 0
+      document.querySelectorAll('[data-vol-tip]').forEach(function (t) {
+        t.classList.remove('on')
+      })
+    }, 1200)
   }
   /* ---------- this round : queue model + listening bundle + desktop bundle ---------- */
   var ICON_QNEXT =
@@ -2196,6 +2244,9 @@ export function mountSourcePlayer(root, options = {}) {
       listenElement(v, 'input', function () {
         setVol(parseInt(v.value, 10))
       })
+      listenElement(v, 'pointerenter', function () {
+        showVolTips()
+      })
       listenElement(
         v,
         'wheel',
@@ -2208,6 +2259,9 @@ export function mountSourcePlayer(root, options = {}) {
     })
     p.querySelectorAll('[data-volbtn]').forEach(function (b) {
       listenElement(b, 'click', toggleMute)
+      listenElement(b, 'pointerenter', function () {
+        showVolTips()
+      })
       listenElement(
         b,
         'wheel',
