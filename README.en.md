@@ -1,16 +1,16 @@
-# MiraiPlayer
+# 🎵 MiraiPlayer
 
 A desktop music player blending minimalist design, frosted glass, Liquid Glass, and Pop Art, with support for NetEase Cloud Music, Kugou Music, and Kuwo Music.
 
-<p align="center"><a href="#download"><strong>Download desktop app ↓</strong></a> · <a href="#features">Features</a> · <a href="#local-development">Local development</a> · <a href="README.md">简体中文</a></p>
+<p align="center"><a href="#-download"><strong>Download desktop app ↓</strong></a> · <a href="#-features">Features</a> · <a href="#-local-development">Local development</a> · <a href="README.md">简体中文</a></p>
 
 <p align="center">
   <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="docs/images/badges/releases.svg" alt="GitHub Releases" /></a>
   <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain"><img src="docs/images/badges/dev-downloads.svg" alt="Download development builds" /></a>
   <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml"><img src="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml/badge.svg?branch=main" alt="Desktop build status" /></a>
-  <a href="#download"><img src="docs/images/badges/windows.svg" alt="Windows x64" /></a>
-  <a href="#download"><img src="docs/images/badges/macos.svg" alt="macOS Intel / Apple Silicon" /></a>
-  <a href="#download"><img src="docs/images/badges/linux.svg" alt="Linux x64" /></a>
+  <a href="#-download"><img src="docs/images/badges/windows.svg" alt="Windows x64" /></a>
+  <a href="#-download"><img src="docs/images/badges/macos.svg" alt="macOS Intel / Apple Silicon" /></a>
+  <a href="#-download"><img src="docs/images/badges/linux.svg" alt="Linux x64" /></a>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@ A desktop music player blending minimalist design, frosted glass, Liquid Glass, 
   <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/tailwind.svg" alt="Tailwind CSS 4" /></a>
 </p>
 
-## Download
+## 📦 Download
 
 | OS | Download v0.1.10 |
 | --- | --- |
@@ -32,7 +32,7 @@ A desktop music player blending minimalist design, frosted glass, Liquid Glass, 
 
 [Latest release][latest] · [Release history][releases] · [Development builds][dev-builds]
 
-## Features
+## ✨ Features
 
 | Feature | What you can do |
 | --- | --- |
@@ -43,13 +43,13 @@ A desktop music player blending minimalist design, frosted glass, Liquid Glass, 
 | 🖥️ [Desktop windows](docs/desktop.md) | Use desktop lyrics, the desktop island, and the mini player |
 | 💾 [Track downloads](docs/storage.md) | Download tracks made available by the source platform |
 
-## Interface preview
+## 📷 Interface preview
 
 ![Home during playback, with the audio visualizer and Now Playing panel](docs/images/home-playback.gif)
 
 ![Switching between Fashion, Handwritten, Subtitles, and Dialogue during playback](docs/images/fullscreen-lyrics.gif)
 
-## Local development
+## 💻 Local development
 
 ```sh
 pnpm install --frozen-lockfile

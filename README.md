@@ -1,16 +1,16 @@
-# MiraiPlayer
+# 🎵 MiraiPlayer
 
 一款融合简约美学、毛玻璃、Liquid Glass 液态玻璃与 Pop Art 波普艺术风格的高颜值桌面音乐播放器，支持网易云音乐、酷狗音乐、酷我音乐。
 
-<p align="center"><a href="#下载"><strong>下载桌面版 ↓</strong></a> · <a href="#功能">功能</a> · <a href="#本地开发">本地开发</a> · <a href="README.en.md">English</a></p>
+<p align="center"><a href="#-下载"><strong>下载桌面版 ↓</strong></a> · <a href="#-功能">功能</a> · <a href="#-本地开发">本地开发</a> · <a href="README.en.md">English</a></p>
 
 <p align="center">
   <a href="https://github.com/XiangZi7/MiraiPlayer/releases"><img src="docs/images/badges/releases.svg" alt="GitHub 正式版" /></a>
   <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml?query=branch%3Amain"><img src="docs/images/badges/dev-downloads.svg" alt="下载开发版" /></a>
   <a href="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml"><img src="https://github.com/XiangZi7/MiraiPlayer/actions/workflows/release.yml/badge.svg?branch=main" alt="桌面构建状态" /></a>
-  <a href="#下载"><img src="docs/images/badges/windows.svg" alt="Windows x64" /></a>
-  <a href="#下载"><img src="docs/images/badges/macos.svg" alt="macOS Intel / Apple Silicon" /></a>
-  <a href="#下载"><img src="docs/images/badges/linux.svg" alt="Linux x64" /></a>
+  <a href="#-下载"><img src="docs/images/badges/windows.svg" alt="Windows x64" /></a>
+  <a href="#-下载"><img src="docs/images/badges/macos.svg" alt="macOS Intel / Apple Silicon" /></a>
+  <a href="#-下载"><img src="docs/images/badges/linux.svg" alt="Linux x64" /></a>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="docs/FRONTEND_ARCHITECTURE.md"><img src="docs/images/badges/tailwind.svg" alt="Tailwind CSS 4" /></a>
 </p>
 
-## 下载
+## 📦 下载
 
 | 系统 | 下载 v0.1.10 |
 | --- | --- |
@@ -32,7 +32,7 @@
 
 [最新正式版][latest] · [历史版本][releases] · [开发构建][dev-builds]
 
-## 功能
+## ✨ 功能
 
 | 功能 | 支持内容 |
 | --- | --- |
@@ -43,13 +43,13 @@
 | 🖥️ [桌面小窗](docs/desktop.md) | 桌面歌词、灵动岛、迷你播放器 |
 | 💾 [曲目下载](docs/storage.md) | 下载平台允许提供的曲目 |
 
-## 界面预览
+## 📷 界面预览
 
 ![播放中的首页、底栏频谱和展开的正在播放面板](docs/images/home-playback.gif)
 
 ![播放中切换时尚、手书、字幕和对话歌词舞台](docs/images/fullscreen-lyrics.gif)
 
-## 本地开发
+## 💻 本地开发
 
 ```sh
 pnpm install --frozen-lockfile
