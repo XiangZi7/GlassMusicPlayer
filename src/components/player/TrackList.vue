@@ -88,7 +88,20 @@ function isCurrent(index: number): boolean {
 function playFirst(): void {
   if (sorted.value[0] !== undefined) play(sorted.value[0])
 }
-defineExpose({ playFirst })
+// 随机播放：打乱当前排序后按打乱顺序整表播放，第一首即打乱后的第一首。
+function playShuffled(): void {
+  const order = [...sorted.value]
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[order[i], order[j]] = [order[j]!, order[i]!]
+  }
+  const first = order[0]
+  if (first === undefined) return
+  if (props.sourceTracks) emit('playSource', first, order)
+  else if (props.playAsQueue) controller()?.playTracks(order, first)
+  else controller()?.selectTrack(first, true)
+}
+defineExpose({ playFirst, playShuffled })
 </script>
 
 <template>

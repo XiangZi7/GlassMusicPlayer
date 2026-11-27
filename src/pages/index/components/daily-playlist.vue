@@ -24,6 +24,16 @@ const dateFormat = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numer
 const dateLabel = computed(() => dateFormat.format(new Date(props.date + 'T00:00:00Z')))
 const cover = computed(() => props.songs.find(song => song.cover && song.cover !== defaultCover)?.cover)
 const order = computed(() => sortTrackIndices(props.songs, props.songs.map((_, index) => index), state.sorts.daily))
+
+// 随机播放每日推荐：打乱当前排序后从打乱后的第一首开始，整表仍按打乱顺序入队。
+function playShuffledDaily(): void {
+  const shuffled = [...order.value]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!]
+  }
+  if (shuffled.length) emit('play', 0, shuffled)
+}
 </script>
 
 <template>
@@ -31,7 +41,7 @@ const order = computed(() => sortTrackIndices(props.songs, props.songs.map((_, i
     <PlaylistLayout list-key="daily" title="每日推荐" :cover="cover"
       :description="official ? '根据你的网易云音乐口味生成，每天 06:00（北京时间）更新' : source"
       :meta="songs.length ? '共 ' + songs.length + ' 首' : ''" :playable="!!songs.length"
-      :show-list-tools="!!songs.length" @play="emit('play', 0, order)">
+      :show-list-tools="!!songs.length" @play="emit('play', 0, order)" @shuffle="playShuffledDaily">
       <template #kicker>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

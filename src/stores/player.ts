@@ -127,6 +127,8 @@ export type PlayerPage =
   | 'downloads'
   | 'hub'
   | 'radio'
+  | 'stats'
+  | 'mood'
 export type SortMode = 'def' | 'title' | 'artist' | 'dur'
 
 // 设置弹窗重置和播放器首次启动共用原稿默认值，每次返回独立对象。

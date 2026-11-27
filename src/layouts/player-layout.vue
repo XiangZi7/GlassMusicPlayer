@@ -15,6 +15,7 @@ import {
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { getCatalogTrack } from '@/api'
 import {
+  useIntervalFn,
   useMutationObserver,
   useThrottleFn,
   useEventListener,
@@ -35,6 +36,10 @@ import {
 } from '@/stores/player'
 import PlayerWindowFrame from '@/components/player/PlayerWindowFrame.vue'
 import { mountSourcePlayer } from '@/services/player/runtime'
+import {
+  recordListeningSeconds,
+  recordPlayStart,
+} from '@/services/player/play-stats'
 import {
   openDesktop,
   openSettingsWindow,
@@ -83,6 +88,22 @@ watch(() => tracks[state.idx], async (track, _previous, onCleanup) => {
     // 作品信息不可用时继续播放已有音源。
   }
 }, { immediate: true })
+// 听歌统计：切到一首新歌并开始播放时计一次播放；同一首暂停后继续不重复计数。
+let lastCountedIndex = -1
+watch(
+  () => [state.idx, state.playing] as const,
+  ([index, playing]) => {
+    if (!playing || index < 0 || index === lastCountedIndex) return
+    const track = tracks[index]
+    if (!track) return
+    lastCountedIndex = index
+    recordPlayStart(track)
+  }
+)
+// 聆听时长按 10 秒粒度累加，只在实际播放时计入当天统计。
+useIntervalFn(() => {
+  if (state.playing) recordListeningSeconds(10)
+}, 10_000)
 // 设置窗与底栏选音质共用重新取源流程，暂停时只让旧音源失效。
 watch(() => state.settings.quality, () => player.value?.reloadPlayback())
 // 登录切换或撤销后立即释放属于上一身份的音源。
@@ -384,7 +405,7 @@ onUnmounted(() => {
 })
 const { page, idx, settings } = toRefs(state)
 const compactLibrary = computed(() =>
-  ['library', 'albums', 'album', 'artists', 'artist', 'liked', 'recent', 'smart'].includes(
+  ['library', 'albums', 'album', 'artists', 'artist', 'liked', 'recent', 'smart', 'stats', 'mood'].includes(
     page.value
   )
 )

@@ -69,7 +69,7 @@ function play(index: number, order: number[]): void {
   <div ref="root" class="page-panel active discovery-detail" data-panel="discovery">
     <PlaylistLayout list-key="discovery" :title="metadata?.title || '公开歌单'"
       :description="platformNames[platform]" :cover="metadata?.coverUrl || metadata?.tracks[0]?.coverUrl || undefined"
-      :meta="total != null ? '共 ' + total + ' 首' : ''" :playable="!!rows.length && !!list" :show-list-tools="!!rows.length" @play="list?.playFirst()">
+      :meta="total != null ? '共 ' + total + ' 首' : ''" :playable="!!rows.length && !!list" :show-list-tools="!!rows.length" @play="list?.playFirst()" @shuffle="list?.playShuffled()">
       <Transition name="playlist-content" mode="out-in" :css="state.settings.motion">
         <div v-if="detail.loading || detail.error" :key="detail.loading ? 'pending' : 'error'" class="grid min-h-40 place-content-center justify-items-center gap-3 text-sm text-white/75">
           <p role="status">{{ detail.error || (detail.count ? '已读取 ' + detail.count + ' 首…' : '正在读取完整歌单…') }}</p>
