@@ -334,7 +334,9 @@ export function mountSourcePlayer(root, options = {}) {
     }
   }
 
-  // 按原稿用曲目与行号生成固定的气泡宽度、字号及行距，仅在创建歌词行时计算。
+  // 按曲目与行号生成固定的种子排版变量，仅在创建歌词行时计算：对话舞台消费
+  // --chat-*（气泡宽、字号、行距），其余舞台消费 --lx-*（横向偏移、倾斜、字号
+  // 因子、入场位移）；当前行在各舞台 CSS 中一律清零偏移与倾斜回到共享基线。
   function chatLineStyle(trackIndex, lineIndex) {
     const seed = Math.imul(trackIndex + 1, 2654435761) ^ Math.imul(lineIndex + 1, 2246822519)
     // 每个维度单独取样，切换主题再切回时仍得到同一排版。
@@ -346,7 +348,11 @@ export function mountSourcePlayer(root, options = {}) {
     }
     const gap = ((sample(2) * 8 - 4) * 0.7).toFixed(1)
     const size = (0.93 + sample(4) * 0.16).toFixed(3)
-    return `--chat-gap:${gap}px;--chat-size:${size};--chat-width:${sample(6).toFixed(3)}`
+    const shift = (sample(8) * 14 - 5).toFixed(1)
+    const tilt = (sample(10) * 1.4 - 0.7).toFixed(2)
+    const scale = (0.95 + sample(12) * 0.1).toFixed(3)
+    const enter = (4 + sample(14) * 8).toFixed(1)
+    return `--chat-gap:${gap}px;--chat-size:${size};--chat-width:${sample(6).toFixed(3)};--lx-shift:${shift}px;--lx-tilt:${tilt}deg;--lx-scale:${scale};--lx-enter:${enter}px`
   }
 
   // 按原稿格式显示播放时间。

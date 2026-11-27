@@ -199,6 +199,33 @@ const {
         data-radio-count
       ></span
     ></BaseButton>
+    <BaseButton
+      class="navitem flex min-h-[38px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[9px_10px] text-left text-[13.5px] font-bold text-inherit"
+      data-nav="stats"
+      ><svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <path d="M4 20V10M10 20V4M16 20v-8M21 20H3" /></svg
+      >听歌报告</BaseButton
+    >
+    <BaseButton
+      class="navitem flex min-h-[38px] w-full items-center gap-[10px] rounded-[11px] border-none bg-transparent p-[9px_10px] text-left text-[13.5px] font-bold text-inherit"
+      data-nav="mood"
+      ><svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 20.7C6.4 17 3 13.6 3 9.9 3 7.2 5 5 7.6 5c1.7 0 3.4 1 4.4 2.6C13 6 14.7 5 16.4 5 19 5 21 7.2 21 9.9c0 3.7-3.4 7.1-9 10.8z" /></svg
+      >心情电台</BaseButton
+    >
     <div
       class="side-label side-mini-label flex items-center justify-between p-[12px_10px_6px] pr-[6px] text-[10.5px] font-extrabold tracking-[.12em] opacity-[.55]"
     >

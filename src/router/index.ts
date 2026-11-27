@@ -91,6 +91,16 @@ export const router = createRouter({
           meta: { playerPage: 'radio' },
         },
         {
+          path: 'stats',
+          component: () => import('@/pages/stats.vue'),
+          meta: { playerPage: 'stats' },
+        },
+        {
+          path: 'mood',
+          component: () => import('@/pages/mood.vue'),
+          meta: { playerPage: 'mood' },
+        },
+        {
           path: 'connect',
           component: () => import('@/pages/connect.vue'),
           meta: { playerPage: 'connect' },

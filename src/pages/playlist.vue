@@ -56,6 +56,17 @@ function playAll(indices: number[], searching: boolean): void {
   if (searching) list.value?.playFirst()
   else if (indices.length) controller()?.playTracks(indices, indices[0]!)
 }
+
+// 随机播放导入歌单：打乱保存顺序后整表入队，从打乱后的第一首开始。
+function playShuffled(): void {
+  if (!imported.value?.length) return
+  const order = [...imported.value]
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[order[i], order[j]] = [order[j]!, order[i]!]
+  }
+  controller()?.playTracks(order, order[0]!)
+}
 </script>
 
 <template>
@@ -63,7 +74,7 @@ function playAll(indices: number[], searching: boolean): void {
     <PlaylistLayout :key="state.customPl?.id ?? state.playlistIdx" list-key="pl"
       :tracks="tracks" :indices="playlistIndices" :title="state.customPl?.name || first?.album || '暂无歌单'"
       :cover="state.customPl?.cover || first?.cover" :description="description" :meta="meta"
-      :playable="!!imported?.length" show-list-tools @play="playAll">
+      :playable="!!imported?.length" show-list-tools @play="playAll" @shuffle="playShuffled">
       <template #sync-status>
         <span v-if="sync.pending || sync.error" role="status">{{ sync.pending ? '正在同步…' : '显示上次保存的歌单。' + sync.error }}</span>
         <BaseButton v-if="sync.error" class="rounded-full border border-white/20 px-3 py-1" @click="state.playlistReload++">重新同步</BaseButton>

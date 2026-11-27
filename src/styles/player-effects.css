@@ -1017,10 +1017,10 @@ h1 .thin {
 }
 
 .heart.liked {
-  color: #ff4d6d;
+  color: var(--pop-pink);
 }
 .heart.liked svg path {
-  fill: #ff4d6d;
+  fill: var(--pop-pink);
 }
 
 .heart[aria-busy='true'] {
@@ -1647,10 +1647,10 @@ input[type='range']::-moz-range-thumb {
 }
 
 .liquid-win .heart.liked {
-  color: #ff5c7a;
+  color: var(--pop-pink);
 }
 .liquid-win .heart.liked svg path {
-  fill: #ff5c7a;
+  fill: var(--pop-pink);
 }
 
 /* ---------- bottom player : plain cover / lyric capsule / fullscreen page ---------- */
@@ -3294,9 +3294,10 @@ input[type='range']::-moz-range-thumb {
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 开启态归一到波普薄荷令牌，不再用与全站色板无关的系统绿。 */
 .switch.on {
   @apply border-transparent;
-  background: #34c759;
+  background: var(--pop-mint);
 }
 
 .switch.on i {
@@ -4704,7 +4705,7 @@ kbd {
 /* ---------- this round : queue drag / play-next / radio chip ---------- */
 
 .q-radio-chip {
-  background: #ff4d6d;
+  background: var(--pop-pink);
 }
 
 .q-radio-chip[hidden] {

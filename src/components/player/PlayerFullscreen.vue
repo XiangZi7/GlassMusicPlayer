@@ -306,6 +306,8 @@ const dust = [
       <i class="amb a1" /><i class="amb a2" /><i class="amb a3" />
     </div>
     <div class="fs-shade absolute inset-0 z-[1]"></div>
+    <!-- 舞台波普半调点田：只铺右半幅氛围层，压在氛围光之下不进歌词与控件层。 -->
+    <span class="fs-halftone pop-halftone" aria-hidden="true" />
     <FullscreenScenery
       :theme="theme"
       :moving="
@@ -500,6 +502,19 @@ const dust = [
           >
             <i />
           </div>
+          <!-- 封面角上小贴纸：只落在封面组右上与左下两角，与歌单页头同一星/加号配方，不进标题与歌词区。 -->
+          <span class="fs-pop-star pop-sticker" style="--pop-sticker-angle: 8deg" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path class="sticker-halo" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+              <path class="sticker-star" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+            </svg>
+          </span>
+          <span class="fs-pop-plus pop-sticker" style="--pop-sticker-angle: -10deg" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path class="sticker-halo" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+              <path class="sticker-plus" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+            </svg>
+          </span>
         </div>
         <div
           class="fs-titleblock pointer-events-none relative z-[4] ml-[-58px] max-w-[400px] min-w-[0]"
@@ -1287,7 +1302,7 @@ const dust = [
 @keyframes ink-reveal {
   from {
     opacity: 0.55;
-    transform: translateX(-9px) rotate(-1deg);
+    transform: translateX(calc(var(--lx-enter, 9px) * -1)) rotate(-1deg);
   }
   to {
     opacity: 1;
@@ -1297,7 +1312,7 @@ const dust = [
 @keyframes lyric-reveal {
   from {
     opacity: 0.65;
-    transform: translateY(7px);
+    transform: translateY(var(--lx-enter, 7px));
   }
   to {
     opacity: 1;
@@ -1339,11 +1354,187 @@ const dust = [
   scroll-behavior: auto;
 }
 
+/* 暂停时封面整组收至 86%：只缩放包裹层，不碰浮动动画与切歌动画的子层变换；
+   缓动与入场同语言，关动效或系统减动效时直接到位不做过渡。 */
+.fs-coverwrap {
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fs-paused .fs-coverwrap {
+  transform: scale(0.86);
+}
+.fs.fs-calm .fs-coverwrap {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-coverwrap {
+    transition: none;
+  }
+}
+
+/* 种子动态排版（时尚/手书/字幕）：每行的偏移、倾斜、字号因子与入场位移由行内
+   --lx-* 种子变量决定（runtime 按曲目与行号生成）；当前行一律清零偏移与倾斜回到
+   共享基线，滚动居中按真实行高测量、与变换无关，当前行始终落在视觉中心。
+   时尚用横向偏移，手书用倾斜（原有隔行缩进保留），字幕只动字号因子守住居中字幕条。 */
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line) {
+  transform: translateX(var(--lx-shift, 0px)) scale(0.98);
+}
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on) {
+  transform: none;
+}
+.fs[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(21px, 3vw, 42px) * var(--lx-scale, 1));
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line) {
+  transform: rotate(var(--lx-tilt, 0deg)) scale(0.98);
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on) {
+  transform: none;
+}
+.fs[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(21px, 3vw, 42px) * var(--lx-scale, 1));
+}
+.fs[data-lyric-theme='cinema']:not(.fs-reading)
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line .fl-o) {
+  font-size: calc(clamp(23px, 3.8vw, 56px) * var(--lx-scale, 1));
+}
+/* 关动效与系统减动效时，种子位移与倾斜一并清零，只保留静态字号因子。 */
+.fs.fs-calm[data-lyric-theme='magazine']:not(.fs-reading)
+  .fs-main
+  .fs-lyrics
+  :deep(.fl-line),
+.fs.fs-calm[data-lyric-theme='ink']:not(.fs-reading)
+  .fs-main
+  .fs-lyrics
+  :deep(.fl-line) {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs[data-lyric-theme='magazine']:not(.fs-reading)
+    .fs-main
+    .fs-lyrics
+    :deep(.fl-line),
+  .fs[data-lyric-theme='ink']:not(.fs-reading)
+    .fs-main
+    .fs-lyrics
+    :deep(.fl-line) {
+    transform: none;
+  }
+}
+
 /* 无封面兜底：背景层换成波普舞台插画——只做轻模糊与压暗，保留聚光灯锥与人物轮廓，不走真封面同款重模糊；
    背景图需压过运行时写入背景层的行内封面图，故仅此一处用 !important。 */
 .fs.fs-nocover .fs-bg {
   background-image: url('/images/pop-stage.webp') !important;
   filter: blur(4px) saturate(1.06) brightness(0.72);
   transform: scale(1.07);
+}
+
+/* —— 本轮波普加强（只集中四处：封面贴纸化、舞台半调、当前行标记、播放键平涂，其余控件保持玻璃原样） —— */
+/* 舞台半调点田：绝对铺满但遮罩只放行右半幅，点色克制；无封面兜底时点色与密度加强，与舞台插画同框。 */
+.fs-halftone {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  --pop-halftone-color: rgb(255 255 255 / 11%);
+  --pop-halftone-size: 15px;
+  mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+}
+.fs.fs-nocover .fs-halftone {
+  --pop-halftone-color: rgb(160 195 255 / 20%);
+  --pop-halftone-size: 13px;
+}
+/* 封面贴纸化：白边、墨环与硬阴影只作用于主封面图（倒影图不带 .fs-cover 类名不受影响）；
+   微倾用独立 rotate 属性，与暂停缩放的 transform、浮动动画分属不同属性互不覆盖。 */
+.fs .fs-cover {
+  border: 5px solid #fff;
+  outline: 1.5px solid var(--pop-ink);
+  box-shadow:
+    6px 6px 0 rgb(23 18 31 / 55%),
+    0 34px 64px rgb(0 0 0 / 55%),
+    0 0 64px var(--glow, rgb(255 255 255 / 20%));
+  rotate: -1.2deg;
+}
+/* 字幕舞台的小封面不做倾斜，避免与居中字幕条的端正构图冲突，只留白边与硬阴影。 */
+.fs[data-lyric-theme='cinema'] .fs-cover {
+  rotate: none;
+}
+/* 封面角贴纸：定位在封面组（随暂停缩放与浮动一起动），尺寸远小于封面，不遮标题与歌词。 */
+.fs-pop-star {
+  position: absolute;
+  top: -13px;
+  right: -13px;
+  z-index: 6;
+  width: 34px;
+  height: 34px;
+}
+.fs-pop-plus {
+  position: absolute;
+  bottom: 12px;
+  left: -12px;
+  z-index: 6;
+  width: 25px;
+  height: 25px;
+}
+.fs-pop-star svg,
+.fs-pop-plus svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fs .sticker-halo {
+  fill: #fff;
+}
+.fs .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+.fs .sticker-plus {
+  fill: var(--pop-pink);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.7);
+  transform-origin: center;
+}
+/* 当前歌词行波普黄标记：只在时尚与字幕舞台的真实歌词当前行，用粗黄下划线贴着字形走
+   （text-decoration 只跟随文字宽度，不会像整行色带那样拖出长条）；不改字号、行高、
+   种子偏移与居中锚点；无歌词占位行不加，手书已有暖金笔触、对话为气泡，均不叠加。 */
+.fs[data-lyric-theme='magazine']
+  .fs-main
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on .fl-o),
+.fs[data-lyric-theme='cinema']
+  .fs-main
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on .fl-o) {
+  text-decoration: underline solid rgb(255 216 61 / 70%) 0.13em;
+  text-underline-offset: 0.16em;
+}
+/* 全屏播放键波普黄平涂：墨字形、墨边与硬阴影；子组件自身的 280ms 路径形变在 svg 内部，不受影响。 */
+.fs .dock-controls :deep(.playbtn) {
+  background: var(--pop-yellow);
+  color: var(--pop-ink);
+  border: 2px solid var(--pop-ink);
+  box-shadow: 3px 3px 0 rgb(23 18 31 / 60%);
+}
+/* 液态材质给播放键加的顶部白色光泽斑与平涂黄冲突，只在全屏内关掉这一处伪元素。 */
+.fs .dock-controls :deep(.playbtn::after) {
+  content: none;
 }
 </style>
