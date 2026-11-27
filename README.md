@@ -49,6 +49,14 @@
 
 ![播放中切换时尚、手书、字幕和对话歌词舞台](docs/images/fullscreen-lyrics.gif)
 
+| 搜索 | 我的歌单 |
+| --- | --- |
+| [![搜索结果](docs/images/feature-search.png)](docs/images/feature-search.png) | [![歌单详情](docs/images/feature-playlist.png)](docs/images/feature-playlist.png) |
+| **播放队列** | **平台对接** |
+| [![播放队列](docs/images/feature-queue.png)](docs/images/feature-queue.png) | [![平台对接](docs/images/feature-platforms.png)](docs/images/feature-platforms.png) |
+| **十段均衡器** | **桌面设置** |
+| [![十段均衡器](docs/images/feature-equalizer.png)](docs/images/feature-equalizer.png) | [![桌面设置](docs/images/feature-desktop.png)](docs/images/feature-desktop.png) |
+
 ## 💻 本地开发
 
 ```sh

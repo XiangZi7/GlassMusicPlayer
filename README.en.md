@@ -49,6 +49,14 @@ A desktop music player blending minimalist design, frosted glass, Liquid Glass, 
 
 ![Switching between Fashion, Handwritten, Subtitles, and Dialogue during playback](docs/images/fullscreen-lyrics.gif)
 
+| Search | Playlists |
+| --- | --- |
+| [![Search results](docs/images/feature-search.png)](docs/images/feature-search.png) | [![Playlist details](docs/images/feature-playlist.png)](docs/images/feature-playlist.png) |
+| **Playback queue** | **Platform connections** |
+| [![Playback queue](docs/images/feature-queue.png)](docs/images/feature-queue.png) | [![Platform connections](docs/images/feature-platforms.png)](docs/images/feature-platforms.png) |
+| **10-band equalizer** | **Desktop settings** |
+| [![10-band equalizer](docs/images/feature-equalizer.png)](docs/images/feature-equalizer.png) | [![Desktop settings](docs/images/feature-desktop.png)](docs/images/feature-desktop.png) |
+
 ## 💻 Local development
 
 ```sh
