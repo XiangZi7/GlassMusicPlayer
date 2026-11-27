@@ -304,6 +304,8 @@ const dust = [
       <i class="amb a1" /><i class="amb a2" /><i class="amb a3" />
     </div>
     <div class="fs-shade absolute inset-0 z-[1]"></div>
+    <!-- 舞台波普半调点田：只铺右半幅氛围层，压在氛围光之下不进歌词与控件层。 -->
+    <span class="fs-halftone pop-halftone" aria-hidden="true" />
     <FullscreenScenery
       :theme="theme"
       :moving="
@@ -498,6 +500,19 @@ const dust = [
           >
             <i />
           </div>
+          <!-- 封面角上小贴纸：只落在封面组右上与左下两角，与歌单页头同一星/加号配方，不进标题与歌词区。 -->
+          <span class="fs-pop-star pop-sticker" style="--pop-sticker-angle: 8deg" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path class="sticker-halo" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+              <path class="sticker-star" d="M12 1.8l3.1 6.6 7.2.8-5.3 4.9 1.4 7.1L12 17.7l-6.4 3.5 1.4-7.1-5.3-4.9 7.2-.8z" />
+            </svg>
+          </span>
+          <span class="fs-pop-plus pop-sticker" style="--pop-sticker-angle: -10deg" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path class="sticker-halo" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+              <path class="sticker-plus" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" />
+            </svg>
+          </span>
         </div>
         <div
           class="fs-titleblock pointer-events-none relative z-[4] ml-[-58px] max-w-[400px] min-w-[0]"
@@ -1423,5 +1438,101 @@ const dust = [
   background-image: url('/images/pop-stage.webp') !important;
   filter: blur(4px) saturate(1.06) brightness(0.72);
   transform: scale(1.07);
+}
+
+/* —— 本轮波普加强（只集中四处：封面贴纸化、舞台半调、当前行标记、播放键平涂，其余控件保持玻璃原样） —— */
+/* 舞台半调点田：绝对铺满但遮罩只放行右半幅，点色克制；无封面兜底时点色与密度加强，与舞台插画同框。 */
+.fs-halftone {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  --pop-halftone-color: rgb(255 255 255 / 11%);
+  --pop-halftone-size: 15px;
+  mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+}
+.fs.fs-nocover .fs-halftone {
+  --pop-halftone-color: rgb(160 195 255 / 20%);
+  --pop-halftone-size: 13px;
+}
+/* 封面贴纸化：白边、墨环与硬阴影只作用于主封面图（倒影图不带 .fs-cover 类名不受影响）；
+   微倾用独立 rotate 属性，与暂停缩放的 transform、浮动动画分属不同属性互不覆盖。 */
+.fs .fs-cover {
+  border: 5px solid #fff;
+  outline: 1.5px solid var(--pop-ink);
+  box-shadow:
+    6px 6px 0 rgb(23 18 31 / 55%),
+    0 34px 64px rgb(0 0 0 / 55%),
+    0 0 64px var(--glow, rgb(255 255 255 / 20%));
+  rotate: -1.2deg;
+}
+/* 字幕舞台的小封面不做倾斜，避免与居中字幕条的端正构图冲突，只留白边与硬阴影。 */
+.fs[data-lyric-theme='cinema'] .fs-cover {
+  rotate: none;
+}
+/* 封面角贴纸：定位在封面组（随暂停缩放与浮动一起动），尺寸远小于封面，不遮标题与歌词。 */
+.fs-pop-star {
+  position: absolute;
+  top: -13px;
+  right: -13px;
+  z-index: 6;
+  width: 34px;
+  height: 34px;
+}
+.fs-pop-plus {
+  position: absolute;
+  bottom: 12px;
+  left: -12px;
+  z-index: 6;
+  width: 25px;
+  height: 25px;
+}
+.fs-pop-star svg,
+.fs-pop-plus svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fs .sticker-halo {
+  fill: #fff;
+}
+.fs .sticker-star {
+  fill: var(--pop-yellow);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.76);
+  transform-origin: center;
+}
+.fs .sticker-plus {
+  fill: var(--pop-pink);
+  stroke: var(--pop-ink);
+  stroke-width: 1.4;
+  transform: scale(0.7);
+  transform-origin: center;
+}
+/* 当前歌词行波普黄标记：只在时尚与字幕舞台的真实歌词当前行，用粗黄下划线贴着字形走
+   （text-decoration 只跟随文字宽度，不会像整行色带那样拖出长条）；不改字号、行高、
+   种子偏移与居中锚点；无歌词占位行不加，手书已有暖金笔触、对话为气泡，均不叠加。 */
+.fs[data-lyric-theme='magazine']
+  .fs-main
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on .fl-o),
+.fs[data-lyric-theme='cinema']
+  .fs-main
+  .fs-lyrics:not(.lyrics-unavailable)
+  :deep(.fl-line.on .fl-o) {
+  text-decoration: underline solid rgb(255 216 61 / 70%) 0.13em;
+  text-underline-offset: 0.16em;
+}
+/* 全屏播放键波普黄平涂：墨字形、墨边与硬阴影；子组件自身的 280ms 路径形变在 svg 内部，不受影响。 */
+.fs .dock-controls :deep(.playbtn) {
+  background: var(--pop-yellow);
+  color: var(--pop-ink);
+  border: 2px solid var(--pop-ink);
+  box-shadow: 3px 3px 0 rgb(23 18 31 / 60%);
+}
+/* 液态材质给播放键加的顶部白色光泽斑与平涂黄冲突，只在全屏内关掉这一处伪元素。 */
+.fs .dock-controls :deep(.playbtn::after) {
+  content: none;
 }
 </style>

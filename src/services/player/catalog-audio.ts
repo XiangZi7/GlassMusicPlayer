@@ -364,9 +364,10 @@ export function createCatalogAudio(root: HTMLElement, events: AudioEvents) {
     equalizer.setConfig(equalizerConfig)
   }
 
-  // 把当前路由的横幅 EQ 条带交给底栏频谱渲染器，复用同一次音频分析。
+  // 把当前路由的横幅 EQ 条带与点阵画布交给底栏频谱渲染器，复用同一次音频分析。
   function bindSpectrumViews(): void {
     spectrum?.setBannerCanvas(root.querySelector<HTMLCanvasElement>('[data-banner-spectrum]'))
+    spectrum?.setDotsCanvas(root.querySelector<HTMLCanvasElement>('[data-halftone-dots]'))
   }
 
   // 用户关闭界面动效时同步停止频谱，替换原声元素后仍恢复同一偏好。

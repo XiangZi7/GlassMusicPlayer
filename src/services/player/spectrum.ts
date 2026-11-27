@@ -9,6 +9,16 @@ import {
 
 const fftSize = 4096
 
+// 横幅点阵音频绑定的平滑参数：点位/点径全部由原图提取层承担（见 paintDots），
+// 这里只定能量怎样调制叠加 alpha——攻击快、释放慢的一阶平滑加 alpha 限幅，
+// 再叠 1 秒整层淡入淡出，保证点是平滑起伏而不是逐帧跳变。
+const DOTS_COLS = 28
+const DOTS_ATTACK_MS = 90
+const DOTS_RELEASE_MS = 350
+const DOTS_FADE_MS = 1000
+const DOTS_MAX_ALPHA = 0.35
+const DOTS_ALPHA_SLEW = 0.9
+
 // 保留细柱与自适应密度，同时同步原稿的左右 2px 留白；窄窗口不裁切 168 根。
 export function spectrumLayout(width: number) {
   if (!Number.isFinite(width) || width <= 0)
@@ -54,6 +64,20 @@ export function createSpectrum(
   const paint = canvas.getContext('2d')
   let banner:
     { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
+  let dots:
+    { canvas: HTMLCanvasElement; paint: CanvasRenderingContext2D } | undefined
+  // 原图提取点层的位图与就绪标记：只在横幅点阵画布接入时懒加载一次。
+  let dotsImage: HTMLImageElement | undefined
+  let dotsImageReady = false
+  // 点阵整层淡入淡出进度：0 时叠加层完全不画，静态横幅与单图版逐像素一致。
+  let dotsFade = 0
+  let dotsFadeFrame: number | undefined
+  // 上一帧点阵推进的时间戳，供按真实帧间隔做时间常数平滑而不是按帧数凑系数。
+  let dotsStamp: number | undefined
+  // 每列平滑后的能量与最终显示 alpha：能量走攻击/释放平滑，alpha 再走限幅，
+  // 两级串联后帧间变化被压到很小（量化口径见 qa 采样脚本）。
+  const dotLevels = new Float32Array(DOTS_COLS)
+  const dotAlphas = new Float32Array(DOTS_COLS)
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const bins = new Uint8Array(fftSize / 2)
   let context: AudioContext | undefined
@@ -85,6 +109,167 @@ export function createSpectrum(
     canvas.dataset.spectrumMode = value
     if (banner)
       banner.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
+    if (dots) {
+      dots.canvas.dataset.spectrumMode = value === 'live' ? 'live' : 'static'
+      kickDotsFade()
+    }
+  }
+
+  // 懒加载原图提取点层（82b292a 的逐点提取成果，与现行 pop-hero.webp 逐像素同源）：
+  // 叠加层不重画任何网格，只把这张与底图同尺寸、同点位的透明点图按列调 alpha 贴回
+  // 原位再轻微提亮——点位、点径、点形与静态图严格一致，从根上避开双重印点与摩尔纹。
+  function ensureDotsImage(): void {
+    if (dotsImage || typeof Image === 'undefined') return
+    const image = new Image()
+    image.src = '/images/pop-hero-dots.webp'
+    image.onload = () => {
+      dotsImageReady = true
+      if (dotsFade > 0) paintDots()
+    }
+    dotsImage = image
+  }
+
+  // 推进一帧点阵状态：每列目标能量取自底栏同一组实频 levels（低频在左、高频在右），
+  // 先按攻击 90ms / 释放 350ms 的时间常数平滑，再把显示 alpha 朝目标限幅推进
+  // （每秒至多 0.9），整层另有 1 秒淡入淡出包络；非 live 时目标归零、包络回落。
+  function stepDots(timestamp: number): void {
+    const dt =
+      dotsStamp === undefined
+        ? 16
+        : Math.min(100, Math.max(0, timestamp - dotsStamp))
+    dotsStamp = timestamp
+    const live = mode === 'live' && enabled && !reduced.matches
+    const target = live ? 1 : 0
+    if (dotsFade !== target && dt > 0) {
+      const step = dt / DOTS_FADE_MS
+      dotsFade =
+        target > dotsFade
+          ? Math.min(target, dotsFade + step)
+          : Math.max(target, dotsFade - step)
+    }
+    const maxStep = (dt / 1000) * DOTS_ALPHA_SLEW
+    const targets: number[] = []
+    for (let col = 0; col < DOTS_COLS; col++) {
+      let energy = 0
+      if (live && levels.length) {
+        const start = Math.floor((col / DOTS_COLS) * levels.length)
+        const end = Math.max(
+          start + 1,
+          Math.floor(((col + 1) / DOTS_COLS) * levels.length)
+        )
+        for (let index = start; index < end; index++)
+          energy = Math.max(energy, levels[index] ?? 0)
+      }
+      targets.push(energy)
+      const previous = dotLevels[col]!
+      const tau = energy > previous ? DOTS_ATTACK_MS : DOTS_RELEASE_MS
+      const smoothed =
+        previous + (energy - previous) * (1 - Math.exp(-dt / tau))
+      dotLevels[col] = smoothed
+      const goal = dotsFade * DOTS_MAX_ALPHA * smoothed
+      const current = dotAlphas[col]!
+      dotAlphas[col] =
+        current +
+        Math.max(-maxStep, Math.min(maxStep, goal - current))
+    }
+    if (dots) {
+      dots.canvas.dataset.dotsFade = dotsFade.toFixed(3)
+      dots.canvas.dataset.dotsAlpha = Array.from(dotAlphas, value =>
+        value.toFixed(3)
+      ).join(',')
+      // 平滑前的每列目标一并发布，供 QA 量化平滑前后的帧间跳变差。
+      dots.canvas.dataset.dotsTarget = targets
+        .map(value => value.toFixed(3))
+        .join(',')
+    }
+  }
+
+  // 绘制横幅点阵叠加层：按横幅 cover 裁切的同一坐标系把提取点图分列贴回原位，
+  // 只调每列 alpha 并以固定提亮滤镜让原点“亮起来”；点径恒为提取层原样（零变化），
+  // 点色就是提取层自带的单墨青蓝，不另上色。包络为零或减动效时完全不画，
+  // 静态横幅与单图版逐像素一致。
+  function paintDots(timestamp = 0): void {
+    if (!dots || destroyed) return
+    const { canvas, paint } = dots
+    if (reduced.matches || !enabled) {
+      if (dotsFade !== 0 || dotAlphas.some(value => value > 0)) {
+        dotsFade = 0
+        dotLevels.fill(0)
+        dotAlphas.fill(0)
+      }
+      const cleared = fitCanvas(canvas, paint)
+      if (cleared) canvas.dataset.dotsAlpha = ''
+      return
+    }
+    stepDots(timestamp)
+    const size = fitCanvas(canvas, paint)
+    if (!size) return
+    if (!dotsImageReady || !dotsImage) return
+    if (dotAlphas.every(value => value < 0.004)) return
+    const { width, height } = size
+    // 与 featured-banner 的 object-position 口径一致：展开态 62% 36%，
+    // 窄窗（横幅宽 ≤700px）88% 36%；折叠迷你条下画布被 CSS 隐藏、尺寸为零已在上方返回。
+    const posX = width <= 700 ? 0.88 : 0.62
+    const posY = 0.36
+    const scale = Math.max(width / 2736, height / 912)
+    const ox = (width - 2736 * scale) * posX
+    const oy = (height - 912 * scale) * posY
+    const sy0 = Math.max(0, (0 - oy) / scale)
+    const sy1 = Math.min(912, (height - oy) / scale)
+    const dy0 = oy + sy0 * scale
+    const dy1 = oy + sy1 * scale
+    if (sy1 <= sy0) return
+    paint.filter = 'brightness(1.7) saturate(1.25)'
+    for (let col = 0; col < DOTS_COLS; col++) {
+      const alpha = dotAlphas[col]!
+      if (alpha < 0.004) continue
+      const dx0 = (col / DOTS_COLS) * width
+      const dx1 = ((col + 1) / DOTS_COLS) * width
+      const sx0 = Math.max(0, (dx0 - ox) / scale)
+      const sx1 = Math.min(2736, (dx1 - ox) / scale)
+      if (sx1 <= sx0) continue
+      paint.globalAlpha = alpha
+      paint.drawImage(
+        dotsImage,
+        sx0,
+        sy0,
+        sx1 - sx0,
+        sy1 - sy0,
+        ox + sx0 * scale,
+        dy0,
+        (sx1 - sx0) * scale,
+        dy1 - dy0
+      )
+    }
+    paint.globalAlpha = 1
+    paint.filter = 'none'
+  }
+
+  // 点阵淡入淡出帧循环：主频谱循环在暂停后会停下，这一独立循环把 1 秒淡出走完，
+  // 不让点层在暂停瞬间硬消失；包络与各列 alpha 都归零后自动停帧。
+  function fadeDots(timestamp?: number): void {
+    if (!dots || destroyed) {
+      dotsFadeFrame = undefined
+      return
+    }
+    paintDots(timestamp ?? 0)
+    const target = mode === 'live' && enabled && !reduced.matches ? 1 : 0
+    const settled =
+      dotsFade === target && dotAlphas.every(value => value < 0.004 || target === 1)
+    if (!settled && !(target === 1 && dotsFade === 1)) {
+      dotsFadeFrame = requestAnimationFrame(fadeDots)
+    } else if (target === 1 && dotsFade === 1) {
+      // 稳态 live 时主循环 paintBars 每帧都会带 paintDots，这里只在淡入未完成时续帧。
+      dotsFadeFrame = undefined
+    } else {
+      dotsFadeFrame = undefined
+    }
+  }
+
+  // 模式或动效开关变化后启动点阵过渡循环；已在目标态时不做无谓排帧。
+  function kickDotsFade(): void {
+    if (!dots || destroyed || dotsFadeFrame !== undefined) return
+    dotsFadeFrame = requestAnimationFrame(fadeDots)
   }
 
   // 播放中的换色与原稿 background 过渡一样持续 600ms，不逐帧读取封面像素。
@@ -173,6 +358,7 @@ export function createSpectrum(
       } else paint.fillRect(x, y, barWidth, barHeight)
     }
     paintBanner()
+    paintDots(timestamp)
   }
 
   // 从中线向左右映射实频，并逐渐降低边缘高度，让频谱融入横幅背景。
@@ -400,6 +586,21 @@ export function createSpectrum(
     }
   }
 
+  // 首页挂载时连接横幅点阵画布：接入即懒加载提取点层并对齐当前模式，
+  // 静态时包络为零、画布保持全透明，不改变单图版的任何像素。
+  function setDotsCanvas(canvas: HTMLCanvasElement | null): void {
+    if (destroyed || (dots?.canvas ?? null) === canvas) return
+    if (dots) observer?.unobserve(dots.canvas)
+    const paint = canvas?.getContext('2d')
+    dots = canvas && paint ? { canvas, paint } : undefined
+    if (dots) {
+      dots.canvas.dataset.spectrumMode = mode === 'live' ? 'live' : 'static'
+      observer?.observe(dots.canvas)
+      ensureDotsImage()
+      paintDots()
+    }
+  }
+
   return {
     resume,
     update,
@@ -408,15 +609,19 @@ export function createSpectrum(
     setArtwork,
     setPlayback,
     setBannerCanvas,
+    setDotsCanvas,
     setMotion(motion: boolean): void {
       if (motion === enabled) return
       enabled = motion
       update()
+      kickDotsFade()
     },
     destroy(): void {
       if (destroyed) return
       destroyed = true
       colorVersion++
+      if (dotsFadeFrame !== undefined) cancelAnimationFrame(dotsFadeFrame)
+      dotsFadeFrame = undefined
       reset()
       observer?.disconnect()
       reduced.removeEventListener('change', update)

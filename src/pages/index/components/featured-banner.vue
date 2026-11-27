@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import HalftoneThree from '@/components/ui/HalftoneThree.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { defaultCover } from '@/constants/music'
 import { artworkColor } from '@/services/player/artwork-color'
@@ -17,6 +18,10 @@ const props = defineProps<{
   dateline: string
 }>()
 const emit = defineEmits<{ play: []; retry: []; open: [] }>()
+
+// 横幅点阵引擎开关：'three' 为 three.js 覆盖场版（当前展示版），改回 'aligned'
+// 即恢复同位点叠加版——两版共用 spectrum.ts 的同一条音频平滑通路，可直接回退对比。
+const halftoneEngine = 'three' as 'aligned' | 'three'
 const { state: playerState } = usePlayer()
 const state = reactive({
   // 已加载失败的封面地址，对应位置统一回退到通用封面。
@@ -107,6 +112,18 @@ function onPlay(): void {
         alt=""
         decoding="async"
       />
+      <!-- 原图提取点层的音频叠加画布：与底图同坐标系同裁切，只在实频时按列调
+           alpha 让原点亮起来；未播/暂停稳态时全透明，横幅就是单图版原样。
+           three 引擎下这块画布不再示人，只作 spectrum 发布每列 alpha 的数据源。 -->
+      <canvas
+        class="banner-dots"
+        :class="{ 'banner-dots--source': halftoneEngine === 'three' }"
+        data-halftone-dots
+        aria-hidden="true"
+      />
+      <!-- three.js 点阵版：干净背景 + WebGL 覆盖场点层 + 人物层的三层合成，
+           只在实频包络大于零时盖过单图，未播静态时完全不呈现。 -->
+      <HalftoneThree v-if="halftoneEngine === 'three'" />
     </div>
 
     <!-- 展开态文案列：kicker、日推歌单名大标题、日期与曲单摘要、主操作自上而下排布，
@@ -212,6 +229,24 @@ function onPlay(): void {
 
 <style scoped>
 .banner-caption { pointer-events: none; }
+
+/* 点阵叠加画布铺满背景层并跟随底图裁切，自身不接指针；折叠迷你条时隐藏，
+   沿用旧纪律不在 compact 态显示点层。 */
+.home-topbar .banner-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.main.compact .home-topbar .banner-dots {
+  display: none;
+}
+/* three 引擎下同位点画布只作数据源：visibility 隐藏但保留布局尺寸，
+   spectrum 仍能逐帧推进平滑并发布 dataset，three 层读同一组数。 */
+.home-topbar .banner-dots--source {
+  visibility: hidden;
+}
 
 /* ---------- 展开态 hero ---------- */
 /* 展开高度约 272px 承载完整文案列与左下频谱，滚动折叠时仍回到全局迷你条高度。 */

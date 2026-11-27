@@ -412,7 +412,21 @@ onUnmounted(() => {
         :aria-busy="!ready"
       >
         <!-- 当前分类标题区：与可滚动设置表单分开，切换分类时始终可见。 -->
-        <div class="shrink-0 border-b border-white/[.07] px-[20px] py-[15px]">
+        <div class="settings-head relative shrink-0 overflow-hidden border-b border-white/[.07] px-[20px] py-[15px]">
+          <!-- 页头波普半调带：只从中部向右渐显，左侧标题与说明保持干净。 -->
+          <span class="settings-head-dots pop-halftone" aria-hidden="true" />
+          <!-- 页头波普原画贴纸：横幅同源的耳机少女小幅贴纸，压在半调带上，窄窗隐藏不挤标题。 -->
+          <span class="settings-head-artwrap" aria-hidden="true">
+            <img
+              class="settings-head-art pop-sticker pop-sticker--framed"
+              style="--pop-sticker-angle: -2deg"
+              src="/images/pop-hero.webp"
+              width="1200"
+              height="440"
+              alt=""
+              decoding="async"
+            />
+          </span>
           <h2 class="m-0 flex items-center gap-[8px] text-[15px] font-extrabold">
             {{ activeSection.title }}
             <!-- 页头波普点缀：与队列面板同一星形贴纸配方，只作标题识别点缀。 -->
@@ -500,22 +514,67 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 分组图标底衬：24px 圆角平涂色块，配 1.5px 墨边与 2px 硬阴影对齐全屏切换器的贴纸配方；图标收小到 14px 并转白（黄底分组在模板里改墨色），覆盖全局 .navitem svg 的尺寸与透明度。 */
+/* 分组图标底衬：28px 圆角平涂色块，配 1.5px 墨边与 3px 硬阴影的贴纸配方，比旧版 24px/2px 更醒目；图标转白（黄底分组在模板里改墨色），覆盖全局 .navitem svg 的尺寸与透明度。 */
 .nav-chip {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex: none;
   border: 1.5px solid var(--pop-ink);
-  border-radius: 8px;
-  box-shadow: 2px 2px 0 rgb(23 18 31 / 40%);
+  border-radius: 9px;
+  box-shadow: 3px 3px 0 rgb(23 18 31 / 45%);
   color: #fff;
 }
-/* 页头星星贴纸：与队列面板同一星形配方（白晕 + 黄星墨描边），17px 压在分类标题右侧。 */
+/* 页头波普半调带：点色压低、遮罩从 52% 起渐显，只做右侧氛围不进标题区。 */
+.settings-head-dots {
+  position: absolute;
+  inset: 0;
+  --pop-halftone-color: rgb(255 255 255 / 13%);
+  mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 52%, #000 88%);
+}
+/* 页头原画贴纸定位层：垂直居中贴在标题区右侧，贴纸本身的倾斜与白框走共享配方。 */
+.settings-head-artwrap {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  translate: 0 -50%;
+}
+.settings-head-art {
+  display: block;
+  width: 132px;
+  height: 46px;
+  border-radius: 9px;
+  object-fit: cover;
+  object-position: 62% 36%;
+}
+/* 标题与说明层级压在半调带之上，右侧留出贴纸宽度避免文字钻到贴纸下。 */
+.settings-head > h2,
+.settings-head > p {
+  position: relative;
+  z-index: 1;
+}
+.settings-head > h2 {
+  padding-right: 148px;
+}
+.settings-head > p {
+  padding-right: 148px;
+}
+/* 窄窗先撤贴纸与标题留白，半调带保留，标题恢复整行宽度。 */
+@media (max-width: 900px) {
+  .settings-head-artwrap {
+    display: none;
+  }
+  .settings-head > h2,
+  .settings-head > p {
+    padding-right: 0;
+  }
+}
+/* 页头星星贴纸：与队列面板同一星形配方（白晕 + 黄星墨描边），22px 压在分类标题右侧。 */
 .settings-head-star {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   flex: none;
 }
 .settings-head-star svg {
@@ -534,9 +593,13 @@ onUnmounted(() => {
   transform-origin: center;
 }
 .nav-chip svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   opacity: 1;
+}
+/* 设置开关开启态补墨边：薄荷平涂与贴纸配方对齐，只限设置页内的开关，不改全局开关尺寸与滑程。 */
+.main :deep(.switch.on) {
+  border: 1.5px solid var(--pop-ink);
 }
 .settings-section-enter-active,
 .settings-section-leave-active {
