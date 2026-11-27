@@ -120,6 +120,7 @@ export type PlayerPage =
   | 'discovery'
   | 'search'
   | 'library'
+  | 'playlists'
   | 'albums'
   | 'artists'
   | 'album'

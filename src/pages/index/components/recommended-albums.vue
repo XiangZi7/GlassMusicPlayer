@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, reactive, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMediaQuery } from '@vueuse/core'
+import { useMediaQuery, useResizeObserver } from '@vueuse/core'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import CoverThumbnail from '@/components/player/CoverThumbnail.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { usePlayer } from '@/composables/usePlayer'
-import type { SourceTrack } from '@/types/prototype'
-import type { CatalogPlaylist, CatalogTrack } from '@/api'
+import type { CatalogTrack, MusicPlatform, PublicPlaylistSummary } from '@/api'
 import { catalogKey, defaultCover, platformNames } from '@/services/player/catalog'
 import { loadDiscoveryPlaylist } from '@/pages/index/public-playlists'
 import { notify } from '@/services/notification'
 
-const props = defineProps<{ playlists: CatalogPlaylist[]; loading: boolean; incomplete: boolean }>()
+const props = defineProps<{ platform: MusicPlatform; playlists: PublicPlaylistSummary[]; loading: boolean; failed: boolean }>()
+type PlaylistRef = { platform: MusicPlatform; id: string }
 const emit = defineEmits<{ retry: []; playPublic: [songs: CatalogTrack[]] }>()
-const { state, tracks, controller } = usePlayer()
+const { state, controller } = usePlayer()
 const router = useRouter()
 const root = useTemplateRef<HTMLElement>('root')
 const rail = useTemplateRef<HTMLElement>('rail')
 const actions = reactive({
   // 等待整单的快捷播放按钮。
   pending: '',
-  // 返回首页时恢复到原来的歌单卡。
+  // 返回首页时恢复歌单卡或更多入口的焦点。
   opened: '',
 })
 const railState = reactive({
@@ -33,42 +33,29 @@ let playbackRequest: AbortController | undefined
 const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const animated = computed(() => state.settings.motion && !reducedMotion.value)
 
-// 用专辑与歌手区分同名专辑，同时保留曲库中的歌曲顺序。
-function albumKey(track: SourceTrack): string {
-  return JSON.stringify([track.album, track.artist])
+// 首页只显示所属平台的真实预览，点击后用同一平台和 ID 打开完整歌单。
+const cards = computed(() => props.playlists.map(list => ({
+  key: catalogKey({ platform: props.platform, id: list.id }), name: list.title,
+  subtitle: platformNames[props.platform] + (list.trackCount != null ? ' · ' + list.trackCount + ' 首' : ''),
+  label: '查看《' + list.title + '》 · ' + platformNames[props.platform],
+  cover: list.coverUrl || defaultCover,
+  playlist: { platform: props.platform, id: list.id },
+})))
+
+// 点击封面读取同一平台的完整歌单，返回首页时恢复该卡片的键盘焦点。
+function openPlaylist(playlist: PlaylistRef): void {
+  cancelPlay()
+  actions.opened = catalogKey(playlist)
+  const path = router.resolve({ name: 'discovery', params: { platform: playlist.platform, id: playlist.id } }).fullPath
+  controller()?.navigate('discovery', undefined, false, path)
 }
 
-// 每张推荐卡使用第一首歌的封面，点击后按专辑曲目顺序播放。
-const albums = computed(() => {
-  const cards = new Map<string, { track: SourceTrack; indices: number[] }>()
-  tracks.forEach((track, index) => {
-    if (!track.catalog || !track.album || track.album === '—') return
-    const key = albumKey(track)
-    const card = cards.get(key)
-    if (card) card.indices.push(index)
-    else cards.set(key, { track, indices: [index] })
-  })
-  return [...cards.values()]
-})
-// 首页只需预览数据，公开歌单以真实平台和 ID 打开详情，离线专辑保留原有点播操作。
-const cards = computed(() => props.playlists.length ? props.playlists.map(list => ({
-  key: catalogKey(list), name: list.title || '公开歌单',
-  subtitle: platformNames[list.platform] + (list.total != null ? ' · ' + list.total + ' 首' : ''),
-  label: '查看《' + (list.title || '公开歌单') + '》 · ' + platformNames[list.platform],
-  cover: list.coverUrl || list.tracks[0]?.coverUrl || defaultCover,
-  playlist: list,
-  open: () => {
-    cancelPlay()
-    actions.opened = catalogKey(list)
-    const path = router.resolve({ name: 'discovery', params: { platform: list.platform, id: list.id } }).fullPath
-    controller()?.navigate('discovery', undefined, false, path)
-  },
-})) : albums.value.map(({ track, indices }) => ({
-  key: albumKey(track), name: track.album, subtitle: track.artist, cover: track.cover,
-  label: '播放《' + track.album + '》 · ' + track.artist,
-  playlist: undefined,
-  open: () => controller()?.playTracks(indices, indices[0]!),
-})))
+// 从更多入口进入音乐库歌单，保留播放器的前进与后退记录。
+function openLibraryPlaylists(): void {
+  cancelPlay()
+  actions.opened = 'more-playlists'
+  controller()?.navigate('playlists')
+}
 
 // 切换目标或离开卡片页后，旧请求不能覆盖现有队列。
 function cancelPlay(): void {
@@ -78,7 +65,7 @@ function cancelPlay(): void {
 }
 onBeforeUnmount(cancelPlay)
 onDeactivated(cancelPlay)
-watch([() => state.queue, () => state.idx], cancelPlay, { flush: 'sync' })
+watch([() => state.queue, () => state.idx, () => props.platform], cancelPlay, { flush: 'sync' })
 onActivated(async () => {
   await nextTick()
   updateRailState()
@@ -88,7 +75,7 @@ onActivated(async () => {
 })
 
 // 快捷播放先取完全部分页，失败保留原队列，多个请求以最后一次为准。
-async function playFull(playlist: CatalogPlaylist): Promise<void> {
+async function playFull(playlist: PlaylistRef): Promise<void> {
   cancelPlay()
   const request = new AbortController()
   playbackRequest = request
@@ -104,11 +91,6 @@ async function playFull(playlist: CatalogPlaylist): Promise<void> {
     if (playbackRequest === request) cancelPlay()
   }
 }
-const activeAlbum = computed(() => {
-  const current = tracks[state.idx]
-  return current ? albumKey(current) : undefined
-})
-
 // 读取轨道滚动位置，更新左右箭头的可用状态。
 function updateRailState(): void {
   const element = rail.value
@@ -120,10 +102,11 @@ function updateRailState(): void {
   railState.canPrev = element.scrollLeft > 4
   railState.canNext = element.scrollLeft + element.clientWidth < element.scrollWidth - 4
 }
+useResizeObserver(rail, updateRailState)
 
 // 卡片数量或轨道尺寸变化后重新量测可滚动范围。
 watch(
-  () => cards.value.length,
+  [rail, () => cards.value.length],
   async () => {
     await nextTick()
     updateRailState()
@@ -140,17 +123,22 @@ function turnPage(direction: number): void {
 </script>
 
 <template>
-  <!-- 首页推荐区：右上角提供专辑播放提示和圆形翻页箭头。 -->
+  <!-- 首页发现歌单：进入音乐库查看更多，也可横滑当前平台的歌单。 -->
   <section ref="root" aria-labelledby="home-recommend-title">
     <div
-      class="feat-head relative z-[1] m-[22px_2px_12px] flex items-center justify-between gap-3"
+      class="feat-head relative z-[1] m-[22px_2px_12px] flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
     >
-      <div class="flex flex-wrap items-baseline gap-x-3">
-        <h5 id="home-recommend-title">{{ playlists.length || !albums.length ? '发现歌单' : '曲库专辑' }}</h5>
-      </div>
-      <div class="flex items-center gap-2">
-        <!-- 各平台独立重试，已成功的推荐保留在原位。 -->
-        <BaseButton v-if="incomplete" class="recommend-link" :loading="loading" @click="emit('retry')">重试公开歌单</BaseButton>
+      <h5 id="home-recommend-title">发现歌单</h5>
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- 更多歌单沿用公共次操作按钮，直接打开音乐库歌单页。 -->
+        <BaseButton
+          class="recommend-link"
+          data-card-key="more-playlists"
+          @click="openLibraryPlaylists"
+          >更多歌单</BaseButton
+        >
+        <!-- 当前平台有失败来源时提供重试，已成功的卡片留在原位。 -->
+        <BaseButton v-if="failed" class="recommend-link" :loading="loading" @click="emit('retry')">重试热门歌单</BaseButton>
         <!-- 推荐横滑按钮：边界状态保持可见，使用原有左右箭头。 -->
         <BaseButton
           v-for="direction in cards.length > 1 ? [-1, 1] : []"
@@ -184,57 +172,83 @@ function turnPage(direction: number): void {
       </div>
     </div>
     <div id="home-recommend-albums">
-      <!-- 推荐卡片横滑轨道：全部卡片同排排布，箭头按屏横滑，卡片吸附停靠。 -->
-      <div
-        v-if="cards.length"
-        ref="rail"
-        class="album-rail"
-        :class="{ 'rail-motion': animated }"
-        @scroll="updateRailState"
+      <Transition
+        name="discovery-platform"
+        mode="out-in"
+        :css="animated"
       >
-        <div v-for="card in cards" :key="card.key" class="discover-card relative min-w-0">
-          <BaseButton
-            class="feat relative w-full min-w-0 rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
-            :class="{ on: card.key === activeAlbum }"
-            :data-card-key="card.key"
-            :title="card.label" :aria-label="card.label"
-            @click="card.open"
+        <div :key="platform">
+          <!-- 推荐卡片横滑轨道：全部卡片同排排布，箭头按屏横滑，卡片吸附停靠。 -->
+          <div
+            v-if="cards.length"
+            ref="rail"
+            class="album-rail"
+            :class="{ 'rail-motion': animated }"
+            @scroll="updateRailState"
           >
-            <CoverThumbnail :size="160" loading="lazy"
-              :src="card.cover"
-              alt=""
-            />
-            <b>{{ card.name }}</b>
-            <span class="block truncate">{{ card.subtitle }}</span>
-          </BaseButton>
-          <BaseButton v-if="card.playlist" class="discover-play" :class="{ 'has-motion': animated }"
-            :loading="actions.pending === card.key" :aria-label="'播放完整歌单《' + card.name + '》'"
-            :title="'播放完整歌单《' + card.name + '》'" @click="playFull(card.playlist)">
-            <svg v-if="actions.pending !== card.key" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
-          </BaseButton>
+            <div
+              v-for="card in cards"
+              :key="card.key"
+              class="discover-card relative min-w-0"
+            >
+              <BaseButton
+                class="feat relative w-full min-w-0 rounded-[18px] border border-transparent bg-transparent p-[10px_10px_12px] text-left text-inherit"
+                :data-card-key="card.key"
+                :title="card.label"
+                :aria-label="card.label"
+                @click="openPlaylist(card.playlist)"
+              >
+                <CoverThumbnail
+                  :size="160"
+                  loading="lazy"
+                  :src="card.cover"
+                  alt=""
+                />
+                <b>{{ card.name }}</b>
+                <span class="block truncate">{{ card.subtitle }}</span>
+              </BaseButton>
+              <BaseButton
+                class="discover-play"
+                :class="{ 'has-motion': animated }"
+                :loading="actions.pending === card.key"
+                :aria-label="'播放完整歌单《' + card.name + '》'"
+                :title="'播放完整歌单《' + card.name + '》'"
+                @click="playFull(card.playlist)"
+              >
+                <svg
+                  v-if="actions.pending !== card.key"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+              </BaseButton>
+            </div>
+          </div>
+          <div
+            v-else-if="loading"
+            role="status"
+            class="grid min-h-40 place-content-center text-sm text-white/70"
+          >
+            正在加载热门歌单…
+          </div>
+          <!-- 推荐空态：保留搜索和分享导入入口。 -->
+          <div
+            v-else
+            class="grid min-h-40 place-content-center justify-items-center gap-2 rounded-[18px] border border-white/10 bg-white/[.035] py-5"
+          >
+            <EmptyState icon="playlist" aria-hidden="true" />
+            <p class="m-0 text-[13px] text-white/70">{{ failed ? '暂时无法获取热门歌单' : '暂无热门歌单' }}</p>
+            <div class="flex flex-wrap justify-center gap-2">
+              <BaseButton class="recommend-link" @click="controller()?.navigate('search')">搜索歌曲</BaseButton>
+              <BaseButton class="recommend-link" @click="controller()?.navigate('connect')">导入歌单</BaseButton>
+            </div>
+          </div>
         </div>
-      </div>
-      <div v-else-if="loading" role="status" class="grid min-h-40 place-content-center text-sm text-white/70">正在加载公开歌单…</div>
-      <!-- 推荐空态：提供重试、搜索和导入入口。 -->
-      <div
-        v-else
-        class="grid min-h-[160px] place-content-center justify-items-center gap-2 rounded-[18px] border border-white/10 bg-white/[.035] py-5"
-      >
-        <EmptyState label="公开歌单暂不可用" aria-hidden="true" />
-        <p class="m-0 text-[13px] text-white/70">暂时无法获取公开歌单</p>
-        <div class="flex flex-wrap justify-center gap-2">
-          <BaseButton
-            class="recommend-link"
-            @click="controller()?.navigate('search')"
-            >搜索歌曲</BaseButton
-          >
-          <BaseButton
-            class="recommend-link"
-            @click="controller()?.navigate('connect')"
-            >导入歌单</BaseButton
-          >
-        </div>
-      </div>
+      </Transition>
     </div>
   </section>
 </template>
@@ -268,6 +282,19 @@ button:focus-visible {
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 999px;
   font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.discovery-platform-enter-active,
+.discovery-platform-leave-active {
+  transition: opacity 160ms ease;
+}
+.discovery-platform-enter-from,
+.discovery-platform-leave-to {
+  opacity: 0;
+}
+.discovery-platform-leave-active {
+  pointer-events: none;
 }
 
 /* 卡片标题固定两行高：长短标题都截断对齐，整排卡片底边齐平。 */

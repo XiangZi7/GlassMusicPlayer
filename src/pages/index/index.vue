@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import { useIntervalFn, useNow } from '@vueuse/core'
+import { useRoute } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import FeaturedBanner from '@/pages/index/components/featured-banner.vue'
 import DailyPlaylist from '@/pages/index/components/daily-playlist.vue'
@@ -12,14 +13,17 @@ import ListeningShelves from '@/pages/index/components/listening-shelves.vue'
 import RecommendedAlbums from '@/pages/index/components/recommended-albums.vue'
 import TrackRow from '@/components/player/TrackRow.vue'
 import { usePlayer } from '@/composables/usePlayer'
+import { useActiveMusicPlatform } from '@/composables/useActiveMusicPlatform'
 import { usePlayerStore } from '@/stores/player'
-import { getAccountDailyTracks, type CatalogPlaylist, type CatalogTrack, type MusicPlatform } from '@/api'
+import { getAccountDailyTracks, getPopularPlaylists, type CatalogPlaylist, type CatalogTrack, type MusicPlatform, type PublicPlaylistSummary } from '@/api'
 import { catalogKey, platformNames, toSourceTrack } from '@/services/player/catalog'
 import { playbackAccount } from '@/services/player/playback-session'
 import { loadPublicPlaylists, neteaseRecommendationDate, pickDailyTracks, pickProfileTracks } from '@/pages/index/public-playlists'
 const props = defineProps<{ detail?: boolean }>()
 const { state, tracks, controller } = usePlayer()
 const { registerCatalogTracks, profileTracks } = usePlayerStore()
+const activePlatform = useActiveMusicPlatform()
+const route = useRoute()
 const discovery = reactive({
   // 榜单和发现卡片逐个显示，已展示的日推选曲保留到本轮全部完成。
   previews: [] as CatalogPlaylist[],
@@ -40,6 +44,18 @@ const discovery = reactive({
   // 用户手动重试时重新读取失败来源。
   retry: 0,
 })
+const popular = reactive({
+  // 当前热门歌单的所属平台，切换后立即隐藏旧列表。
+  platform: null as MusicPlatform | null,
+  // 只预览平台推荐顺序的前八份公开热门歌单。
+  playlists: [] as PublicPlaylistSummary[],
+  // 发现区首次读取或重试中的状态。
+  loading: true,
+  // 当前平台未能返回热门歌单，允许原位重试。
+  failed: false,
+  // 发现区重试与首页其它公开内容请求独立。
+  retry: 0,
+})
 const now = useNow({ scheduler: tick => useIntervalFn(tick, 60_000) })
 const day = computed(() => now.value.toDateString())
 // 北京时间 06:00 开始新一期网易云日推，按固定时区计算，不受设备时区影响。
@@ -56,6 +72,28 @@ watch([day, () => discovery.retry], async ([today], _, onCleanup) => {
   discovery.playlists = result.playlists
   discovery.incomplete = result.incomplete
   discovery.loading = false
+}, { immediate: true })
+
+// 发现区按当前平台读取真正的热门歌单，离开首页或切换身份时取消旧请求。
+watch([activePlatform, () => route.name, () => popular.retry], async ([platform, page], _, onCleanup) => {
+  if (page !== 'home') return
+  const request = new AbortController()
+  onCleanup(() => request.abort())
+  if (popular.platform !== platform) popular.playlists = []
+  popular.platform = platform
+  popular.loading = true
+  popular.failed = false
+  try {
+    const result = await getPopularPlaylists(platform, 1, 8, request.signal)
+    if (request.signal.aborted) return
+    if (result.platform !== platform || result.pageNum !== 1 || result.pageSize !== 8)
+      throw new Error('音乐服务返回的热门歌单不一致。')
+    popular.playlists = result.playlists
+  } catch {
+    if (!request.signal.aborted) popular.failed = true
+  } finally {
+    if (!request.signal.aborted) popular.loading = false
+  }
 }, { immediate: true })
 // 与顶栏头像采用同一身份优先级，先使用已登录账号，再使用最近关联的公开资料。
 const profile = computed(() => {
@@ -165,10 +203,10 @@ function focusDailyView(element: Element): void {
       <RadioTile class="bento-radio" />
       <ArtistTile class="bento-artists" :playlists="discovery.playlists" :preview="publicPreview"
         :loading="discovery.loading" @play="playPublic" />
-      <!-- 发现区优先展示三平台公开歌单，离线时显示曲库专辑，整行横滑。 -->
+      <!-- 发现歌单横滑区：只展示当前平台，更多入口进入音乐库歌单。 -->
       <div class="tile bento-rail">
-        <RecommendedAlbums :playlists="discovery.previews" :loading="discovery.loading" :incomplete="discovery.incomplete"
-          @retry="discovery.retry++" @play-public="playPublic" />
+        <RecommendedAlbums :platform="activePlatform" :playlists="popular.platform === activePlatform ? popular.playlists : []" :loading="popular.loading"
+          :failed="popular.failed" @retry="popular.retry++" @play-public="playPublic" />
       </div>
     </div>
     <!-- 今日曲目完整列表保留日推顺序，位于 bento 下方。 -->

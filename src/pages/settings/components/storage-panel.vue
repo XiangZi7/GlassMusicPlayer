@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, toRefs } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import { usePlayer } from '@/composables/usePlayer'
+import { playbackQualities } from '@/constants/music'
 import { notify } from '@/services/notification'
 import {
   getStorageInfo,
@@ -16,6 +18,10 @@ import {
 
 const player = usePlayer()
 const { settings } = toRefs(player.state)
+// 下载请求使用具体的音质档位，沿用播放器的标签和图标。
+const downloadQualities = playbackQualities.filter(
+  option => option.value !== 'auto'
+)
 const supported = isNativeStorageSupported()
 // 响应式状态
 const state = reactive({
@@ -181,28 +187,25 @@ onMounted(refresh)
     <!-- 下载音质偏好：不承诺平台没有授权的无损资源。 -->
     <div class="set-card rounded-[16px] border border-transparent p-[14px]">
       <div class="flex flex-wrap items-center gap-[12px]">
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 basis-[165px]">
           <b class="text-[12px]">默认下载音质</b>
-          <p class="mt-[5px] mb-0 text-[11px] leading-[1.6] text-white/55">
+          <p
+            id="download-quality-help"
+            class="mt-[5px] mb-0 text-[11px] leading-[1.6] text-white/55"
+          >
             网易云支持请求指定音质，其余平台沿用原有资源。实际格式、试听与权限以上游本次返回为准。
           </p>
         </div>
-        <select
+        <!-- 下载音质下拉框只更新设置草稿，应用或保存后提交。 -->
+        <BaseChoiceMenu
+          variant="field"
+          label="默认下载音质"
+          description-id="download-quality-help"
           :value="settings.downloadQuality"
-          aria-label="默认下载音质"
-          class="rounded-[9px] border border-white/15 bg-[#242530] px-[10px] py-[8px] text-[12px] text-white"
-          @change="
-            player.setSetting(
-              'downloadQuality',
-              ($event.target as HTMLSelectElement).value
-            )
-          "
-        >
-          <option value="standard">标准</option>
-          <option value="exhigh">极高</option>
-          <option value="lossless">无损</option>
-          <option value="hires">Hi-Res</option>
-        </select>
+          :options="downloadQualities"
+          :motion="settings.motion"
+          @select="player.setSetting('downloadQuality', $event)"
+        />
       </div>
     </div>
     <!-- 真实占用：加载在统计内容内部，不插入会挤动页面的标题行。 -->

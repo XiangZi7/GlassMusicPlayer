@@ -83,6 +83,17 @@ export interface PlaylistSearchPage {
   playlists: PublicPlaylistSummary[]
 }
 
+export interface PopularPlaylistPage extends PlaylistSearchPage {
+  hasMore: boolean
+}
+
+export interface PlaylistBrowseFilters {
+  platform: MusicPlatform
+  categories: { value: string; label: string }[]
+  orders: { value: string; label: string }[]
+  categoryOrders: boolean
+}
+
 export interface PublicUserPlaylists {
   platform: PublicProfilePlatform
   userId: string
@@ -130,6 +141,21 @@ export function searchCatalogPlaylists(
   return httpGet<PlaylistSearchPage>(`/${platform}/search/playlists`, {
     params: { q, pageNum, pageSize }, signal,
   })
+}
+
+// 读取平台的公开热门歌单，账号与播放凭据不参与请求。
+export function getPopularPlaylists(
+  platform: MusicPlatform, pageNum: number, pageSize: number, signal: AbortSignal,
+  filters?: { category?: string; order?: string }
+) {
+  return httpGet<PopularPlaylistPage>(`/${platform}/playlists/popular`, {
+    params: { pageNum, pageSize, ...filters }, signal,
+  })
+}
+
+// 读取该平台实际支持的歌单分类和排序选项。
+export function getPlaylistBrowseFilters(platform: MusicPlatform, signal: AbortSignal) {
+  return httpGet<PlaylistBrowseFilters>(`/${platform}/playlists/filters`, { signal })
 }
 
 // 读取同平台曲目详情，为旧歌单和精简列表补齐作品说明。

@@ -39,6 +39,12 @@ export const router = createRouter({
           meta: { playerPage: 'library' },
         },
         {
+          path: 'playlists',
+          name: 'library-playlists',
+          component: () => import('@/pages/library/playlists.vue'),
+          meta: { playerPage: 'playlists' },
+        },
+        {
           path: 'albums',
           component: () => import('@/pages/albums.vue'),
           meta: { playerPage: 'albums' },

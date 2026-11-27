@@ -35,7 +35,19 @@
 
 ![首页的每日推荐、榜单和歌曲电台](images/home.png)
 
-首页发现歌单从三个平台各读取两份公开列表的近期预览。打开卡片或使用快捷播放时才读取完整分页。一个来源暂不可用时可以浏览其他成功项，再点击重试。导入保存的是歌单内容，实际能否播放、是否试听以及允许的音质在点播时由平台决定。
+首页「发现歌单」展示当前平台的热门歌单。「更多歌单」进入「音乐库 → 歌单」，可切换网易云、酷狗或酷我并翻页。访客从网易云开始，已登录或关联的身份只决定默认平台。网易云和酷我可按平台分类浏览，酷我的全部分类支持热门、最新排序，酷狗可切换最热、推荐、热藏和飙升频道。输入关键词后，使用当前平台的公开歌单搜索。打开卡片或快捷播放时才读取完整曲目。导入保存的是歌单内容，实际能否播放、是否试听以及允许的音质在点播时由平台决定。
+
+### 热门歌单接口索引
+
+播放器通过 `getPopularPlaylists` 请求 MiraiMusic-Server 的 `GET /api/v1/{platform}/playlists/popular`。`pageNum` 与 `pageSize` 控制分页，`category` 与 `order` 的可用值由 `GET /api/v1/{platform}/playlists/filters` 返回。服务端保留平台排列顺序，使用 `hasMore` 和可选的 `total` 分页。上游变化时，从服务端 `providers/` 对应的 `popular_playlists` 方法开始排查。
+
+| 平台 | 上游入口 | 参考实现 |
+| --- | --- | --- |
+| 网易云 | `/api/playlist/list`，`cat=全部`、`order=hot` | [NeteaseCloudMusicApiEnhanced 的分类歌单](https://github.com/Mirakelor/NeteaseCloudMusicApiEnhanced/blob/35fb65be112714d1a9c9a4495fde0d090c4e4f77/module/top_playlist.js) |
+| 酷狗 | `/yy/special/index/{page}-6-0.html`，官网「最热」目录 | [官网最热目录](https://www.kugou.com/yy/special/index/1-6-0.html) · [KuGouMusicApi 的安卓推荐列表](https://github.com/MakcRe/KuGouMusicApi/blob/9ab1ba2e3a64d2eb9a244b535d1ce4248f76fa5b/module/top_playlist.js) |
+| 酷我 | `/newh5app/wapi/api/www/classify/playlist/getRcmPlayList`，`order=hot` | [TuneWeave 的公开目录](https://github.com/MOPELotus/TuneWeave/blob/5bcda294b03e9903eb579473834f09a77f01abab/crates/tuneweave-provider-kuwo/src/client/playlist_catalog.rs) |
+
+实测酷狗官网最热目录的后续页重复第一页。服务端按第一页实际提供的不同歌单分页。目录没有曲目数时，卡片只显示歌单名称，详情打开后读取实际曲目数。
 
 ## 登录资料
 

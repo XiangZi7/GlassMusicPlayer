@@ -7,6 +7,7 @@ const options = [
   { label: '全部歌曲', value: 'library' },
   { label: '专辑', value: 'albums' },
   { label: '歌手', value: 'artists' },
+  { label: '歌单', value: 'playlists' },
   { label: '我喜欢的', value: 'liked' },
   { label: '最近播放', value: 'recent' },
   { label: '智能歌单', value: 'smart' },

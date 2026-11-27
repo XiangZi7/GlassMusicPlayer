@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChoiceMenu from '@/components/ui/BaseChoiceMenu.vue'
 import { usePlayer } from '@/composables/usePlayer'
 import { updateSources } from '@/services/update-preferences'
 import { useAppUpdaterStore } from '@/stores/app-updater'
@@ -77,11 +78,6 @@ function runAction(): void {
   } else {
     void updater.command('check')
   }
-}
-
-// 线路变更先留在窗口草稿，沿用底栏的应用、保存与取消。
-function selectSource(event: Event): void {
-  setSetting('updateSource', (event.target as HTMLSelectElement).value)
 }
 
 // 自定义地址在提交草稿时统一校验，输入过程中允许暂不完整的地址。
@@ -209,31 +205,26 @@ onMounted(() => void updater.start())
           ><i
         /></BaseButton>
       </div>
-      <!-- 原生线路选择器支持键盘和窄设置窗，下载地址和偏好一起提交。 -->
+      <!-- 更新下载线路设置区。 -->
       <div
         class="set-row flex flex-wrap items-center gap-x-[14px] gap-y-2 py-3"
       >
-        <label
-          for="update-source"
-          class="set-txt min-w-0 flex-1 basis-[165px]"
-        >
+        <div class="set-txt min-w-0 flex-1 basis-[165px]">
           <b>更新下载线路</b
-          ><span>自动模式优先尝试加速线路，失败后使用 GitHub 直连。</span>
-        </label>
-        <select
-          id="update-source"
-          class="update-field"
-          :value="player.settings.updateSource"
-          @change="selectSource"
-        >
-          <option
-            v-for="source in updateSources"
-            :key="source.value"
-            :value="source.value"
+          ><span id="update-source-help"
+            >自动模式优先尝试加速线路，失败后使用 GitHub 直连。</span
           >
-            {{ source.label }}
-          </option>
-        </select>
+        </div>
+        <!-- 线路下拉框只更新设置草稿，随自定义地址一起提交。 -->
+        <BaseChoiceMenu
+          variant="field"
+          label="更新下载线路"
+          description-id="update-source-help"
+          :value="player.settings.updateSource"
+          :options="updateSources"
+          :motion="player.settings.motion"
+          @select="setSetting('updateSource', $event)"
+        />
       </div>
       <Transition name="update-fade">
         <div
@@ -284,10 +275,6 @@ onMounted(() => void updater.start())
 }
 .update-field {
   color-scheme: dark;
-}
-.update-field option {
-  background: #26262f;
-  color: white;
 }
 .update-action {
   display: inline-flex;

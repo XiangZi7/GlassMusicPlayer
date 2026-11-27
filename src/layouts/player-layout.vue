@@ -410,7 +410,7 @@ onUnmounted(() => {
 })
 const { page, idx, settings } = toRefs(state)
 const compactLibrary = computed(() =>
-  ['library', 'albums', 'album', 'artists', 'artist', 'liked', 'recent', 'smart'].includes(
+  ['library', 'playlists', 'albums', 'album', 'artists', 'artist', 'liked', 'recent', 'smart'].includes(
     page.value
   )
 )
